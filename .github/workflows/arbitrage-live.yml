@@ -1,17 +1,11 @@
-name: Arbitrage — Scan Live (15s)
+name: Arbitrage — Scan Live (7s)
 
-# Scan live : boucle interne toutes les 15 secondes pendant X minutes.
-# Déclenchement :
-#   1. Manuel (bouton "Run workflow" sur GitHub) — vous choisissez la durée.
-#   2. Automatique aux heures de match (18h-22h UTC, configurable ci-dessous).
+# Scan live : boucle interne toutes les 7 secondes pendant X minutes.
+# Repo PUBLIC = minutes ILLIMITÉES. Secrets restent chiffrés.
+# Code minifié dans dist/action.min.js — illisible pour un visiteur.
 #
-# Budget privé (2000 min/mois) :
-#   - 4 créneaux auto × 55 min = 220 min/jour ≈ 6600 min/mois ❌ trop
-#   - SOLUTION : ne garder que 1-2 créneaux auto + le reste en manuel.
-#   - Ajustez les lignes "cron" ci-dessous selon vos besoins.
-#
-# 💡 Sur un repo PUBLIC, les minutes GitHub Actions sont ILLIMITÉES.
-#    Vos secrets restent chiffrés et invisibles même sur un repo public.
+# 6 créneaux automatiques répartis sur 24h.
+# Chaque créneau tourne 350 min (~5h50), puis le suivant prend le relais.
 
 on:
   workflow_dispatch:
@@ -19,12 +13,15 @@ on:
       duration:
         description: 'Durée du scan en minutes (max 350)'
         required: false
-        default: '30'
+        default: '55'
 
-  # Décommentez les créneaux que vous voulez activer :
-  # schedule:
-  #   - cron: '0 17 * * *'   # 17h UTC = 18h Paris
-  #   - cron: '0 19 * * *'   # 19h UTC = 20h Paris
+  schedule:
+    - cron: '0 0 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 10 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 18 * * *'
+    - cron: '0 22 * * *'
 
 jobs:
   live:
@@ -49,11 +46,11 @@ jobs:
       - name: Install dependencies
         run: npm install --production
 
-      - name: Run live scan loop (every 15s)
-        run: node src/runners/github-action.js live
+      - name: Run live scan loop (every 7s)
+        run: node dist/action.min.js live
         env:
-          SCAN_DURATION_MINUTES: ${{ github.event.inputs.duration || '55' }}
-          LIVE_INTERVAL_MS: '15000'
+          SCAN_DURATION_MINUTES: ${{ github.event.inputs.duration || '350' }}
+          LIVE_INTERVAL_MS: '7000'
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}

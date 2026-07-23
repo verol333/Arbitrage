@@ -1,9 +1,7 @@
 name: Arbitrage — Scan Prématch
 
-# Toutes les 10 minutes + déclenchement manuel possible.
-# Budget (repo privé) : 144 runs/jour × ~2 min ≈ 288 min/jour ≈ 8640 min/mois.
-#   ⚠️  Dépasse les 2000 min/mois gratuites sur un repo PRIVÉ.
-#   💡  Sur un repo PUBLIC, les minutes sont ILLIMITÉES (secrets restent chiffrés).
+# Toutes les 10 minutes — repo PUBLIC = minutes illimitées.
+# Code minifié dans dist/action.min.js — illisible, secrets chiffrés.
 on:
   schedule:
     - cron: '*/10 * * * *'
@@ -33,7 +31,7 @@ jobs:
         run: npm install --production
 
       - name: Run prematch scan
-        run: node src/runners/github-action.js prematch
+        run: node dist/action.min.js prematch
         env:
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
