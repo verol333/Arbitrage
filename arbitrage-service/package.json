@@ -2,19 +2,11 @@
   "name": "arbitrage-service",
   "version": "1.0.0",
   "private": true,
-  "description": "Service de scan d'arbitrage sportif (surebets) autonome, port du système AL VE CAPITAL de Base44 vers Node.js pur.",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "scripts": {
-    "start": "node src/server/index.js",
-    "scan:prematch": "node -e \"import('./src/scanners/prematch.js').then(m=>m.runPrematchScan().then(r=>console.log(JSON.stringify(r,null,2))))\"",
-    "scan:live": "node -e \"import('./src/scanners/live.js').then(m=>m.runLiveScan().then(r=>console.log(JSON.stringify(r,null,2))))\""
+    "node": ">=20.0.0"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "node-cron": "^3.0.3",
     "ws": "^8.18.0"
   }
 }
