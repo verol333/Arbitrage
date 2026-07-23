@@ -1,0 +1,47 @@
+name: Arbitrage — Scan Prématch
+
+# Toutes les 10 minutes + déclenchement manuel possible.
+# Budget (repo privé) : 144 runs/jour × ~2 min ≈ 288 min/jour ≈ 8640 min/mois.
+#   ⚠️  Dépasse les 2000 min/mois gratuites sur un repo PRIVÉ.
+#   💡  Sur un repo PUBLIC, les minutes sont ILLIMITÉES (secrets restent chiffrés).
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  prematch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+
+      - name: Install dependencies
+        run: npm install --production
+
+      - name: Run prematch scan
+        run: node src/runners/github-action.js prematch
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          BASE44_API_URL: ${{ secrets.BASE44_API_URL }}
+          BASE44_SERVICE_KEY: ${{ secrets.BASE44_SERVICE_KEY }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
+          HORIZON_HOURS: '72'
+          MAX_MATCHES: '400'
