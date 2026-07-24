@@ -33,6 +33,9 @@ jobs:
           key: npm-${{ hashFiles('arbitrage-service/package.json') }}
       - name: Install dependencies
         run: npm install --production
+      - name: Link node_modules at repo root (src/ needs it)
+        working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
       - name: Run debug probe
         run: node scripts/debug-match.js > /tmp/debug.json 2> /tmp/debug.err.log || echo "exit $?"
         env:
