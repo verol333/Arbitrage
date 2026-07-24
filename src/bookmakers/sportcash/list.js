@@ -8,9 +8,21 @@ async function listSportEvents(live) {
     xget('getHomeLandingData', { timezone: '1' }),
   ]);
   const evs = [];
-  if (wc) for (const bw of (wc.bws || [])) for (const av of (bw.avs || [])) evs.push(av);
-  if (hl) for (const tm of (hl.tms || [])) evs.push(tm);
-  if (hl && live) for (const lv of (hl.lvs || [])) evs.push(lv);
+  // getWidgetCentrali.bws : widgets banners → chacun a .avs (top events).
+  if (wc?.bws) for (const bw of wc.bws) for (const av of (bw.avs || [])) evs.push(av);
+  // getWidgetCentrali.tms : top matches promus.
+  if (wc?.tms) for (const tm of wc.tms) evs.push(tm);
+  // getWidgetCentrali.lms : catalogue par sport ID (1=Foot, 2=Bk, etc.) → .avs
+  if (wc?.lms) for (const sportKey of Object.keys(wc.lms)) {
+    const bucket = wc.lms[sportKey];
+    if (bucket?.avs) for (const av of bucket.avs) evs.push(av);
+  }
+  // getHomeLandingData.tms / lvs : top et live.
+  if (hl?.tms) for (const tm of hl.tms) evs.push(tm);
+  if (hl?.lvs) for (const lv of hl.lvs) {
+    if (lv?.avs) for (const av of lv.avs) evs.push(av);
+    else if (live) evs.push(lv);
+  }
 
   const seen = new Set(); const out = [];
   for (const e of evs) {
@@ -27,7 +39,7 @@ async function listSportEvents(live) {
 }
 
 export async function listMatches({ live = false, maxMatches, horizonHours = 72 } = {}) {
-  const limit = maxMatches ?? (live ? 80 : 200);
+  const limit = maxMatches ?? (live ? 200 : 600);
   const nowMs = Date.now();
   const horizonMs = nowMs + horizonHours * 3600 * 1000;
   let events = await listSportEvents(live);
