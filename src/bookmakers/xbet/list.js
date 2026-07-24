@@ -4,7 +4,7 @@ import { teamSim } from '../../core/text.js';
 const SPORT_ID = 1;
 
 function isRealChamp(name) {
-  return !/spéci|special|player|joueur|team vs|vs player|winner|vainqueur|to win|outright|long.?term/i.test(name || '');
+  return !/spéci|special|alternative|player|joueur|team vs|vs player|winner|vainqueur|to win|outright|long.?term|handicap match|first goalscorer|corner match|booking|cards?( match)?/i.test(name || '');
 }
 
 // Un même match peut apparaître sous plusieurs "champs" (main league + variantes/spéciaux).

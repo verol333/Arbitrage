@@ -13,22 +13,35 @@ export function orientation(refHome, refAway, cHome, cAway) {
   return 'ambiguous';
 }
 
+// Détecte les modifieurs (w, femmes, u17, u21, youth, reserves, etc.). Un match
+// avec modifieur ne doit JAMAIS s'apparier à un match sans modifieur (women vs
+// senior, jeunes vs pro).
+const MODIFIER_RE = /\b(w|women|femmes|feminin|dames|u1[5-9]|u2[0-3]|youth|junior|jrs?|reserves?|2nd|ii|iii|b|c|amateur)\b/i;
+function modifierKey(s) {
+  const m = (s || '').match(MODIFIER_RE);
+  return m ? m[1].toLowerCase() : '';
+}
+function modifiersMatch(refHome, refAway, cHome, cAway) {
+  return modifierKey(refHome) === modifierKey(cHome) && modifierKey(refAway) === modifierKey(cAway);
+}
+
 // Apparie un match de référence (ref) contre un catalogue (cands).
 // STRICT :
-//  - fenêtre ±30 min si les 2 heures connues (± horizonMs si connues)
-//  - chaque équipe ≥ 0.40 de similarité (avant : 0.30)
-//  - moyenne ≥ 0.55 (nouveau)
-//  - orientation "same" obligatoire (jamais "swapped" ni "ambiguous")
-//  - si 2 candidats à égalité, préfère celui dont l'horaire est le plus proche
+//  - fenêtre ±30 min si les 2 heures connues
+//  - chaque équipe ≥ 0.60 de similarité (rejette Dynamo Moscow vs Dynamo Makhachkala)
+//  - moyenne ≥ 0.70
+//  - modifieurs cohérents (women/youth/u17/reserves) sur les 2 côtés
+//  - orientation "same" obligatoire
 export function matchBook(ref, cands, used) {
   const HARD_DT = 30 * 60 * 1000;
-  const MIN_TEAM = 0.40;
-  const MIN_AVG = 0.55;
+  const MIN_TEAM = 0.60;
+  const MIN_AVG = 0.70;
   let best = null, bestScore = -1, bestDt = null;
   for (const c of cands) {
     if (used.has(c.id)) continue;
     const dt = (ref.start && c.start) ? Math.abs(ref.start - c.start) : null;
     if (dt !== null && dt > HARD_DT) continue;
+    if (!modifiersMatch(ref.home, ref.away, c.home, c.away)) continue;
     const sh = teamSim(ref.home, c.home);
     const sa = teamSim(ref.away, c.away);
     if (!(sh >= MIN_TEAM && sa >= MIN_TEAM)) continue;

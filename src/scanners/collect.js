@@ -56,10 +56,11 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
   const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
-  // Priorité aux matchs couverts par le plus de books, puis par kickoff proche.
+  // Tri chronologique simple : matchs les plus proches en premier.
+  // (Un tri par couverture excluait les matchs 1win/sportcash du top.)
   const sorted = entries
-    .map((e) => ({ e, coverage: Object.keys(e.matches).length, start: e.ref.start || Infinity }))
-    .sort((a, b) => (b.coverage - a.coverage) || (a.start - b.start))
+    .map((e) => ({ e, start: e.ref.start || Infinity }))
+    .sort((a, b) => a.start - b.start)
     .slice(0, cap)
     .map((s) => s.e);
   log(`🔗 ${sorted.length}/${entries.length} matchs exploitables (≥2 books)`);
