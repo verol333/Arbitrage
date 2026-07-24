@@ -95,27 +95,29 @@ export function apolloFlatOdds(offers) {
     if (s.includes('under') || n === '2') odds[`set_under_${l}`] = c;
     else if (s.includes('over') || n === '3') odds[`set_over_${l}`] = c;
   });
-  // 597 / 841 / 842 : Player Totals (Under/Over sur Sbv).
+  // 597 : 1st Set TOTAL GAMES (Sbv 6.5-12.5, pas "Player Total"). Corrigé.
   eachOdd(offers, 597, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`s1_under_${l}`] = c;
+    else if (s.includes('over')) odds[`s1_over_${l}`] = c;
+  });
+  // 841 : Player 1 Total Games (Sbv 11.5-14.5, plage cohérente avec un joueur).
+  eachOdd(offers, 841, (_t, n, c, sbv) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
     const s = String(n).toLowerCase();
     if (s.includes('under')) odds[`tt_home_under_${l}`] = c;
     else if (s.includes('over')) odds[`tt_home_over_${l}`] = c;
   });
+  // 842 : Player 2 Total Games (Sbv 10.5-13.5).
   eachOdd(offers, 842, (_t, n, c, sbv) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
     const s = String(n).toLowerCase();
     if (s.includes('under')) odds[`tt_away_under_${l}`] = c;
     else if (s.includes('over')) odds[`tt_away_over_${l}`] = c;
-  });
-  // 988 : 1st Set Games Handicap.
-  eachOdd(offers, 988, (t, _n, c, sbv) => {
-    const l = parseFloat(sbv);
-    if (!isHalfLine(l)) return;
-    if (t === '1') odds[`s1_hcp_home_${l}`] = c;
-    else if (t === '2') odds[`s1_hcp_away_${-l}`] = c;
   });
   return odds;
 }
