@@ -1,0 +1,54 @@
+name: Probe — Markets Discovery
+
+# Sonde un bookmaker : récupère 5 vrais matchs foot, dump tous les marchés.
+# Le résultat est uploadé en artifact JSON pour analyse hors ligne.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bookmaker:
+        description: 'Bookmaker à sonder (xbet, onewin, congobet, apollo, betmomo, sportcash, yellowbet, premierbet)'
+        required: true
+        default: 'xbet'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --production
+
+      - name: Run probe
+        run: node scripts/probe-${{ github.event.inputs.bookmaker }}.js > /tmp/probe-out.json 2> /tmp/probe-err.log || echo "probe exit $?"
+        env:
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+
+      - name: Show stderr
+        if: always()
+        run: cat /tmp/probe-err.log || true
+
+      - name: Show head of output
+        if: always()
+        run: head -c 8000 /tmp/probe-out.json || true
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-${{ github.event.inputs.bookmaker }}
+          path: |
+            /tmp/probe-out.json
+            /tmp/probe-err.log
+          retention-days: 7
