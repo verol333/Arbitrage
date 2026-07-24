@@ -4,10 +4,10 @@ import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
 import { compareTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
+import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
 
-// Chaque bookmaker peut planter indépendamment — try/catch par source.
 async function listSafe(book, opts) {
   try {
     const matches = await book.listMatches(opts);
@@ -43,7 +43,6 @@ async function readOddsSafe(book, matches, opts) {
   }
 }
 
-// Lance un scan complet (prématch ou live) et retourne les opportunités trouvées.
 export async function runScan({ live = false, horizonHours, minProfit, maxMatches } = {}) {
   const t0 = Date.now();
   const usable = bookmakers.filter((b) => live ? b.supports.live : b.supports.prematch);
@@ -57,9 +56,10 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
   const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
+  // Priorité aux matchs couverts par le plus de books, puis par kickoff proche.
   const sorted = entries
-    .map((e) => ({ e, start: e.ref.start || Infinity }))
-    .sort((a, b) => a.start - b.start)
+    .map((e) => ({ e, coverage: Object.keys(e.matches).length, start: e.ref.start || Infinity }))
+    .sort((a, b) => (b.coverage - a.coverage) || (a.start - b.start))
     .slice(0, cap)
     .map((s) => s.e);
   log(`🔗 ${sorted.length}/${entries.length} matchs exploitables (≥2 books)`);
@@ -76,6 +76,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
 
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
+  const oddsFetchedAt = new Date().toISOString();
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;
@@ -86,6 +87,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
       if (o && Object.keys(o).length) oddsPerBook[b.key] = o;
     }
     const keys = Object.keys(oddsPerBook);
+    const debugMatches = buildDebugMatches(matches);
     for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
       const arbs = compareTwoBooks(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j]);
       for (const a of arbs) {
@@ -97,6 +99,11 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
           status: 'live',
+          verify: {
+            odds_fetched_at: oddsFetchedAt,
+            leg_a_match: debugMatches[a.leg_a_book],
+            leg_b_match: debugMatches[a.leg_b_book],
+          },
         });
       }
     }
@@ -113,7 +120,22 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   };
 }
 
-// IDs de match par bookmaker (utile pour l'écriture Base44).
+function buildDebugMatches(matches) {
+  const out = {};
+  for (const [k, m] of Object.entries(matches)) {
+    if (!m) continue;
+    out[k] = {
+      id: String(m.id),
+      home: m.home,
+      away: m.away,
+      league: m.league || '',
+      start_iso: m.start ? new Date(m.start).toISOString() : null,
+      url: matchUrl(k, m),
+    };
+  }
+  return out;
+}
+
 function idFields(matches) {
   const idKeyMap = {
     '1xbet': 'onexbet_match_id', '1win': 'onewin_match_id', congobet: 'congobet_match_id',

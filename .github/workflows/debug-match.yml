@@ -1,0 +1,53 @@
+name: Debug — Match Inspector
+
+# Vérifie un match donné sur les 8 bookmakers : trouve les candidats les plus
+# similaires par équipes + horaire, lit les cotes du meilleur candidat, et
+# affiche tout côte à côte pour vérification manuelle.
+
+on:
+  workflow_dispatch:
+    inputs:
+      home:
+        description: 'Équipe domicile (ex: Dynamo Moscow)'
+        required: true
+      away:
+        description: 'Équipe extérieur (ex: Lokomotiv Moscow)'
+        required: true
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - name: Install dependencies
+        run: npm install --production
+      - name: Run debug probe
+        run: node scripts/debug-match.js > /tmp/debug.json 2> /tmp/debug.err.log || echo "exit $?"
+        env:
+          DEBUG_HOME: ${{ github.event.inputs.home }}
+          DEBUG_AWAY: ${{ github.event.inputs.away }}
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+      - name: Show stderr
+        if: always()
+        run: cat /tmp/debug.err.log || true
+      - name: Show FULL output
+        if: always()
+        run: |
+          echo "=== DEBUG START ==="
+          cat /tmp/debug.json || true
+          echo "=== DEBUG END ==="

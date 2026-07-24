@@ -13,11 +13,17 @@ export function orientation(refHome, refAway, cHome, cAway) {
   return 'ambiguous';
 }
 
-// Apparie un match de référence (ref) contre un catalogue (cands). Fenêtre ±35 min
-// STRICTE si les deux heures sont connues, deux équipes ≥ 0.34 en score de nom,
-// orientation "same" obligatoire, marquer les `used` pour éviter les doublons.
+// Apparie un match de référence (ref) contre un catalogue (cands).
+// STRICT :
+//  - fenêtre ±30 min si les 2 heures connues (± horizonMs si connues)
+//  - chaque équipe ≥ 0.40 de similarité (avant : 0.30)
+//  - moyenne ≥ 0.55 (nouveau)
+//  - orientation "same" obligatoire (jamais "swapped" ni "ambiguous")
+//  - si 2 candidats à égalité, préfère celui dont l'horaire est le plus proche
 export function matchBook(ref, cands, used) {
-  const HARD_DT = 60 * 60 * 1000;
+  const HARD_DT = 30 * 60 * 1000;
+  const MIN_TEAM = 0.40;
+  const MIN_AVG = 0.55;
   let best = null, bestScore = -1, bestDt = null;
   for (const c of cands) {
     if (used.has(c.id)) continue;
@@ -25,12 +31,13 @@ export function matchBook(ref, cands, used) {
     if (dt !== null && dt > HARD_DT) continue;
     const sh = teamSim(ref.home, c.home);
     const sa = teamSim(ref.away, c.away);
-    if (!(sh >= 0.30 && sa >= 0.30)) continue;
+    if (!(sh >= MIN_TEAM && sa >= MIN_TEAM)) continue;
+    const avg = (sh + sa) / 2;
+    if (avg < MIN_AVG) continue;
     if (orientation(ref.home, ref.away, c.home, c.away) !== 'same') continue;
-    const score = (sh + sa) / 2;
-    const better = score > bestScore + 1e-6
-      || (Math.abs(score - bestScore) <= 1e-6 && dt !== null && (bestDt === null || dt < bestDt));
-    if (better) { bestScore = score; best = c; bestDt = dt; }
+    const better = avg > bestScore + 1e-6
+      || (Math.abs(avg - bestScore) <= 1e-6 && dt !== null && (bestDt === null || dt < bestDt));
+    if (better) { bestScore = avg; best = c; bestDt = dt; }
   }
   return best;
 }
