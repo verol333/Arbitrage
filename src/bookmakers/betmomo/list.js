@@ -10,7 +10,7 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72,
     const where = { sport: { id: sid } };
     where.game = live ? { is_live: 1 } : { start_ts: { '@gt': now, '@lt': to }, is_live: 0 };
     const listData = await send(
-      { sport: ['id'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name', 'is_live', 'start_ts'] },
+      { sport: ['id'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name', 'is_live', 'start_ts', 'info', 'stats'] },
       where,
     );
     const games = [];
@@ -38,10 +38,16 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72,
       for (const g of chunk) {
         const withOdds = byId[g.id];
         const markets = withOdds ? Object.values(withOdds.market || {}) : [];
+        const info = g.info || {};
+        const s1 = info.score1, s2 = info.score2;
+        const score = (s1 != null && s2 != null) ? `${s1}-${s2}` : null;
+        const minute = info.current_game_time != null ? Number(info.current_game_time) : null;
+        const period = info.current_game_state || null;
         out.push({
           id: g.id, home: g.team1_name, away: g.team2_name, league: g.league || '',
           start: g.start_ts ? g.start_ts * 1000 : null,
           __raw: { markets },
+          live: live ? { score, minute: Number.isFinite(minute) ? minute : null, period } : null,
         });
       }
     }

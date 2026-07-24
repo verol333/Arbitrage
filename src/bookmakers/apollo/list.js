@@ -1,5 +1,24 @@
 import { APOLLO_SID, apolloGet } from './api.js';
 
+// Apollo expose peu de champs live au niveau list ; on tente Result / MatchResults.
+function apolloLiveMeta(m) {
+  const r = m.Result || m.MatchResult || null;
+  let home = null, away = null;
+  if (r) {
+    home = r.HomeScore ?? r.Home ?? r.H ?? null;
+    away = r.AwayScore ?? r.Away ?? r.A ?? null;
+  }
+  if (home == null && Array.isArray(m.MatchResults) && m.MatchResults.length) {
+    const last = m.MatchResults[m.MatchResults.length - 1];
+    home = last?.HomeScore ?? last?.Home ?? null;
+    away = last?.AwayScore ?? last?.Away ?? null;
+  }
+  const score = (home != null && away != null) ? `${home}-${away}` : null;
+  // Apollo n'expose pas la minute côté catalog ; laissé null (statut lisible via LiveStatusString).
+  const period = m.LiveStatusString || null;
+  return { score, minute: null, period };
+}
+
 export async function listMatches({ live = false, maxMatches = 1500, sport = 'football' } = {}) {
   const sid = APOLLO_SID[sport];
   if (!sid) return [];
@@ -21,11 +40,13 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
       const leagueName = `${c.Name} / ${l.Name}`;
       if (isVirtual(m.TeamHome, m.TeamAway, leagueName)) continue;
       seen.add(m.Id);
+      const liveMeta = live ? apolloLiveMeta(m) : null;
       out.push({
         id: m.Id, home: m.TeamHome, away: m.TeamAway,
         league: leagueName,
         start: m.MatchStartTime ? new Date(m.MatchStartTime).getTime() : null,
         __raw: { code: m.EventCode || null },
+        live: liveMeta,
       });
       added++;
     }

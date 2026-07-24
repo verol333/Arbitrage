@@ -90,10 +90,13 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
     }
     const keys = Object.keys(oddsPerBook);
     const debugMatches = buildDebugMatches(matches);
+    const liveSnapshot = live ? consolidateLive(matches) : null;
     for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
       const arbs = compare(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j]);
       for (const a of arbs) {
         if (a.profit_pct < minP) continue;
+        const legAlive = matches[a.leg_a_book]?.live || null;
+        const legBlive = matches[a.leg_b_book]?.live || null;
         all.push({
           ...a, scan_id: scanId, sport, is_live: live,
           match_label: `${ref.home} vs ${ref.away}`,
@@ -101,6 +104,14 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
           status: 'live',
+          ...(live ? {
+            live_score: liveSnapshot?.score || null,
+            live_minute: liveSnapshot?.minute ?? null,
+            live_period: liveSnapshot?.period || null,
+            live_score_source: liveSnapshot?.source || null,
+            leg_a_live: legAlive,
+            leg_b_live: legBlive,
+          } : {}),
           verify: {
             odds_fetched_at: oddsFetchedAt,
             leg_a_match: debugMatches[a.leg_a_book],
@@ -133,9 +144,30 @@ function buildDebugMatches(matches) {
       league: m.league || '',
       start_iso: m.start ? new Date(m.start).toISOString() : null,
       url: matchUrl(k, m),
+      live: m.live || null,
     };
   }
   return out;
+}
+
+// Retourne un snapshot live consolidé pour l'opportunité : on prend le premier
+// bookmaker qui expose un score, avec fallback minute/période s'ils manquent.
+function consolidateLive(matches) {
+  const scored = [], minuted = [], periodly = [];
+  for (const [k, m] of Object.entries(matches)) {
+    const l = m?.live;
+    if (!l) continue;
+    if (l.score) scored.push({ book: k, ...l });
+    if (l.minute != null) minuted.push({ book: k, ...l });
+    if (l.period) periodly.push({ book: k, ...l });
+  }
+  const s = scored[0], m = minuted[0], p = periodly[0];
+  return {
+    score: s?.score || null,
+    minute: m?.minute ?? null,
+    period: p?.period || null,
+    source: s?.book || m?.book || p?.book || null,
+  };
 }
 
 function idFields(matches) {

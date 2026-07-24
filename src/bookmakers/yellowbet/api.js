@@ -16,11 +16,18 @@ export function isVirtual(ev) {
 }
 
 export function toMatch(ev) {
+  // Best-effort : YellowBet evapi expose parfois score via ev.hs/ev.as/ev.sc et minute via ev.mm/ev.t.
+  const hs = ev.hs ?? ev.homeScore ?? null;
+  const as = ev.as ?? ev.awayScore ?? null;
+  const score = (hs != null && as != null) ? `${hs}-${as}` : (ev.sc || null);
+  const minute = ev.mm ?? ev.mn ?? ev.min ?? ev.t ?? null;
+  const period = ev.sst ?? ev.stat ?? ev.per ?? null;
   return {
     id: String(ev.id),
     home: ev.h || '', away: ev.a || '', league: ev.ln || '',
     start: ev.gt ? new Date(ev.gt).getTime() : null,
     __raw: { bts: Array.isArray(ev.bts) ? ev.bts : [] },
+    live: { score, minute: Number.isFinite(minute) ? minute : null, period },
   };
 }
 

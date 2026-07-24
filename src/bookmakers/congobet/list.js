@@ -63,6 +63,16 @@ export async function listPrematch() {
   return out;
 }
 
+function congoLiveMeta(ev) {
+  const home = ev.homeTeamScore != null ? ev.homeTeamScore : null;
+  const away = ev.awayTeamScore != null ? ev.awayTeamScore : null;
+  const score = (home != null && away != null) ? `${home}-${away}` : (ev.score || null);
+  // stateDetails ex: "Pause1", "Period1" — utilisable comme période.
+  const period = ev.stateDetails || ev.state || null;
+  // Congobet ne renvoie pas la minute courante ; laissé à null.
+  return { score, minute: null, period };
+}
+
 export async function listLive() {
   const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`);
   return (Array.isArray(raw) ? raw : [])
@@ -71,5 +81,6 @@ export async function listLive() {
       id: ev.id, home: ev.homeTeamName, away: ev.awayTeamName,
       league: (ev.categories || [])[0] || '',
       start: ev.expectedStart ? new Date(ev.expectedStart).getTime() : null,
+      live: congoLiveMeta(ev),
     }));
 }

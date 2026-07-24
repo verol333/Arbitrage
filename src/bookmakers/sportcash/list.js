@@ -58,7 +58,17 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
       const e = chunk[k];
       const j = results[k];
       const markets = j && Array.isArray(j.scs) ? j.scs : [];
-      out.push({ id: e.id, home: e.home, away: e.away, league: e.league, start: e.start, __raw: { markets } });
+      // Best-effort : sportcash getEvento expose parfois score / temps en live via scr/pl/min sur j.
+      let liveMeta = null;
+      if (live && j) {
+        const hs = j.scr?.h ?? j.scoh ?? null;
+        const as = j.scr?.a ?? j.scoa ?? null;
+        const score = (hs != null && as != null) ? `${hs}-${as}` : (j.sco || null);
+        const minute = j.min ?? j.minu ?? j.pl?.min ?? null;
+        const period = j.pl?.per ?? j.per ?? null;
+        liveMeta = { score, minute: Number.isFinite(minute) ? minute : null, period };
+      }
+      out.push({ id: e.id, home: e.home, away: e.away, league: e.league, start: e.start, __raw: { markets }, live: liveMeta });
     }
   }
   return out;

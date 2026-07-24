@@ -27,10 +27,17 @@ function toMatch(m) {
   const startRaw = m.startAt || m.startsAt || m.startTime;
   let start = null;
   if (startRaw) start = typeof startRaw === 'number' ? (startRaw < 1e12 ? startRaw * 1000 : startRaw) : new Date(startRaw).getTime();
+  // Best-effort : 1win expose parfois score/minute via nested homeTeam/awayTeam.score ou m.score/m.matchTime.
+  const hs = m.homeTeam?.score ?? m.competitors?.[0]?.score ?? m.team1?.score ?? null;
+  const as = m.awayTeam?.score ?? m.competitors?.[1]?.score ?? m.team2?.score ?? null;
+  const score = (hs != null && as != null) ? `${hs}-${as}` : (m.score || null);
+  const minute = m.matchTime ?? m.minute ?? m.currentMinute ?? null;
+  const period = m.matchStatus ?? m.status ?? m.period ?? null;
   return {
     id: m.id, home, away,
     league: m.tournament?.name || m.league?.name || m.category?.slug || '',
     start,
+    live: { score, minute: Number.isFinite(minute) ? minute : null, period },
   };
 }
 

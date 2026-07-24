@@ -53,12 +53,22 @@ export async function listPrematch({ sport = 'football' } = {}) {
   return dedupeMatches(all);
 }
 
+function xbetLiveMeta(m) {
+  const sc = m.SC || {};
+  const fs = sc.FS || {};
+  const s1 = fs.S1, s2 = fs.S2;
+  const score = (s1 != null && s2 != null) ? `${s1}-${s2}` : null;
+  const minute = sc.TS != null ? Math.floor(Number(sc.TS) / 60) : null;
+  const period = sc.CPS || sc.TN || null;
+  return { score, minute, period };
+}
+
 export async function listLive({ sport = 'football' } = {}) {
   const sid = SPORT_IDS[sport];
   if (!sid) return [];
   const raw = await viaWorker(`${FEED}/service-api/LiveFeed/Get1x2_VZip?sports=${sid}&count=500&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
   const list = (raw?.Value || [])
     .filter((m) => m.I && m.O1 && m.O2 && !isFakeTeam(m.O1) && !isFakeTeam(m.O2) && !isVirtual(m.O1, m.O2, m.LE || m.L || ''))
-    .map((m) => ({ id: m.I, home: m.O1, away: m.O2, league: m.LE || m.L || '', start: m.S ? m.S * 1000 : null }));
+    .map((m) => ({ id: m.I, home: m.O1, away: m.O2, league: m.LE || m.L || '', start: m.S ? m.S * 1000 : null, live: xbetLiveMeta(m) }));
   return dedupeMatches(list);
 }
