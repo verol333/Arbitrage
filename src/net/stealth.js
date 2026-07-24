@@ -7,16 +7,12 @@ const CHROME_OPTS = {
   operatingSystems: ['linux'],
 };
 
-let sessionCounter = 0;
-
 export async function stealthGetJson(url, { headers = {}, timeoutMs = 20_000 } = {}) {
-  const token = `s${++sessionCounter}`;
   try {
     const res = await gotScraping({
       url,
       headers,
       headerGeneratorOptions: CHROME_OPTS,
-      sessionToken: token,
       timeout: { request: timeoutMs },
       retry: { limit: 2 },
       throwHttpErrors: false,
