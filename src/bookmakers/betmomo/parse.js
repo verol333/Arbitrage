@@ -155,6 +155,25 @@ export function betmomoFlatOdds(markets) {
       case 'HalfTimeCornersOverUnder': putTotal('cor_ht_'); break;
       case 'Team1CornersOverUnder': putTeamTotal('home', 'cor_'); break;
       case 'Team2CornersOverUnder': putTeamTotal('away', 'cor_'); break;
+      // ─── TENNIS markets (BetMomo SWARM types) ─────────────────────────────
+      case 'P1P2': put1x2(''); break; // Match Winner 2-way tennis
+      case 'Handicap': putHcp(''); break; // Games Handicap
+      case 'TotalGamesOver/Under': putTotal('match_'); break;
+      case "Player1:Player'sTotalofWonGames": putTeamTotal('home', ''); break;
+      case "Player2:Player'sTotalofWonGames": putTeamTotal('away', ''); break;
+      case 'TotalGamesOdd/Even': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = price(e);
+          else if (/even|pair/.test(ty)) odds.even = price(e);
+        } break;
+      }
+      case '1stSetWinner': put1x2('s1_'); break;
+      case '1stSetTotalGames': putTotal('s1_'); break;
+      case '2ndSetWinner': put1x2('s2_'); break;
+      case '2ndSetTotalGames': putTotal('s2_'); break;
+      case '3rdSetWinner': put1x2('s3_'); break;
+      case '3rdSetTotalGames': putTotal('s3_'); break;
       default: break;
     }
   }
