@@ -39,9 +39,12 @@ jobs:
         if: always()
         run: cat /tmp/probe-err.log || true
 
-      - name: Show head of output
+      - name: Show FULL output
         if: always()
-        run: head -c 8000 /tmp/probe-out.json || true
+        run: |
+          echo "=== FULL PROBE OUTPUT START ==="
+          cat /tmp/probe-out.json || true
+          echo "=== FULL PROBE OUTPUT END ==="
 
       - name: Upload artifact
         if: always()

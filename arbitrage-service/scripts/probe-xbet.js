@@ -70,22 +70,40 @@ async function listMatches() {
   return filtered.slice(0, 5);
 }
 
-async function probeMatch(m) {
-  const url = `${FEED}/service-api/LineFeed/GetGameZip?id=${m.id}&lng=fr&isSubGames=true&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
-  const gd = await viaWorker(url);
-  if (!gd?.Value) return null;
-  const v = gd.Value;
-  const groups = (v.GE || []).map((g) => ({
+function extractGroups(v) {
+  return (v.GE || []).map((g) => ({
     G: g.G,
     GN: g.GN || g.N || '',
     events: (g.E || []).flatMap((sub) => (Array.isArray(sub) ? sub : [sub]))
       .map((it) => ({ T: it.T, N: it.N || it.NA || '', P: it.P, C: it.C }))
       .filter((it) => it.T != null && it.C != null),
   }));
+}
+
+async function fetchGame(id, isSub = false) {
+  const url = `${FEED}/service-api/LineFeed/GetGameZip?id=${id}&lng=fr&isSubGames=${!isSub}&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
+  const gd = await viaWorker(url);
+  return gd?.Value || null;
+}
+
+async function probeMatch(m) {
+  const v = await fetchGame(m.id, false);
+  if (!v) return null;
+  const mainGroups = extractGroups(v);
   const subs = (v.SG || []).map((sg) => ({
     I: sg.I, PN: sg.PN || '', TG: sg.TG || '', P: sg.P, MG: sg.MG || null,
   }));
-  return { match: m, groups, subGamesCount: subs.length, subGames: subs.slice(0, 30) };
+  // Fetch quelques sub-games interessants pour extraire leurs marches.
+  const wantedSubs = subs.filter((sg) => {
+    const t = `${sg.PN} ${sg.TG}`.toLowerCase();
+    return /mi-temps|half|corner|card|carton|foul|faute|throw|touche|offside|hors|substitut|remplac/.test(t);
+  }).slice(0, 12);
+  const subDumps = await Promise.all(wantedSubs.map(async (sg) => {
+    const sv = await fetchGame(sg.I, true);
+    if (!sv) return null;
+    return { label: `${sg.PN}|${sg.TG}|P=${sg.P}`, groups: extractGroups(sv) };
+  }));
+  return { match: m, mainGroups, subGamesTotal: subs.length, subGamesSample: subs.slice(0, 30), subDumps: subDumps.filter(Boolean) };
 }
 
 (async () => {
@@ -99,29 +117,34 @@ async function probeMatch(m) {
   }
   // Aggregate : union des groupes G rencontres avec leur GN + toutes les combinaisons T observees.
   const gMap = new Map();
-  for (const d of dumps) {
-    for (const g of d.groups) {
-      if (!gMap.has(g.G)) gMap.set(g.G, { G: g.G, GN: new Set(), T: new Map() });
-      const e = gMap.get(g.G);
+  function agg(groups, label) {
+    for (const g of groups) {
+      const key = `${label}:G${g.G}`;
+      if (!gMap.has(key)) gMap.set(key, { context: label, G: g.G, GN: new Set(), T: new Map() });
+      const e = gMap.get(key);
       if (g.GN) e.GN.add(g.GN);
       for (const it of g.events) {
-        const key = `T${it.T}`;
-        if (!e.T.has(key)) e.T.set(key, { T: it.T, samples: new Set() });
-        const s = e.T.get(key);
-        if (it.N && s.samples.size < 5) s.samples.add(it.N);
-        if (it.P != null && s.samples.size < 5) s.samples.add(`P=${it.P}`);
+        const tkey = `T${it.T}`;
+        if (!e.T.has(tkey)) e.T.set(tkey, { T: it.T, samples: new Set() });
+        const s = e.T.get(tkey);
+        if (it.N && s.samples.size < 10) s.samples.add(it.N);
+        if (it.P != null && s.samples.size < 10) s.samples.add(`P=${it.P}`);
       }
     }
   }
+  for (const d of dumps) {
+    agg(d.mainGroups, 'main');
+    for (const sd of d.subDumps) agg(sd.groups, `sub[${sd.label}]`);
+  }
   const groupsAgg = [...gMap.values()].map((e) => ({
+    context: e.context,
     G: e.G,
     names: [...e.GN],
     T: [...e.T.values()].map((t) => ({ T: t.T, samples: [...t.samples] })).sort((a, b) => a.T - b.T),
-  })).sort((a, b) => a.G - b.G);
+  })).sort((a, b) => a.context.localeCompare(b.context) || a.G - b.G);
 
-  // Sub-games : dedupe par PN|TG|P.
   const sgMap = new Map();
-  for (const d of dumps) for (const sg of d.subGames) {
+  for (const d of dumps) for (const sg of d.subGamesSample) {
     const key = `${sg.PN}|${sg.TG}|${sg.P || ''}`;
     if (!sgMap.has(key)) sgMap.set(key, { PN: sg.PN, TG: sg.TG, P: sg.P, samples: [] });
     if (sgMap.get(key).samples.length < 3) sgMap.get(key).samples.push(sg.I);
@@ -131,7 +154,7 @@ async function probeMatch(m) {
   const out = {
     matches: matches.map((m) => ({ id: m.id, home: m.home, away: m.away, league: m.league, start_iso: new Date(m.start).toISOString() })),
     groups: groupsAgg,
-    subGames: subGamesAgg,
+    subGamesCatalog: subGamesAgg,
   };
   console.log(JSON.stringify(out, null, 2));
 })().catch((e) => { console.error(e); process.exit(1); });
