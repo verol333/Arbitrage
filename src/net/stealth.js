@@ -11,16 +11,23 @@ let sessionCounter = 0;
 
 export async function stealthGetJson(url, { headers = {}, timeoutMs = 20_000 } = {}) {
   const token = `s${++sessionCounter}`;
-  const res = await gotScraping({
-    url,
-    headers,
-    headerGeneratorOptions: CHROME_OPTS,
-    useHttp2: true,
-    sessionToken: token,
-    timeout: { request: timeoutMs },
-    retry: { limit: 1 },
-    throwHttpErrors: false,
-  });
-  if (res.statusCode < 200 || res.statusCode >= 300 || !res.body) return null;
-  try { return JSON.parse(res.body); } catch { return null; }
+  try {
+    const res = await gotScraping({
+      url,
+      headers,
+      headerGeneratorOptions: CHROME_OPTS,
+      sessionToken: token,
+      timeout: { request: timeoutMs },
+      retry: { limit: 2 },
+      throwHttpErrors: false,
+    });
+    if (res.statusCode < 200 || res.statusCode >= 300 || !res.body) {
+      console.log(`[stealth] ${url.slice(0, 60)}… → ${res.statusCode}`);
+      return null;
+    }
+    return JSON.parse(res.body);
+  } catch (e) {
+    console.log(`[stealth] ${url.slice(0, 60)}… erreur: ${e.message}`);
+    return null;
+  }
 }

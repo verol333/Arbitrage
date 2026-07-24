@@ -1,15 +1,14 @@
 import { stealthGetJson } from '../../net/stealth.js';
-import { proxyFetchText } from '../../net/fetcher.js';
+import { fetchJson } from '../../net/fetcher.js';
 
 const BASE = 'https://premierbetzone.com/rest';
 
 export async function pget(path) {
   const url = `${BASE}/${path}`;
-  const j = await stealthGetJson(url, { timeoutMs: 15_000 }).catch(() => null);
+  const j = await stealthGetJson(url, { timeoutMs: 15_000 });
   if (j && j.code === 200) return j.data;
-  const text = await proxyFetchText(url, { timeoutMs: 30_000 });
-  if (!text || text.length < 2) return null;
-  try { const p = JSON.parse(text); return p && p.code === 200 ? p.data : null; } catch { return null; }
+  const j2 = await fetchJson(url, { timeoutMs: 20_000 });
+  return j2 && j2.code === 200 ? j2.data : null;
 }
 
 export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b/i.test(s || '');

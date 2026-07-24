@@ -1,13 +1,13 @@
 import { stealthGetJson } from '../../net/stealth.js';
-import { proxyFetchJson } from '../../net/fetcher.js';
+import { fetchJson } from '../../net/fetcher.js';
 
 const BASE = 'https://yellowbet.cg/services/evapi';
 const SET_HEADERS = { brandid: '122', channelid: '4', language: 'fr', terminal: 'yellowbet.cg' };
 
 export async function evapi(url) {
-  const j = await stealthGetJson(url, { headers: SET_HEADERS, timeoutMs: 15_000 }).catch(() => null);
+  const j = await stealthGetJson(url, { headers: SET_HEADERS, timeoutMs: 15_000 });
   if (j) return j;
-  return proxyFetchJson(url, { setHeaders: SET_HEADERS, timeoutMs: 30_000 });
+  return fetchJson(url, { headers: SET_HEADERS, timeoutMs: 20_000 });
 }
 
 export function isVirtual(ev) {
