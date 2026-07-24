@@ -58,10 +58,16 @@ export async function listPrematch() {
   return out;
 }
 
+const isVirtual = (ev) => {
+  if (ev.isVirtual) return true;
+  const s = `${ev.homeTeamName || ''} ${ev.awayTeamName || ''} ${(ev.categories || [])[0] || ''}`.toLowerCase();
+  return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(s);
+};
+
 export async function listLive() {
   const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`);
   return (Array.isArray(raw) ? raw : [])
-    .filter((ev) => congoSportId(ev) === SPORT_ID)
+    .filter((ev) => congoSportId(ev) === SPORT_ID && !isVirtual(ev))
     .map((ev) => ({
       id: ev.id, home: ev.homeTeamName, away: ev.awayTeamName,
       league: (ev.categories || [])[0] || '',

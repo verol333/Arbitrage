@@ -35,9 +35,8 @@ function toMatch(m) {
 
 const isReal = (m) => m.id && m.home && m.away
   && !/\(v\)/i.test(m.home) && !/\(v\)/i.test(m.away)
-  && !/\([^)]+\)/.test(m.home) && !/\([^)]+\)/.test(m.away)
   && !/replay/i.test(m.home) && !/replay/i.test(m.away)
-  && !/cyber|virtual/i.test(m.league || '');
+  && !/\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?fighting\b|\be-?basketball\b|\be-?hockey\b|\be-?tennis\b/i.test(`${m.home} ${m.away} ${m.league || ''}`);
 
 export async function listPrematch() {
   const raw = [];

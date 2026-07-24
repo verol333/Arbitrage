@@ -33,9 +33,14 @@ export function isFakeTeam(name) {
     || /^home$/i.test(n) || /^away$/i.test(n);
 }
 
+export function isVirtual(home, away, league) {
+  const s = `${home} ${away} ${league}`.toLowerCase();
+  return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?fighting\b|\be-?basketball\b|\be-?hockey\b|\be-?tennis\b/i.test(s);
+}
+
 export function mapXItems(items) {
   return (items || []).map((m) => ({
     id: m.I, home: m.O1, away: m.O2, league: m.LE || m.L || '',
     start: m.S ? m.S * 1000 : null,
-  })).filter((m) => m.id && m.home && m.away && !isFakeTeam(m.home) && !isFakeTeam(m.away));
+  })).filter((m) => m.id && m.home && m.away && !isFakeTeam(m.home) && !isFakeTeam(m.away) && !isVirtual(m.home, m.away, m.league));
 }

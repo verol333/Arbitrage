@@ -79,8 +79,82 @@ export function betmomoFlatOdds(markets) {
       case 'HalfTimeTeam1OverUnder': putTeamTotal('home', 'ht_'); break;
       case 'HalfTimeTeam2OverUnder': putTeamTotal('away', 'ht_'); break;
       case 'SecondHalfResult': put1x2('h2_'); break;
+      case 'SecondHalfDoubleChance': putDC('h2_'); break;
+      case '2ndHalfBothTeamsToScore': putBtts('h2_'); break;
+      case 'SecondHalfOverUnder': putTotal('h2_'); break;
+      case 'SecondHalfAsianHandicap': putHcp('h2_'); break;
+      case 'SecondHalfTeam1OverUnder': putTeamTotal('home', 'h2_'); break;
+      case 'SecondHalfTeam2OverUnder': putTeamTotal('away', 'h2_'); break;
+      case 'DrawNoBet': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'home' || ty === 'w1' || ty === '1') odds.dnb_1 = price(e);
+          else if (ty === 'away' || ty === 'w2' || ty === '2') odds.dnb_2 = price(e);
+        } break;
+      }
+      case 'HalfTimeDrawNoBet': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'home' || ty === 'w1' || ty === '1') odds.ht_dnb_1 = price(e);
+          else if (ty === 'away' || ty === 'w2' || ty === '2') odds.ht_dnb_2 = price(e);
+        } break;
+      }
+      case 'SecondHalfDrawNoBet': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'home' || ty === 'w1' || ty === '1') odds.h2_dnb_1 = price(e);
+          else if (ty === 'away' || ty === 'w2' || ty === '2') odds.h2_dnb_2 = price(e);
+        } break;
+      }
+      case 'OddEven': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = price(e);
+          else if (/even|pair/.test(ty)) odds.even = price(e);
+        } break;
+      }
+      case 'HalfTimeOddEven': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.ht_odd = price(e);
+          else if (/even|pair/.test(ty)) odds.ht_even = price(e);
+        } break;
+      }
+      case 'SecondHalfOddEven': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.h2_odd = price(e);
+          else if (/even|pair/.test(ty)) odds.h2_even = price(e);
+        } break;
+      }
+      case 'FirstTeamToScore': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'home' || ty === 'w1' || ty === '1') odds.fts_home = price(e);
+          else if (ty === 'away' || ty === 'w2' || ty === '2') odds.fts_away = price(e);
+          else if (/no goal|none|neither/.test(ty)) odds.fts_none = price(e);
+        } break;
+      }
+      case 'HalfWithMostGoals': case 'HighestScoringHalf': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === '1st half' || ty === '1' || ty === 'first') odds.half_most_ht = price(e);
+          else if (ty === '2nd half' || ty === '2' || ty === 'second') odds.half_most_h2 = price(e);
+          else if (/equal|tie|draw|x/.test(ty)) odds.half_most_equal = price(e);
+        } break;
+      }
       case 'CornersOverUnder': putTotal('cor_'); break;
+      case 'CornersAsianHandicap': putHcp('cor_'); break;
+      case 'CornersOddEven': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.cor_odd = price(e);
+          else if (/even|pair/.test(ty)) odds.cor_even = price(e);
+        } break;
+      }
       case 'HalfTimeCornersOverUnder': putTotal('cor_ht_'); break;
+      case 'Team1CornersOverUnder': putTeamTotal('home', 'cor_'); break;
+      case 'Team2CornersOverUnder': putTeamTotal('away', 'cor_'); break;
       default: break;
     }
   }

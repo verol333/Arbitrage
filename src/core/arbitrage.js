@@ -48,8 +48,8 @@ export function pushArb3(out, family, l1, a1, ba1, b1, bb1, l2, a2, ba2, b2, bb2
   });
 }
 
-const HCP_LINES = [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5];
-const TT_LINES = [0.5, 1.5, 2.5, 3.5];
+const HCP_LINES = [-4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5];
+const TT_LINES = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
 const linesOf = (a, b, pattern) => {
   const set = new Set();
   for (const k of [...Object.keys(a), ...Object.keys(b)]) {
@@ -155,6 +155,32 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
     for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
       for (const l of TT_LINES) {
+        const ok = `${pfx}tt_${side}_over_${l}`, uk = `${pfx}tt_${side}_under_${l}`;
+        const fam = `${lbl} Total ${teamLbl} ${l}`;
+        pushArb(out, fam, `${teamLbl} +${l}`, oa[ok], bookA, `${teamLbl} −${l}`, ob[uk], bookB);
+        pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA);
+      }
+    }
+  }
+  // Corners handicap.
+  for (const l of linesOf(oa, ob, /^cor_hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const hk = `cor_hcp_home_${l}`, ak = `cor_hcp_away_${-parseFloat(l)}`;
+    const fam = `Corners Handicap ${parseFloat(l) > 0 ? '+' + l : l}`;
+    pushArb(out, fam, `Dom. ${parseFloat(l) > 0 ? '+' + l : l}`, oa[hk], bookA, `Ext. ${-parseFloat(l) > 0 ? '+' + (-parseFloat(l)) : -parseFloat(l)}`, ob[ak], bookB);
+    pushArb(out, fam, `Dom. ${parseFloat(l) > 0 ? '+' + l : l}`, ob[hk], bookB, `Ext. ${-parseFloat(l) > 0 ? '+' + (-parseFloat(l)) : -parseFloat(l)}`, oa[ak], bookA);
+  }
+  // Corners pair/impair.
+  pushArb(out, 'Corners Pair/Impair', 'Impair', oa.cor_odd, bookA, 'Pair', ob.cor_even, bookB);
+  pushArb(out, 'Corners Pair/Impair', 'Impair', ob.cor_odd, bookB, 'Pair', oa.cor_even, bookA);
+  // Corners 1MT total.
+  for (const l of linesOf(oa, ob, /^cor_ht_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    pushArb(out, `Corners 1MT Total ${l}`, `+${l}`, oa[`cor_ht_over_${l}`], bookA, `−${l}`, ob[`cor_ht_under_${l}`], bookB);
+    pushArb(out, `Corners 1MT Total ${l}`, `+${l}`, ob[`cor_ht_over_${l}`], bookB, `−${l}`, oa[`cor_ht_under_${l}`], bookA);
+  }
+  // HT/H2 individual totals.
+  for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
+    for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
+      for (const l of linesOf(oa, ob, new RegExp(`^${pfx}tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
         const ok = `${pfx}tt_${side}_over_${l}`, uk = `${pfx}tt_${side}_under_${l}`;
         const fam = `${lbl} Total ${teamLbl} ${l}`;
         pushArb(out, fam, `${teamLbl} +${l}`, oa[ok], bookA, `${teamLbl} −${l}`, ob[uk], bookB);

@@ -82,6 +82,95 @@ export function yellowbetFlatOdds(bts) {
     if (n === 'odd') set('odd', c);
     else if (n === 'even') set('even', c);
   }
+  // Handicap (Asian Handicap).
+  for (const mkt of bts.filter((m) => /handicap/i.test(m?.n || '') && !/corner/i.test(m?.n || ''))) {
+    const isHt = /\bht\b|1st half/i.test(mkt.n || '');
+    const isH2 = /\b2nd half\b/i.test(mkt.n || '');
+    const pfx = isHt ? 'ht_' : isH2 ? 'h2_' : '';
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (n === '1' || n === 'home') set(`${pfx}hcp_home_${l}`, c);
+      else if (n === '2' || n === 'away') set(`${pfx}hcp_away_${-l}`, c);
+    }
+  }
+  // Individual totals.
+  for (const mkt of bts) {
+    const mn = (mkt?.n || '').toLowerCase();
+    if (!/team.*total|individual.*total|home.*total|away.*total/i.test(mn)) continue;
+    const isHome = /home|team\s*1|1st team/i.test(mn);
+    const isAway = /away|team\s*2|2nd team/i.test(mn);
+    if (!isHome && !isAway) continue;
+    const side = isHome ? 'home' : 'away';
+    const isHt = /\bht\b|1st half/i.test(mn);
+    const isH2 = /\b2nd half\b/i.test(mn);
+    const pfx = isHt ? 'ht_' : isH2 ? 'h2_' : '';
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (n === 'over') set(`${pfx}tt_${side}_over_${l}`, c);
+      else if (n === 'under') set(`${pfx}tt_${side}_under_${l}`, c);
+    }
+  }
+  // HT Double Chance.
+  const htdc = findMarket(bts, 'HT Double Chance');
+  if (htdc) for (const o of htdc.odds || []) {
+    const n = lbl(o).replace(/\s/g, ''), c = priceOf(o);
+    if (n === '1x') set('ht_dc_1X', c);
+    else if (n === '12') set('ht_dc_12', c);
+    else if (n === 'x2') set('ht_dc_X2', c);
+  }
+  // HT BTTS.
+  const htgg = findMarket(bts, 'HT GG/NG');
+  if (htgg) for (const o of htgg.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'yes') set('ht_btts_yes', c);
+    else if (n === 'no') set('ht_btts_no', c);
+  }
+  // 2nd Half Double Chance.
+  const h2dc = findMarket(bts, '2nd Half : Double Chance');
+  if (h2dc) for (const o of h2dc.odds || []) {
+    const n = lbl(o).replace(/\s/g, ''), c = priceOf(o);
+    if (n === '1x') set('h2_dc_1X', c);
+    else if (n === '12') set('h2_dc_12', c);
+    else if (n === 'x2') set('h2_dc_X2', c);
+  }
+  // 2nd Half BTTS.
+  const h2gg = findMarket(bts, '2nd Half : GG/NG');
+  if (h2gg) for (const o of h2gg.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'yes') set('h2_btts_yes', c);
+    else if (n === 'no') set('h2_btts_no', c);
+  }
+  // Corners total.
+  const cor = findMarket(bts, 'Corners Under/Over') || findMarket(bts, 'Corners U/O');
+  if (cor) for (const o of cor.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'over') set(`cor_over_${l}`, c);
+    else if (n === 'under') set(`cor_under_${l}`, c);
+  }
+  // Corners HT total.
+  const corHt = findMarket(bts, 'HT Corners U/O') || findMarket(bts, 'HT Corners Under/Over');
+  if (corHt) for (const o of corHt.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'over') set(`cor_ht_over_${l}`, c);
+    else if (n === 'under') set(`cor_ht_under_${l}`, c);
+  }
+  // HT/H2 Odd/Even.
+  const htoe = findMarket(bts, 'HT Odd/Even goals');
+  if (htoe) for (const o of htoe.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'odd') set('ht_odd', c);
+    else if (n === 'even') set('ht_even', c);
+  }
+  const h2oe = findMarket(bts, '2nd Half : Odd/Even goals');
+  if (h2oe) for (const o of h2oe.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'odd') set('h2_odd', c);
+    else if (n === 'even') set('h2_even', c);
+  }
 
   // Garde-fou totaux : marge aberrante (< 0.9) → paire supprimée.
   for (const pfx of ['match_', 'ht_', 'h2_']) {

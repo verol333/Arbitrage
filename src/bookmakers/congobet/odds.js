@@ -96,6 +96,27 @@ export async function getOdds(matchId) {
     else if (id === 10504) { const t = ctxNum(bt, 'total'); readTotal(items, t, `cor_ht_over_${t}`, `cor_ht_under_${t}`); }
     else if (id === 10153) readOddEven(items, 'cor_');
     else if (id === 10146) readHcpEcart(bt, items, (l) => `cor_hcp_home_${l}`, (l) => `cor_hcp_away_${l}`);
+    // DNB by half.
+    else if (id === 10106) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.ht_dnb_1 = Number(it.odds); else if (s === '2') odds.ht_dnb_2 = Number(it.odds); } }
+    else if (id === 10119) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.h2_dnb_1 = Number(it.odds); else if (s === '2') odds.h2_dnb_2 = Number(it.odds); } }
+    // Half with most goals.
+    else if (id === 10036) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/1(st|ère|ere)?\s*(mi|half)/i.test(s) || s === '1') odds.half_most_ht = Number(it.odds);
+        else if (/2(nd|ème|eme)?\s*(mi|half)/i.test(s) || s === '2') odds.half_most_h2 = Number(it.odds);
+        else if (/egal|equal|draw|x/i.test(s)) odds.half_most_equal = Number(it.odds);
+      }
+    }
+    // First team to score.
+    else if (id === 10039) {
+      for (const it of items) {
+        const s = (it.shortName || '').trim();
+        if (s === '1') odds.fts_home = Number(it.odds);
+        else if (s === '2') odds.fts_away = Number(it.odds);
+        else if (/aucun|no goal|none/i.test(s)) odds.fts_none = Number(it.odds);
+      }
+    }
   }
   return odds;
 }

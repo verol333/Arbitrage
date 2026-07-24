@@ -63,11 +63,22 @@ function parseMainOnly(GE, odds) {
     if (i.T === 16685 && odds.match_X == null) odds.match_X = c;
     if (i.T === 16686 && odds.match_2 == null) odds.match_2 = c;
   });
+  // Draw No Bet (G9).
+  iterate(grp(9), (i, c) => {
+    if (i.T === 703) odds.dnb_1 = c;
+    if (i.T === 704) odds.dnb_2 = c;
+  });
   // 1ère équipe à marquer (3-way).
   iterate(grp(169), (i, c) => {
     if (i.T === 923) odds.fts_home = c;
     if (i.T === 925) odds.fts_none = c;
     if (i.T === 924) odds.fts_away = c;
+  });
+  // Mi-temps la plus prolifique (G445).
+  iterate(grp(445), (i, c) => {
+    if (i.T === 1305) odds.half_most_ht = c;
+    if (i.T === 1306) odds.half_most_h2 = c;
+    if (i.T === 1307) odds.half_most_equal = c;
   });
 }
 

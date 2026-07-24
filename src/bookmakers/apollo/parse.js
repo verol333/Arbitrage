@@ -44,5 +44,20 @@ export function apolloFlatOdds(offers) {
   eachOdd(offers, 4037, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`ht_tt_home_under_${l}`] = c; else if (t === '2') odds[`ht_tt_home_over_${l}`] = c; });
   eachOdd(offers, 4041, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`h2_tt_home_under_${l}`] = c; else if (s.includes('over')) odds[`h2_tt_home_over_${l}`] = c; });
   eachOdd(offers, 4042, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`h2_tt_away_under_${l}`] = c; else if (s.includes('over')) odds[`h2_tt_away_over_${l}`] = c; });
+  // HT individual totals away.
+  eachOdd(offers, 4038, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`ht_tt_away_under_${l}`] = c; else if (s.includes('over')) odds[`ht_tt_away_over_${l}`] = c; });
+  // Corners total.
+  eachOdd(offers, 127, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_under_${l}`] = c; else if (s.includes('over')) odds[`cor_over_${l}`] = c; });
+  // Corners handicap.
+  eachOdd(offers, 128, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`cor_hcp_home_${l}`] = c; else if (t === '2') odds[`cor_hcp_away_${-l}`] = c; });
+  // Corners odd/even.
+  eachOdd(offers, 129, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.cor_odd = c; else if (s.includes('even') || s.includes('pair')) odds.cor_even = c; });
+  // HT corners total.
+  eachOdd(offers, 5002, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_ht_under_${l}`] = c; else if (s.includes('over')) odds[`cor_ht_over_${l}`] = c; });
+  // 2nd half 1X2 and DC.
+  eachOdd(offers, 546, (t, _n, c) => {
+    if (t === '1') odds.h2_match_1 = c; else if (t === 'X') odds.h2_match_X = c; else if (t === '2') odds.h2_match_2 = c;
+    else if (t === '1X') odds.h2_dc_1X = c; else if (t === '12') odds.h2_dc_12 = c; else if (t === 'X2') odds.h2_dc_X2 = c;
+  });
   return odds;
 }

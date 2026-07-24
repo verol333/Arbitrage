@@ -31,6 +31,22 @@ export function premierbetFlatOdds(games) {
     if (p[1]) odds[`hcp_away_${-line}`] = p[1];
   };
 
+  const putOddEven = (g, pfx) => { const p = byPos(g); if (p[0]) odds[`${pfx}odd`] = p[0]; if (p[1]) odds[`${pfx}even`] = p[1]; };
+  const putTeamTotal = (g, side, pfx) => {
+    const line = Number(g.argument);
+    if (!isHalfLine(line)) return;
+    const p = byPos(g);
+    if (p[0]) odds[`${pfx}tt_${side}_under_${line}`] = p[0];
+    if (p[1]) odds[`${pfx}tt_${side}_over_${line}`] = p[1];
+  };
+  const putHtHcp = (g, pfx) => {
+    const line = Number(g.argument);
+    if (!isHalfLine(line)) return;
+    const p = byPos(g);
+    if (p[0]) odds[`${pfx}hcp_home_${line}`] = p[0];
+    if (p[1]) odds[`${pfx}hcp_away_${-line}`] = p[1];
+  };
+
   for (const g of games) {
     switch (Number(g.gameType)) {
       case 1: put1x2(g, ''); break;
@@ -39,16 +55,34 @@ export function premierbetFlatOdds(games) {
       case 8: putTotal(g, 'match_'); break;
       case -458: putAsianHcp(g); break;
       case 93: putDnb(g, ''); break;
+      case 18: putOddEven(g, ''); break;
+      case -459: putTeamTotal(g, 'home', ''); break;
+      case -460: putTeamTotal(g, 'away', ''); break;
+      // 1st half
       case 3: put1x2(g, 'ht_'); break;
       case 27: putDC(g, 'ht_'); break;
       case 120: putBtts(g, 'ht_'); break;
       case -284: putTotal(g, 'ht_'); break;
       case -237: putDnb(g, 'ht_'); break;
+      case -461: putHtHcp(g, 'ht_'); break;
+      case -285: putOddEven(g, 'ht_'); break;
+      case -462: putTeamTotal(g, 'home', 'ht_'); break;
+      case -463: putTeamTotal(g, 'away', 'ht_'); break;
+      // 2nd half
       case 111: put1x2(g, 'h2_'); break;
       case -188: putDC(g, 'h2_'); break;
       case 121: putBtts(g, 'h2_'); break;
       case -286: putTotal(g, 'h2_'); break;
       case -283: putDnb(g, 'h2_'); break;
+      case -464: putHtHcp(g, 'h2_'); break;
+      case -287: putOddEven(g, 'h2_'); break;
+      case -465: putTeamTotal(g, 'home', 'h2_'); break;
+      case -466: putTeamTotal(g, 'away', 'h2_'); break;
+      // Corners
+      case -232: putTotal(g, 'cor_'); break;
+      case -233: putHtHcp(g, 'cor_'); break;
+      case -234: putOddEven(g, 'cor_'); break;
+      case -467: putTotal(g, 'cor_ht_'); break;
       default: break;
     }
   }

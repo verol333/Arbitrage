@@ -1,5 +1,5 @@
 // Listing prématch + live football 1xbet (port fidèle de matchCore.ts).
-import { FEED, COUNTRY, PARTNER, viaWorker, mapXItems, isFakeTeam } from './api.js';
+import { FEED, COUNTRY, PARTNER, viaWorker, mapXItems, isFakeTeam, isVirtual } from './api.js';
 
 function isRealChamp(name) {
   return !/spéci|special|player|joueur|team vs|vs player|winner|vainqueur|to win|outright|long.?term/i.test(name || '');
@@ -34,6 +34,6 @@ export async function listPrematch() {
 export async function listLive() {
   const raw = await viaWorker(`${FEED}/service-api/LiveFeed/Get1x2_VZip?sports=1&count=500&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
   return (raw?.Value || [])
-    .filter((m) => m.I && m.O1 && m.O2 && !isFakeTeam(m.O1) && !isFakeTeam(m.O2))
+    .filter((m) => m.I && m.O1 && m.O2 && !isFakeTeam(m.O1) && !isFakeTeam(m.O2) && !isVirtual(m.O1, m.O2, m.LE || m.L || ''))
     .map((m) => ({ id: m.I, home: m.O1, away: m.O2, league: m.LE || m.L || '', start: m.S ? m.S * 1000 : null }));
 }

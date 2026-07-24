@@ -19,7 +19,10 @@
 //     ht_match_1 / ht_dc_1X / ht_over_<L> / ht_hcp_home_<L> / ...
 //     h2_match_1 / h2_dc_1X / h2_over_<L> / h2_hcp_home_<L> / ...
 //   Corners (préfixe cor_ / cor_ht_)
-//     cor_over_<L> / cor_hcp_home_<L> / cor_odd / cor_even / cor_ht_over_<L> / ...
+//     cor_over_<L> / cor_under_<L>                         → Total corners
+//     cor_hcp_home_<L> / cor_hcp_away_<L>                  → Handicap corners
+//     cor_odd / cor_even                                   → Corners pair/impair
+//     cor_ht_over_<L> / cor_ht_under_<L>                   → Corners 1MT total
 //
 // Notes :
 //   - Certains bookmakers utilisent dnb_home/dnb_away au lieu de dnb_1/dnb_2 ; les

@@ -9,11 +9,14 @@ export async function listMatches({ live = false, maxMatches = 200 } = {}) {
   const j = await apolloGet(path);
   if (!j?.Response) return [];
   const out = [];
+  const isVirtual = (h, a, lg) => /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(`${h} ${a} ${lg}`);
   for (const s of j.Response) for (const c of s.Categories || []) for (const l of c.Leagues || []) for (const m of l.Matches || []) {
     if (!m.Id || !m.TeamHome || !m.TeamAway) continue;
+    const leagueName = `${c.Name} / ${l.Name}`;
+    if (isVirtual(m.TeamHome, m.TeamAway, leagueName)) continue;
     out.push({
       id: m.Id, home: m.TeamHome, away: m.TeamAway,
-      league: `${c.Name} / ${l.Name}`,
+      league: leagueName,
       start: m.MatchStartTime ? new Date(m.MatchStartTime).getTime() : null,
       __raw: { code: m.EventCode || null },
     });

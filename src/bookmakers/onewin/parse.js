@@ -174,11 +174,47 @@ export function winFlatOdds(groups, names) {
         else if (isAway(n)) odds.ht_dnb_2 = Number(o.cf);
       }
     }
-    if (low === 'odd/even') {
+    if (low.includes('draw no bet') && low.includes('2nd half')) {
+      for (const o of list) {
+        const n = (o.name || '').toLowerCase();
+        if (isHome(n)) odds.h2_dnb_1 = Number(o.cf);
+        else if (isAway(n)) odds.h2_dnb_2 = Number(o.cf);
+      }
+    }
+    if (low === 'odd/even' || low === 'total. even/odd') {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
         if (n === 'odd' || /odd|impair/.test(n)) odds.odd = Number(o.cf);
         if (n === 'even' || /even|pair/.test(n)) odds.even = Number(o.cf);
+      }
+    }
+    // 2nd half BTTS.
+    if (/2nd half.*both teams|both teams.*2nd half/i.test(low)) {
+      for (const o of list) {
+        const n = (o.name || '').toLowerCase();
+        if (n === 'yes' || n.includes('yes')) odds.h2_btts_yes = Number(o.cf);
+        if (n === 'no' || n.includes('no')) odds.h2_btts_no = Number(o.cf);
+      }
+    }
+    // 2nd half double chance.
+    if (/2nd half.*double chance/i.test(low)) {
+      for (const o of list) {
+        const oc = (o.outcome || '').toString().toLowerCase().replace(/\s/g, '');
+        if (oc === '1x' || oc === 'x1') odds.h2_dc_1X = Number(o.cf);
+        else if (oc === '12' || oc === '21') odds.h2_dc_12 = Number(o.cf);
+        else if (oc === 'x2' || oc === '2x') odds.h2_dc_X2 = Number(o.cf);
+      }
+    }
+    // Corners total.
+    if (/^corners\.?\s+total$/i.test(low) || low === 'corners. total') {
+      // Already handled by PFX mapping
+    }
+    // Corners odd/even.
+    if (/corners.*odd.*even|corners.*even.*odd/i.test(low)) {
+      for (const o of list) {
+        const n = (o.name || '').toLowerCase();
+        if (/odd|impair/.test(n)) odds.cor_odd = Number(o.cf);
+        if (/even|pair/.test(n)) odds.cor_even = Number(o.cf);
       }
     }
     if (/first (team to score|goal)|which team scores first|team to score first/.test(low)) {
