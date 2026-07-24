@@ -2,25 +2,35 @@ import { APOLLO_SID, apolloGet } from './api.js';
 
 const SPORT_ID = APOLLO_SID.football;
 
-export async function listMatches({ live = false, maxMatches = 200 } = {}) {
+export async function listMatches({ live = false, maxMatches = 1500 } = {}) {
   const now = new Date().toISOString();
   const dateTo = '2046-04-07T22:59:59.000Z';
-  let path = `/sport/offer/v3/sports/offer?Offset=0&Limit=${maxMatches}&DateFrom=${now}&DateTo=${dateTo}&SportIds=${SPORT_ID}`;
-  if (live) path += '&Live=true';
-  const j = await apolloGet(path);
-  if (!j?.Response) return [];
   const out = [];
+  const seen = new Set();
   const isVirtual = (h, a, lg) => /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(`${h} ${a} ${lg}`);
-  for (const s of j.Response) for (const c of s.Categories || []) for (const l of c.Leagues || []) for (const m of l.Matches || []) {
-    if (!m.Id || !m.TeamHome || !m.TeamAway) continue;
-    const leagueName = `${c.Name} / ${l.Name}`;
-    if (isVirtual(m.TeamHome, m.TeamAway, leagueName)) continue;
-    out.push({
-      id: m.Id, home: m.TeamHome, away: m.TeamAway,
-      league: leagueName,
-      start: m.MatchStartTime ? new Date(m.MatchStartTime).getTime() : null,
-      __raw: { code: m.EventCode || null },
-    });
+  // Pagination : Apollo API cap ~ 200 par page. On boucle par offset.
+  const PAGE = 200;
+  for (let offset = 0; offset < maxMatches; offset += PAGE) {
+    let path = `/sport/offer/v3/sports/offer?Offset=${offset}&Limit=${PAGE}&DateFrom=${now}&DateTo=${dateTo}&SportIds=${SPORT_ID}`;
+    if (live) path += '&Live=true';
+    const j = await apolloGet(path);
+    if (!j?.Response) break;
+    let added = 0;
+    for (const s of j.Response) for (const c of s.Categories || []) for (const l of c.Leagues || []) for (const m of l.Matches || []) {
+      if (!m.Id || !m.TeamHome || !m.TeamAway) continue;
+      if (seen.has(m.Id)) continue;
+      const leagueName = `${c.Name} / ${l.Name}`;
+      if (isVirtual(m.TeamHome, m.TeamAway, leagueName)) continue;
+      seen.add(m.Id);
+      out.push({
+        id: m.Id, home: m.TeamHome, away: m.TeamAway,
+        league: leagueName,
+        start: m.MatchStartTime ? new Date(m.MatchStartTime).getTime() : null,
+        __raw: { code: m.EventCode || null },
+      });
+      added++;
+    }
+    if (!added) break; // fin de la liste
   }
   return out;
 }

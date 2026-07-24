@@ -3,7 +3,7 @@ import { BETMOMO_SID, swarmSession, isOutright, isVirtual } from './api.js';
 const SPORT_ID = BETMOMO_SID.football;
 
 export async function listMatches({ live = false, maxMatches, horizonHours = 72 } = {}) {
-  const limit = maxMatches ?? (live ? 120 : 320);
+  const limit = maxMatches ?? (live ? 300 : 1200);
   const now = Math.floor(Date.now() / 1000);
   const to = now + horizonHours * 3600;
   return swarmSession(async (send) => {
