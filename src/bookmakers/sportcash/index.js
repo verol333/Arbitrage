@@ -5,7 +5,8 @@ export default {
   key: 'sportcash',
   label: 'Sportcash',
   supports: { prematch: true, live: true },
-  async listMatches({ live = false, horizonHours } = {}) {
+  async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
+    if (sport !== 'football') return []; // tennis pas dans widgets Sportcash
     return listMatches({ live, horizonHours });
   },
   async getOdds(match) { return sportcashFlatOdds(match.__raw?.markets || []); },

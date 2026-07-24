@@ -1,7 +1,9 @@
 import { FEED, COUNTRY, PARTNER, viaWorker, mapXItems, isFakeTeam, isVirtual } from './api.js';
 import { teamSim } from '../../core/text.js';
 
-const SPORT_ID = 1;
+// Sport IDs vérifiés via GetSportsShortZip : Football=1, Tennis=4.
+// L'ancien mapping tennis=2 était FAUX — 2 = Ice Hockey chez 1xBet.
+const SPORT_IDS = { football: 1, tennis: 4 };
 
 function isRealChamp(name) {
   return !/spéci|special|alternative|player|joueur|team vs|vs player|winner|vainqueur|to win|outright|long.?term|handicap match|first goalscorer|corner match|booking|cards?( match)?/i.test(name || '');
@@ -23,15 +25,17 @@ function dedupeMatches(matches) {
   return kept;
 }
 
-export async function listPrematch() {
-  const champs = await viaWorker(`${FEED}/service-api/LineFeed/GetChampsZip?sport=${SPORT_ID}&lng=en&country=${COUNTRY}&partner=${PARTNER}`);
+export async function listPrematch({ sport = 'football' } = {}) {
+  const sid = SPORT_IDS[sport];
+  if (!sid) return [];
+  const champs = await viaWorker(`${FEED}/service-api/LineFeed/GetChampsZip?sport=${sid}&lng=en&country=${COUNTRY}&partner=${PARTNER}`);
   const champIds = [...new Set((champs?.Value || [])
     .filter((c) => isRealChamp(c.LE || c.L))
     .map((c) => c.LI || c.CI)
     .filter(Boolean))];
   if (!champIds.length) {
-    const top = await viaWorker(`${FEED}/service-api/LineFeed/Get1x2_VZip?sports=${SPORT_ID}&count=100&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
-    return mapXItems(top?.Value);
+    const top = await viaWorker(`${FEED}/service-api/LineFeed/Get1x2_VZip?sports=${sid}&count=100&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
+    return dedupeMatches(mapXItems(top?.Value));
   }
   const seen = new Set(); const all = [];
   const BATCH = 12;
@@ -49,8 +53,10 @@ export async function listPrematch() {
   return dedupeMatches(all);
 }
 
-export async function listLive() {
-  const raw = await viaWorker(`${FEED}/service-api/LiveFeed/Get1x2_VZip?sports=${SPORT_ID}&count=500&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
+export async function listLive({ sport = 'football' } = {}) {
+  const sid = SPORT_IDS[sport];
+  if (!sid) return [];
+  const raw = await viaWorker(`${FEED}/service-api/LiveFeed/Get1x2_VZip?sports=${sid}&count=500&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
   const list = (raw?.Value || [])
     .filter((m) => m.I && m.O1 && m.O2 && !isFakeTeam(m.O1) && !isFakeTeam(m.O2) && !isVirtual(m.O1, m.O2, m.LE || m.L || ''))
     .map((m) => ({ id: m.I, home: m.O1, away: m.O2, league: m.LE || m.L || '', start: m.S ? m.S * 1000 : null }));

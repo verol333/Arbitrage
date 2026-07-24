@@ -4,7 +4,9 @@ import WebSocket from 'ws';
 
 const ENDPOINT = 'wss://eu-swarm-newm.betconstruct.com/';
 export const BETMOMO_SITE_ID = 122;
-export const BETMOMO_SID = { football: 1, tennis: 2 };
+// Sport IDs vérifiés via SWARM sport list : Football=1, Tennis=4.
+// L'ancien mapping tennis=2 était FAUX — 2 = Ice Hockey chez BetMomo.
+export const BETMOMO_SID = { football: 1, tennis: 4 };
 
 export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
   return new Promise((resolve, reject) => {

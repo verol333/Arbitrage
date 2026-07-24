@@ -6,7 +6,8 @@ export default {
   key: '1win',
   label: '1win',
   supports: { prematch: true, live: true },
-  async listMatches({ live = false } = {}) {
+  async listMatches({ live = false, sport = 'football' } = {}) {
+    if (sport !== 'football') return []; // tennis endpoint non validé pour 1win
     return live ? listLive() : listPrematch();
   },
   async getOdds(match) {
