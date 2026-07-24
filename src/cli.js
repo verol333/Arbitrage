@@ -22,6 +22,10 @@ async function sendWebhook(payload) {
 
 async function notifyWebhook(result, { live = false, sport = 'football' } = {}) {
   if (result.opportunities?.length) {
+    if (live) {
+      const first = result.opportunities[0];
+      log(`  → live sample: score=${first.live_score ?? 'null'} min=${first.live_minute ?? 'null'} period=${first.live_period ?? 'null'} src=${first.live_score_source ?? 'null'} match=${first.match_label}`);
+    }
     await sendWebhook({
       type: 'arbitrage_alert',
       scan_type: live ? 'live' : 'prematch',
