@@ -1,4 +1,3 @@
-// Apollo — cotes récupérées en 2e appel (fetchOffers) donc batch obligatoire.
 import { listMatches, fetchOffers } from './list.js';
 import { apolloFlatOdds } from './parse.js';
 
@@ -6,7 +5,9 @@ export default {
   key: 'apollo',
   label: 'Apollo Games',
   supports: { prematch: true, live: true },
-  async listMatches({ live = false } = {}) { return listMatches({ live }); },
+  async listMatches({ live = false, sport = 'football' } = {}) {
+    return listMatches({ live, sport });
+  },
   async getOdds(match) {
     const map = await fetchOffers([match.id]);
     return apolloFlatOdds(map.get(match.id) || []);

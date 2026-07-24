@@ -4,7 +4,7 @@ import WebSocket from 'ws';
 
 const ENDPOINT = 'wss://eu-swarm-newm.betconstruct.com/';
 export const BETMOMO_SITE_ID = 122;
-export const BETMOMO_SID = { football: 1 };
+export const BETMOMO_SID = { football: 1, tennis: 2 };
 
 export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
   return new Promise((resolve, reject) => {

@@ -36,10 +36,12 @@ jobs:
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           BASE44_API_URL: ${{ secrets.BASE44_API_URL }}
           BASE44_SERVICE_KEY: ${{ secrets.BASE44_SERVICE_KEY }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
           HORIZON_HOURS: '72'
-          MAX_MATCHES: '400'
+          MAX_MATCHES: '600'
+          SCAN_SPORTS: 'football,tennis'

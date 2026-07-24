@@ -1,7 +1,7 @@
 import { APOLLO_SID, apolloGet } from './api.js';
 
-export async function listMatches({ live = false, maxMatches = 200 } = {}) {
-  const sid = APOLLO_SID.football;
+export async function listMatches({ live = false, maxMatches = 200, sport = 'football' } = {}) {
+  const sid = APOLLO_SID[sport] || APOLLO_SID.football;
   const now = new Date().toISOString();
   const dateTo = '2046-04-07T22:59:59.000Z';
   let path = `/sport/offer/v3/sports/offer?Offset=0&Limit=${maxMatches}&DateFrom=${now}&DateTo=${dateTo}&SportIds=${sid}`;

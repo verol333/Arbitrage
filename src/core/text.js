@@ -4,7 +4,7 @@ const DIACRITICS = /[̀-ͯ]/g;
 
 export function norm(s) {
   return (s || '').toLowerCase().normalize('NFD').replace(DIACRITICS, '')
-    .replace(/\b(fc|cf|sc|ac|afc|cd|ec|sd|club|deportivo|universidad|u\.|de|del|do|da)\b/g, ' ')
+    .replace(/\b(fc|cf|sc|ac|afc|cd|ec|sd|fk|as|us|ss|rfc|bsc|vfb|tsv|sv|rc|ogc|ssc|club|deportivo|universidad|u\.|de|del|do|da|et|les|the|al|el)\b/g, ' ')
     .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 

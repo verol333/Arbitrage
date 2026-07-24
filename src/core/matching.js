@@ -17,7 +17,7 @@ export function orientation(refHome, refAway, cHome, cAway) {
 // STRICTE si les deux heures sont connues, deux équipes ≥ 0.34 en score de nom,
 // orientation "same" obligatoire, marquer les `used` pour éviter les doublons.
 export function matchBook(ref, cands, used) {
-  const HARD_DT = 35 * 60 * 1000;
+  const HARD_DT = 60 * 60 * 1000;
   let best = null, bestScore = -1, bestDt = null;
   for (const c of cands) {
     if (used.has(c.id)) continue;
@@ -25,7 +25,7 @@ export function matchBook(ref, cands, used) {
     if (dt !== null && dt > HARD_DT) continue;
     const sh = teamSim(ref.home, c.home);
     const sa = teamSim(ref.away, c.away);
-    if (!(sh >= 0.34 && sa >= 0.34)) continue;
+    if (!(sh >= 0.30 && sa >= 0.30)) continue;
     if (orientation(ref.home, ref.away, c.home, c.away) !== 'same') continue;
     const score = (sh + sa) / 2;
     const better = score > bestScore + 1e-6

@@ -12,8 +12,9 @@ export const config = {
     mode: (process.env.PROXY_MODE || 'jina').toLowerCase(),
     jinaKey: process.env.JINA_API_KEY || '',
     residentialUrl: process.env.RESIDENTIAL_PROXY_URL || '',
+    cfworkerUrl: process.env.CF_WORKER_PROXY_URL || '',
     cacheTtlMs: num(process.env.PROXY_CACHE_TTL_MS, 75_000),
-    maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 3),
+    maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 6),
   },
 
   base44: {

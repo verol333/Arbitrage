@@ -30,9 +30,9 @@ async function base44Fetch(path, init = {}) {
 }
 
 // Marque les anciennes opportunités comme "stale" avant d'insérer les nouvelles.
-async function markStale({ live }) {
+async function markStale({ live, sport = 'football' }) {
   if (!base44Configured()) return;
-  const filter = { status: 'live', sport: 'football', is_live: !!live };
+  const filter = { status: 'live', sport, is_live: !!live };
   await base44Fetch(`/entities/${ENTITY}/update-many`, {
     method: 'POST',
     body: JSON.stringify({ filter, update: { status: 'stale' } }),

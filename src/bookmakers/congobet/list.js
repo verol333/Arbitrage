@@ -1,7 +1,7 @@
-// Listing Congobet football (par catégorie feuille) + live. Port fidèle de matchCore.ts.
+// Listing Congobet multi-sport (par catégorie feuille) + live.
 import { CONGO_API, congoJson } from './api.js';
 
-const SPORT_ID = '101'; // Soccer
+const SPORT_IDS = { football: '101', tennis: '103' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);
@@ -18,7 +18,8 @@ async function listLeafCategories(sportId) {
 
 const congoSportId = (ev) => (ev.categoryPath || '').split('/').filter(Boolean)[0] || '?';
 
-export async function listPrematch() {
+export async function listPrematch({ sport = 'football' } = {}) {
+  const SPORT_ID = SPORT_IDS[sport] || SPORT_IDS.football;
   const seen = new Set(); const out = [];
   const addItems = (items) => {
     for (const ev of items) {
@@ -64,7 +65,8 @@ const isVirtual = (ev) => {
   return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(s);
 };
 
-export async function listLive() {
+export async function listLive({ sport = 'football' } = {}) {
+  const SPORT_ID = SPORT_IDS[sport] || SPORT_IDS.football;
   const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`);
   return (Array.isArray(raw) ? raw : [])
     .filter((ev) => congoSportId(ev) === SPORT_ID && !isVirtual(ev))

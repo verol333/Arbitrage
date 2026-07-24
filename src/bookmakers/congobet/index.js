@@ -5,6 +5,8 @@ export default {
   key: 'congobet',
   label: 'Congobet',
   supports: { prematch: true, live: true },
-  async listMatches({ live = false } = {}) { return live ? listLive() : listPrematch(); },
+  async listMatches({ live = false, sport = 'football' } = {}) {
+    return live ? listLive({ sport }) : listPrematch({ sport });
+  },
   async getOdds(match) { return getOddsImpl(match.id); },
 };

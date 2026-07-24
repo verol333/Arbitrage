@@ -1,12 +1,29 @@
-// YellowBet evapi — port fidèle de shared/yellowbetEvapi.ts.
-// Passe par proxyFetchJson (Jina/résidentiel/headless) car derrière Cloudflare.
-import { proxyFetchJson } from '../../net/fetcher.js';
+// YellowBet evapi — passe par CF Worker (fiable) ou Jina (fallback).
+import { proxyFetchJson, fetchJson } from '../../net/fetcher.js';
+import { config } from '../../config.js';
 
 const BASE = 'https://yellowbet.cg/services/evapi';
 const SET_HEADERS = { brandid: '122', channelid: '4', language: 'fr', terminal: 'yellowbet.cg' };
 
+const CF_WORKERS = [
+  'https://hidden-pine-7436.veolalex3.workers.dev',
+  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
+];
+
+async function viaCfWorker(url) {
+  const headers = {};
+  for (const [k, v] of Object.entries(SET_HEADERS)) headers[`x-forward-${k}`] = v;
+  for (const w of CF_WORKERS) {
+    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers, timeoutMs: 12_000 });
+    if (j) return j;
+  }
+  return null;
+}
+
 export async function evapi(url) {
-  return proxyFetchJson(url, { setHeaders: SET_HEADERS, timeoutMs: 45_000 });
+  const j = await viaCfWorker(url);
+  if (j) return j;
+  return proxyFetchJson(url, { setHeaders: SET_HEADERS, timeoutMs: 30_000 });
 }
 
 export function isVirtual(ev) {

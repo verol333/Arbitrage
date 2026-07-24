@@ -1,4 +1,3 @@
-// Interface commune 1xbet (contrat exigé par src/bookmakers/index.js).
 import { listPrematch, listLive } from './list.js';
 import { getOdds as getOddsImpl } from './odds.js';
 
@@ -6,8 +5,8 @@ export default {
   key: '1xbet',
   label: '1xbet',
   supports: { prematch: true, live: true },
-  async listMatches({ live = false } = {}) {
-    return live ? listLive() : listPrematch();
+  async listMatches({ live = false, sport = 'football' } = {}) {
+    return live ? listLive({ sport }) : listPrematch({ sport });
   },
   async getOdds(match, { live = false } = {}) {
     return getOddsImpl(match.id, { live });

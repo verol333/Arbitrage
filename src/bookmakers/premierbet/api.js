@@ -1,14 +1,28 @@
-// PremierBet (Editec) — l'API bloque les IP datacenter → passe par proxy.
-// Port fidèle de shared/premierbetClient.ts.
-import { proxyFetchText } from '../../net/fetcher.js';
+// PremierBet (Editec) — CF Worker (fiable) + proxy Jina (fallback).
+import { proxyFetchText, fetchJson } from '../../net/fetcher.js';
 
 const BASE = 'https://premierbetzone.com/rest';
 
-// Retour attendu : le proxy renvoie du texte JSON avec { code:200, data:... }.
+const CF_WORKERS = [
+  'https://hidden-pine-7436.veolalex3.workers.dev',
+  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
+];
+
+async function viaCfWorker(url) {
+  for (const w of CF_WORKERS) {
+    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { timeoutMs: 12_000 });
+    if (j) return j;
+  }
+  return null;
+}
+
 export async function pget(path) {
-  const text = await proxyFetchText(`${BASE}/${path}`, { timeoutMs: 45_000 });
+  const url = `${BASE}/${path}`;
+  const j = await viaCfWorker(url);
+  if (j && j.code === 200) return j.data;
+  const text = await proxyFetchText(url, { timeoutMs: 30_000 });
   if (!text || text.length < 2) return null;
-  try { const j = JSON.parse(text); return j && j.code === 200 ? j.data : null; } catch { return null; }
+  try { const p = JSON.parse(text); return p && p.code === 200 ? p.data : null; } catch { return null; }
 }
 
 export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b/i.test(s || '');

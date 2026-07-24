@@ -49,8 +49,16 @@ async function residentialProxy(url, opts) {
   } finally { clearTimeout(t); }
 }
 
-// Fetch protégé : passe par le proxy configuré, avec cache TTL et concurrence limitée.
-// Retourne toujours le TEXTE brut (parse JSON à la charge de l'appelant).
+async function cfworkerProxy(url, opts) {
+  const workerUrl = config.proxy.cfworkerUrl;
+  if (!workerUrl) throw new Error('CF_WORKER_PROXY_URL non défini');
+  const headers = {};
+  for (const [k, v] of Object.entries(opts.setHeaders || {})) {
+    headers[`x-forward-${k}`] = v;
+  }
+  return directFetch(`${workerUrl}/?url=${encodeURIComponent(url)}`, { ...opts, headers, extraHeaders: {} });
+}
+
 export async function proxyFetchText(url, opts = {}) {
   const cacheKey = `${opts.method || 'GET'}:${url}:${opts.body || ''}`;
   if (!opts.noCache) {
@@ -59,9 +67,9 @@ export async function proxyFetchText(url, opts = {}) {
   }
   return semaphore(async () => {
     let res;
-    if (config.proxy.mode === 'residential') res = await residentialProxy(url, opts);
+    if (config.proxy.mode === 'cfworker') res = await cfworkerProxy(url, opts);
+    else if (config.proxy.mode === 'residential') res = await residentialProxy(url, opts);
     else if (config.proxy.mode === 'headless') {
-      // Hook pour Playwright — pas activé par défaut (nécessite une image Chromium).
       const { headlessFetch } = await import('./headless.js');
       res = await headlessFetch(url, opts);
     } else res = await jinaProxy(url, opts);

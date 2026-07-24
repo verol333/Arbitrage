@@ -1,8 +1,8 @@
 // Listing BetMomo : 1 seule session SWARM récupère les matchs + tous leurs marchés.
 import { BETMOMO_SID, swarmSession, isOutright, isVirtual } from './api.js';
 
-export async function listMatches({ live = false, maxMatches, horizonHours = 72 } = {}) {
-  const sid = BETMOMO_SID.football;
+export async function listMatches({ live = false, maxMatches, horizonHours = 72, sport = 'football' } = {}) {
+  const sid = BETMOMO_SID[sport] || BETMOMO_SID.football;
   const limit = maxMatches ?? (live ? 120 : 320);
   const now = Math.floor(Date.now() / 1000);
   const to = now + horizonHours * 3600;
