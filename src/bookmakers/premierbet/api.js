@@ -1,24 +1,11 @@
-// PremierBet (Editec) — CF Worker (fiable) + proxy Jina (fallback).
-import { proxyFetchText, fetchJson } from '../../net/fetcher.js';
+import { stealthGetJson } from '../../net/stealth.js';
+import { proxyFetchText } from '../../net/fetcher.js';
 
 const BASE = 'https://premierbetzone.com/rest';
 
-const CF_WORKERS = [
-  'https://hidden-pine-7436.veolalex3.workers.dev',
-  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
-];
-
-async function viaCfWorker(url) {
-  for (const w of CF_WORKERS) {
-    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { timeoutMs: 12_000 });
-    if (j) return j;
-  }
-  return null;
-}
-
 export async function pget(path) {
   const url = `${BASE}/${path}`;
-  const j = await viaCfWorker(url);
+  const j = await stealthGetJson(url, { timeoutMs: 15_000 }).catch(() => null);
   if (j && j.code === 200) return j.data;
   const text = await proxyFetchText(url, { timeoutMs: 30_000 });
   if (!text || text.length < 2) return null;
