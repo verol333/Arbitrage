@@ -1,12 +1,12 @@
-// Listing 1win multi-sport via REST /matches/get-many.
 import { API_BASE, ORIGIN, UA, PLATFORM, WIN_SID } from './api.js';
 
-async function winGetMany(offset, { live = false, sport = 'football' } = {}) {
-  const sportId = WIN_SID[sport] || WIN_SID.football;
+const SPORT_ID = WIN_SID.football;
+
+async function winGetMany(offset, { live = false } = {}) {
   const now = Math.floor(Date.now() / 1000);
   const body = live
-    ? { sportId, isLive: true, startAtFrom: now - 4 * 3600, startAtTo: now + 600, limit: 200, offset, l: 'en-001', p: PLATFORM }
-    : { sportId, startAtFrom: now - 3600, startAtTo: now + 3 * 86400, limit: 1000, offset, l: 'en-001', p: PLATFORM };
+    ? { sportId: SPORT_ID, isLive: true, startAtFrom: now - 4 * 3600, startAtTo: now + 600, limit: 200, offset, l: 'en-001', p: PLATFORM }
+    : { sportId: SPORT_ID, startAtFrom: now - 3600, startAtTo: now + 3 * 86400, limit: 1000, offset, l: 'en-001', p: PLATFORM };
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 12_000);
   try {
@@ -37,19 +37,19 @@ function toMatch(m) {
 const isReal = (m) => m.id && m.home && m.away
   && !/\(v\)/i.test(m.home) && !/\(v\)/i.test(m.away)
   && !/replay/i.test(m.home) && !/replay/i.test(m.away)
-  && !/\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?fighting\b|\be-?basketball\b|\be-?hockey\b|\be-?tennis\b/i.test(`${m.home} ${m.away} ${m.league || ''}`);
+  && !/\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?/i.test(`${m.home} ${m.away} ${m.league || ''}`);
 
-export async function listPrematch({ sport = 'football' } = {}) {
+export async function listPrematch() {
   const raw = [];
   for (let page = 0; page < 3; page++) {
-    const items = await winGetMany(page * 1000, { sport });
+    const items = await winGetMany(page * 1000);
     raw.push(...items);
     if (items.length < 1000) break;
   }
   return raw.map(toMatch).filter(isReal);
 }
 
-export async function listLive({ sport = 'football' } = {}) {
-  const items = await winGetMany(0, { live: true, sport });
+export async function listLive() {
+  const items = await winGetMany(0, { live: true });
   return items.map(toMatch).filter(isReal);
 }

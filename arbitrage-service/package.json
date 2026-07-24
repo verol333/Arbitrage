@@ -9,5 +9,8 @@
   "dependencies": {
     "got-scraping": "^4.2.1",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

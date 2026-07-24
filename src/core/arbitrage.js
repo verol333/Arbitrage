@@ -200,65 +200,6 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   return out;
 }
 
-const TENNIS_HCP_LINES = [-6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
-const SET_HCP_LINES = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5];
-
-export function compareTwoBooksTennis(rawA, bookA, rawB, bookB) {
-  const oa = normalizeAliases(rawA);
-  const ob = normalizeAliases(rawB);
-  const out = [];
-  // Match Winner (2-way).
-  pushArb(out, 'Match Winner', 'Joueur 1', oa.match_1, bookA, 'Joueur 2', ob.match_2, bookB);
-  pushArb(out, 'Match Winner', 'Joueur 1', ob.match_1, bookB, 'Joueur 2', oa.match_2, bookA);
-  // Total jeux.
-  for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
-    const fam = `Total jeux ${l}`;
-    pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB);
-    pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA);
-  }
-  // Handicap jeux.
-  for (const l of TENNIS_HCP_LINES) {
-    const hk = `hcp_home_${l}`, ak = `hcp_away_${-l}`;
-    const fam = `Handicap jeux ${l > 0 ? '+' + l : l}`;
-    pushArb(out, fam, `J1 ${l > 0 ? '+' + l : l}`, oa[hk], bookA, `J2 ${-l > 0 ? '+' + (-l) : -l}`, ob[ak], bookB);
-    pushArb(out, fam, `J1 ${l > 0 ? '+' + l : l}`, ob[hk], bookB, `J2 ${-l > 0 ? '+' + (-l) : -l}`, oa[ak], bookA);
-  }
-  // Handicap sets.
-  for (const l of SET_HCP_LINES) {
-    const hk = `set_hcp_home_${l}`, ak = `set_hcp_away_${-l}`;
-    const fam = `Handicap sets ${l > 0 ? '+' + l : l}`;
-    pushArb(out, fam, `J1 ${l > 0 ? '+' + l : l}`, oa[hk], bookA, `J2 ${-l > 0 ? '+' + (-l) : -l}`, ob[ak], bookB);
-    pushArb(out, fam, `J1 ${l > 0 ? '+' + l : l}`, ob[hk], bookB, `J2 ${-l > 0 ? '+' + (-l) : -l}`, oa[ak], bookA);
-  }
-  // Total sets.
-  for (const l of linesOf(oa, ob, /^set_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
-    const fam = `Total sets ${l}`;
-    pushArb(out, fam, `+${l}`, oa[`set_over_${l}`], bookA, `−${l}`, ob[`set_under_${l}`], bookB);
-    pushArb(out, fam, `+${l}`, ob[`set_over_${l}`], bookB, `−${l}`, oa[`set_under_${l}`], bookA);
-  }
-  // Per-set winner + totals (s1_, s2_, s3_).
-  for (const [pfx, lbl] of [['s1_', 'Set 1'], ['s2_', 'Set 2'], ['s3_', 'Set 3']]) {
-    pushArb(out, `${lbl} Winner`, 'J1', oa[`${pfx}match_1`], bookA, 'J2', ob[`${pfx}match_2`], bookB);
-    pushArb(out, `${lbl} Winner`, 'J1', ob[`${pfx}match_1`], bookB, 'J2', oa[`${pfx}match_2`], bookA);
-    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
-      pushArb(out, `${lbl} Total ${l}`, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB);
-      pushArb(out, `${lbl} Total ${l}`, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA);
-    }
-  }
-  // Totaux individuels par joueur.
-  for (const [side, lbl] of [['home', 'J1'], ['away', 'J2']]) {
-    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
-      const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
-      pushArb(out, `Total ${lbl} ${l}`, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB);
-      pushArb(out, `Total ${lbl} ${l}`, `${lbl} +${l}`, ob[ok], bookB, `${lbl} −${l}`, oa[uk], bookA);
-    }
-  }
-  // Pair/Impair jeux.
-  pushArb(out, 'Pair/Impair jeux', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB);
-  pushArb(out, 'Pair/Impair jeux', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA);
-  return out;
-}
-
 export function dedupeOpportunities(opps) {
   const seen = new Set();
   const out = [];

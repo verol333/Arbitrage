@@ -2,7 +2,7 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTwoBooksTennis, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
@@ -44,15 +44,15 @@ async function readOddsSafe(book, matches, opts) {
 }
 
 // Lance un scan complet (prématch ou live) et retourne les opportunités trouvées.
-export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football' } = {}) {
+export async function runScan({ live = false, horizonHours, minProfit, maxMatches } = {}) {
   const t0 = Date.now();
   const usable = bookmakers.filter((b) => live ? b.supports.live : b.supports.prematch);
-  const listOpts = { live, horizonHours: horizonHours ?? config.scan.horizonHours, sport };
+  const listOpts = { live, horizonHours: horizonHours ?? config.scan.horizonHours };
   const listed = await Promise.all(usable.map((b) => listSafe(b, listOpts)));
 
   const catalogs = new Map();
   for (const { book, matches } of listed) catalogs.set(book.key, matches);
-  log(`📋 ${sport.toUpperCase()} ${live ? 'LIVE' : 'PRÉMATCH'} — ${[...catalogs].map(([k, v]) => `${k}:${v.length}`).join(' | ')}`);
+  log(`📋 FOOTBALL ${live ? 'LIVE' : 'PRÉMATCH'} — ${[...catalogs].map(([k, v]) => `${k}:${v.length}`).join(' | ')}`);
 
   const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
@@ -76,7 +76,6 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
 
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
-  const compare = sport === 'tennis' ? compareTwoBooksTennis : compareTwoBooks;
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;
@@ -88,11 +87,11 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
     }
     const keys = Object.keys(oddsPerBook);
     for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
-      const arbs = compare(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j]);
+      const arbs = compareTwoBooks(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j]);
       for (const a of arbs) {
         if (a.profit_pct < minP) continue;
         all.push({
-          ...a, scan_id: scanId, sport, is_live: live,
+          ...a, scan_id: scanId, sport: 'football', is_live: live,
           match_label: `${ref.home} vs ${ref.away}`,
           team_home: ref.home, team_away: ref.away, league: ref.league,
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,

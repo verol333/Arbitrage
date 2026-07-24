@@ -1,8 +1,8 @@
 import { xget, parseTs, splitTeams, isVirtual } from './api.js';
 
-const SPORT_LABELS = { football: 'Football', tennis: 'Tennis' };
+const SPORT_LABEL = 'Football';
 
-async function listSportEvents(live, sport = 'football') {
+async function listSportEvents(live) {
   const [wc, hl] = await Promise.all([
     xget('getWidgetCentrali', {}),
     xget('getHomeLandingData', { timezone: '1' }),
@@ -14,7 +14,7 @@ async function listSportEvents(live, sport = 'football') {
 
   const seen = new Set(); const out = [];
   for (const e of evs) {
-    if (e.ds !== (SPORT_LABELS[sport] || 'Football')) continue;
+    if (e.ds !== SPORT_LABEL) continue;
     const key = `${e.p}_${e.a}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -26,11 +26,11 @@ async function listSportEvents(live, sport = 'football') {
   return out;
 }
 
-export async function listMatches({ live = false, maxMatches, horizonHours = 72, sport = 'football' } = {}) {
+export async function listMatches({ live = false, maxMatches, horizonHours = 72 } = {}) {
   const limit = maxMatches ?? (live ? 80 : 200);
   const nowMs = Date.now();
   const horizonMs = nowMs + horizonHours * 3600 * 1000;
-  let events = await listSportEvents(live, sport);
+  let events = await listSportEvents(live);
   if (!live) events = events.filter((e) => e.start && e.start > nowMs + 2 * 60 * 1000 && e.start <= horizonMs);
   events = events.slice(0, limit);
   if (!events.length) return [];

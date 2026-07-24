@@ -5,8 +5,8 @@ export default {
   key: 'yellowbet',
   label: 'YellowBet',
   supports: { prematch: true, live: true },
-  async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    return live ? listLive({ sport }) : listPrematch(horizonHours, { sport });
+  async listMatches({ live = false, horizonHours } = {}) {
+    return live ? listLive() : listPrematch(horizonHours);
   },
   async getOdds(match) {
     return yellowbetFlatOdds(match.__raw?.bts || []);
