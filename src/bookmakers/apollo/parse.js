@@ -59,5 +59,63 @@ export function apolloFlatOdds(offers) {
     if (t === '1') odds.h2_match_1 = c; else if (t === 'X') odds.h2_match_X = c; else if (t === '2') odds.h2_match_2 = c;
     else if (t === '1X') odds.h2_dc_1X = c; else if (t === '12') odds.h2_dc_12 = c; else if (t === 'X2') odds.h2_dc_X2 = c;
   });
+  // ─── TENNIS Apollo (BetTypeKey découverts via probe) ─────────────────────
+  // 20 : Match Winner 2-way (Type='1'/'2').
+  eachOdd(offers, 20, (t, _n, c) => {
+    if (t === '1') odds.match_1 = c;
+    else if (t === '2') odds.match_2 = c;
+  });
+  // 911 : Total Games (Sbv = seuil, Name = 'Under'/'Over').
+  eachOdd(offers, 911, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`match_under_${l}`] = c;
+    else if (s.includes('over')) odds[`match_over_${l}`] = c;
+  });
+  // 910 : Games Handicap (Type '1'/'2', Sbv seuil).
+  eachOdd(offers, 910, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`hcp_home_${l}`] = c;
+    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+  });
+  // 914 : Sets Handicap (Sbv ±1.5, Type '1'/'2').
+  eachOdd(offers, 914, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`set_hcp_home_${l}`] = c;
+    else if (t === '2') odds[`set_hcp_away_${-l}`] = c;
+  });
+  // 915 : Total Sets Over/Under (Type '2' Under, Type '3' Over typiquement).
+  eachOdd(offers, 915, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv || '2.5');
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under') || n === '2') odds[`set_under_${l}`] = c;
+    else if (s.includes('over') || n === '3') odds[`set_over_${l}`] = c;
+  });
+  // 597 / 841 / 842 : Player Totals (Under/Over sur Sbv).
+  eachOdd(offers, 597, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`tt_home_under_${l}`] = c;
+    else if (s.includes('over')) odds[`tt_home_over_${l}`] = c;
+  });
+  eachOdd(offers, 842, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`tt_away_under_${l}`] = c;
+    else if (s.includes('over')) odds[`tt_away_over_${l}`] = c;
+  });
+  // 988 : 1st Set Games Handicap.
+  eachOdd(offers, 988, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`s1_hcp_home_${l}`] = c;
+    else if (t === '2') odds[`s1_hcp_away_${-l}`] = c;
+  });
   return odds;
 }
