@@ -132,15 +132,194 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
     }
   }
   const deduped = dedupeOpportunities(all).sort((a, b) => b.profit_pct - a.profit_pct);
-  log(`🎯 ${deduped.length} opportunités ≥ ${minP}% | ${Date.now() - t0}ms`);
+  log(`🎯 ${deduped.length} opportunités candidates ≥ ${minP}% | ${Date.now() - t0}ms`);
+
+  // Re-fetch juste-à-temps : on relit les cotes des 2 legs de chaque opp avant
+  // de les envoyer. Élimine les surebets périmés (cotes ayant bougé pendant le
+  // scan). Coût = 2 requêtes par opp, dédupliquées via cache TTL du fetcher.
+  const confirmed = await confirmOpportunities(deduped, matchesByBookOpp(sorted, usable), usable, listOpts, minP);
+  log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
+
   return {
-    opportunities: deduped,
+    opportunities: confirmed,
     stats: {
       catalogs: [...catalogs].map(([k, v]) => ({ book: k, matches: v.length })),
       entries: sorted.length,
+      candidates: deduped.length,
+      confirmed: confirmed.length,
       duration_ms: Date.now() - t0,
     },
   };
+}
+
+// Construit une map (bookKey → matchId → match) restreinte aux entrées scannées
+// pour ne re-fetcher que ce qui apparaît dans une opp.
+function matchesByBookOpp(entries, usable) {
+  const out = new Map();
+  for (const b of usable) out.set(b.key, new Map());
+  for (const e of entries) {
+    for (const b of usable) {
+      const m = e.matches[b.key];
+      if (m) out.get(b.key).set(String(m.id), m);
+    }
+  }
+  return out;
+}
+
+async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, minProfit) {
+  if (!opps.length) return [];
+  const bookByKey = Object.fromEntries(usable.map((b) => [b.key, b]));
+  // Regroupe les IDs à re-fetcher par bookmaker (dédup pour partage entre opps).
+  const idsByBook = new Map();
+  const ensureId = (bookKey, id) => {
+    if (!idsByBook.has(bookKey)) idsByBook.set(bookKey, new Set());
+    idsByBook.get(bookKey).add(String(id));
+  };
+  for (const o of opps) {
+    const idA = o.verify?.leg_a_match?.id;
+    const idB = o.verify?.leg_b_match?.id;
+    if (o.leg_a_book && idA) ensureId(o.leg_a_book, idA);
+    if (o.leg_b_book && idB) ensureId(o.leg_b_book, idB);
+  }
+  // Re-fetch parallèle par book.
+  const freshOdds = new Map();
+  await Promise.all([...idsByBook.entries()].map(async ([bookKey, ids]) => {
+    const b = bookByKey[bookKey];
+    if (!b) return;
+    const matches = [...ids].map((id) => matchesIdxByBook.get(bookKey)?.get(id)).filter(Boolean);
+    if (!matches.length) return;
+    const map = await readOddsSafe(b, matches, { ...listOpts, noCache: true });
+    freshOdds.set(bookKey, map);
+  }));
+  const confirmedAt = new Date().toISOString();
+  const confirmedAtMs = Date.now();
+  const out = [];
+  for (const o of opps) {
+    const idA = String(o.verify?.leg_a_match?.id || '');
+    const idB = String(o.verify?.leg_b_match?.id || '');
+    const oddsA = freshOdds.get(o.leg_a_book)?.get(idA) || freshOdds.get(o.leg_a_book)?.get(Number(idA));
+    const oddsB = freshOdds.get(o.leg_b_book)?.get(idB) || freshOdds.get(o.leg_b_book)?.get(Number(idB));
+    const key = marketKeyFromOpp(o);
+    if (!key || !oddsA || !oddsB) continue;
+    const freshA = oddsA[key.a];
+    const freshB = oddsB[key.b];
+    if (!freshA || !freshB || freshA <= 1 || freshB <= 1 || freshA > 80 || freshB > 80) continue;
+    const invSum = 1 / freshA + 1 / freshB;
+    if (invSum >= 1) continue;
+    const profit = (1 - invSum) * 100;
+    if (profit < minProfit) continue;
+    // Cote fraîche → on met à jour l'opp avec la valeur re-lue et on ajoute les timestamps.
+    const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;
+    const stakeA = (1 / freshA) / invSum * 100;
+    const stakeB = (1 / freshB) / invSum * 100;
+    out.push({
+      ...o,
+      leg_a_odd: Math.round(freshA * 100) / 100,
+      leg_b_odd: Math.round(freshB * 100) / 100,
+      inverse_sum: Math.round(invSum * 10000) / 10000,
+      profit_pct: Math.round(profit * 100) / 100,
+      stake_a_pct: Math.round(stakeA * 10) / 10,
+      stake_b_pct: Math.round(stakeB * 10) / 10,
+      verify: {
+        ...o.verify,
+        odds_confirmed_at: confirmedAt,
+        odds_age_seconds: Math.max(0, Math.round((confirmedAtMs - fetchedMs) / 1000)),
+      },
+    });
+  }
+  return out.sort((a, b) => b.profit_pct - a.profit_pct);
+}
+
+// Reconstruit la paire de clés d'odds (leg_a, leg_b) à partir des libellés
+// stockés dans l'opp. On peut re-fetch la vraie cote sur chaque leg avec ça.
+function marketKeyFromOpp(o) {
+  const fam = String(o.market_family || '');
+  const aLbl = String(o.leg_a_label || '');
+  const bLbl = String(o.leg_b_label || '');
+  // Match Winner 2-way
+  if (/^Match Winner$/.test(fam)) return { a: 'match_1', b: 'match_2' };
+  // 1X2 + DC combinations
+  if (/1X2 — 1 \+ X2/.test(fam)) return { a: 'match_1', b: 'dc_X2' };
+  if (/1X2 — 2 \+ 1X/.test(fam)) return { a: 'match_2', b: 'dc_1X' };
+  if (/1X2 — X \+ 12/.test(fam)) return { a: 'match_X', b: 'dc_12' };
+  // Draw No Bet
+  if (fam === 'Draw No Bet') return { a: 'dnb_1', b: 'dnb_2' };
+  if (fam === '1MT Draw No Bet') return { a: 'ht_dnb_1', b: 'ht_dnb_2' };
+  if (fam === '2MT Draw No Bet') return { a: 'h2_dnb_1', b: 'h2_dnb_2' };
+  // Handicap match (foot/tennis/basket/hockey/volley) — extract line from label
+  const hcpMatch = fam.match(/^(?:Handicap|Puck Line)\s*(?:jeux|points|sets)?\s*([+-]?\d+(?:\.\d+)?)$/i);
+  if (hcpMatch) {
+    const l = parseFloat(hcpMatch[1]);
+    return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
+  }
+  // Handicap by half/period
+  const htHcp = fam.match(/^(1MT|2MT|P1|P2|P3) Handicap\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (htHcp) {
+    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_' };
+    const l = parseFloat(htHcp[2]);
+    const pfx = pfxMap[htHcp[1]];
+    return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
+  }
+  // Handicap sets (tennis / volley)
+  const setHcp = fam.match(/^Handicap sets\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (setHcp) {
+    const l = parseFloat(setHcp[1]);
+    return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
+  }
+  // Total match (buts/points/jeux) — line embedded in family
+  const totMatch = fam.match(/^Total (?:match|jeux|points|buts|sets)?\s*(\d+(?:\.\d+)?)$/);
+  if (totMatch) {
+    const l = parseFloat(totMatch[1]);
+    // Distinguish set totals for tennis
+    if (/Total sets/.test(fam)) return { a: `set_over_${l}`, b: `set_under_${l}` };
+    return { a: `match_over_${l}`, b: `match_under_${l}` };
+  }
+  // Half/period/quarter totals
+  const partTot = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5|Corners 1MT)\s*(?:Total\s*)?(\d+(?:\.\d+)?)$/);
+  if (partTot) {
+    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_', 'Corners 1MT': 'cor_ht_' };
+    const l = parseFloat(partTot[2]);
+    const pfx = pfxMap[partTot[1]];
+    return { a: `${pfx}over_${l}`, b: `${pfx}under_${l}` };
+  }
+  // Corners total plein temps
+  const corTot = fam.match(/^Corners Total\s*(\d+(?:\.\d+)?)$/);
+  if (corTot) {
+    const l = parseFloat(corTot[1]);
+    return { a: `cor_over_${l}`, b: `cor_under_${l}` };
+  }
+  // Corners handicap
+  const corHcp = fam.match(/^Corners Handicap\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (corHcp) {
+    const l = parseFloat(corHcp[1]);
+    return { a: `cor_hcp_home_${l}`, b: `cor_hcp_away_${-l}` };
+  }
+  // BTTS
+  if (fam === 'BTTS') return { a: 'btts_yes', b: 'btts_no' };
+  if (fam === '1MT BTTS') return { a: 'ht_btts_yes', b: 'ht_btts_no' };
+  if (fam === '2MT BTTS') return { a: 'h2_btts_yes', b: 'h2_btts_no' };
+  // Odd/Even
+  if (/Pair\/Impair/.test(fam)) {
+    if (fam.startsWith('1MT')) return { a: 'ht_odd', b: 'ht_even' };
+    if (fam.startsWith('2MT')) return { a: 'h2_odd', b: 'h2_even' };
+    if (fam.startsWith('Corners')) return { a: 'cor_odd', b: 'cor_even' };
+    return { a: 'odd', b: 'even' };
+  }
+  // Team totals (dom./ext.)
+  const ttMatch = fam.match(/^Total (Dom\.|Ext\.|J1|J2|Éq\.1|Éq\.2)\s*(\d+(?:\.\d+)?)$/);
+  if (ttMatch) {
+    const side = /Dom|J1|Éq\.1/.test(ttMatch[1]) ? 'home' : 'away';
+    const l = parseFloat(ttMatch[2]);
+    return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
+  }
+  // Per-half/quarter/period/set winner (basket/hockey/volley/tennis)
+  const partWin = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5) Winner$/);
+  if (partWin) {
+    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_' };
+    const pfx = pfxMap[partWin[1]];
+    return { a: `${pfx}match_1`, b: `${pfx}match_2` };
+  }
+  return null;
 }
 
 function buildDebugMatches(matches) {
