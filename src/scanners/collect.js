@@ -2,11 +2,21 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTwoBooksTennis, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTwoBooksTennis, compareTwoBooksBasket, compareTwoBooksHockey, compareTwoBooksVolley, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
+
+function pickComparator(sport) {
+  switch (sport) {
+    case 'tennis': return compareTwoBooksTennis;
+    case 'basketball': return compareTwoBooksBasket;
+    case 'hockey': return compareTwoBooksHockey;
+    case 'volleyball': return compareTwoBooksVolley;
+    default: return compareTwoBooks;
+  }
+}
 
 async function listSafe(book, opts) {
   try {
@@ -78,7 +88,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
   const oddsFetchedAt = new Date().toISOString();
-  const compare = sport === 'tennis' ? compareTwoBooksTennis : compareTwoBooks;
+  const compare = pickComparator(sport);
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;

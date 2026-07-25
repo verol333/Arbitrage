@@ -174,6 +174,42 @@ export function betmomoFlatOdds(markets) {
       case '2ndSetTotalGames': putTotal('s2_'); break;
       case '3rdSetWinner': put1x2('s3_'); break;
       case '3rdSetTotalGames': putTotal('s3_'); break;
+      // ─── VOLLEYBALL (BetConstruct types) ───────────────────────────────────
+      case 'MatchWinner': put1x2(''); break; // Volley 2-way (peut aussi tomber sur P1P2)
+      case 'TotalSets': putTotal('set_'); break;
+      case '4thSetWinner': put1x2('s4_'); break;
+      case '4thSetTotalPoints': putTotal('s4_'); break;
+      case '5thSetWinner': put1x2('s5_'); break;
+      case '5thSetTotalPoints': putTotal('s5_'); break;
+      case '1stSetTotalPoints': putTotal('s1_'); break;
+      case '2ndSetTotalPoints': putTotal('s2_'); break;
+      case '3rdSetTotalPoints': putTotal('s3_'); break;
+      case 'HandicapSets': {
+        for (const e of list) {
+          const base = Number(e.base);
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === '1' || ty === 'home') odds[`set_hcp_home_${base}`] = price(e);
+          else if (ty === '2' || ty === 'away') odds[`set_hcp_away_${base}`] = price(e);
+        } break;
+      }
+      // ─── BASKETBALL (BetConstruct types) ───────────────────────────────────
+      case 'Quarter1Winner': put1x2('q1_'); break;
+      case 'Quarter1TotalPoints': putTotal('q1_'); break;
+      case 'Quarter1AsianHandicap': putHcp('q1_'); break;
+      case 'Quarter2Winner': put1x2('q2_'); break;
+      case 'Quarter2TotalPoints': putTotal('q2_'); break;
+      case 'Quarter3Winner': put1x2('q3_'); break;
+      case 'Quarter3TotalPoints': putTotal('q3_'); break;
+      case 'Quarter4Winner': put1x2('q4_'); break;
+      case 'Quarter4TotalPoints': putTotal('q4_'); break;
+      // ─── ICE HOCKEY (BetConstruct types) ───────────────────────────────────
+      case '1stPeriodResult': put1x2('p1_'); break;
+      case '1stPeriodOverUnder': putTotal('p1_'); break;
+      case '1stPeriodAsianHandicap': putHcp('p1_'); break;
+      case '2ndPeriodResult': put1x2('p2_'); break;
+      case '2ndPeriodOverUnder': putTotal('p2_'); break;
+      case '3rdPeriodResult': put1x2('p3_'); break;
+      case '3rdPeriodOverUnder': putTotal('p3_'); break;
       default: break;
     }
   }

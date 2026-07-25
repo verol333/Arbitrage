@@ -9,7 +9,9 @@ const HEADERS = {
   Referer: 'https://m.apollogames.cg/',
   'User-Agent': 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36',
 };
-export const APOLLO_SID = { football: 388, tennis: 389 };
+// Sport IDs Apollo (via /sport/offer/v3/sports) : 388=Soccer, 389=Tennis,
+// 391=Basketball, 398=Ice Hockey, 397=Volleyball.
+export const APOLLO_SID = { football: 388, tennis: 389, basketball: 391, hockey: 398, volleyball: 397 };
 
 export async function apolloGet(path) {
   return fetchJson(`${SPORT_API}${path}`, { headers: HEADERS, timeoutMs: 20_000 });
