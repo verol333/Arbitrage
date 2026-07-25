@@ -1,5 +1,7 @@
-// Accès 1xbet via workers Cloudflare (port fidèle de matchCore.ts).
+// Accès 1xbet via multi-proxy : CF workers (random) → jina.ai gratuit → direct.
+// Objectif : 100% dispo même quand un canal tombe.
 import { fetchJson } from '../../net/fetcher.js';
+import { stealthGetJson } from '../../net/stealth.js';
 
 export const FEED = 'https://1xbet.cg';
 export const COUNTRY = 93;
@@ -18,13 +20,34 @@ const HEADERS = {
   'x-requested-with': 'XMLHttpRequest',
 };
 
-// Ping séquentiel des workers CF ; le premier qui répond avec du JSON valide gagne.
+// Round-robin state pour spread la charge sur les CF workers (au lieu de
+// toujours frapper le 1er, qui sature en premier).
+let cfCursor = 0;
+function orderedWorkers() {
+  const start = cfCursor++ % CF_WORKERS.length;
+  return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
+}
+
+// Multi-fallback : CF workers (rotation round-robin) → r.jina.ai (free proxy
+// sans API key, agressif via got-scraping) → fetch direct.
+// Le premier qui répond avec du JSON valide gagne.
 export async function viaWorker(url) {
-  for (const w of CF_WORKERS) {
+  // Tier 1: CF workers en round-robin (limite l'épuisement d'un seul worker)
+  for (const w of orderedWorkers()) {
     const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 9_000 });
     if (j) return j;
   }
-  return null;
+  // Tier 2: jina.ai reader (proxy gratuit sans key, forme brute HTTP)
+  try {
+    const j = await stealthGetJson(`https://r.jina.ai/${url}`, {
+      headers: { 'x-return-format': 'text', accept: '*/*' },
+      timeoutMs: 12_000,
+    });
+    if (j) return j;
+  } catch { /* fallback silencieux */ }
+  // Tier 3: fetch direct (dernier recours, marche si l'IP GH n'est pas blacklistée)
+  const j = await stealthGetJson(url, { headers: HEADERS, timeoutMs: 10_000 });
+  return j || null;
 }
 
 export function isFakeTeam(name) {
