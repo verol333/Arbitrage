@@ -1,66 +1,74 @@
-// Probe v3 winner.bet : navigate via Playwright headless (Chromium) et intercepte
-// TOUTES les requêtes réseau — la vraie API sera visible dans le trafic.
+// Probe v4 winner.bet : Playwright + capture TOUT le trafic non-asset.
 import { chromium } from 'playwright';
 
-const results = { requests: [], websockets: [], errors: [] };
+const results = { xhr_fetch: [], websockets: [], errors: [], docs: [] };
 
-async function probe(url) {
-  const browser = await chromium.launch({ headless: true });
+async function probe() {
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'] });
   const ctx = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
     locale: 'fr-FR',
     viewport: { width: 1440, height: 900 },
+    extraHTTPHeaders: { 'accept-language': 'fr-FR,fr;q=0.9,en;q=0.8' },
   });
   const page = await ctx.newPage();
 
   page.on('request', (req) => {
     const u = req.url();
-    if (/beacon|analytics|google|facebook|tracker|hotjar|sentry|datadog|newrelic|\.png|\.jpg|\.svg|\.woff|\.css|\.ico|\.webp/i.test(u)) return;
-    if (/\/api\/|\/rest\/|\/graphql|\/betting|\/sport|\/event|\/prematch|\/live|\/odds|\/market/i.test(u)) {
-      results.requests.push({ method: req.method(), url: u.slice(0, 300), type: req.resourceType() });
+    // Skip assets, analytics, CDN images
+    if (/\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|otf|css|ico|webp|mp4|webm|map|js\?|js$)/i.test(u)) return;
+    if (/googletagmanager|google-analytics|doubleclick|facebook\.com|hotjar|sentry|datadog|newrelic|cloudflareinsights|beacon\.min\.js/i.test(u)) return;
+    const type = req.resourceType();
+    if (type === 'xhr' || type === 'fetch' || type === 'websocket' || type === 'document') {
+      const entry = { method: req.method(), url: u.slice(0, 300), type };
+      if (type === 'document') results.docs.push(entry);
+      else results.xhr_fetch.push(entry);
     }
   });
   page.on('websocket', (ws) => {
     results.websockets.push({ url: ws.url() });
+    ws.on('framereceived', (f) => {
+      if (results.ws_frames === undefined) results.ws_frames = [];
+      if (results.ws_frames.length < 3 && f.payload) results.ws_frames.push(String(f.payload).slice(0, 200));
+    });
   });
   page.on('pageerror', (e) => results.errors.push(e.message.slice(0, 150)));
+  page.on('console', (m) => { if (m.type() === 'error') results.errors.push('console: ' + m.text().slice(0, 100)); });
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    // Laisser le challenge CF passer et le sportsbook charger
-    await page.waitForTimeout(8000);
-    // Naviguer vers foot
-    try {
-      await page.goto('https://winner.bet/fr/paris-sportifs/football', { waitUntil: 'domcontentloaded', timeout: 25000 });
-      await page.waitForTimeout(4000);
-    } catch { /* ignore */ }
-    // Puis tennis
-    try {
-      await page.goto('https://winner.bet/fr/paris-sportifs/tennis', { waitUntil: 'domcontentloaded', timeout: 25000 });
-      await page.waitForTimeout(4000);
-    } catch { /* ignore */ }
-    // Live
-    try {
-      await page.goto('https://winner.bet/fr/paris-sportifs/direct', { waitUntil: 'domcontentloaded', timeout: 25000 });
-      await page.waitForTimeout(4000);
-    } catch { /* ignore */ }
+    await page.goto('https://winner.bet/fr/', { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForTimeout(10000);
+    // Try several plausible French sportsbook URLs
+    const paths = [
+      '/fr/paris-sportifs',
+      '/fr/paris-sportifs/football',
+      '/fr/sport/football',
+      '/fr/sports/football',
+      '/fr/paris-sportifs/en-direct',
+      '/fr/paris-sportifs/live',
+      '/fr/live',
+    ];
+    for (const p of paths) {
+      try {
+        await page.goto('https://winner.bet' + p, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await page.waitForTimeout(3500);
+      } catch (e) { results.errors.push(`nav ${p}: ${e.message.slice(0, 80)}`); }
+    }
     results.final_url = page.url();
     results.title = await page.title();
-    // Extraire les patterns d'URL uniques
-    const uniqueHosts = new Set();
-    const uniquePaths = new Set();
-    for (const r of results.requests) {
-      try {
-        const u = new URL(r.url);
-        uniqueHosts.add(u.host);
-        // Path pattern (remplacer IDs numériques)
-        uniquePaths.add(`${r.method} ${u.host}${u.pathname.replace(/\/\d+/g, '/{id}')}`);
-      } catch { /* skip */ }
+    // Aggregate unique hosts + path patterns
+    const hosts = new Set(); const paths2 = new Set();
+    for (const r of results.xhr_fetch) {
+      try { const u = new URL(r.url); hosts.add(u.host); paths2.add(`${r.method} ${u.host}${u.pathname.replace(/\/\d{3,}/g, '/{id}')}`); } catch {}
     }
-    results.unique_hosts = [...uniqueHosts];
-    results.unique_paths = [...uniquePaths].sort();
-    // Compact requests
-    results.requests = results.requests.slice(0, 40);
+    for (const r of results.docs) {
+      try { const u = new URL(r.url); hosts.add(u.host); } catch {}
+    }
+    results.unique_hosts = [...hosts];
+    results.unique_paths = [...paths2].sort();
+    // Compact
+    results.xhr_fetch = results.xhr_fetch.slice(0, 60);
+    results.docs = results.docs.slice(0, 15);
   } catch (e) {
     results.fatal = e.message;
   } finally {
@@ -69,8 +77,8 @@ async function probe(url) {
   }
 }
 
-await probe('https://winner.bet/fr/');
-console.log('=== WINNER PLAYWRIGHT START ===');
+await probe();
+console.log('=== WINNER PLAYWRIGHT V4 START ===');
 console.log(JSON.stringify(results, null, 2));
-console.log('=== WINNER PLAYWRIGHT END ===');
+console.log('=== WINNER PLAYWRIGHT V4 END ===');
 process.exit(0);
