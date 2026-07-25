@@ -136,8 +136,10 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
 
   // Re-fetch juste-à-temps : on relit les cotes des 2 legs de chaque opp avant
   // de les envoyer. Élimine les surebets périmés (cotes ayant bougé pendant le
-  // scan). Coût = 2 requêtes par opp, dédupliquées via cache TTL du fetcher.
-  const confirmed = await confirmOpportunities(deduped, matchesByBookOpp(sorted, usable), usable, listOpts, minP);
+  // scan). En LIVE, on re-fetch aussi la liste des matchs de chaque book pour
+  // avoir le score/minute FRAIS au moment de l'alerte (fix latence perçue).
+  const freshLiveByBook = live ? await refreshLiveSnapshots(deduped, usable, listOpts) : null;
+  const confirmed = await confirmOpportunities(deduped, matchesByBookOpp(sorted, usable), usable, listOpts, minP, freshLiveByBook);
   log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
 
   return {
@@ -166,7 +168,34 @@ function matchesByBookOpp(entries, usable) {
   return out;
 }
 
-async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, minProfit) {
+// Re-liste les matchs live des bookmakers concernés par au moins une opp,
+// pour capturer un score/minute frais au moment où l'opp est confirmée.
+// Retourne Map<bookKey, Map<matchId, liveMeta>>.
+async function refreshLiveSnapshots(opps, usable, listOpts) {
+  const booksInOpps = new Set();
+  for (const o of opps) {
+    if (o.leg_a_book) booksInOpps.add(o.leg_a_book);
+    if (o.leg_b_book) booksInOpps.add(o.leg_b_book);
+  }
+  if (!booksInOpps.size) return new Map();
+  const bookByKey = Object.fromEntries(usable.map((b) => [b.key, b]));
+  const out = new Map();
+  await Promise.all([...booksInOpps].map(async (bookKey) => {
+    const b = bookByKey[bookKey];
+    if (!b) return;
+    try {
+      const matches = await b.listMatches({ ...listOpts, live: true });
+      const idx = new Map();
+      for (const m of matches || []) if (m?.id != null && m.live) idx.set(String(m.id), m.live);
+      out.set(bookKey, idx);
+    } catch (e) {
+      log(`⚠️ ${bookKey} refresh live snapshot: ${e.message || e}`);
+    }
+  }));
+  return out;
+}
+
+async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, minProfit, freshLiveByBook = null) {
   if (!opps.length) return [];
   const bookByKey = Object.fromEntries(usable.map((b) => [b.key, b]));
   // Regroupe les IDs à re-fetcher par bookmaker (dédup pour partage entre opps).
@@ -212,6 +241,21 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;
     const stakeA = (1 / freshA) / invSum * 100;
     const stakeB = (1 / freshB) / invSum * 100;
+    // Live : capture score/minute au moment du re-fetch (state réel de l'alerte).
+    let liveAtConfirm = null;
+    if (freshLiveByBook) {
+      const liveA = freshLiveByBook.get(o.leg_a_book)?.get(idA);
+      const liveB = freshLiveByBook.get(o.leg_b_book)?.get(idB);
+      const pick = liveA?.score ? liveA : (liveB?.score ? liveB : (liveA || liveB));
+      if (pick) {
+        liveAtConfirm = {
+          score: pick.score || null,
+          minute: pick.minute ?? null,
+          period: pick.period || null,
+          source: liveA?.score ? o.leg_a_book : (liveB?.score ? o.leg_b_book : (liveA ? o.leg_a_book : o.leg_b_book)),
+        };
+      }
+    }
     out.push({
       ...o,
       leg_a_odd: Math.round(freshA * 100) / 100,
@@ -220,6 +264,12 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
       profit_pct: Math.round(profit * 100) / 100,
       stake_a_pct: Math.round(stakeA * 10) / 10,
       stake_b_pct: Math.round(stakeB * 10) / 10,
+      ...(liveAtConfirm ? {
+        live_score_at_confirm: liveAtConfirm.score,
+        live_minute_at_confirm: liveAtConfirm.minute,
+        live_period_at_confirm: liveAtConfirm.period,
+        live_score_source_at_confirm: liveAtConfirm.source,
+      } : {}),
       verify: {
         ...o.verify,
         odds_confirmed_at: confirmedAt,
