@@ -1,58 +1,107 @@
-// Probe winner.bet : détecter l'endpoint qui expose foot/tennis prématch + live.
-import { fetchJson } from '../src/net/fetcher.js';
+// Probe v2 winner.bet : passe Cloudflare via got-scraping et inspecte tout le HTML.
+import { gotScraping } from 'got-scraping';
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36';
+const CHROME_OPTS = {
+  browsers: [{ name: 'chrome', minVersion: 114, maxVersion: 126 }],
+  devices: ['desktop'],
+  locales: ['fr-FR', 'en-US'],
+  operatingSystems: ['linux'],
+};
 
-async function tryFetch(url, opts = {}) {
+async function stealth(url, opts = {}) {
   try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 15000);
-    const res = await fetch(url, {
-      method: opts.method || 'GET',
-      headers: { 'User-Agent': UA, Accept: '*/*', ...(opts.headers || {}) },
-      body: opts.body,
-      signal: ctrl.signal,
+    const res = await gotScraping({
+      url,
+      headers: opts.headers || {},
+      headerGeneratorOptions: CHROME_OPTS,
+      timeout: { request: opts.timeoutMs || 20000 },
+      retry: { limit: 1 },
+      throwHttpErrors: false,
     });
-    clearTimeout(t);
-    const ctype = res.headers.get('content-type') || '';
-    const text = await res.text();
-    return { status: res.status, ctype, size: text.length, sample: text.slice(0, 800), asJson: (() => { try { return JSON.parse(text); } catch { return null; } })() };
+    return { status: res.statusCode, ctype: res.headers['content-type'] || '', body: res.body || '', size: (res.body || '').length };
   } catch (e) { return { error: e.message }; }
 }
 
 const results = {};
 
-// 1. Home
-results.home = await tryFetch('https://winner.bet/fr/');
-// Extraire les scripts JS référencés
-if (results.home?.sample) {
-  const scriptMatches = [...results.home.sample.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]).slice(0, 10);
-  const apiMatches = [...results.home.sample.matchAll(/https?:\/\/[a-zA-Z0-9.-]+\/(api|rest|feed|sport|betting|events|matches)[^\s"'<>]*/gi)].map((m) => m[0]).slice(0, 20);
-  results.home.scripts = scriptMatches;
-  results.home.api_hints = apiMatches;
+// 1) Home
+const home = await stealth('https://winner.bet/fr/');
+results.home_status = home.status;
+results.home_size = home.size;
+if (home.body) {
+  // Extract API-looking URLs anywhere in HTML
+  const apiHints = [...new Set([...home.body.matchAll(/https?:\/\/[a-zA-Z0-9.-]+\/[^\s"'<>]*?(?:api|rest|feed|sport|betting|events|matches|graphql|bo\/[a-z]+|prematch|live)[^\s"'<>]*/gi)].map((m) => m[0]))].slice(0, 30);
+  // Also common tokens (window.CONFIG, __NEXT_DATA__, apiBase, etc)
+  const configHints = [];
+  const patterns = [
+    /window\.__CONFIG__\s*=\s*(\{[^<]{0,1000})/i,
+    /window\.__ENV__\s*=\s*(\{[^<]{0,1000})/i,
+    /"apiUrl"\s*:\s*"([^"]+)"/gi,
+    /"apiBase"\s*:\s*"([^"]+)"/gi,
+    /"backendUrl"\s*:\s*"([^"]+)"/gi,
+    /"graphqlUrl"\s*:\s*"([^"]+)"/gi,
+    /"wsUrl"\s*:\s*"([^"]+)"/gi,
+    /wss?:\/\/[a-zA-Z0-9.-]+[^\s"'<>]*/gi,
+  ];
+  for (const p of patterns) {
+    const matches = [...home.body.matchAll(p)].slice(0, 5);
+    for (const m of matches) configHints.push(m[0].slice(0, 200));
+  }
+  results.api_hints = apiHints;
+  results.config_hints = configHints;
+  // Scripts
+  const scripts = [...home.body.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]).slice(0, 15);
+  results.scripts = scripts;
+  // Look for well-known BI vendors
+  results.tech_hints = {
+    hasNextData: /__NEXT_DATA__/i.test(home.body),
+    hasNuxtData: /window\.__NUXT__/i.test(home.body),
+    hasReact: /react/i.test(home.body),
+    hasAngular: /ng-app|angular/i.test(home.body),
+    hasBetradar: /betradar/i.test(home.body),
+    hasBetgenius: /betgenius/i.test(home.body),
+    hasSbtech: /sbtech/i.test(home.body),
+    hasPlaytech: /playtech/i.test(home.body),
+    hasSportsBookIo: /sportsbook\.io/i.test(home.body),
+    hasKambi: /kambi/i.test(home.body),
+    hasBragg: /bragg/i.test(home.body),
+    hasStake: /stake\.com/i.test(home.body),
+    hasBetconstruct: /betconstruct/i.test(home.body),
+    hasSoftswiss: /softswiss/i.test(home.body),
+    hasFsb: /fsbtech|fsb\.co/i.test(home.body),
+  };
 }
 
-// 2. Endpoints courants
+// 2) Try common endpoints via stealth (Cloudflare bypass)
 const guesses = [
+  'https://winner.bet/api/v1/sports',
   'https://winner.bet/api/sports',
   'https://winner.bet/api/events',
-  'https://winner.bet/api/sportsbook/events',
   'https://winner.bet/rest/sports',
   'https://winner.bet/rest/events',
+  'https://winner.bet/bo/api/sports',
+  'https://winner.bet/api/sportsbook/prematch',
+  'https://winner.bet/api/sportsbook/live',
+  'https://winner.bet/api/prematch',
+  'https://winner.bet/api/live',
   'https://api.winner.bet/sports',
   'https://api.winner.bet/events',
-  'https://sportsbook.winner.bet/api/events',
-  'https://winner.bet/api/v1/sports',
-  'https://winner.bet/api/v2/events',
-  'https://winner.bet/sports-feeds/api/sports',
-  'https://sports.winner.bet/api/events',
 ];
+results.endpoints = {};
 for (const u of guesses) {
-  const r = await tryFetch(u);
-  if (r.status && r.status < 500) results[u] = { status: r.status, ctype: r.ctype, size: r.size, sample: r.sample.slice(0, 300), json_keys: r.asJson ? Object.keys(r.asJson).slice(0, 10) : null };
+  const r = await stealth(u, { headers: { Accept: 'application/json, text/plain, */*' } });
+  if (r.status && r.status !== 403 && r.status !== 404) {
+    let json = null;
+    try { json = JSON.parse(r.body); } catch { /* not json */ }
+    results.endpoints[u] = { status: r.status, ctype: r.ctype, size: r.size, json_keys: json ? Object.keys(json).slice(0, 15) : null, sample: r.body.slice(0, 400) };
+  } else if (r.status) {
+    results.endpoints[u] = { status: r.status };
+  } else {
+    results.endpoints[u] = { error: r.error };
+  }
 }
 
-console.log('=== WINNER PROBE START ===');
+console.log('=== WINNER PROBE V2 START ===');
 console.log(JSON.stringify(results, null, 2));
-console.log('=== WINNER PROBE END ===');
+console.log('=== WINNER PROBE V2 END ===');
 process.exit(0);
