@@ -68,7 +68,11 @@ export async function getOdds(matchId) {
   for (const bt of json.eventBetTypes) {
     const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
     if (!items.length) continue;
-    const id = Number(bt.betTypeId);
+    // Congobet préfixe les betTypeIds en LIVE avec 2xxxx (au lieu de 1xxxx en
+    // prématch). Ex : 20001 (live) === 10001 (prématch) = Résultat du match.
+    // Sans normalisation, 0 marché parsé sur tous les matchs live.
+    const rawId = Number(bt.betTypeId);
+    const id = rawId >= 20000 && rawId < 30000 ? rawId - 10000 : rawId;
     const total = ctxNum(bt, 'total');
     if (id === 10001) read1x2(items, '');
     else if (id === 10008) readDC(items, '');

@@ -57,8 +57,11 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
   const out = [];
   for (let i = 0; i < events.length; i += BATCH) {
     const chunk = events.slice(i, i + BATCH);
+    // Sportcash bug : en live, getEvento(isLive:true) retourne 0 markets
+    // (vérifié via probe). isLive:false retourne 105 markets sur le même match
+    // (les cotes sont bien là). On force isLive:false pour tous les modes.
     const results = await Promise.all(chunk.map((e) =>
-      xget('getEvento', { pal: String(e.p), avv: String(e.a), idAggregata: '-1', isLive: live ? 'true' : 'false' }, 15_000),
+      xget('getEvento', { pal: String(e.p), avv: String(e.a), idAggregata: '-1', isLive: 'false' }, 15_000),
     ));
     for (let k = 0; k < chunk.length; k++) {
       const e = chunk[k];
