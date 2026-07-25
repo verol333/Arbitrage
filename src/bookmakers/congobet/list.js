@@ -1,6 +1,10 @@
 import { CONGO_API, congoJson } from './api.js';
 
-const SPORT_ID = '101';
+// Sport IDs Congobet (validés via probe v3, sample d'événements) :
+//   101=Football (K-League 2 etc.), 102=Basketball (VBA), 103=Tennis (ATP),
+//   104=Rugby XV (Currie Cup), 105=Canadian Football (CFL), 107=Baseball (MLB).
+// Hockey/Volley : non identifiés dans le catalogue Congobet (probe testé 101..115).
+const SPORT_IDS = { football: '101', basketball: '102', tennis: '103' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);
@@ -17,13 +21,17 @@ async function listLeafCategories(sportId) {
 
 const congoSportId = (ev) => (ev.categoryPath || '').split('/').filter(Boolean)[0] || '?';
 
+function sportIdFor(sport) { return SPORT_IDS[sport] || null; }
+
 const isVirtual = (ev) => {
   if (ev.isVirtual) return true;
   const s = `${ev.homeTeamName || ''} ${ev.awayTeamName || ''} ${(ev.categories || [])[0] || ''}`.toLowerCase();
   return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(s);
 };
 
-export async function listPrematch() {
+export async function listPrematch(sport = 'football') {
+  const SPORT_ID = sportIdFor(sport);
+  if (!SPORT_ID) return [];
   const seen = new Set(); const out = [];
   const addItems = (items) => {
     for (const ev of items) {
@@ -73,7 +81,9 @@ function congoLiveMeta(ev) {
   return { score, minute: null, period };
 }
 
-export async function listLive() {
+export async function listLive(sport = 'football') {
+  const SPORT_ID = sportIdFor(sport);
+  if (!SPORT_ID) return [];
   const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`);
   return (Array.isArray(raw) ? raw : [])
     .filter((ev) => congoSportId(ev) === SPORT_ID && !isVirtual(ev))

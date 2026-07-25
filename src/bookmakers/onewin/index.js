@@ -7,8 +7,10 @@ export default {
   label: '1win',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (sport !== 'football') return []; // tennis endpoint non validé pour 1win
-    return live ? listLive() : listPrematch();
+    // sports supportés : football, basketball, hockey, volleyball (via WIN_SID).
+    // tennis : sportId 1win peu fiable, laissé désactivé.
+    if (sport === 'tennis') return [];
+    return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match) {
     const map = await fetchOddsWS([match.id]);
