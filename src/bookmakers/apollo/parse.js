@@ -119,5 +119,131 @@ export function apolloFlatOdds(offers) {
     if (s.includes('under')) odds[`tt_away_under_${l}`] = c;
     else if (s.includes('over')) odds[`tt_away_over_${l}`] = c;
   });
+  // ─── BASKETBALL Apollo (BetTypeKey via probe basket) ──────────────────────
+  // 1003 : Handicap Points (incl. OT) — Type 1/2, Sbv = ligne signée.
+  eachOdd(offers, 1003, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`hcp_home_${l}`] = c;
+    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+  });
+  // 1004 : Total Points (incl. OT) — Name = under/over, Sbv = seuil.
+  eachOdd(offers, 1004, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`match_under_${l}`] = c;
+    else if (s.includes('over')) odds[`match_over_${l}`] = c;
+  });
+  // 560 : Total Points team 1 (incl. OT).
+  eachOdd(offers, 560, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`tt_home_under_${l}`] = c;
+    else if (s.includes('over')) odds[`tt_home_over_${l}`] = c;
+  });
+  // 561 : Total Points team 2 (incl. OT).
+  eachOdd(offers, 561, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`tt_away_under_${l}`] = c;
+    else if (s.includes('over')) odds[`tt_away_over_${l}`] = c;
+  });
+  // 1002 : Even/Odd Points (incl. OT).
+  eachOdd(offers, 1002, (_t, n, c) => {
+    const s = String(n).toLowerCase();
+    if (s.includes('odd') || s.includes('impair')) odds.odd = c;
+    else if (s.includes('even') || s.includes('pair')) odds.even = c;
+  });
+  // 504 : 2nd halftime 1X2.
+  eachOdd(offers, 504, (t, _n, c) => {
+    if (t === '1') odds.h2_match_1 = c;
+    else if (t === 'X') odds.h2_match_X = c;
+    else if (t === '2') odds.h2_match_2 = c;
+  });
+  // 562 : Total Points 1st Half (basket).
+  eachOdd(offers, 562, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`ht_under_${l}`] = c;
+    else if (s.includes('over')) odds[`ht_over_${l}`] = c;
+  });
+  // 620 : Handicap Points 1st Half.
+  eachOdd(offers, 620, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`ht_hcp_home_${l}`] = c;
+    else if (t === '2') odds[`ht_hcp_away_${-l}`] = c;
+  });
+  // 1006 : Handicap Points 2nd Half.
+  eachOdd(offers, 1006, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`h2_hcp_home_${l}`] = c;
+    else if (t === '2') odds[`h2_hcp_away_${-l}`] = c;
+  });
+  // ─── VOLLEYBALL Apollo (BetTypeKey via probe volley) ──────────────────────
+  // 2 : Winner 2-way (alias, redondant avec 20).
+  eachOdd(offers, 2, (t, _n, c) => {
+    if (t === '1' && odds.match_1 == null) odds.match_1 = c;
+    else if (t === '2' && odds.match_2 == null) odds.match_2 = c;
+  });
+  // 519 : Handicap Points volley (Sbv signé, Type 1/2).
+  eachOdd(offers, 519, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`hcp_home_${l}`] = c;
+    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+  });
+  // 552 : Total Points volley.
+  eachOdd(offers, 552, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`match_under_${l}`] = c;
+    else if (s.includes('over')) odds[`match_over_${l}`] = c;
+  });
+  // 916 : Total Number of Sets — Type est le nb exact ('3','4','5').
+  // Traduit en over/under logique : "over 3.5" = ("4" ou "5"), "under 3.5" = "3".
+  // On stocke une seule ligne à 3.5 sets (référence best-of-5).
+  eachOdd(offers, 916, (t, _n, c) => {
+    if (t === '3') odds['set_under_3.5'] = c;
+    else if (t === '4' || t === '5') {
+      // Approx over 3.5 : on prend la plus faible cote (favori) — simplification
+      const prev = odds['set_over_3.5'];
+      if (!prev || c < prev) odds['set_over_3.5'] = c;
+    }
+  });
+  // 502 / 558 / 563 : Set 1/2/3 Winner.
+  for (const [key, pfx] of [[502, 's1_'], [558, 's2_'], [563, 's3_']]) {
+    eachOdd(offers, key, (t, _n, c) => {
+      if (t === '1') odds[`${pfx}match_1`] = c;
+      else if (t === '2') odds[`${pfx}match_2`] = c;
+    });
+  }
+  // 989 : 1st Set Handicap Points.
+  eachOdd(offers, 989, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`s1_hcp_home_${l}`] = c;
+    else if (t === '2') odds[`s1_hcp_away_${-l}`] = c;
+  });
+  // 990 : 1st Set Total Points.
+  eachOdd(offers, 990, (_t, n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    const s = String(n).toLowerCase();
+    if (s.includes('under')) odds[`s1_under_${l}`] = c;
+    else if (s.includes('over')) odds[`s1_over_${l}`] = c;
+  });
+  // 559 : Even/Odd Points volley.
+  eachOdd(offers, 559, (_t, n, c) => {
+    const s = String(n).toLowerCase();
+    if (s.includes('odd') || s.includes('impair')) odds.odd = odds.odd || c;
+    else if (s.includes('even') || s.includes('pair')) odds.even = odds.even || c;
+  });
   return odds;
 }

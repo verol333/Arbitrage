@@ -210,6 +210,76 @@ export function betmomoFlatOdds(markets) {
       case '2ndPeriodOverUnder': putTotal('p2_'); break;
       case '3rdPeriodResult': put1x2('p3_'); break;
       case '3rdPeriodOverUnder': putTotal('p3_'); break;
+      case 'PeriodHomeTeamTotal': {
+        // Total buts équipe domicile sur la période courante (BetMomo n'expose
+        // qu'un total par période à la fois). On stocke sous team total home.
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`tt_home_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`tt_home_under_${base}`] = price(e);
+        } break;
+      }
+      case 'PeriodAwayTeamTotal': {
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`tt_away_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`tt_away_under_${base}`] = price(e);
+        } break;
+      }
+      // ─── VOLLEYBALL (BetConstruct types complémentaires) ──────────────────
+      case 'PointHandicap': putHcp(''); break;
+      case 'SetHandicap': {
+        for (const e of list) {
+          const base = Number(e.base);
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'home' || ty === '1') odds[`set_hcp_home_${base}`] = price(e);
+          else if (ty === 'away' || ty === '2') odds[`set_hcp_away_${base}`] = price(e);
+        } break;
+      }
+      case 'SetPointHandicap': putHcp(''); break; // alias
+      case 'SetWinner': {
+        // SetWinner sans distinction de numéro — souvent le set courant.
+        // On stocke sous match_1/2 en fallback si pas déjà rempli.
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if ((ty === 'home' || ty === '1') && odds.match_1 == null) odds.match_1 = price(e);
+          else if ((ty === 'away' || ty === '2') && odds.match_2 == null) odds.match_2 = price(e);
+        } break;
+      }
+      case 'SetTotalOverUnder': putTotal('set_'); break;
+      case 'Team1SetTotalOverUnder': putTeamTotal('home', ''); break;
+      case 'Team2SetTotalOverUnder': putTeamTotal('away', ''); break;
+      case 'TotalPointsOver/Under': putTotal('match_'); break;
+      case 'TotalbySets': {
+        // Total exact de sets. Type-1 est '3','4','5'. Convertit vers set_over/under_3.5.
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || '').trim();
+          if (ty === '3') odds['set_under_3.5'] = price(e);
+          else if (ty === '4' || ty === '5') {
+            const prev = odds['set_over_3.5'];
+            const p = price(e);
+            if (!prev || p < prev) odds['set_over_3.5'] = p;
+          }
+        } break;
+      }
+      case 'MatchTotalEvenOdd': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
+          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
+        } break;
+      }
+      case 'SetEvenOddTotal': {
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
+          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
+        } break;
+      }
       default: break;
     }
   }
