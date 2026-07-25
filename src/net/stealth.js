@@ -54,22 +54,9 @@ export async function stealthGetJson(url, { headers = {}, timeoutMs = 20_000 } =
     await sleep(1500 + Math.floor(Math.random() * 1500));
     attempt = await tryOnce(url, { headers, timeoutMs, profile: nextProfile() });
   }
-  // Fallback : jina.ai reader (gratuit, sans key)
-  if (attempt.status === 403 || attempt.status === 429 || attempt.status === 503 || !attempt.body) {
-    try {
-      const alt = await gotScraping({
-        url: `https://r.jina.ai/${url}`,
-        headers: { 'x-return-format': 'text', accept: '*/*' },
-        headerGeneratorOptions: nextProfile(),
-        timeout: { request: timeoutMs },
-        retry: { limit: 0 },
-        throwHttpErrors: false,
-      });
-      if (alt.statusCode >= 200 && alt.statusCode < 300 && alt.body) {
-        try { return JSON.parse(alt.body); } catch { /* pas JSON */ }
-      }
-    } catch { /* ignore */ }
-  }
+  // jina.ai fallback retiré (nécessite JINA_API_KEY qu'on n'a pas → 401).
+  // La rotation fingerprint + retry 2x + jitter suffit à bypasser la plupart
+  // des blocages Cloudflare pour les APIs publiques.
   if (attempt.status < 200 || attempt.status >= 300 || !attempt.body) {
     console.log(`[stealth] ${url.slice(0, 60)}… → ${attempt.status}${attempt.err ? ' ' + attempt.err : ''}`);
     return null;

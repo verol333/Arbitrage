@@ -28,24 +28,16 @@ function orderedWorkers() {
   return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
 }
 
-// Multi-fallback : CF workers (rotation round-robin) → r.jina.ai (free proxy
-// sans API key, agressif via got-scraping) → fetch direct.
+// Multi-fallback : CF workers (rotation round-robin) → stealth fetch direct.
+// jina.ai retiré (nécessite clé API, on n'en a pas).
 // Le premier qui répond avec du JSON valide gagne.
 export async function viaWorker(url) {
-  // Tier 1: CF workers en round-robin (limite l'épuisement d'un seul worker)
+  // Tier 1: CF workers en round-robin (spread la charge, évite épuisement d'un)
   for (const w of orderedWorkers()) {
     const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 9_000 });
     if (j) return j;
   }
-  // Tier 2: jina.ai reader (proxy gratuit sans key, forme brute HTTP)
-  try {
-    const j = await stealthGetJson(`https://r.jina.ai/${url}`, {
-      headers: { 'x-return-format': 'text', accept: '*/*' },
-      timeoutMs: 12_000,
-    });
-    if (j) return j;
-  } catch { /* fallback silencieux */ }
-  // Tier 3: fetch direct (dernier recours, marche si l'IP GH n'est pas blacklistée)
+  // Tier 2: fetch direct via stealth (rotation fingerprint, IP GH parfois OK)
   const j = await stealthGetJson(url, { headers: HEADERS, timeoutMs: 10_000 });
   return j || null;
 }
