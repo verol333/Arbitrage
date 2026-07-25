@@ -328,8 +328,17 @@ function marketKeyFromOpp(o) {
   if (fam === 'Draw No Bet') return { a: 'dnb_1', b: 'dnb_2' };
   if (fam === '1MT Draw No Bet') return { a: 'ht_dnb_1', b: 'ht_dnb_2' };
   if (fam === '2MT Draw No Bet') return { a: 'h2_dnb_1', b: 'h2_dnb_2' };
-  // Handicap match (foot/tennis/basket/hockey/volley) — extract line from label
-  const hcpMatch = fam.match(/^(?:Handicap|Puck Line)\s*(?:jeux|points|sets)?\s*([+-]?\d+(?:\.\d+)?)$/i);
+  // Handicap sets (tennis / volley) — VÉRIFIÉ EN PREMIER pour éviter que le
+  // regex Handicap générique (qui inclut "sets" en option) capture ces opps
+  // et retourne la mauvaise clé (hcp_home_X vs set_hcp_home_X).
+  const setHcp = fam.match(/^Handicap sets\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (setHcp) {
+    const l = parseFloat(setHcp[1]);
+    return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
+  }
+  // Handicap match (foot/tennis-jeux/basket/hockey-Puck Line/volley)
+  // Note : "sets" retiré du regex → capturé par le block ci-dessus, pas ici.
+  const hcpMatch = fam.match(/^(?:Handicap|Puck Line)\s*(?:jeux|points)?\s*([+-]?\d+(?:\.\d+)?)$/i);
   if (hcpMatch) {
     const l = parseFloat(hcpMatch[1]);
     return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
@@ -341,12 +350,6 @@ function marketKeyFromOpp(o) {
     const l = parseFloat(htHcp[2]);
     const pfx = pfxMap[htHcp[1]];
     return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
-  }
-  // Handicap sets (tennis / volley)
-  const setHcp = fam.match(/^Handicap sets\s*([+-]?\d+(?:\.\d+)?)$/);
-  if (setHcp) {
-    const l = parseFloat(setHcp[1]);
-    return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
   }
   // Total match (buts/points/jeux) — line embedded in family
   const totMatch = fam.match(/^Total (?:match|jeux|points|buts|sets)?\s*(\d+(?:\.\d+)?)$/);
