@@ -55,9 +55,11 @@ async function readOddsSafe(book, matches, opts) {
 
 export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football' } = {}) {
   const t0 = Date.now();
+  const tick = (label) => log(`  ⏱️ ${sport} ${label}: +${Date.now() - t0}ms`);
   const usable = bookmakers.filter((b) => live ? b.supports.live : b.supports.prematch);
   const listOpts = { live, horizonHours: horizonHours ?? config.scan.horizonHours, sport };
   const listed = await Promise.all(usable.map((b) => listSafe(b, listOpts)));
+  tick('listMatches done');
 
   const catalogs = new Map();
   for (const { book, matches } of listed) catalogs.set(book.key, matches);
@@ -82,6 +84,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
     oddsByBook.set(b.key, await readOddsSafe(b, inScope, listOpts));
   });
   await Promise.all(oddsJobs);
+  tick('readOdds done');
   const covered = usable.map((b) => `${b.key}:${[...oddsByBook.get(b.key)].filter(([, o]) => Object.keys(o || {}).length).length}`);
   log(`💰 cotes lues — ${covered.join(' | ')}`);
 
@@ -138,8 +141,15 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // de les envoyer. Élimine les surebets périmés (cotes ayant bougé pendant le
   // scan). En LIVE, on re-fetch aussi la liste des matchs de chaque book pour
   // avoir le score/minute FRAIS au moment de l'alerte (fix latence perçue).
-  const freshLiveByBook = live ? await refreshLiveSnapshots(deduped, usable, listOpts) : null;
-  const confirmed = await confirmOpportunities(deduped, matchesByBookOpp(sorted, usable), usable, listOpts, minP, freshLiveByBook);
+  // En LIVE, le refresh live snapshot est parallélisé avec le re-fetch odds
+  // pour minimiser la latence critique.
+  const [freshLiveByBook, confirmed] = await Promise.all([
+    live ? refreshLiveSnapshots(deduped, usable, listOpts) : Promise.resolve(null),
+    confirmOpportunities(deduped, matchesByBookOpp(sorted, usable), usable, listOpts, minP, null),
+  ]);
+  // Appliquer les live snapshots frais aux opps confirmées (déjà validées côté odds)
+  if (freshLiveByBook) applyFreshLive(confirmed, freshLiveByBook);
+  tick('confirm+freshLive done');
   log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
 
   return {
@@ -193,6 +203,24 @@ async function refreshLiveSnapshots(opps, usable, listOpts) {
     }
   }));
   return out;
+}
+
+// Applique en post-traitement les live snapshots frais aux opps confirmées.
+// Séparé de confirmOpportunities pour permettre l'exécution en parallèle du
+// refresh (odds fetch et live listMatches n'ont pas de dépendance mutuelle).
+function applyFreshLive(confirmedOpps, freshLiveByBook) {
+  for (const o of confirmedOpps) {
+    const idA = String(o.verify?.leg_a_match?.id || '');
+    const idB = String(o.verify?.leg_b_match?.id || '');
+    const liveA = freshLiveByBook.get(o.leg_a_book)?.get(idA);
+    const liveB = freshLiveByBook.get(o.leg_b_book)?.get(idB);
+    const pick = liveA?.score ? liveA : (liveB?.score ? liveB : (liveA || liveB));
+    if (!pick) continue;
+    o.live_score_at_confirm = pick.score || null;
+    o.live_minute_at_confirm = pick.minute ?? null;
+    o.live_period_at_confirm = pick.period || null;
+    o.live_score_source_at_confirm = liveA?.score ? o.leg_a_book : (liveB?.score ? o.leg_b_book : (liveA ? o.leg_a_book : o.leg_b_book));
+  }
 }
 
 async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, minProfit, freshLiveByBook = null) {
