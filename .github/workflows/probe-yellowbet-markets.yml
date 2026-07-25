@@ -1,0 +1,29 @@
+name: Probe — YellowBet Markets
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - name: Link node_modules
+        working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run diag
+        working-directory: .
+        run: node scripts/probe-yellowbet-markets.js
