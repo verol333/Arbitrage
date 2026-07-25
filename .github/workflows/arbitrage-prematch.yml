@@ -44,4 +44,4 @@ jobs:
           MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
           HORIZON_HOURS: '72'
           MAX_MATCHES: '600'
-          SCAN_SPORTS: 'football,tennis,basketball,hockey,volleyball'
+          SCAN_SPORTS: 'football'

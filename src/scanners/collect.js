@@ -265,9 +265,9 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     if (invSum >= 1) continue;
     const profit = (1 - invSum) * 100;
     if (profit < minProfit) continue;
-    // Double garde-fou : rejet des profits absurdes après re-fetch aussi.
-    // Si les cotes ont bougé au point de dépasser le cap sanity (defaut 8%),
-    // c'est une ligne fantôme / stale, pas un vrai arbitrage.
+    // Pas de cap max côté confirmation : les vraies grosses arbs (10-50%)
+    // doivent passer. Les fantômes doivent être éliminés en amont via un
+    // parsing correct, pas par un seuil arbitraire.
     if (profit > config.scan.maxProfitSanity) continue;
     // Cote fraîche → on met à jour l'opp avec la valeur re-lue et on ajoute les timestamps.
     const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;

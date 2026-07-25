@@ -25,11 +25,11 @@ export const config = {
   scan: {
     minProfitPrematch: num(process.env.MIN_PROFIT_PREMATCH, 0.5),
     minProfitLive: num(process.env.MIN_PROFIT_LIVE, 0.5),
-    // Cap serré : les vraies arbitrages sont 0.5-5%, tout ce qui dépasse 8%
-    // est quasi-systématiquement une ligne API fantôme (odds stale/cachées).
-    // Ex : opp reçue "handicap jeux -5.5" à +32.61% profit, or l'UI 1xBet
-    // n'expose que -4.5/-3.5/-2.5 → l'API retournait une ligne obsolète.
-    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 8),
+    // Aucun cap : on remonte TOUTES les opps réellement détectées. Les fausses
+    // alertes doivent être éliminées par un parsing correct des marchés
+    // bookmakers (parsers exacts, pas de cotes stale/fantômes), pas par un
+    // plafond arbitraire qui masque les vraies arbs à haut profit.
+    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 999),
     maxMatches: num(process.env.MAX_MATCHES, 400),
     horizonHours: num(process.env.HORIZON_HOURS, 72),
   },
