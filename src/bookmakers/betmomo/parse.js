@@ -168,6 +168,31 @@ export function betmomoFlatOdds(markets) {
           else if (/even|pair/.test(ty)) odds.even = price(e);
         } break;
       }
+      // Alias tennis découverts via audit (naming inconsistant BetMomo).
+      case 'Sets Handicap': {                                  // Alias de HandicapSets (avec espace)
+        for (const e of list) {
+          const base = Number(e.base);
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === '1' || ty === 'home') odds[`set_hcp_home_${base}`] = price(e);
+          else if (ty === '2' || ty === 'away') odds[`set_hcp_away_${base}`] = price(e);
+        } break;
+      }
+      case 'TotalGamesOddorEven': {                            // Alias de TotalGamesOdd/Even
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
+          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
+        } break;
+      }
+      case 'TotalofSets': {                                    // Total sets tennis (base 2.5, 3.5 …)
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`set_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`set_under_${base}`] = price(e);
+        } break;
+      }
       case '1stSetWinner': put1x2('s1_'); break;
       case '1stSetTotalGames': putTotal('s1_'); break;
       case '2ndSetWinner': put1x2('s2_'); break;
@@ -193,6 +218,35 @@ export function betmomoFlatOdds(markets) {
         } break;
       }
       // ─── BASKETBALL (BetConstruct types) ───────────────────────────────────
+      // Marchés MATCH plein temps (les vrais noms BetMomo basket) :
+      case 'MatchTotal': putTotal('match_'); break;          // Total points match
+      case 'MatchHandicap': putHcp(''); break;                // Handicap points match
+      case 'MatchHomeTeamTotal2': {                            // Total points team 1 match
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`tt_home_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`tt_home_under_${base}`] = price(e);
+        } break;
+      }
+      case 'MatchAwayTeamTotal2': {                            // Total points team 2 match
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`tt_away_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`tt_away_under_${base}`] = price(e);
+        } break;
+      }
+      case 'MatchOddEvenTotal': {                              // Odd/Even points match
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
+          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
+        } break;
+      }
+      // Quarters explicites (numérotés) — OK.
       case 'Quarter1Winner': put1x2('q1_'); break;
       case 'Quarter1TotalPoints': putTotal('q1_'); break;
       case 'Quarter1AsianHandicap': putHcp('q1_'); break;
@@ -202,6 +256,15 @@ export function betmomoFlatOdds(markets) {
       case 'Quarter3TotalPoints': putTotal('q3_'); break;
       case 'Quarter4Winner': put1x2('q4_'); break;
       case 'Quarter4TotalPoints': putTotal('q4_'); break;
+      // IGNORÉS : Quarter* sans numéro — ambigus.
+      case 'QuarterTotal': break;
+      case 'QuarterHandicap': break;
+      case 'QuarterHomeTeamTotal2': break;
+      case 'QuarterAwayTeamTotal2': break;
+      case 'QuarterOddEvenTotal': break;
+      // IGNORÉS : Team1/2TotalOdd/Even — pas de slot dédié team odd/even.
+      case 'Team1TotalOdd/Even': break;
+      case 'Team2TotalOdd/Even': break;
       // ─── ICE HOCKEY (BetConstruct types) ───────────────────────────────────
       case '1stPeriodResult': put1x2('p1_'); break;
       case '1stPeriodOverUnder': putTotal('p1_'); break;
