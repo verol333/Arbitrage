@@ -1,5 +1,4 @@
-// Audit Sportcash foot : dump tous les cs (codes marché) réellement renvoyés
-// par getEvento vs ce que le parseur écoute.
+// Audit Sportcash foot v2 : dump compact des cs codes + test idAggregata variants.
 import { xget, parseTs, splitTeams, isVirtual } from '../src/bookmakers/sportcash/api.js';
 import { sportcashFlatOdds } from '../src/bookmakers/sportcash/parse.js';
 
@@ -31,53 +30,62 @@ async function listSportEvents() {
     const teams = splitTeams(e.da);
     if (!teams) continue;
     if (isVirtual(`${teams.home} ${teams.away} ${e.dt || ''}`)) continue;
-    out.push({ p: e.p, a: e.a, id: key, home: teams.home, away: teams.away, league: e.dt || '', start: parseTs(e.ts) });
+    out.push({ p: e.p, a: e.a, home: teams.home, away: teams.away, league: e.dt || '' });
   }
   return out;
 }
 
 const events = await listSportEvents();
-console.log(`Total foot events found: ${events.length}`);
-console.log(`Sample: ${events.slice(0, 5).map(e => `${e.home} vs ${e.away}`).join(' | ')}`);
-
+console.log(`events: ${events.length}`);
 if (!events.length) { console.log('NO EVENTS'); process.exit(1); }
 
-// Prend 3 matchs différents et dump leurs cs
-const results = [];
-for (const e of events.slice(0, 3)) {
+const e = events[0];
+console.log(`match test: ${e.home} vs ${e.away} (${e.league})`);
+
+// Test différents idAggregata + isLive pour trouver la config qui expose 1X2/Total/DC/BTTS
+const configs = [
+  { idAggregata: '-1', isLive: 'false' },  // config actuelle
+  { idAggregata: '0', isLive: 'false' },
+  { idAggregata: '1', isLive: 'false' },
+  { idAggregata: '2', isLive: 'false' },
+];
+
+const results = {};
+for (const cfg of configs) {
+  const label = `agg=${cfg.idAggregata},live=${cfg.isLive}`;
   try {
-    const detail = await xget('getEvento', { pal: String(e.p), avv: String(e.a), idAggregata: '-1', isLive: 'false' }, 15000);
+    const detail = await xget('getEvento', { pal: String(e.p), avv: String(e.a), ...cfg }, 15000);
     const markets = detail && Array.isArray(detail.scs) ? detail.scs : [];
-    // Group by cs code, count + sample eqs
-    const byCs = {};
+    // Groupe par cs, compact : juste count + label court
+    const csMap = new Map();
     for (const m of markets) {
       const cs = m.cs;
-      if (!byCs[cs]) byCs[cs] = { count: 0, sample: null, d: m.d };
-      byCs[cs].count++;
-      if (!byCs[cs].sample) {
-        byCs[cs].sample = {
-          h: m.h,
-          hs: m.hs,
-          d: m.d,  // "d" is often the market label
-          eqs: (m.eqs || []).slice(0, 6).map((x) => ({ ce: x.ce, q: x.q, qo: x.qo })),
-        };
-      }
+      if (!csMap.has(cs)) csMap.set(cs, { count: 0, d: m.d, first_h: m.h });
+      csMap.get(cs).count++;
     }
     const parsed = sportcashFlatOdds(markets);
-    results.push({
-      match: `${e.home} vs ${e.away}`,
-      league: e.league,
+    results[label] = {
       market_count: markets.length,
-      cs_codes: byCs,
+      cs_count: csMap.size,
+      cs_codes: [...csMap.entries()].map(([cs, info]) => `cs=${cs} (x${info.count}) "${info.d}" h=${info.first_h}`).sort(),
       parsed_count: Object.keys(parsed).length,
-      parsed: parsed,
-    });
+      parsed_sample: Object.entries(parsed).slice(0, 15),
+    };
   } catch (err) {
-    results.push({ match: `${e.home} vs ${e.away}`, error: err.message });
+    results[label] = { error: err.message };
   }
 }
 
-console.log('=== SPORTCASH FOOT AUDIT START ===');
+// Aussi tenter getEventiPrincipali ou similaires
+const otherEndpoints = ['getEventoScommesse', 'getScommesseEvento', 'getEventoDettaglio'];
+for (const ep of otherEndpoints) {
+  try {
+    const j = await xget(ep, { pal: String(e.p), avv: String(e.a) }, 8000);
+    results[`endpoint:${ep}`] = { has_data: !!j, keys: j ? Object.keys(j).slice(0, 10) : null, scs_count: (j?.scs || []).length };
+  } catch (err) { results[`endpoint:${ep}`] = { error: err.message }; }
+}
+
+console.log('=== SPORTCASH CONFIG AUDIT START ===');
 console.log(JSON.stringify(results, null, 2));
-console.log('=== SPORTCASH FOOT AUDIT END ===');
+console.log('=== SPORTCASH CONFIG AUDIT END ===');
 process.exit(0);
