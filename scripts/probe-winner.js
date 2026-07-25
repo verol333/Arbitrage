@@ -34,8 +34,8 @@ if (home.body) {
   // Also common tokens (window.CONFIG, __NEXT_DATA__, apiBase, etc)
   const configHints = [];
   const patterns = [
-    /window\.__CONFIG__\s*=\s*(\{[^<]{0,1000})/i,
-    /window\.__ENV__\s*=\s*(\{[^<]{0,1000})/i,
+    /window\.__CONFIG__\s*=\s*(\{[^<]{0,1000})/gi,
+    /window\.__ENV__\s*=\s*(\{[^<]{0,1000})/gi,
     /"apiUrl"\s*:\s*"([^"]+)"/gi,
     /"apiBase"\s*:\s*"([^"]+)"/gi,
     /"backendUrl"\s*:\s*"([^"]+)"/gi,
