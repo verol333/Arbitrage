@@ -206,17 +206,9 @@ export function apolloFlatOdds(offers) {
     if (s.includes('under')) odds[`match_under_${l}`] = c;
     else if (s.includes('over')) odds[`match_over_${l}`] = c;
   });
-  // 916 : Total Number of Sets — Type est le nb exact ('3','4','5').
-  // Traduit en over/under logique : "over 3.5" = ("4" ou "5"), "under 3.5" = "3".
-  // On stocke une seule ligne à 3.5 sets (référence best-of-5).
-  eachOdd(offers, 916, (t, _n, c) => {
-    if (t === '3') odds['set_under_3.5'] = c;
-    else if (t === '4' || t === '5') {
-      // Approx over 3.5 : on prend la plus faible cote (favori) — simplification
-      const prev = odds['set_over_3.5'];
-      if (!prev || c < prev) odds['set_over_3.5'] = c;
-    }
-  });
+  // 916 IGNORÉ : Total Number of Sets = nb EXACT (3/4/5), pas un over/under.
+  // Le convertir en set_over/under_3.5 créait des cotes agrégées non
+  // comparables avec les autres books qui exposent un vrai over/under sets.
   // 502 / 558 / 563 : Set 1/2/3 Winner.
   for (const [key, pfx] of [[502, 's1_'], [558, 's2_'], [563, 's3_']]) {
     eachOdd(offers, key, (t, _n, c) => {
