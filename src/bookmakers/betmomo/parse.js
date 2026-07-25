@@ -228,15 +228,38 @@ export function betmomoFlatOdds(markets) {
       }
       // IGNORÉ : SetPointHandicap ambigu (quel set ?) — pollue set_hcp_*.
       case 'SetPointHandicap': break;
-      // IGNORÉ : SetWinner sans numéro — écrasait le match_1/2 réel avec un
-      // gagnant de set spécifique, générant des comparaisons foireuses.
+      // IGNORÉ : SetWinner sans numéro — écrasait match_1/2 réel.
       case 'SetWinner': break;
-      case 'SetTotalOverUnder': putTotal('set_'); break;
-      case 'Team1SetTotalOverUnder': putTeamTotal('home', ''); break;
-      case 'Team2SetTotalOverUnder': putTeamTotal('away', ''); break;
+      // IGNORÉ : SetTotalOverUnder ambigu (points d'UN set non identifié,
+      // pas nombre de sets du match). Se confond avec set_over/under si mal
+      // lu — désactivé pour éviter la comparaison croisée.
+      case 'SetTotalOverUnder': break;
+      // IGNORÉ : Team1SetTotalOverUnder / Team2SetTotalOverUnder sont des
+      // totaux points par team sur UN set, PAS le total team match. Les mapper
+      // vers tt_home/tt_away écrasait les vrais totaux team match.
+      case 'Team1SetTotalOverUnder': break;
+      case 'Team2SetTotalOverUnder': break;
+      // Vrais team totals MATCH volley (BetMomo les expose sous ces noms) :
+      case 'HomeTeamOver/Under': {
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`tt_home_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`tt_home_under_${base}`] = price(e);
+        } break;
+      }
+      case 'AwayTeamOver/Under': {
+        for (const e of list) {
+          const base = Number(e.base);
+          if (!isHalfLine(base)) continue;
+          const ty = String(e.type_1 || e.type || '').toLowerCase();
+          if (ty === 'over') odds[`tt_away_over_${base}`] = price(e);
+          else if (ty === 'under') odds[`tt_away_under_${base}`] = price(e);
+        } break;
+      }
       case 'TotalPointsOver/Under': putTotal('match_'); break;
-      // IGNORÉ : TotalbySets = total exact (3/4/5), non convertible en over/under
-      // sans hypothèse fausse (over 3.5 = 4 OR 5 → cote combinée, pas cote unique).
+      // IGNORÉ : TotalbySets = total exact (3/4/5), non convertible en over/under.
       case 'TotalbySets': break;
       case 'MatchTotalEvenOdd': {
         for (const e of list) {
@@ -245,13 +268,10 @@ export function betmomoFlatOdds(markets) {
           else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
         } break;
       }
-      case 'SetEvenOddTotal': {
-        for (const e of list) {
-          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
-          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
-          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
-        } break;
-      }
+      // IGNORÉ : SetEvenOddTotal = odd/even d'UN set non identifié → écrasait
+      // le vrai odd/even MATCH (source de la fausse opp volley China-Turkey
+      // où Impair=2.23 était en fait Odd d'un set).
+      case 'SetEvenOddTotal': break;
       default: break;
     }
   }
