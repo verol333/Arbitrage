@@ -1,4 +1,5 @@
 import { xget, parseTs, splitTeams, isVirtual } from './api.js';
+import { sportcashFlatOdds } from './parse.js';
 
 const SPORT_LABEL = 'Football';
 
@@ -78,6 +79,11 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
     }
     if (i + BATCH < events.length) await new Promise((r) => setTimeout(r, SLEEP_BETWEEN_CHUNKS_MS));
   }
-  console.log(`[sportcash] getEvento: ${ok} ok / ${empty} empty / ${events.length} total`);
+  // Distribution des tailles de raw + cs codes distincts sur premier match ok
+  const rawSizes = out.map((m) => (m.__raw?.markets || []).length);
+  const parsedSizes = out.map((m) => Object.keys(sportcashFlatOdds(m.__raw?.markets || [])).length);
+  const firstOk = out.find((m) => (m.__raw?.markets || []).length > 0);
+  const firstCsSample = firstOk ? [...new Set((firstOk.__raw.markets || []).map((m) => m.cs))].slice(0, 20) : [];
+  console.log(`[sportcash] getEvento: ${ok} ok / ${empty} empty / ${events.length} total | raw=${JSON.stringify(rawSizes)} parsed=${JSON.stringify(parsedSizes)} first_cs=${JSON.stringify(firstCsSample)}`);
   return out;
 }
