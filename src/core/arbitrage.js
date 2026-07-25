@@ -68,7 +68,7 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   const out = [];
   // Totaux buts plein temps.
   for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
-    const fam = `Total match ${l}`;
+    const fam = `Total Buts Match ${l}`;
     pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB);
     pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA);
   }
@@ -85,10 +85,11 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   // Draw No Bet.
   pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB);
   pushArb(out, 'Draw No Bet', 'Domicile (DNB)', ob.dnb_1, bookB, 'Extérieur (DNB)', oa.dnb_2, bookA);
-  // Handicaps ±L.
+  // Handicaps ASIATIQUES ±L (demi-lignes, 2-way sans nul). Label explicite
+  // pour distinguer du Handicap Européen 3-way (non traité ici).
   for (const l of HCP_LINES) {
     const hk = `hcp_home_${l}`, ak = `hcp_away_${-l}`;
-    const fam = `Handicap ${l > 0 ? '+' + l : l}`;
+    const fam = `Handicap Asiatique ${l > 0 ? '+' + l : l}`;
     const aL = `Dom. ${l > 0 ? '+' + l : l}`, bL = `Ext. ${-l > 0 ? '+' + (-l) : -l}`;
     pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB);
     pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA);
@@ -106,7 +107,7 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   pushArb(out, 'BTTS', 'Oui', oa.btts_yes, bookA, 'Non', ob.btts_no, bookB);
   pushArb(out, 'BTTS', 'Oui', ob.btts_yes, bookB, 'Non', oa.btts_no, bookA);
   // Totaux mi-temps et corners.
-  for (const [pfx, lbl] of [['ht_', '1MT Total'], ['h2_', '2MT Total'], ['cor_', 'Corners Total']]) {
+  for (const [pfx, lbl] of [['ht_', '1MT Total Buts'], ['h2_', '2MT Total Buts'], ['cor_', 'Corners Total']]) {
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
       const ok = `${pfx}over_${l}`, uk = `${pfx}under_${l}`;
       const fam = `${lbl} ${l}`;
@@ -142,8 +143,8 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, lbl, 'Impair', oa[`${pfx}odd`], bookA, 'Pair', ob[`${pfx}even`], bookB);
     pushArb(out, lbl, 'Impair', ob[`${pfx}odd`], bookB, 'Pair', oa[`${pfx}even`], bookA);
   }
-  // Handicap par mi-temps.
-  for (const [pfx, lbl] of [['ht_', '1MT Handicap'], ['h2_', '2MT Handicap']]) {
+  // Handicap Asiatique par mi-temps (demi-lignes, 2-way).
+  for (const [pfx, lbl] of [['ht_', '1MT Handicap Asiatique'], ['h2_', '2MT Handicap Asiatique']]) {
     for (const l of HCP_LINES) {
       const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-l}`;
       const fam = `${lbl} ${l > 0 ? '+' + l : l}`;

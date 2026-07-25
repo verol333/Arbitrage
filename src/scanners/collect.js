@@ -336,15 +336,16 @@ function marketKeyFromOpp(o) {
     const l = parseFloat(setHcp[1]);
     return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
   }
-  // Handicap match (foot/tennis-jeux/basket/hockey-Puck Line/volley)
-  // Note : "sets" retiré du regex → capturé par le block ci-dessus, pas ici.
-  const hcpMatch = fam.match(/^(?:Handicap|Puck Line)\s*(?:jeux|points)?\s*([+-]?\d+(?:\.\d+)?)$/i);
+  // Handicap match plein-temps (foot Asiatique, basket points, hockey Puck Line, tennis jeux)
+  // Accepte les variantes explicites : "Handicap Asiatique +2.5", "Handicap +2.5",
+  // "Handicap jeux +2.5", "Handicap points +2.5", "Puck Line -1.5".
+  const hcpMatch = fam.match(/^(?:Handicap(?:\s+Asiatique|\s+jeux|\s+points)?|Puck Line)\s*([+-]?\d+(?:\.\d+)?)$/i);
   if (hcpMatch) {
     const l = parseFloat(hcpMatch[1]);
     return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
   }
-  // Handicap by half/period
-  const htHcp = fam.match(/^(1MT|2MT|P1|P2|P3) Handicap\s*([+-]?\d+(?:\.\d+)?)$/);
+  // Handicap Asiatique par mi-temps/période/quart
+  const htHcp = fam.match(/^(1MT|2MT|P1|P2|P3) Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/);
   if (htHcp) {
     const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_' };
     const l = parseFloat(htHcp[2]);
@@ -352,15 +353,16 @@ function marketKeyFromOpp(o) {
     return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
   }
   // Total match (buts/points/jeux) — line embedded in family
-  const totMatch = fam.match(/^Total (?:match|jeux|points|buts|sets)?\s*(\d+(?:\.\d+)?)$/);
+  // Accepte : "Total Buts Match 2.5", "Total match 2.5", "Total buts 2.5", etc.
+  const totMatch = fam.match(/^Total (?:Buts Match|match|jeux|points|buts|sets)?\s*(\d+(?:\.\d+)?)$/i);
   if (totMatch) {
     const l = parseFloat(totMatch[1]);
     // Distinguish set totals for tennis
-    if (/Total sets/.test(fam)) return { a: `set_over_${l}`, b: `set_under_${l}` };
+    if (/Total sets/i.test(fam)) return { a: `set_over_${l}`, b: `set_under_${l}` };
     return { a: `match_over_${l}`, b: `match_under_${l}` };
   }
-  // Half/period/quarter totals
-  const partTot = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5|Corners 1MT)\s*(?:Total\s*)?(\d+(?:\.\d+)?)$/);
+  // Half/period/quarter totals — accepte "1MT Total Buts 1.5", "1MT Total 1.5", etc.
+  const partTot = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5|Corners 1MT)\s*(?:Total(?:\s+Buts)?\s*)?(\d+(?:\.\d+)?)$/);
   if (partTot) {
     const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_', 'Corners 1MT': 'cor_ht_' };
     const l = parseFloat(partTot[2]);
