@@ -47,17 +47,23 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
   events = events.slice(0, limit);
   if (!events.length) return [];
 
-  const BATCH = 12;
+  // Sportcash rate-limite quand on tape trop vite : BATCH=12 → tous les
+  // getEvento renvoyaient null (0 cotes lues systématiquement en scan).
+  // BATCH=4 + petite pause entre chunks résout le silencieux.
+  const BATCH = 4;
+  const SLEEP_BETWEEN_CHUNKS_MS = 250;
+  let ok = 0, empty = 0;
   const out = [];
   for (let i = 0; i < events.length; i += BATCH) {
     const chunk = events.slice(i, i + BATCH);
     const results = await Promise.all(chunk.map((e) =>
-      xget('getEvento', { pal: String(e.p), avv: String(e.a), idAggregata: '-1', isLive: 'false' }, 15_000),
+      xget('getEvento', { pal: String(e.p), avv: String(e.a), idAggregata: '-1', isLive: live ? 'true' : 'false' }, 15_000),
     ));
     for (let k = 0; k < chunk.length; k++) {
       const e = chunk[k];
       const j = results[k];
       const markets = j && Array.isArray(j.scs) ? j.scs : [];
+      if (markets.length) ok++; else empty++;
       // Best-effort : sportcash getEvento expose parfois score / temps en live via scr/pl/min sur j.
       let liveMeta = null;
       if (live && j) {
@@ -70,6 +76,8 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
       }
       out.push({ id: e.id, home: e.home, away: e.away, league: e.league, start: e.start, __raw: { markets }, live: liveMeta });
     }
+    if (i + BATCH < events.length) await new Promise((r) => setTimeout(r, SLEEP_BETWEEN_CHUNKS_MS));
   }
+  console.log(`[sportcash] getEvento: ${ok} ok / ${empty} empty / ${events.length} total`);
   return out;
 }
