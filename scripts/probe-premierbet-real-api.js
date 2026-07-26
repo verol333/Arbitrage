@@ -1,71 +1,89 @@
-// Tester la VRAIE API PremierBet trouvee par user :
-// https://sports-api.premierbet.com/cg/v1/events/... (backend Editec direct)
-// Si ce host repond sans CF -> integration sans Scrape.do (economie enorme).
-import { fetchJson } from '../src/net/fetcher.js';
-import { stealthGetJson } from '../src/net/stealth.js';
-
+// Probe v2 : sports-api.premierbet.com via Scrape.do (direct bloque 403)
+// Objectif : trouver endpoint listant TOUS foot events + dump structure detaillee
 const TOKEN = process.env.SCRAPE_DO_KEY || '';
+if (!TOKEN) { console.error('SCRAPE_DO_KEY missing'); process.exit(1); }
 
-async function tryFetch(name, url, opts = {}) {
+async function viaScrape(url, timeoutMs = 30000) {
   const start = Date.now();
+  const qs = new URLSearchParams({ token: TOKEN, url }).toString();
   try {
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(15000),
-      headers: {
-        accept: 'application/json',
-        'accept-language': 'fr-FR,fr;q=0.9',
-        origin: 'https://www.premierbet.com',
-        referer: 'https://www.premierbet.com/',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0 Safari/537.36',
-        ...opts.headers,
-      },
-    });
+    const res = await fetch(`https://api.scrape.do/?${qs}`, { signal: AbortSignal.timeout(timeoutMs) });
     const body = await res.text();
-    return { name, elapsed: Date.now() - start, status: res.status, len: body.length, body_start: body.slice(0, 300).replace(/\s+/g, ' ') };
-  } catch (e) { return { name, elapsed: Date.now() - start, error: e.message }; }
+    let json = null; try { json = JSON.parse(body); } catch {}
+    return { elapsed: Date.now() - start, status: res.status, len: body.length, json, body_start: json ? null : body.slice(0, 400) };
+  } catch (e) { return { elapsed: Date.now() - start, error: e.message }; }
 }
 
+function countEvents(json) {
+  if (!json) return 0;
+  const d = json.data;
+  if (Array.isArray(d)) return d.length;
+  if (d?.categories) return d.categories.reduce((a, c) => a + (c.competitions?.reduce((b, cp) => b + (cp.events?.length || 0), 0) || 0), 0);
+  return 0;
+}
+
+const BASE = 'https://sports-api.premierbet.com';
 const results = [];
 
-// 1. Direct fetch featured
-results.push(await tryFetch('featured direct', 'https://sports-api.premierbet.com/cg/v1/events/featured?country=CG&group=g5&platform=desktop&locale=fr&pageId=63fe10b530a2f04c64fbd643'));
+// 1. Featured
+const featured = await viaScrape(`${BASE}/cg/v1/events/featured?country=CG&group=g5&platform=desktop&locale=fr&pageId=63fe10b530a2f04c64fbd643`);
+results.push({ name: 'featured', status: featured.status, len: featured.len, n_events: countEvents(featured.json), keys: featured.json ? Object.keys(featured.json) : null });
 
-// 2. Direct fetch by sport (pattern probable pour foot)
-for (const path of [
-  '/cg/v1/events/prematch?country=CG&group=g5&platform=desktop&locale=fr&sportId=1',
-  '/cg/v1/events/prematch?country=CG&group=g5&sportId=1',
-  '/cg/v1/events/live?country=CG&group=g5&sportId=1&platform=desktop&locale=fr',
+// 2. Candidats endpoints liste complete
+const candidates = [
+  '/cg/v1/events?country=CG&group=g5&platform=desktop&locale=fr&sportId=1',
   '/cg/v1/events?country=CG&group=g5&sportId=1',
-  '/cg/v1/sports?country=CG&group=g5',
-  '/cg/v1/categories?country=CG&sportId=1',
-  '/cg/v1/events/upcoming?country=CG&sportId=1&group=g5',
-  '/cg/v1/events/all?country=CG&sportId=1',
-]) {
-  results.push(await tryFetch(`direct ${path}`, `https://sports-api.premierbet.com${path}`));
+  '/cg/v1/events/prematch?country=CG&group=g5&platform=desktop&locale=fr&sportId=1',
+  '/cg/v1/events/upcoming?country=CG&group=g5&platform=desktop&locale=fr&sportId=1',
+  '/cg/v1/events/all?country=CG&group=g5&platform=desktop&locale=fr&sportId=1',
+  '/cg/v1/events/live?country=CG&group=g5&platform=desktop&locale=fr&sportId=1',
+  '/cg/v1/events/sport/1?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/sports/1/events?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/sport/1?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/sports?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/categories?country=CG&group=g5&sportId=1&platform=desktop&locale=fr',
+  '/cg/v1/competitions?country=CG&group=g5&sportId=1&platform=desktop&locale=fr',
+  '/cg/v1/pages?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/menu?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/tree?country=CG&group=g5&platform=desktop&locale=fr',
+  '/cg/v1/events/featured?country=CG&group=g5&platform=desktop&locale=fr',
+];
+
+for (const p of candidates) {
+  const r = await viaScrape(`${BASE}${p}`);
+  results.push({
+    name: p, status: r.status, len: r.len, n_events: countEvents(r.json),
+    body_start: r.body_start || (r.json ? JSON.stringify(r.json).slice(0, 250) : null),
+    error: r.error,
+  });
 }
 
-// 3. CMS metadata (structure page)
-results.push(await tryFetch('cms metadata', 'https://cms-ui-data-prd.sahara.editec-online.com/CG/sports/sport/football/desktop/fr'));
+// 3. CMS metadata via Scrape.do
+const cms = await viaScrape('https://cms-ui-data-prd.sahara.editec-online.com/CG/sports/sport/football/desktop/fr');
+results.push({ name: 'cms metadata', status: cms.status, len: cms.len, body_start: cms.body_start || (cms.json ? JSON.stringify(cms.json).slice(0, 1500) : null), error: cms.error });
 
-// 4. Si direct echoue, essai stealth (fingerprint rotation)
-const featuredHit = results.find((r) => r.name === 'featured direct');
-if (featuredHit && (featuredHit.error || featuredHit.status >= 400)) {
-  results.push({ name: '--- stealth fallback ---' });
-  const j = await stealthGetJson('https://sports-api.premierbet.com/cg/v1/events/featured?country=CG&group=g5&platform=desktop&locale=fr&pageId=63fe10b530a2f04c64fbd643', { headers: {
-    accept: 'application/json', origin: 'https://www.premierbet.com', referer: 'https://www.premierbet.com/',
-  }, timeoutMs: 20000 });
-  results.push({ name: 'stealth featured', result: j ? { has_data: true, keys: Object.keys(j).slice(0, 10) } : null });
-}
-
-// 5. Si direct echoue et stealth aussi, tester via Scrape.do (au moins on saura si c'est proteccion IP-based)
-if (TOKEN) {
-  const qs = new URLSearchParams({ token: TOKEN, url: 'https://sports-api.premierbet.com/cg/v1/events/featured?country=CG&group=g5&platform=desktop&locale=fr&pageId=63fe10b530a2f04c64fbd643' }).toString();
-  const res = await fetch(`https://api.scrape.do/?${qs}`, { signal: AbortSignal.timeout(30000) });
-  const body = await res.text();
-  results.push({ name: 'via scrape.do', status: res.status, len: body.length, body_start: body.slice(0, 300) });
-}
-
-console.log('=== RESULTS ===');
+console.log('=== SUMMARY ===');
 console.log(JSON.stringify(results, null, 2));
-console.log('=== END ===');
+
+// Dump full featured structure
+if (featured.json) {
+  console.log('=== FEATURED DEEP DUMP ===');
+  const d = featured.json.data;
+  if (Array.isArray(d)) {
+    console.log('data is flat array. Length:', d.length);
+    console.log('First event:');
+    console.log(JSON.stringify(d[0], null, 2).slice(0, 3000));
+    if (d.length > 1) console.log('Second event teams:', d[1]?.eventNames);
+  } else if (d?.categories) {
+    console.log('data has categories. Count:', d.categories.length);
+    console.log('First category:', d.categories[0]?.name, '- competitions:', d.categories[0]?.competitions?.length);
+    const firstEv = d.categories[0]?.competitions?.[0]?.events?.[0];
+    console.log('First event sample:');
+    console.log(JSON.stringify(firstEv, null, 2).slice(0, 3000));
+  } else {
+    console.log('data structure unknown. keys:', Object.keys(d || {}));
+    console.log(JSON.stringify(featured.json, null, 2).slice(0, 2000));
+  }
+}
+
 process.exit(0);
