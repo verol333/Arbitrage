@@ -29,18 +29,46 @@ function orderedWorkers() {
   return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
 }
 
-// CF workers round-robin, timeout 10s + retry 1x sur echec pour tolerer
-// slow burst des CF workers (evite 1xbet:0 en catalog quand un worker rate).
+// CF workers round-robin, timeout 10s + Scrape.do fallback quand tous les
+// workers CF sont down (garantit que 1xbet remonte toujours en catalog).
 let workerFailCount = 0;
 let workerSuccessCount = 0;
+let scrapeDoFallbackCount = 0;
+const MAX_SCRAPEDO_PER_RUN = 20; // budget guard : max 20 fetches Scrape.do / scan
+const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY || '';
+
+async function viaScrapeDoFallback(url) {
+  if (!SCRAPE_DO_KEY) return null;
+  const qs = new URLSearchParams({ token: SCRAPE_DO_KEY, url }).toString();
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20_000);
+  try {
+    const res = await fetch(`https://api.scrape.do/?${qs}`, { signal: ctrl.signal, headers: { accept: 'application/json' } });
+    if (!res.ok) return null;
+    const body = await res.text();
+    try { return JSON.parse(body); } catch { return null; }
+  } catch { return null; } finally { clearTimeout(t); }
+}
+
 export async function viaWorker(url) {
   for (const w of orderedWorkers()) {
     const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 10_000 });
     if (j) { workerSuccessCount++; return j; }
     workerFailCount++;
   }
-  // Log tous les 50 fails pour visibilite
-  if (workerFailCount % 50 === 0) console.log(`[xbet] CF workers stats — success=${workerSuccessCount} fail=${workerFailCount}`);
+  // Fallback Scrape.do (~1cr/req). Utilise seulement si tous CF workers down.
+  // Cap MAX_SCRAPEDO_PER_RUN pour proteger budget.
+  if (scrapeDoFallbackCount < MAX_SCRAPEDO_PER_RUN) {
+    const sc = await viaScrapeDoFallback(url);
+    if (sc) {
+      scrapeDoFallbackCount++;
+      if (scrapeDoFallbackCount === 1 || scrapeDoFallbackCount % 10 === 0) {
+        console.log(`[xbet] Scrape.do fallback active (${scrapeDoFallbackCount}/${MAX_SCRAPEDO_PER_RUN})`);
+      }
+      return sc;
+    }
+  }
+  if (workerFailCount % 50 === 0) console.log(`[xbet] All fetch failed — success=${workerSuccessCount} fail=${workerFailCount} scrapeDo=${scrapeDoFallbackCount}`);
   return null;
 }
 
