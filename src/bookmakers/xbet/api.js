@@ -1,7 +1,8 @@
-// Accès 1xbet via multi-proxy : CF workers (random) → jina.ai gratuit → direct.
-// Objectif : 100% dispo même quand un canal tombe.
+// Accès 1xbet via CF workers en round-robin. Pas de fallback stealth :
+// 1xBet refuse les connexions HTTP/2 directes (NGHTTP2_REFUSED_STREAM),
+// chaque call fait timeout 10s x 500 matchs = 80 min → timeout workflow.
+// Mieux vaut skip un match que bloquer tout le scan.
 import { fetchJson } from '../../net/fetcher.js';
-import { stealthGetJson } from '../../net/stealth.js';
 
 export const FEED = 'https://1xbet.cg';
 export const COUNTRY = 93;
@@ -28,18 +29,14 @@ function orderedWorkers() {
   return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
 }
 
-// Multi-fallback : CF workers (rotation round-robin) → stealth fetch direct.
-// jina.ai retiré (nécessite clé API, on n'en a pas).
-// Le premier qui répond avec du JSON valide gagne.
+// CF workers round-robin, timeout court (5s) pour fail-fast : mieux vaut
+// perdre 1 match qu'attendre 10s à chaque échec sur 500 matchs.
 export async function viaWorker(url) {
-  // Tier 1: CF workers en round-robin (spread la charge, évite épuisement d'un)
   for (const w of orderedWorkers()) {
-    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 9_000 });
+    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 5_000 });
     if (j) return j;
   }
-  // Tier 2: fetch direct via stealth (rotation fingerprint, IP GH parfois OK)
-  const j = await stealthGetJson(url, { headers: HEADERS, timeoutMs: 10_000 });
-  return j || null;
+  return null;
 }
 
 export function isFakeTeam(name) {
