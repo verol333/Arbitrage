@@ -74,16 +74,17 @@ export function sportcashFlatOdds(markets) {
     }
   };
 
-  // Double Chance cs=15 (2-way ou 3-way selon match). Audit :
-  // cs=15 "DOUBLE CHANCE" sample sur match test [{"ce":1,"q":110},{"ce":2,"q":540}]
-  // Convention DC standard chez XSport : ce=1=1X, ce=2=12, ce=3=X2.
-  // Safe : mapping applique seulement les ce presents, pas d'erreur si <3 outcomes.
+  // Double Chance cs=15 = 2-way {1X, X2} chez XSport Sportcash.
+  // Audit sample : [{"ce":1,"q":110},{"ce":2,"q":540}] = 1.10 et 5.40.
+  // Sanity : si ce=1=1X (~91%) alors ce=2 doit etre X2 (~18%), pas 12 (~85%).
+  // Le "12" n'existe pas en cs=15 (probablement dispatche en cs=17 ou cs=690).
+  // Verifie via Galatasaray-Venezia : SC dc_X2=4.60 vs autres dc_12=1.10 -> le
+  // faux profit 57% prouvait le mismapping. Corrige : ce=2 = X2 (pas 12).
   const putDcReal = (m) => {
     for (const e of (m.eqs || [])) {
       if (!okSel(e)) continue;
       if (e.ce === 1) odds.dc_1X = price(e);
-      else if (e.ce === 2) odds.dc_12 = price(e);
-      else if (e.ce === 3) odds.dc_X2 = price(e);
+      else if (e.ce === 2) odds.dc_X2 = price(e);
     }
   };
 
