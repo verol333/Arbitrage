@@ -24,9 +24,9 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Health audit (all books)
+      - name: Diagnostic YellowBet + PremierBet parse
         working-directory: .
-        run: node scripts/audit-health-all-books.js
+        run: node scripts/diag-yellowbet-premierbet.js
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
