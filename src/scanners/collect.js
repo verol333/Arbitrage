@@ -37,7 +37,9 @@ async function readOddsSafe(book, matches, opts) {
       for (const [id, odds] of batch) map.set(id, odds || {});
       return map;
     }
-    const BATCH = 15;
+    // BATCH augmenté à 25 pour accelerer scan. Books permissifs (1xbet via CF workers,
+    // apollo, betmomo) tolèrent bien. Sportcash a son propre delay interne (BATCH=4).
+    const BATCH = 25;
     for (let i = 0; i < matches.length; i += BATCH) {
       const chunk = matches.slice(i, i + BATCH);
       const results = await Promise.all(chunk.map((m) => book.getOdds(m, opts).catch((e) => {

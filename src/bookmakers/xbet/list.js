@@ -38,7 +38,7 @@ export async function listPrematch({ sport = 'football' } = {}) {
     return dedupeMatches(mapXItems(top?.Value));
   }
   const seen = new Set(); const all = [];
-  const BATCH = 12;
+  const BATCH = 25;
   for (let i = 0; i < champIds.length; i += BATCH) {
     const batch = champIds.slice(i, i + BATCH);
     const res = await Promise.all(batch.map((ci) =>
