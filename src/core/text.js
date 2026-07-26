@@ -126,8 +126,11 @@ export function levenshtein(a, b) {
 export function fuzzyEq(wa, wb) {
   if (wa === wb) return true;
   const lo = Math.min(wa.length, wb.length);
-  if (lo < 4) return false;
+  // Chaines courtes (<5) : exiger égalité stricte pour éviter faux positifs
+  // sur des IDs canoniques d'aliases (ex: manu/manc, brau/brug, wien/wiel).
+  if (lo < 5) return false;
   const d = levenshtein(wa, wb);
+  // <=6 : max 1 diff. >6 : max 2 diff.
   return d <= (Math.max(wa.length, wb.length) <= 6 ? 1 : 2);
 }
 
@@ -162,7 +165,52 @@ export function acronymMatch(a, b) {
   return tryOne(a, b) || tryOne(b, a);
 }
 
-// Similarite TOLERANTE d'equipe (overlap + prefixe + acronyme + fuzzy).
+// Jaro-Winkler : mesure de similarité 0..1 tolérante aux variantes orthographiques.
+// jaroWinkler("copenhague", "copenhagen") ~ 0.94, "kobenhavn" ~ 0.55
+// Génère des scores utiles SANS dictionnaire → attrape variantes orthographiques
+// de petites équipes exotiques non listées dans CITY_ALIASES.
+export function jaroWinkler(s1, s2) {
+  if (!s1 || !s2) return 0;
+  if (s1 === s2) return 1;
+  const m = s1.length, n = s2.length;
+  const matchDistance = Math.max(0, Math.floor(Math.max(m, n) / 2) - 1);
+  const s1Matches = new Array(m).fill(false);
+  const s2Matches = new Array(n).fill(false);
+  let matches = 0;
+  for (let i = 0; i < m; i++) {
+    const start = Math.max(0, i - matchDistance);
+    const end = Math.min(i + matchDistance + 1, n);
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j]) continue;
+      if (s1[i] !== s2[j]) continue;
+      s1Matches[i] = true;
+      s2Matches[j] = true;
+      matches++;
+      break;
+    }
+  }
+  if (matches === 0) return 0;
+  let transpositions = 0, k = 0;
+  for (let i = 0; i < m; i++) {
+    if (!s1Matches[i]) continue;
+    while (!s2Matches[k]) k++;
+    if (s1[i] !== s2[k]) transpositions++;
+    k++;
+  }
+  transpositions = Math.floor(transpositions / 2);
+  const jaro = (matches / m + matches / n + (matches - transpositions) / matches) / 3;
+  // Winkler boost : bonus pour préfixe commun (max 4 chars)
+  let prefix = 0;
+  for (let i = 0; i < Math.min(4, m, n); i++) {
+    if (s1[i] === s2[i]) prefix++;
+    else break;
+  }
+  return jaro + prefix * 0.1 * (1 - jaro);
+}
+
+// Similarite TOLERANTE d'equipe (overlap + prefixe + acronyme + fuzzy + Jaro-Winkler).
+// Jaro-Winkler ajoute comme filet de sécurité : capte variantes orthographiques
+// non listées dans CITY_ALIASES (ex : Kylian↔Killian, Baumgartner↔Baumgartler).
 export function teamSim(a, b) {
   const base = tokenOverlap(a, b);
   if (acronymMatch(a, b)) return Math.max(base, 1);
@@ -174,7 +222,14 @@ export function teamSim(a, b) {
     if (tb.some((wb) => wa === wb
       || (wa.length >= 4 && wb.startsWith(wa))
       || (wb.length >= 4 && wa.startsWith(wb))
-      || fuzzyEq(wa, wb))) inter++;
+      || fuzzyEq(wa, wb)
+      || (Math.min(wa.length, wb.length) >= 6 && jaroWinkler(wa, wb) >= 0.90))) inter++;
   }
-  return Math.max(base, inter / Math.min(ta.length, tb.length));
+  const tokScore = inter / Math.min(ta.length, tb.length);
+  // Fallback JW sur chaine complète : min 8 chars pour éviter faux positifs
+  // sur acronymes courts (manu vs manc jw=0.87 = faux positif à éviter).
+  const na = ta.join('');
+  const nb = tb.join('');
+  const jwFull = (na.length >= 8 && nb.length >= 8) ? jaroWinkler(na, nb) : 0;
+  return Math.max(base, tokScore, jwFull >= 0.88 ? jwFull : 0);
 }

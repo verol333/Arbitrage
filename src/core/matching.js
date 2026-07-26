@@ -26,16 +26,18 @@ function modifiersMatch(refHome, refAway, cHome, cAway) {
 }
 
 // Apparie un match de référence (ref) contre un catalogue (cands).
-// STRICT :
-//  - fenêtre ±30 min si les 2 heures connues
-//  - chaque équipe ≥ 0.60 de similarité (rejette Dynamo Moscow vs Dynamo Makhachkala)
-//  - moyenne ≥ 0.70
-//  - modifieurs cohérents (women/youth/u17/reserves) sur les 2 côtés
+// Deux modes de matching :
+//   STRICT (default)  : team≥0.60 et avg≥0.70 (comme avant)
+//   KICKOFF-TIGHT     : si kickoff ≤ 3min ET orientation "same", assouplit à
+//                       team≥0.40, avg≥0.55 → capte les équipes exotiques
+//                       aux noms traduits/orthographiés très différemment
+//                       (le kickoff exact est un signal universel puissant)
+//  - fenêtre ±30 min
+//  - modifieurs cohérents (women/youth/u17/reserves)
 //  - orientation "same" obligatoire
 export function matchBook(ref, cands, used) {
   const HARD_DT = 30 * 60 * 1000;
-  const MIN_TEAM = 0.60;
-  const MIN_AVG = 0.70;
+  const TIGHT_DT = 3 * 60 * 1000; // ±3 min = kickoff quasi-identique
   let best = null, bestScore = -1, bestDt = null;
   for (const c of cands) {
     if (used.has(c.id)) continue;
@@ -44,13 +46,19 @@ export function matchBook(ref, cands, used) {
     if (!modifiersMatch(ref.home, ref.away, c.home, c.away)) continue;
     const sh = teamSim(ref.home, c.home);
     const sa = teamSim(ref.away, c.away);
-    if (!(sh >= MIN_TEAM && sa >= MIN_TEAM)) continue;
     const avg = (sh + sa) / 2;
-    if (avg < MIN_AVG) continue;
+    // Sélection des seuils selon proximité kickoff
+    const isTight = dt !== null && dt <= TIGHT_DT;
+    const minTeam = isTight ? 0.40 : 0.60;
+    const minAvg = isTight ? 0.55 : 0.70;
+    if (!(sh >= minTeam && sa >= minTeam)) continue;
+    if (avg < minAvg) continue;
     if (orientation(ref.home, ref.away, c.home, c.away) !== 'same') continue;
-    const better = avg > bestScore + 1e-6
-      || (Math.abs(avg - bestScore) <= 1e-6 && dt !== null && (bestDt === null || dt < bestDt));
-    if (better) { bestScore = avg; best = c; bestDt = dt; }
+    // Score final : avg + petit bonus si kickoff tight (préfère match tight à même score)
+    const score = avg + (isTight ? 0.05 : 0);
+    const better = score > bestScore + 1e-6
+      || (Math.abs(score - bestScore) <= 1e-6 && dt !== null && (bestDt === null || dt < bestDt));
+    if (better) { bestScore = score; best = c; bestDt = dt; }
   }
   return best;
 }
