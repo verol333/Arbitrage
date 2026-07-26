@@ -46,7 +46,7 @@ export async function listPrematch(sport = 'football') {
   };
   const leaves = await listLeafCategories(SPORT_ID);
   if (leaves.length) {
-    const BATCH = 8;
+    const BATCH = 16;
     for (let i = 0; i < leaves.length; i += BATCH) {
       const batch = leaves.slice(i, i + BATCH);
       await Promise.all(batch.map(async (lf) => {

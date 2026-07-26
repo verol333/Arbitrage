@@ -57,7 +57,7 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
 
 export async function fetchOffers(ids) {
   const map = new Map();
-  const BATCH = 8;
+  const BATCH = 16;
   for (let i = 0; i < ids.length; i += BATCH) {
     const batch = ids.slice(i, i + BATCH);
     const res = await Promise.all(batch.map((id) => apolloGet(`/sport/offer/v3/match/offers?MatchId=${id}`)));

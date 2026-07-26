@@ -24,9 +24,9 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Discover Betclic.ci API
+      - name: Health audit
         working-directory: .
-        run: node scripts/probe-betclic-discover.js
+        run: node scripts/audit-health-all-books.js
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}

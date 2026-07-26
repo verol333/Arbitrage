@@ -14,7 +14,7 @@ export const config = {
     residentialUrl: process.env.RESIDENTIAL_PROXY_URL || '',
     cfworkerUrl: process.env.CF_WORKER_PROXY_URL || '',
     cacheTtlMs: num(process.env.PROXY_CACHE_TTL_MS, 75_000),
-    maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 6),
+    maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 12),
   },
 
   base44: {
