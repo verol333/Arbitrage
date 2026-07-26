@@ -1,22 +1,24 @@
 import { listPrematch, listLive } from './list.js';
 import { yellowbetFlatOdds } from './parse.js';
 
-// En LIVE, YellowBet ajuste dynamiquement la ligne des marchés Under/Over au
-// score en cours (ex: match à 3-0 en 63e min → l=3.5 = "au moins 4 buts au
-// total" avec cote adjustée). Les autres books utilisent des lignes fixes
-// pré-live → comparaison faussée = arbs fantômes.
-// Fix : en LIVE, on retire les marchés Under/Over totaux (match_over/under_*)
-// et Under/Over mi-temps qui subissent le même adjustement dynamique.
+// En LIVE, YellowBet (BetConstruct SWARM) ajuste dynamiquement les lignes des
+// marchés au score en cours. User a signalé opps fantômes : cotes lues ne
+// correspondent pas aux cotes réelles sur le site → mismatch mapping/timing.
+// STRATÉGIE STRICTE : en LIVE, on ne garde que les marchés STABLES qui ne
+// dépendent pas du contexte live (score/minute). En pratique :
+//   ✅ 1X2 (match_1/X/2) : issue finale du match — stable
+//   ✅ DNB (dnb_1/2) : issue si pas de match nul — stable
+//   ❌ Under/Over totaux : ligne ajustée dynamiquement
+//   ❌ Team totals : ligne ajustée dynamiquement
+//   ❌ BTTS : cote fluctue fortement avec buts déjà marqués
+//   ❌ Double Chance : dérivé de 1X2 mais fluctue en live
+//   ❌ Handicap : peut être ajusté en live
+// C'est restrictif mais fiable — mieux vaut moins d'opps que des fausses.
 function sanitizeLiveYb(odds) {
   const out = {};
   for (const [k, v] of Object.entries(odds || {})) {
-    // Marchés à ligne dynamique en live : totaux + team totals + handicap
-    if (/^(match_over|match_under|ht_over|ht_under|h2_over|h2_under|cor_over|cor_under|cor_ht_over|cor_ht_under)_/.test(k)) continue;
-    if (/^tt_(home|away)_(over|under)_/.test(k)) continue;
-    if (/^(ht_|h2_)?tt_(home|away)_(over|under)_/.test(k)) continue;
-    // Handicap peut aussi être ajusté en live selon les books, mais moins souvent
-    // → on garde pour l'instant.
-    out[k] = v;
+    if (/^match_[12X]$/.test(k)) out[k] = v;
+    else if (/^dnb_[12]$/.test(k)) out[k] = v;
   }
   return out;
 }
