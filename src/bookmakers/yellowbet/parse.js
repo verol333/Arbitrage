@@ -10,10 +10,20 @@ const findMarket = (bts, name) => {
   return bts.find((m) => String(m?.n || '').trim().toLowerCase() === target) || null;
 };
 
-export function yellowbetFlatOdds(bts) {
+// YellowBet LIVE : les marchés totaux (Under/Over, Team Totals, HT/H2 totals)
+// sont exposés en "REST OF MATCH" (buts restants à venir), PAS en total match.
+// Preuve : match Libertad écrasant 0-3+, YB dit "under 1.5 = 1.01" (99%) —
+// impossible si c'était total match (déjà >3 buts marqués). Seule interprétation
+// cohérente : "0-1 but supplémentaire d'ici la fin".
+// Solution : en live, on préfixe ces clés avec "rest_" pour qu'elles ne soient
+// PAS comparées avec les autres books (qui eux exposent TOTAL match).
+// Marchés 1X2/DC/BTTS/Handicap restent stables (rien à changer).
+export function yellowbetFlatOdds(bts, { live = false } = {}) {
   const odds = {};
   if (!Array.isArray(bts)) return odds;
   const set = (k, c) => { if (c && (!odds[k] || c > odds[k])) odds[k] = c; };
+  // Redirige les totaux vers "rest_*" en live (jamais comparé avec autres books)
+  const totalKey = (k) => live ? k.replace(/^(match|ht|h2|cor|tt_home|tt_away|ht_tt_home|ht_tt_away|h2_tt_home|h2_tt_away)_/, 'rest_$1_') : k;
 
   const ft = findMarket(bts, 'FT 1X2');
   if (ft) for (const o of ft.odds || []) {
@@ -39,8 +49,8 @@ export function yellowbetFlatOdds(bts) {
   if (uo) for (const o of uo.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
-    if (n === 'over') set(`match_over_${l}`, c);
-    else if (n === 'under') set(`match_under_${l}`, c);
+    if (n === 'over') set(totalKey(`match_over_${l}`), c);
+    else if (n === 'under') set(totalKey(`match_under_${l}`), c);
   }
   const htr = findMarket(bts, 'HT 1X2');
   if (htr) for (const o of htr.odds || []) {
@@ -53,8 +63,8 @@ export function yellowbetFlatOdds(bts) {
   if (htuo) for (const o of htuo.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
-    if (n === 'over') set(`ht_over_${l}`, c);
-    else if (n === 'under') set(`ht_under_${l}`, c);
+    if (n === 'over') set(totalKey(`ht_over_${l}`), c);
+    else if (n === 'under') set(totalKey(`ht_under_${l}`), c);
   }
   const sh = findMarket(bts, '2nd Half : 1X2');
   if (sh) for (const o of sh.odds || []) {
@@ -67,8 +77,8 @@ export function yellowbetFlatOdds(bts) {
   if (sht) for (const o of sht.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
-    if (n === 'over') set(`h2_over_${l}`, c);
-    else if (n === 'under') set(`h2_under_${l}`, c);
+    if (n === 'over') set(totalKey(`h2_over_${l}`), c);
+    else if (n === 'under') set(totalKey(`h2_under_${l}`), c);
   }
   const dnb = findMarket(bts, 'Draw No Bet');
   if (dnb) for (const o of dnb.odds || []) {
@@ -118,8 +128,8 @@ export function yellowbetFlatOdds(bts) {
     for (const o of mkt.odds || []) {
       const l = lineOf(o); if (!isHalfLine(l)) continue;
       const n = lbl(o), c = priceOf(o);
-      if (n === 'over') set(`${pfx}tt_${side}_over_${l}`, c);
-      else if (n === 'under') set(`${pfx}tt_${side}_under_${l}`, c);
+      if (n === 'over') set(totalKey(`${pfx}tt_${side}_over_${l}`), c);
+      else if (n === 'under') set(totalKey(`${pfx}tt_${side}_under_${l}`), c);
     }
   }
   // HT Double Chance.
@@ -157,16 +167,16 @@ export function yellowbetFlatOdds(bts) {
   if (cor) for (const o of cor.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
-    if (n === 'over') set(`cor_over_${l}`, c);
-    else if (n === 'under') set(`cor_under_${l}`, c);
+    if (n === 'over') set(totalKey(`cor_over_${l}`), c);
+    else if (n === 'under') set(totalKey(`cor_under_${l}`), c);
   }
   // Corners HT total.
   const corHt = findMarket(bts, 'HT Corners U/O') || findMarket(bts, 'HT Corners Under/Over');
   if (corHt) for (const o of corHt.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
-    if (n === 'over') set(`cor_ht_over_${l}`, c);
-    else if (n === 'under') set(`cor_ht_under_${l}`, c);
+    if (n === 'over') set(totalKey(`cor_ht_over_${l}`), c);
+    else if (n === 'under') set(totalKey(`cor_ht_under_${l}`), c);
   }
   // HT/H2 Odd/Even.
   const htoe = findMarket(bts, 'HT Odd/Even goals');

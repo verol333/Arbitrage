@@ -11,7 +11,10 @@ export default {
     if (!['football', 'basketball', 'tennis', 'volleyball'].includes(sport)) return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
-  async getOdds(match) {
-    return yellowbetFlatOdds(match.__raw?.bts || []);
+  async getOdds(match, { live = false } = {}) {
+    // En live, les Under/Over/Team totals YB sont exposés en "REST OF MATCH"
+    // (buts restants), pas en TOTAL match. Le parser les redirige vers rest_*
+    // pour éviter faux arbs quand comparés avec autres books qui exposent TOTAL.
+    return yellowbetFlatOdds(match.__raw?.bts || [], { live });
   },
 };
