@@ -7,7 +7,9 @@ import { fetchJson } from '../../net/fetcher.js';
 const BASE = 'https://premierbetzone.com/rest';
 const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY || '';
 const cache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000;
+// Cache 60 min : couvre 6 scans prematch cron 10-min. Sur 24h × 4h = ~6 fetches/jour
+// listMatches + 15 details capped par scan = ~30 total/jour = 900/mois (sous 1000 budget).
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 export const scrapeDoConfigured = () => Boolean(SCRAPE_DO_KEY);
 
