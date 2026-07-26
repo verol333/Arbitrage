@@ -1,0 +1,41 @@
+name: Audit — Health All Books
+
+on:
+  workflow_dispatch:
+    inputs:
+      modes:
+        description: 'prematch / live / both'
+        default: 'both'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - name: Link node_modules
+        working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Health audit
+        working-directory: .
+        run: |
+          if [ "${{ inputs.modes }}" = "prematch" ]; then node scripts/audit-health-all-books.js prematch
+          elif [ "${{ inputs.modes }}" = "live" ]; then node scripts/audit-health-all-books.js live
+          else node scripts/audit-health-all-books.js; fi
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
