@@ -309,6 +309,15 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
   }));
   const confirmedAt = new Date().toISOString();
   const confirmedAtMs = Date.now();
+  const rejectReasons = { noKey: 0, noOddsA: 0, noOddsB: 0, missingFresh: 0, badRange: 0, noArb: 0, lowProfit: 0, capMax: 0 };
+  const rejectByBook = {};
+  const trackReject = (o, reason) => {
+    rejectReasons[reason] = (rejectReasons[reason] || 0) + 1;
+    for (const b of [o.leg_a_book, o.leg_b_book]) {
+      if (!rejectByBook[b]) rejectByBook[b] = {};
+      rejectByBook[b][reason] = (rejectByBook[b][reason] || 0) + 1;
+    }
+  };
   const out = [];
   for (const o of opps) {
     const idA = String(o.verify?.leg_a_match?.id || '');
@@ -316,18 +325,21 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     const oddsA = freshOdds.get(o.leg_a_book)?.get(idA) || freshOdds.get(o.leg_a_book)?.get(Number(idA));
     const oddsB = freshOdds.get(o.leg_b_book)?.get(idB) || freshOdds.get(o.leg_b_book)?.get(Number(idB));
     const key = marketKeyFromOpp(o);
-    if (!key || !oddsA || !oddsB) continue;
+    if (!key) { trackReject(o, 'noKey'); continue; }
+    if (!oddsA) { trackReject(o, 'noOddsA'); continue; }
+    if (!oddsB) { trackReject(o, 'noOddsB'); continue; }
     const freshA = oddsA[key.a];
     const freshB = oddsB[key.b];
-    if (!freshA || !freshB || freshA <= 1 || freshB <= 1 || freshA > 80 || freshB > 80) continue;
+    if (freshA == null || freshB == null) { trackReject(o, 'missingFresh'); continue; }
+    if (freshA <= 1 || freshB <= 1 || freshA > 80 || freshB > 80) { trackReject(o, 'badRange'); continue; }
     const invSum = 1 / freshA + 1 / freshB;
-    if (invSum >= 1) continue;
+    if (invSum >= 1) { trackReject(o, 'noArb'); continue; }
     const profit = (1 - invSum) * 100;
-    if (profit < minProfit) continue;
+    if (profit < minProfit) { trackReject(o, 'lowProfit'); continue; }
     // Pas de cap max côté confirmation : les vraies grosses arbs (10-50%)
     // doivent passer. Les fantômes doivent être éliminés en amont via un
     // parsing correct, pas par un seuil arbitraire.
-    if (profit > config.scan.maxProfitSanity) continue;
+    if (profit > config.scan.maxProfitSanity) { trackReject(o, 'capMax'); continue; }
     // Cote fraîche → on met à jour l'opp avec la valeur re-lue et on ajoute les timestamps.
     const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;
     const stakeA = (1 / freshA) / invSum * 100;
@@ -367,6 +379,20 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
         odds_age_seconds: Math.max(0, Math.round((confirmedAtMs - fetchedMs) / 1000)),
       },
     });
+  }
+  // Log distribution des rejets pour comprendre pourquoi des candidates ne passent pas
+  const totalRej = Object.values(rejectReasons).reduce((a, b) => a + b, 0);
+  if (totalRej > 0) {
+    const reasonsSummary = Object.entries(rejectReasons).filter(([, n]) => n > 0).map(([k, n]) => `${k}:${n}`).join(' ');
+    log(`  ❌ rejets confirm (${totalRej}): ${reasonsSummary}`);
+    // Pour chaque book qui a >2 rejets, détail
+    for (const [book, reasons] of Object.entries(rejectByBook)) {
+      const total = Object.values(reasons).reduce((a, b) => a + b, 0);
+      if (total >= 2) {
+        const details = Object.entries(reasons).map(([k, n]) => `${k}:${n}`).join(' ');
+        log(`     - ${book} (${total} rejets): ${details}`);
+      }
+    }
   }
   return out.sort((a, b) => b.profit_pct - a.profit_pct);
 }
