@@ -24,9 +24,9 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Debug Sportcash + PremierBet matching
+      - name: Debug YB live + SC mapping + PB opps
         working-directory: .
-        run: node scripts/debug-sc-pb-matching.js
+        run: node scripts/debug-yb-sc-pb-live.js
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
