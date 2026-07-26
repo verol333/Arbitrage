@@ -24,9 +24,9 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Probe Betclic CDN
+      - name: Probe Betclic geoCode CI
         working-directory: .
-        run: node scripts/probe-betclic-cdn.js
+        run: node scripts/probe-betclic-geo.js
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
