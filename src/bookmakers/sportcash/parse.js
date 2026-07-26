@@ -79,8 +79,13 @@ export function sportcashFlatOdds(markets) {
       // ─── Full time (codes vérifiés via audit prématch) ─────────────────────
       case 3: put1x2(m, ''); break;                          // FINAL 1X2
       case 8: putHcp(m, ''); break;                          // HANDICAP
-      case 16: putDC(m, ''); break;                          // DOUBLE CHANCE (variante 1)
-      case 17: putDC(m, ''); break;                          // DOUBLE CHANCE (variante 2)
+      // cs=16 / cs=17 : DOUBLE CHANCE — mapping ce=1/2/3 → 1X/12/X2 INCORRECT
+      // (audit Macva vs Partizan : dc_1X=4.60 alors qu'attendu ~2.84 ; en
+      // realite ce=1/2/3 mappe probablement match_1/X/2 pas dc_1X/12/X2, ou
+      // cs=16 est un autre marche 3-way qu'on prend a tort pour DC).
+      // Desactive tant qu'un audit fiable n'a pas fixe le mapping precis.
+      // case 16: putDC(m, ''); break;
+      // case 17: putDC(m, ''); break;
       case 18: putBtts(m, ''); break;                        // BOTH TEAMS TO SCORE
       case 19: putOddEven(m, ''); break;                     // ODD/EVEN
       case 560: putHighestScoringHalf(m); break;             // HIGHEST SCORING HALF (3-way)
