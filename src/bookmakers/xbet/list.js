@@ -29,14 +29,17 @@ export async function listPrematch({ sport = 'football' } = {}) {
   const sid = SPORT_IDS[sport];
   if (!sid) return [];
   const champs = await viaWorker(`${FEED}/service-api/LineFeed/GetChampsZip?sport=${sid}&lng=en&country=${COUNTRY}&partner=${PARTNER}`);
+  if (!champs) console.log('[xbet] listPrematch : GetChampsZip retourne null → CF workers down ?');
   const champIds = [...new Set((champs?.Value || [])
     .filter((c) => isRealChamp(c.LE || c.L))
     .map((c) => c.LI || c.CI)
     .filter(Boolean))];
   if (!champIds.length) {
+    console.log('[xbet] listPrematch : 0 champs → fallback Top100');
     const top = await viaWorker(`${FEED}/service-api/LineFeed/Get1x2_VZip?sports=${sid}&count=100&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
     return dedupeMatches(mapXItems(top?.Value));
   }
+  console.log(`[xbet] listPrematch : ${champIds.length} champs a fetcher (BATCH=40)`);
   const seen = new Set(); const all = [];
   const BATCH = 40; // pousse la parallelisation - CF workers gerent bien la charge
   for (let i = 0; i < champIds.length; i += BATCH) {

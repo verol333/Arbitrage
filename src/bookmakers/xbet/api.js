@@ -29,13 +29,18 @@ function orderedWorkers() {
   return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
 }
 
-// CF workers round-robin, timeout court (5s) pour fail-fast : mieux vaut
-// perdre 1 match qu'attendre 10s à chaque échec sur 500 matchs.
+// CF workers round-robin, timeout 10s + retry 1x sur echec pour tolerer
+// slow burst des CF workers (evite 1xbet:0 en catalog quand un worker rate).
+let workerFailCount = 0;
+let workerSuccessCount = 0;
 export async function viaWorker(url) {
   for (const w of orderedWorkers()) {
-    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 5_000 });
-    if (j) return j;
+    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 10_000 });
+    if (j) { workerSuccessCount++; return j; }
+    workerFailCount++;
   }
+  // Log tous les 50 fails pour visibilite
+  if (workerFailCount % 50 === 0) console.log(`[xbet] CF workers stats — success=${workerSuccessCount} fail=${workerFailCount}`);
   return null;
 }
 
