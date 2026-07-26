@@ -1,16 +1,31 @@
-// Accès 1xbet via CF workers en round-robin. Pas de fallback stealth :
-// 1xBet refuse les connexions HTTP/2 directes (NGHTTP2_REFUSED_STREAM),
-// chaque call fait timeout 10s x 500 matchs = 80 min → timeout workflow.
-// Mieux vaut skip un match que bloquer tout le scan.
+// Accès 1xbet via BATTERIE de proxies gratuits en cascade (first-wins).
+// Aucun proxy privilégié : celui qui répond en premier gagne. Log stats.
+// Ordre : (1) CF workers privés, (2) direct fetch, (3-6) proxies publics CORS
+// gratuits (rotation pour ne pas taper toujours le même).
 import { fetchJson } from '../../net/fetcher.js';
 
 export const FEED = 'https://1xbet.cg';
 export const COUNTRY = 93;
 export const PARTNER = 192;
+
 const CF_WORKERS = [
   'https://hidden-pine-7436.veolalex3.workers.dev',
   'https://billowing-sea-2d8e.alvecapital60.workers.dev',
 ];
+
+// Proxies CORS gratuits, tous testés opérationnels et sans clé API :
+// - allorigins.win : très fiable, cache 5min côté serveur
+// - codetabs.com/v1/proxy : maintenu, gratuit
+// - corsproxy.io : rapide, illimité, gratuit
+// - thingproxy.freeboard.io : legacy mais stable
+// - corsanywhere.com : demo mais tolère notre volume
+const PUBLIC_PROXIES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
 const HEADERS = {
   accept: 'application/json, text/plain, */*',
   'accept-language': 'fr-FR,fr;q=0.9',
@@ -21,54 +36,47 @@ const HEADERS = {
   'x-requested-with': 'XMLHttpRequest',
 };
 
-// Round-robin state pour spread la charge sur les CF workers (au lieu de
-// toujours frapper le 1er, qui sature en premier).
-let cfCursor = 0;
-function orderedWorkers() {
+// Stats globales pour visibilité
+const stats = { cf: 0, direct: 0, pub: 0, fail: 0, byPub: [0, 0, 0, 0] };
+
+async function tryFetch(url, timeoutMs) {
+  try {
+    return await fetchJson(url, { headers: HEADERS, timeoutMs });
+  } catch { return null; }
+}
+
+// Cursor round-robin pour spread la charge sur CF workers + proxies publics
+let cfCursor = 0, pubCursor = 0;
+function cfWorkers() {
   const start = cfCursor++ % CF_WORKERS.length;
   return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
 }
-
-// CF workers round-robin, timeout 10s + Scrape.do fallback quand tous les
-// workers CF sont down (garantit que 1xbet remonte toujours en catalog).
-let workerFailCount = 0;
-let workerSuccessCount = 0;
-let scrapeDoFallbackCount = 0;
-const MAX_SCRAPEDO_PER_RUN = 20; // budget guard : max 20 fetches Scrape.do / scan
-const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY || '';
-
-async function viaScrapeDoFallback(url) {
-  if (!SCRAPE_DO_KEY) return null;
-  const qs = new URLSearchParams({ token: SCRAPE_DO_KEY, url }).toString();
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 20_000);
-  try {
-    const res = await fetch(`https://api.scrape.do/?${qs}`, { signal: ctrl.signal, headers: { accept: 'application/json' } });
-    if (!res.ok) return null;
-    const body = await res.text();
-    try { return JSON.parse(body); } catch { return null; }
-  } catch { return null; } finally { clearTimeout(t); }
+function publicProxies() {
+  const start = pubCursor++ % PUBLIC_PROXIES.length;
+  return PUBLIC_PROXIES.map((_, i) => ({ builder: PUBLIC_PROXIES[(start + i) % PUBLIC_PROXIES.length], idx: (start + i) % PUBLIC_PROXIES.length }));
 }
 
+// Batterie cascade : chaque strategy essaie 1 fois avec timeout court.
+// Total worst case : 2 CF × 5s + 1 direct × 5s + 4 pub × 8s = 47s max.
+// Best case : 1re CF répond en <2s.
 export async function viaWorker(url) {
-  for (const w of orderedWorkers()) {
-    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 10_000 });
-    if (j) { workerSuccessCount++; return j; }
-    workerFailCount++;
+  // 1. CF workers privés (round-robin)
+  for (const w of cfWorkers()) {
+    const j = await tryFetch(`${w}/?url=${encodeURIComponent(url)}`, 5_000);
+    if (j) { stats.cf++; return j; }
   }
-  // Fallback Scrape.do (~1cr/req). Utilise seulement si tous CF workers down.
-  // Cap MAX_SCRAPEDO_PER_RUN pour proteger budget.
-  if (scrapeDoFallbackCount < MAX_SCRAPEDO_PER_RUN) {
-    const sc = await viaScrapeDoFallback(url);
-    if (sc) {
-      scrapeDoFallbackCount++;
-      if (scrapeDoFallbackCount === 1 || scrapeDoFallbackCount % 10 === 0) {
-        console.log(`[xbet] Scrape.do fallback active (${scrapeDoFallbackCount}/${MAX_SCRAPEDO_PER_RUN})`);
-      }
-      return sc;
-    }
+  // 2. Direct fetch (peut marcher si 1xBet.cg ne bloque pas notre IP)
+  const j = await tryFetch(url, 5_000);
+  if (j) { stats.direct++; return j; }
+  // 3. Proxies CORS publics (round-robin)
+  for (const { builder, idx } of publicProxies()) {
+    const j2 = await tryFetch(builder(url), 8_000);
+    if (j2) { stats.pub++; stats.byPub[idx]++; return j2; }
   }
-  if (workerFailCount % 50 === 0) console.log(`[xbet] All fetch failed — success=${workerSuccessCount} fail=${workerFailCount} scrapeDo=${scrapeDoFallbackCount}`);
+  stats.fail++;
+  if (stats.fail % 20 === 0) {
+    console.log(`[xbet] proxy stats — cf=${stats.cf} direct=${stats.direct} pub=${stats.pub}(${stats.byPub.join('/')}) fail=${stats.fail}`);
+  }
   return null;
 }
 
