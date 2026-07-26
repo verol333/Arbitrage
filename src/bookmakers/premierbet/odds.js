@@ -5,7 +5,7 @@
 import { pget } from './api.js';
 import { premierbetFlatOdds } from './parse.js';
 
-const MAX_DETAIL_FETCHES_PER_SCAN = 8; // reduit de 15->8 pour economiser budget Scrape.do
+const MAX_DETAIL_FETCHES_PER_SCAN = 15; // remonte a 15 vu que le filtre non-foot rejette baseball/tennis (economise credits sur non-utile)
 let detailFetchesThisScan = 0;
 const scanResetInterval = 60 * 1000;
 setInterval(() => { detailFetchesThisScan = 0; }, scanResetInterval).unref?.();
