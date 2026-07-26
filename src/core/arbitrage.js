@@ -178,7 +178,7 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, `Corners 1MT Total ${l}`, `+${l}`, oa[`cor_ht_over_${l}`], bookA, `−${l}`, ob[`cor_ht_under_${l}`], bookB);
     pushArb(out, `Corners 1MT Total ${l}`, `+${l}`, ob[`cor_ht_over_${l}`], bookB, `−${l}`, oa[`cor_ht_under_${l}`], bookA);
   }
-  // HT/H2 individual totals.
+  // HT/H2 individual totals (par mi-temps).
   for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
     for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
       for (const l of linesOf(oa, ob, new RegExp(`^${pfx}tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
@@ -187,6 +187,16 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
         pushArb(out, fam, `${teamLbl} +${l}`, oa[ok], bookA, `${teamLbl} −${l}`, ob[uk], bookB);
         pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA);
       }
+    }
+  }
+  // Full-match individual totals (total buts par équipe sur tout le match) —
+  // marché standard émis par BetMomo/Apollo/Congobet. Manquait au comparateur foot.
+  for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
+    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
+      const fam = `Total ${teamLbl} ${l}`;
+      pushArb(out, fam, `${teamLbl} +${l}`, oa[ok], bookA, `${teamLbl} −${l}`, ob[uk], bookB);
+      pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA);
     }
   }
   // 3-way : 1ère équipe à marquer + mi-temps la plus prolifique.
