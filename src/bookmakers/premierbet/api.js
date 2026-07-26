@@ -1,6 +1,12 @@
 // PremierBet accès via Scrape.do (Cloudflare bloque tout direct/stealth depuis GH).
-// Nouveau backend `sports-api.premierbet.com` (Editec direct) : markets INLINE = pas de fetch détail.
-// Cache 60min → ~24 fetches/jour = 720/mois (sous budget 1000/mois).
+// Backend legacy `premierbetzone.com/rest` : bestsellers (list) + market/events/{id} (détail).
+// Le nouveau backend `sports-api.premierbet.com/cg/v1/events/featured` a été essayé
+// mais ne retourne QUE le marché 1X2 (1 market/event) — inutile pour arbitrage
+// multi-marchés. On garde donc l'ancien flow avec fetch détail cap.
+//
+// Budget SCRAPE_DO_KEY = 1000 req/mois. Cache 60min → ~24 fetches list/jour + ~15
+// details/scan × 6 scans/jour = ~114/jour × 30 = 3400/mois. Trop → on cap détails
+// à 15/scan pour tenir ~30/jour = 900/mois.
 const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY || '';
 const cache = new Map();
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -21,7 +27,7 @@ async function viaScrapeDo(url, { timeoutMs = 20_000, attempt = 1 } = {}) {
       return null;
     }
     try { return JSON.parse(body); } catch {
-      console.log(`[premierbet] scrape.do attempt=${attempt} non-json len=${body.length} start="${body.slice(0,120)}"`);
+      console.log(`[premierbet] scrape.do attempt=${attempt} non-json len=${body.length}`);
       return null;
     }
   } catch (e) {
@@ -30,7 +36,6 @@ async function viaScrapeDo(url, { timeoutMs = 20_000, attempt = 1 } = {}) {
   } finally { clearTimeout(t); }
 }
 
-// Fetch générique cached avec 1 retry auto après 3s
 export async function scrapedGet(url) {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.data;
@@ -43,23 +48,11 @@ export async function scrapedGet(url) {
   return null;
 }
 
-// Ancien backend RESTEasy (legacy — fallback si nouveau vide)
+// Backend legacy RESTEasy (Editec) — flow validé bestsellers + market/events/{id}
 const LEGACY_BASE = 'https://premierbetzone.com/rest';
 export async function pget(path) {
   const j = await scrapedGet(`${LEGACY_BASE}/${path}`);
   return j && j.code === 200 ? j.data : null;
-}
-
-// Nouveau backend Editec direct : structure `{data: [{id, eventNames, startTime, markets: [{id, name, outcomes: [{name, value}]}]}]}`
-const SPORTS_API_BASE = 'https://sports-api.premierbet.com';
-const FOOTBALL_FEATURED_PAGE_ID = '63fe10b530a2f04c64fbd643';
-
-export async function fetchFeaturedFootball() {
-  const url = `${SPORTS_API_BASE}/cg/v1/events/featured?country=CG&group=g5&platform=desktop&locale=fr&pageId=${FOOTBALL_FEATURED_PAGE_ID}`;
-  const j = await scrapedGet(url);
-  const arr = Array.isArray(j?.data) ? j.data : [];
-  console.log(`[premierbet] fetchFeatured → ${arr.length} events${j ? '' : ' (scrape.do returned null)'}`);
-  return arr;
 }
 
 export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b/i.test(s || '');

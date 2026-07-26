@@ -1,35 +1,34 @@
-// Liste matches PremierBet via nouveau backend sports-api.premierbet.com/cg/v1/events/featured
-// Retourne 20 events avec markets INLINE (pas de fetch détail nécessaire).
-import { fetchFeaturedFootball, isVirtual, isOutright, splitTeams } from './api.js';
+import { pget, isVirtual, isOutright, splitTeams } from './api.js';
+
+// eventType=1 pour foot (validé via probe : "Inter Milan - AC Monza" a eventType=1).
+// treatAsSport=1 est aussi un indicateur foot fiable.
+const FOOT_EVENT_TYPES = new Set([1]);
 
 export async function listMatches({ live = false, maxMatches = 300, horizonHours = 168 } = {}) {
   if (live) return [];
   const nowMs = Date.now();
   const horizonMs = nowMs + horizonHours * 3600 * 1000;
-  const events = await fetchFeaturedFootball();
+  const best = (await pget('market/events/bestsellers')) || [];
   const out = [];
-  let filteredOutright = 0, filteredVirtual = 0, filteredHorizon = 0, noTeams = 0;
-  for (const e of events) {
-    const names = Array.isArray(e.eventNames) ? e.eventNames : [];
-    if (names.length < 2) { noTeams++; continue; }
-    const home = String(names[0] || '').trim();
-    const away = String(names[1] || '').trim();
-    if (!home || !away) { noTeams++; continue; }
-    const combined = `${home} - ${away}`;
-    if (isOutright(combined)) { filteredOutright++; continue; }
-    if (isVirtual(combined)) { filteredVirtual++; continue; }
-    const startTime = Number(e.startTime);
-    if (!Number.isFinite(startTime) || startTime <= nowMs + 2 * 60 * 1000 || startTime > horizonMs) { filteredHorizon++; continue; }
-    const markets = Array.isArray(e.markets) ? e.markets : [];
+  let seenFoot = 0, filteredOutright = 0, filteredVirtual = 0, filteredHorizon = 0, noTeams = 0;
+  for (const e of best) {
+    const isFoot = FOOT_EVENT_TYPES.has(e.eventType) || FOOT_EVENT_TYPES.has(e.treatAsSport);
+    if (!isFoot) continue;
+    seenFoot++;
+    if (isOutright(e.eventName)) { filteredOutright++; continue; }
+    const teams = splitTeams(e.eventName);
+    if (!teams) { noTeams++; continue; }
+    const leagueName = e.category3Name || e.category2Name || e.category1Name || '';
+    if (isVirtual(`${teams.home} ${teams.away} ${leagueName}`)) { filteredVirtual++; continue; }
+    if (!e.eventStart || e.eventStart <= nowMs + 2 * 60 * 1000 || e.eventStart > horizonMs) { filteredHorizon++; continue; }
+    const markets = Array.isArray(e.eventGames) ? e.eventGames : [];
     out.push({
-      id: String(e.id || e.providerId),
-      home, away,
-      league: '',
-      start: startTime,
+      id: String(e.eventId), home: teams.home, away: teams.away,
+      league: leagueName, start: e.eventStart,
       __raw: { markets },
     });
     if (out.length >= maxMatches) break;
   }
-  console.log(`[premierbet] featured=${events.length} kept=${out.length} filtered=(outright:${filteredOutright} virtual:${filteredVirtual} horizon:${filteredHorizon} noTeams:${noTeams})`);
+  console.log(`[premierbet] bestsellers=${best.length} foot=${seenFoot} kept=${out.length} filtered=(outright:${filteredOutright} virtual:${filteredVirtual} horizon:${filteredHorizon} noTeams:${noTeams})`);
   return out;
 }
