@@ -163,6 +163,22 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const deduped = dedupeOpportunities(all).sort((a, b) => b.profit_pct - a.profit_pct);
   log(`🎯 ${deduped.length} opportunités candidates ≥ ${minP}% | ${Date.now() - t0}ms`);
 
+  // Distribution book × candidates : pour comprendre pourquoi certains books
+  // (Sportcash, Apollo, PremierBet) n'apparaissent jamais dans les opps envoyées.
+  // Compte pour chaque book combien de fois il apparaît comme leg_a OU leg_b.
+  const bookInScope = {};
+  const bookCandidates = {};
+  for (const b of usable) {
+    bookInScope[b.key] = sorted.filter((e) => e.matches[b.key] && oddsByBook.get(b.key).get(e.matches[b.key].id) && Object.keys(oddsByBook.get(b.key).get(e.matches[b.key].id) || {}).length).length;
+    bookCandidates[b.key] = 0;
+  }
+  for (const o of deduped) {
+    bookCandidates[o.leg_a_book] = (bookCandidates[o.leg_a_book] || 0) + 1;
+    bookCandidates[o.leg_b_book] = (bookCandidates[o.leg_b_book] || 0) + 1;
+  }
+  const distribCand = usable.map((b) => `${b.key}:${bookCandidates[b.key]}(scope:${bookInScope[b.key]})`).join(' | ');
+  log(`📊 distribution candidates par book — ${distribCand}`);
+
   // Re-fetch juste-à-temps : on relit les cotes des 2 legs de chaque opp avant
   // de les envoyer. Élimine les surebets périmés (cotes ayant bougé pendant le
   // scan). En LIVE, on re-fetch aussi la liste des matchs de chaque book pour
@@ -177,6 +193,23 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   if (freshLiveByBook) applyFreshLive(confirmed, freshLiveByBook);
   tick('confirm+freshLive done');
   log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
+
+  // Distribution book × confirmed
+  const bookConfirmed = {};
+  for (const b of usable) bookConfirmed[b.key] = 0;
+  for (const o of confirmed) {
+    bookConfirmed[o.leg_a_book] = (bookConfirmed[o.leg_a_book] || 0) + 1;
+    bookConfirmed[o.leg_b_book] = (bookConfirmed[o.leg_b_book] || 0) + 1;
+  }
+  log(`📊 distribution confirmed par book — ${usable.map((b) => `${b.key}:${bookConfirmed[b.key]}`).join(' | ')}`);
+
+  // Log les 5 premières opps envoyées (sample) : profit, marché, books, matches
+  if (confirmed.length) {
+    log(`📤 Sample opps envoyees :`);
+    for (const o of confirmed.slice(0, Math.min(5, confirmed.length))) {
+      log(`   ${o.profit_pct}% "${o.match_label}" [${o.market_family}] ${o.leg_a_book}@${o.leg_a_odd} vs ${o.leg_b_book}@${o.leg_b_odd}`);
+    }
+  }
 
   return {
     opportunities: confirmed,
