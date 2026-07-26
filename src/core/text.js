@@ -2,8 +2,99 @@
 // Port fidele de matchCore.ts (norm/tokenOverlap/acronymMatch/levenshtein/teamSim).
 const DIACRITICS = /[̀-ͯ]/g;
 
+// Aliases FR/DE/DK/ES/IT/RU → forme canonique (souvent proche du nom local ou anglais).
+// Applique AVANT tokenisation : toutes les variantes convergent vers 1 clé.
+// Objectif : matcher "FC Copenhague" (Sportcash FR) avec "FC Kobenhavn" (1xBet).
+// Chaque entrée : ligne = FR/variant, valeur = clé canonique (unique par entité).
+const CITY_ALIASES = new Map([
+  // Danemark
+  ['copenhague', 'copen'], ['copenhagen', 'copen'], ['kobenhavn', 'copen'], ['kobenhaven', 'copen'],
+  // Allemagne
+  ['munich', 'munch'], ['muenchen', 'munch'], ['munchen', 'munch'],
+  ['cologne', 'koln'], ['koeln', 'koln'],
+  ['nuremberg', 'nurn'], ['nurnberg', 'nurn'], ['nuernberg', 'nurn'],
+  ['brunswick', 'brau'], ['braunschweig', 'brau'],
+  ['hanovre', 'hann'], ['hannover', 'hann'], ['hanover', 'hann'],
+  ['mayence', 'mainz'], ['mainz', 'mainz'],
+  ['sarrebruck', 'saar'], ['saarbrucken', 'saar'], ['saarbruecken', 'saar'],
+  // Autriche
+  ['vienne', 'wien'], ['vienna', 'wien'], ['wien', 'wien'],
+  ['salzbourg', 'salz'], ['salzburg', 'salz'],
+  // Espagne
+  ['seville', 'sevi'], ['sevilla', 'sevi'], ['sevilha', 'sevi'],
+  ['barcelone', 'barc'], ['barcelona', 'barc'],
+  ['saragosse', 'zara'], ['zaragoza', 'zara'],
+  ['grenade', 'gran'], ['granada', 'gran'],
+  ['saint sebastien', 'donost'], ['san sebastian', 'donost'], ['donostia', 'donost'],
+  // Italie
+  ['naples', 'napo'], ['napoli', 'napo'],
+  ['rome', 'roma'], ['roma', 'roma'],
+  ['turin', 'tori'], ['torino', 'tori'], ['juventus', 'juve'], ['juve', 'juve'],
+  ['florence', 'fior'], ['fiorentina', 'fior'],
+  ['milan', 'mila'], ['milano', 'mila'],
+  ['genes', 'geno'], ['gênes', 'geno'], ['genoa', 'geno'], ['genova', 'geno'],
+  // Suisse
+  ['saint gall', 'stgall'], ['st gall', 'stgall'], ['st gallen', 'stgall'], ['sankt gallen', 'stgall'],
+  ['geneve', 'gene'], ['geneva', 'gene'], ['genf', 'gene'],
+  ['bale', 'basel'], ['bâle', 'basel'], ['basel', 'basel'], ['basle', 'basel'],
+  ['zurich', 'zuri'], ['zürich', 'zuri'],
+  // Belgique
+  ['bruges', 'brug'], ['brugge', 'brug'],
+  ['anvers', 'antw'], ['antwerpen', 'antw'], ['antwerp', 'antw'],
+  ['gand', 'gent'], ['gent', 'gent'], ['ghent', 'gent'],
+  ['liege', 'liege'], ['luik', 'liege'],
+  // Pays-Bas
+  ['la haye', 'haag'], ['den haag', 'haag'], ['the hague', 'haag'],
+  // République Tchèque
+  ['prague', 'prah'], ['praha', 'prah'],
+  // Russie / Est
+  ['moscou', 'mosc'], ['moscow', 'mosc'], ['moskva', 'mosc'],
+  ['saint petersbourg', 'stpet'], ['saint petersburg', 'stpet'], ['saint-petersbourg', 'stpet'], ['st petersburg', 'stpet'],
+  ['zenit', 'zeni'],
+  // Portugal
+  ['lisbonne', 'lisb'], ['lisbon', 'lisb'], ['lisboa', 'lisb'],
+  ['porto', 'port'], ['fc porto', 'port'],
+  // Grèce
+  ['athenes', 'ath'], ['athens', 'ath'], ['atenas', 'ath'],
+  ['salonique', 'thes'], ['thessalonique', 'thes'], ['thessaloniki', 'thes'],
+  // Turquie
+  ['istanbul', 'ista'], ['constantinople', 'ista'],
+  // Serbie
+  ['belgrade', 'beog'], ['beograd', 'beog'],
+  ['etoile rouge', 'crvz'], ['red star', 'crvz'], ['crvena zvezda', 'crvz'],
+  ['partizan', 'part'],
+  // Ukraine
+  ['kiev', 'kyiv'], ['kiew', 'kyiv'], ['kyiv', 'kyiv'],
+  ['dynamo kiev', 'dynkyiv'], ['dynamo kyiv', 'dynkyiv'],
+  ['shakhtar', 'shak'], ['chakhtar', 'shak'],
+  // Bosnie
+  ['sarajevo', 'sara'],
+  // Angleterre common variants
+  ['man united', 'manu'], ['manchester united', 'manu'], ['man utd', 'manu'],
+  ['man city', 'manc'], ['manchester city', 'manc'],
+  ['spurs', 'tott'], ['tottenham', 'tott'], ['tottenham hotspur', 'tott'],
+  // France (déjà en français partout, peu d'alias)
+  ['psg', 'psg'], ['paris sg', 'psg'], ['paris saint germain', 'psg'], ['paris saint-germain', 'psg'],
+  ['om', 'olymar'], ['olympique marseille', 'olymar'], ['marseille', 'olymar'],
+  ['ol', 'olylyon'], ['olympique lyonnais', 'olylyon'], ['olympique lyon', 'olylyon'], ['lyon', 'olylyon'],
+  ['asse', 'stet'], ['saint etienne', 'stet'], ['as saint etienne', 'stet'], ['saint-etienne', 'stet'],
+  ['stade rennais', 'renn'], ['rennes', 'renn'],
+]);
+
+// Applique les aliases en pré-normalisation. Remplace chaque terme trouvé (word boundary).
+function applyAliases(s) {
+  const lower = ' ' + (s || '').toLowerCase().normalize('NFD').replace(DIACRITICS, '') + ' ';
+  let out = lower;
+  for (const [k, v] of CITY_ALIASES) {
+    // Word boundary : espace avant et après ou début/fin
+    const re = new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, 'g');
+    out = out.replace(re, `$1${v}$2`);
+  }
+  return out.trim();
+}
+
 export function norm(s) {
-  return (s || '').toLowerCase().normalize('NFD').replace(DIACRITICS, '')
+  return applyAliases(s).toLowerCase()
     .replace(/\b(fc|cf|sc|ac|afc|cd|ec|sd|fk|as|us|ss|rfc|bsc|vfb|tsv|sv|rc|ogc|ssc|club|deportivo|universidad|u\.|de|del|do|da|et|les|the|al|el)\b/g, ' ')
     .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
