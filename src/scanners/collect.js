@@ -34,7 +34,7 @@ async function readOddsSafe(book, matches, opts) {
   try {
     if (book.getOddsBatch) {
       const batch = await book.getOddsBatch(matches, opts);
-      for (const [id, odds] of batch) map.set(id, odds || {});
+      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}, opts?.sport));
       return map;
     }
     // BATCH augmenté à 25 pour accelerer scan. Books permissifs (1xbet via CF workers,
@@ -46,13 +46,35 @@ async function readOddsSafe(book, matches, opts) {
         log(`⚠️ ${book.key} getOdds(${m.id}): ${e.message || e}`);
         return {};
       })));
-      chunk.forEach((m, k) => map.set(m.id, results[k] || {}));
+      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {}, opts?.sport)));
     }
     return map;
   } catch (e) {
     log(`⚠️ ${book.key} getOdds batch: ${e.message || e}`);
     return map;
   }
+}
+
+// Supprime les clés d'un autre sport qui polluent les cotes.
+// Parseurs Apollo/BetMomo émettent s1_*/set_* universellement — sans connaître le sport.
+// Sur foot on retire tout ce qui appartient à tennis/volley (per-set).
+// Sur tennis/volley on retire ht_/h2_/cor_/btts_/dc_ (foot-only).
+function sanitizeForSport(odds, sport) {
+  if (!odds || typeof odds !== 'object') return {};
+  const isFoot = sport === 'football' || !sport;
+  const isTennisLike = sport === 'tennis' || sport === 'volleyball';
+  if (!isFoot && !isTennisLike) return odds;
+  const out = {};
+  for (const [k, v] of Object.entries(odds)) {
+    if (isFoot) {
+      if (/^s[1-5]_/.test(k)) continue;
+      if (/^set_/.test(k)) continue;
+    } else if (isTennisLike) {
+      if (/^(ht_|h2_|cor_|btts_|dc_|dnb_)/.test(k)) continue;
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football' } = {}) {
@@ -114,8 +136,10 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         const legBlive = matches[a.leg_b_book]?.live || null;
         all.push({
           ...a, scan_id: scanId, sport, is_live: live,
-          match_label: `${ref.home} vs ${ref.away}`,
-          team_home: ref.home, team_away: ref.away, league: ref.league,
+          match_label: shortMatchLabel(ref.home, ref.away),
+          team_home: shortTeam(ref.home), team_away: shortTeam(ref.away),
+          team_home_full: ref.home, team_away_full: ref.away,
+          league: ref.league,
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
           status: 'live',
@@ -446,6 +470,33 @@ function consolidateLive(matches) {
     period: p?.period || null,
     source: s?.book || m?.book || p?.book || null,
   };
+}
+
+// Raccourcit un nom d'équipe long en gardant lisibilité (pas d'abbrev brutale).
+// Stratégie :
+//   ≤22 chars       → garde tel quel
+//   >22 chars       → supprime mots de bruit (FC, CF, Club, Athletic Club, Football Club, U19, U21)
+//   toujours >22    → garde les 2 premiers mots
+//   dernier recours → tronque à 22 avec ellipse discrete
+export function shortTeam(name) {
+  const s = String(name || '').trim();
+  if (s.length <= 22) return s;
+  let cleaned = s
+    .replace(/\b(?:Football Club|Athletic Club|Sporting Club|Sports? Club|FC|CF|SC|AC|CA|CD|BK|SK|IF|IK)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleaned.length <= 22) return cleaned;
+  const words = cleaned.split(/\s+/);
+  if (words.length >= 2) {
+    const two = `${words[0]} ${words[1]}`;
+    if (two.length <= 22) return two;
+    return words[0].slice(0, 22);
+  }
+  return cleaned.slice(0, 21) + '…';
+}
+
+export function shortMatchLabel(home, away) {
+  return `${shortTeam(home)} vs ${shortTeam(away)}`;
 }
 
 function idFields(matches) {

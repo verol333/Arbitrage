@@ -9,7 +9,7 @@
 // à 15/scan pour tenir ~30/jour = 900/mois.
 const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY || '';
 const cache = new Map();
-const CACHE_TTL_MS = 60 * 60 * 1000;
+const CACHE_TTL_MS = 120 * 60 * 1000; // 2h — reduit conso Scrape.do (~12 fetches/jour list)
 
 export const scrapeDoConfigured = () => Boolean(SCRAPE_DO_KEY);
 
