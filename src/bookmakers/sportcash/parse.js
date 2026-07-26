@@ -74,18 +74,25 @@ export function sportcashFlatOdds(markets) {
     }
   };
 
+  // Double Chance cs=15 (2-way ou 3-way selon match). Audit :
+  // cs=15 "DOUBLE CHANCE" sample sur match test [{"ce":1,"q":110},{"ce":2,"q":540}]
+  // Convention DC standard chez XSport : ce=1=1X, ce=2=12, ce=3=X2.
+  // Safe : mapping applique seulement les ce presents, pas d'erreur si <3 outcomes.
+  const putDcReal = (m) => {
+    for (const e of (m.eqs || [])) {
+      if (!okSel(e)) continue;
+      if (e.ce === 1) odds.dc_1X = price(e);
+      else if (e.ce === 2) odds.dc_12 = price(e);
+      else if (e.ce === 3) odds.dc_X2 = price(e);
+    }
+  };
+
   for (const m of markets) {
     switch (m.cs) {
       // ─── Full time (codes vérifiés via audit prématch) ─────────────────────
       case 3: put1x2(m, ''); break;                          // FINAL 1X2
       case 8: putHcp(m, ''); break;                          // HANDICAP
-      // cs=16 / cs=17 : DOUBLE CHANCE — mapping ce=1/2/3 → 1X/12/X2 INCORRECT
-      // (audit Macva vs Partizan : dc_1X=4.60 alors qu'attendu ~2.84 ; en
-      // realite ce=1/2/3 mappe probablement match_1/X/2 pas dc_1X/12/X2, ou
-      // cs=16 est un autre marche 3-way qu'on prend a tort pour DC).
-      // Desactive tant qu'un audit fiable n'a pas fixe le mapping precis.
-      // case 16: putDC(m, ''); break;
-      // case 17: putDC(m, ''); break;
+      case 15: putDcReal(m); break;                          // DOUBLE CHANCE (vrai code, cs=16/17 etaient des combos)
       case 18: putBtts(m, ''); break;                        // BOTH TEAMS TO SCORE
       case 19: putOddEven(m, ''); break;                     // ODD/EVEN
       case 560: putHighestScoringHalf(m); break;             // HIGHEST SCORING HALF (3-way)
@@ -95,9 +102,16 @@ export function sportcashFlatOdds(markets) {
       // ─── 1st half ──────────────────────────────────────────────────────────
       case 14: put1x2(m, 'ht_'); break;                      // 1ST HALF (1X2)
       case 569: putHcp(m, 'ht_'); break;                     // 1ST HALF HANDICAP
-      // Note : pas de cs distinct 1st-half DC/BTTS/Odd-Even/Total dans l'audit.
-      // À réintégrer si un match les expose (mais probablement combos exclusivement).
+      // ─── 2nd half (nouveaux codes découverts via audit) ───────────────────
+      case 127: put1x2(m, 'h2_'); break;                     // 2ND HALF 1X2
+      case 4009: putHcp(m, 'h2_'); break;                    // 2ND HALF HANDICAP
+      // ─── Corners (nouveaux codes) ─────────────────────────────────────────
+      case 186:                                              // TOTALE CALCI ANGOLO (italien)
+      case 975: putTotal(m, 'cor_'); break;                  // TOTAL CORNERS
+      case 9211: putTotal(m, 'cor_ht_'); break;              // 1ST HALF TOTAL CORNERS
+      case 3237: putOddEven(m, 'cor_'); break;               // ODD/EVEN CORNERS
       // ─── Ignorés (combos exotiques non-comparables 2-way pures) ────────────
+      case 16: case 17:                                       // DC combos anciennement mal mappes
       case 4:                                                 // HALFTIME/FULLTIME (9-way)
       case 5:                                                 // EXACT GOALS
       case 7:                                                 // CORRECT SCORE

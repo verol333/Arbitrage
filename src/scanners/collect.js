@@ -491,6 +491,17 @@ function marketKeyFromOpp(o) {
     const pfx = pfxMap[partWin[1]];
     return { a: `${pfx}match_1`, b: `${pfx}match_2` };
   }
+  // 1MT/2MT 1X2+DC : arbitrage.js emet "1MT 1X2 — Domicile/Extérieur/Nul" quand
+  // un book expose ht_match_* et l'autre ht_dc_*. Sans ce mapping, tous les
+  // candidates Sportcash mi-temps 1X2 rejetes en noKey.
+  const partDc = fam.match(/^(1MT|2MT) 1X2 — (Domicile|Extérieur|Nul)$/);
+  if (partDc) {
+    const pfx = partDc[1] === '1MT' ? 'ht_' : 'h2_';
+    const sk = partDc[2] === 'Domicile' ? ['match_1', 'dc_X2']
+             : partDc[2] === 'Extérieur' ? ['match_2', 'dc_1X']
+             : ['match_X', 'dc_12'];
+    return { a: `${pfx}${sk[0]}`, b: `${pfx}${sk[1]}` };
+  }
   return null;
 }
 
