@@ -45,3 +45,4 @@ jobs:
           HORIZON_HOURS: '72'
           MAX_MATCHES: '600'
           SCAN_SPORTS: 'football'
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}

@@ -62,3 +62,4 @@ jobs:
           MIN_PROFIT_LIVE: ${{ secrets.MIN_PROFIT_LIVE }}
           MAX_MATCHES: '150'
           SCAN_SPORTS: 'football'
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
