@@ -1,90 +1,168 @@
-// Parseur football PremierBet (Editec eventGames → cotes plates standard).
-// Port fidèle de shared/premierbetParse.ts.
+// Parseur PremierBet nouveau backend sports-api.premierbet.com
+// Structure : markets[{id, name, outcomes:[{id, name, value}]}]
+// Market IDs mappés (extraits du dump user) :
+//   3=1X2, 17=DC, 7=BTTS, 29=O/U, 87=Handicap Asiatique, 44=DNB
+//   6=1MT 1X2, 96=2MT 1X2, 44=1MT O/U, 45=2MT O/U
+//   353=Total Home, 352=Total Away
+//   119=1MT BTTS, 120=2MT BTTS
+//   155=1MT DC, 156=2MT DC
 import { isHalfLine } from '../../core/markets.js';
 
-export function premierbetFlatOdds(games) {
-  const odds = {};
-  const byPos = (g) => {
-    const m = {};
-    for (const o of (g.outcomes || [])) {
-      const c = Number(o.outcomeOdds);
-      if (o.status === 100 && Number.isFinite(c) && c > 1) m[o.outcomePosition] = c;
+function num(v) { const n = Number(v); return Number.isFinite(n) && n > 1 ? n : null; }
+function findByName(outcomes, ...names) {
+  const set = new Set(names.map((n) => String(n).toLowerCase()));
+  for (const o of outcomes) if (set.has(String(o.name || '').toLowerCase())) return num(o.value);
+  return null;
+}
+// Some markets encode line in name ("Over 2.5", "Under 2.5", "1 -1", "Home +1.5")
+function extractLine(name) {
+  const m = String(name).match(/[-+]?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+
+// 1X2 / DC / DNB / BTTS style — outcomes fixes par nom
+function put1x2(odds, market, pfx) {
+  const outs = market.outcomes || [];
+  const one = findByName(outs, '1', 'Home', 'Domicile');
+  const draw = findByName(outs, 'X', 'Draw', 'Match nul', 'Nul');
+  const two = findByName(outs, '2', 'Away', 'Extérieur');
+  if (one) odds[`${pfx}match_1`] = one;
+  if (draw) odds[`${pfx}match_X`] = draw;
+  if (two) odds[`${pfx}match_2`] = two;
+}
+function putDC(odds, market, pfx) {
+  const outs = market.outcomes || [];
+  const oneX = findByName(outs, '1X', '1 ou X', 'Home or Draw');
+  const twelve = findByName(outs, '12', '1 ou 2', 'Home or Away');
+  const xTwo = findByName(outs, 'X2', 'X ou 2', 'Draw or Away');
+  if (oneX) odds[`${pfx}dc_1X`] = oneX;
+  if (twelve) odds[`${pfx}dc_12`] = twelve;
+  if (xTwo) odds[`${pfx}dc_X2`] = xTwo;
+}
+function putBtts(odds, market, pfx) {
+  const outs = market.outcomes || [];
+  const yes = findByName(outs, 'Oui', 'Yes');
+  const no = findByName(outs, 'Non', 'No');
+  if (yes) odds[`${pfx}btts_yes`] = yes;
+  if (no) odds[`${pfx}btts_no`] = no;
+}
+function putDnb(odds, market, pfx) {
+  const outs = market.outcomes || [];
+  const one = findByName(outs, '1', 'Home');
+  const two = findByName(outs, '2', 'Away');
+  if (one) odds[`${pfx}dnb_1`] = one;
+  if (two) odds[`${pfx}dnb_2`] = two;
+}
+
+// Total O/U — parse "Plus X.X" / "Moins X.X" ou "Over X.X"/"Under X.X"
+function putTotal(odds, market, pfx) {
+  const outs = market.outcomes || [];
+  let over = null, under = null, line = null;
+  for (const o of outs) {
+    const nm = String(o.name || '');
+    const v = num(o.value);
+    if (v == null) continue;
+    const isOver = /^(plus|over|\+)/i.test(nm);
+    const isUnder = /^(moins|under|-)/i.test(nm);
+    const ln = extractLine(nm);
+    if (ln != null && isHalfLine(ln)) {
+      if (isOver && !over) { over = v; line = ln; }
+      else if (isUnder && !under) { under = v; line = line ?? ln; }
     }
-    return m;
-  };
-  const put1x2 = (g, pfx) => { const p = byPos(g); if (p[0]) odds[`${pfx}match_1`] = p[0]; if (p[1]) odds[`${pfx}match_X`] = p[1]; if (p[2]) odds[`${pfx}match_2`] = p[2]; };
-  const putDC = (g, pfx) => { const p = byPos(g); if (p[0]) odds[`${pfx}dc_1X`] = p[0]; if (p[1]) odds[`${pfx}dc_12`] = p[1]; if (p[2]) odds[`${pfx}dc_X2`] = p[2]; };
-  const putBtts = (g, pfx) => { const p = byPos(g); if (p[0]) odds[`${pfx}btts_yes`] = p[0]; if (p[1]) odds[`${pfx}btts_no`] = p[1]; };
-  const putTotal = (g, pfx) => {
-    const line = Number(g.argument);
-    if (!isHalfLine(line)) return;
-    const p = byPos(g);
-    if (p[0]) odds[`${pfx}under_${line}`] = p[0];
-    if (p[1]) odds[`${pfx}over_${line}`] = p[1];
-  };
-  const putDnb = (g, pfx) => { const p = byPos(g); if (p[0]) odds[`${pfx}dnb_1`] = p[0]; if (p[1]) odds[`${pfx}dnb_2`] = p[1]; };
-  const putAsianHcp = (g) => {
-    const line = Number(g.argument);
-    if (!isHalfLine(line)) return;
-    const p = byPos(g);
-    if (p[0]) odds[`hcp_home_${line}`] = p[0];
-    if (p[1]) odds[`hcp_away_${-line}`] = p[1];
-  };
+  }
+  if (line != null && over && under) {
+    odds[`${pfx}over_${line}`] = over;
+    odds[`${pfx}under_${line}`] = under;
+  }
+}
 
-  const putOddEven = (g, pfx) => { const p = byPos(g); if (p[0]) odds[`${pfx}odd`] = p[0]; if (p[1]) odds[`${pfx}even`] = p[1]; };
-  const putTeamTotal = (g, side, pfx) => {
-    const line = Number(g.argument);
-    if (!isHalfLine(line)) return;
-    const p = byPos(g);
-    if (p[0]) odds[`${pfx}tt_${side}_under_${line}`] = p[0];
-    if (p[1]) odds[`${pfx}tt_${side}_over_${line}`] = p[1];
-  };
-  const putHtHcp = (g, pfx) => {
-    const line = Number(g.argument);
-    if (!isHalfLine(line)) return;
-    const p = byPos(g);
-    if (p[0]) odds[`${pfx}hcp_home_${line}`] = p[0];
-    if (p[1]) odds[`${pfx}hcp_away_${-line}`] = p[1];
-  };
+// Team totals (Home/Away O/U)
+function putTeamTotal(odds, market, side, pfx) {
+  const outs = market.outcomes || [];
+  let over = null, under = null, line = null;
+  for (const o of outs) {
+    const nm = String(o.name || '');
+    const v = num(o.value);
+    if (v == null) continue;
+    const isOver = /(plus|over|\+)/i.test(nm);
+    const isUnder = /(moins|under|-)/i.test(nm);
+    const ln = extractLine(nm);
+    if (ln != null && isHalfLine(ln)) {
+      if (isOver && !over) { over = v; line = ln; }
+      else if (isUnder && !under) { under = v; line = line ?? ln; }
+    }
+  }
+  if (line != null && over && under) {
+    odds[`${pfx}tt_${side}_over_${line}`] = over;
+    odds[`${pfx}tt_${side}_under_${line}`] = under;
+  }
+}
 
-  for (const g of games) {
-    switch (Number(g.gameType)) {
-      case 1: put1x2(g, ''); break;
-      case 4: putDC(g, ''); break;
-      case 98: putBtts(g, ''); break;
-      case 8: putTotal(g, 'match_'); break;
-      case -458: putAsianHcp(g); break;
-      case 93: putDnb(g, ''); break;
-      case 18: putOddEven(g, ''); break;
-      case -459: putTeamTotal(g, 'home', ''); break;
-      case -460: putTeamTotal(g, 'away', ''); break;
-      // 1st half
-      case 3: put1x2(g, 'ht_'); break;
-      case 27: putDC(g, 'ht_'); break;
-      case 120: putBtts(g, 'ht_'); break;
-      case -284: putTotal(g, 'ht_'); break;
-      case -237: putDnb(g, 'ht_'); break;
-      case -461: putHtHcp(g, 'ht_'); break;
-      case -285: putOddEven(g, 'ht_'); break;
-      case -462: putTeamTotal(g, 'home', 'ht_'); break;
-      case -463: putTeamTotal(g, 'away', 'ht_'); break;
-      // 2nd half
-      case 111: put1x2(g, 'h2_'); break;
-      case -188: putDC(g, 'h2_'); break;
-      case 121: putBtts(g, 'h2_'); break;
-      case -286: putTotal(g, 'h2_'); break;
-      case -283: putDnb(g, 'h2_'); break;
-      case -464: putHtHcp(g, 'h2_'); break;
-      case -287: putOddEven(g, 'h2_'); break;
-      case -465: putTeamTotal(g, 'home', 'h2_'); break;
-      case -466: putTeamTotal(g, 'away', 'h2_'); break;
-      // Corners
-      case -232: putTotal(g, 'cor_'); break;
-      case -233: putHtHcp(g, 'cor_'); break;
-      case -234: putOddEven(g, 'cor_'); break;
-      case -467: putTotal(g, 'cor_ht_'); break;
+// Handicap Asiatique — outcomes "1 -1.5" / "2 +1.5"
+function putAsianHcp(odds, market) {
+  const outs = market.outcomes || [];
+  let home = null, away = null, line = null;
+  for (const o of outs) {
+    const nm = String(o.name || '');
+    const v = num(o.value);
+    if (v == null) continue;
+    const ln = extractLine(nm);
+    if (ln == null || !isHalfLine(Math.abs(ln))) continue;
+    if (/^1\b/.test(nm) && !home) { home = v; line = ln; }
+    else if (/^2\b/.test(nm) && !away) { away = v; }
+  }
+  if (line != null && home && away) {
+    odds[`hcp_home_${line}`] = home;
+    odds[`hcp_away_${-line}`] = away;
+  }
+}
+
+// Odd/Even
+function putOddEven(odds, market, pfx) {
+  const outs = market.outcomes || [];
+  const oddV = findByName(outs, 'Impair', 'Odd');
+  const evenV = findByName(outs, 'Pair', 'Even');
+  if (oddV) odds[`${pfx}odd`] = oddV;
+  if (evenV) odds[`${pfx}even`] = evenV;
+}
+
+export function premierbetFlatOdds(markets) {
+  const odds = {};
+  for (const m of (markets || [])) {
+    if (!m || !Array.isArray(m.outcomes)) continue;
+    const id = Number(m.id);
+    switch (id) {
+      // MATCH FULL TIME
+      case 3: put1x2(odds, m, ''); break;
+      case 17: putDC(odds, m, ''); break;
+      case 7: putBtts(odds, m, ''); break;
+      case 29: putTotal(odds, m, 'match_'); break;
+      case 87: putAsianHcp(odds, m); break;
+      case 44: putDnb(odds, m, ''); break;
+      case 353: putTeamTotal(odds, m, 'home', ''); break;
+      case 352: putTeamTotal(odds, m, 'away', ''); break;
+      case 386: putOddEven(odds, m, ''); break;
+
+      // 1ère MI-TEMPS
+      case 6: put1x2(odds, m, 'ht_'); break;
+      case 155: putDC(odds, m, 'ht_'); break;
+      case 119: putBtts(odds, m, 'ht_'); break;
+      case 45: putTotal(odds, m, 'ht_'); break;
+
+      // 2ème MI-TEMPS
+      case 96: put1x2(odds, m, 'h2_'); break;
+      case 156: putDC(odds, m, 'h2_'); break;
+      case 120: putBtts(odds, m, 'h2_'); break;
+      case 97: putTotal(odds, m, 'h2_'); break;
+
       default: break;
     }
+    // Fallback par name pour couvrir les markets non-mappés (evolution API)
+    const nameLower = String(m.name || '').toLowerCase();
+    if (id !== 3 && /^1x2\b|^résultat.*match/.test(nameLower)) put1x2(odds, m, '');
+    else if (id !== 17 && /double chance|chance double/.test(nameLower) && !nameLower.includes('mi-temps') && !nameLower.includes('half')) putDC(odds, m, '');
+    else if (id !== 7 && /les deux .* marquent|both teams to score|btts/.test(nameLower) && !nameLower.includes('mi-temps')) putBtts(odds, m, '');
+    else if (id !== 29 && /^total.*buts|over.?under/.test(nameLower) && !nameLower.includes('mi-temps') && !nameLower.includes('half') && !nameLower.includes('équipe')) putTotal(odds, m, 'match_');
   }
   return odds;
 }
