@@ -1,7 +1,7 @@
 // PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
-// L'API mobile est publique et non protegee par Cloudflare, mais peut geo-block
-// selon l'IP source. Chemin : direct → si echec, fallback via proxyFetchJson
-// (cfworker / residential / jina — selon PROXY_MODE).
+// L'API mobile est publique et non protegee par Cloudflare. Chemin :
+//   1) fetch direct avec UA browser + logging status/body
+//   2) fallback proxyFetchJson si direct KO
 import { proxyFetchJson } from '../../net/fetcher.js';
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
 
@@ -31,24 +31,54 @@ function qs(extra = {}) {
   return p.toString();
 }
 
-// Directement fetch avec proxy pour eviter geo-block depuis les runners CI
-// (US/EU). proxyFetchJson choisit automatiquement le fournisseur configure
-// (PROXY_MODE : cfworker | residential | jina).
+// Fetch direct avec status/body logging (pour comprendre si geo-block, WAF,
+// rate-limit, ou reponse vide). Fallback proxy si status = 0/403/451/curl-fail.
+async function directGet(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 25_000);
+  try {
+    const res = await fetch(url, { headers: HEADERS, signal: ctrl.signal });
+    const body = await res.text();
+    return { status: res.status, body, ct: res.headers.get('content-type') || '' };
+  } catch (e) {
+    return { status: 0, body: '', ct: '', err: e.message || String(e) };
+  } finally { clearTimeout(t); }
+}
+
 async function fetchWithLog(url, { noCache = false } = {}) {
+  const short = url.replace(BASE, '');
+  // 1) Direct
   const t0 = Date.now();
+  const r = await directGet(url);
+  const dur = Date.now() - t0;
+  if (r.status === 200 && /json/i.test(r.ct)) {
+    try {
+      const j = JSON.parse(r.body);
+      const keys = Object.keys(j).slice(0, 4).join(',');
+      console.log(`[premierbet] direct OK ${short} (${dur}ms) keys=[${keys}]`);
+      return j;
+    } catch (e) {
+      console.log(`[premierbet] direct 200 non-JSON ${short} (${dur}ms) ct=${r.ct}`);
+    }
+  } else {
+    const snippet = (r.body || r.err || '').slice(0, 140).replace(/\s+/g, ' ');
+    console.log(`[premierbet] direct KO ${short} (${dur}ms) status=${r.status} ct=${r.ct} body=${snippet}`);
+  }
+  // 2) Fallback proxy (utilise PROXY_MODE — si secret casse, echec silencieux mais logge)
+  const t1 = Date.now();
   const j = await proxyFetchJson(url, {
     timeoutMs: 25_000,
     setHeaders: HEADERS,
     extraHeaders: HEADERS,
     noCache,
   });
-  const dur = Date.now() - t0;
+  const dur2 = Date.now() - t1;
   if (!j) {
-    console.log(`[premierbet] fetch KO url=${url.replace(BASE, '')} (${dur}ms)`);
+    console.log(`[premierbet] proxy fallback KO ${short} (${dur2}ms)`);
     return null;
   }
   const keys = Object.keys(j).slice(0, 4).join(',');
-  console.log(`[premierbet] fetch OK url=${url.replace(BASE, '')} (${dur}ms) keys=[${keys}]`);
+  console.log(`[premierbet] proxy fallback OK ${short} (${dur2}ms) keys=[${keys}]`);
   return j;
 }
 

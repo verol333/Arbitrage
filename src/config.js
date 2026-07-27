@@ -3,16 +3,19 @@ const num = (v, def) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 };
+// Secrets GitHub Actions colles depuis un fichier arrivent parfois avec un
+// trailing newline — casse toute concatenation d'URL. Trim systematique.
+const str = (v) => String(v || '').trim();
 
 export const config = {
   port: num(process.env.PORT, 10000),
   apiSecretKey: process.env.API_SECRET_KEY || '',
 
   proxy: {
-    mode: (process.env.PROXY_MODE || 'jina').toLowerCase(),
-    jinaKey: process.env.JINA_API_KEY || '',
-    residentialUrl: process.env.RESIDENTIAL_PROXY_URL || '',
-    cfworkerUrl: process.env.CF_WORKER_PROXY_URL || '',
+    mode: str(process.env.PROXY_MODE || 'jina').toLowerCase(),
+    jinaKey: str(process.env.JINA_API_KEY),
+    residentialUrl: str(process.env.RESIDENTIAL_PROXY_URL),
+    cfworkerUrl: str(process.env.CF_WORKER_PROXY_URL),
     cacheTtlMs: num(process.env.PROXY_CACHE_TTL_MS, 75_000),
     maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 6),
   },
