@@ -1,11 +1,26 @@
 // PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
 // L'API mobile marche depuis une IP residentielle (le script Python de
 // l'utilisateur passe sans probleme), mais Cloudflare bloque les IPs
-// datacenter GitHub Actions. Solution : routage force via le CF Worker
-// gratuit de l'utilisateur (CF_WORKER_PROXY_URL), qui fait le fetch
-// depuis l'infra Cloudflare (100k req/jour gratuit — largement assez).
-import { proxyFetchJson } from '../../net/fetcher.js';
+// datacenter GitHub Actions. Solution : routage via les CF Workers de
+// l'utilisateur (memes URLs que 1xBet — deja deployes, gratuits, 100k
+// req/jour chacun). Round-robin pour repartir la charge.
+import { fetchJson } from '../../net/fetcher.js';
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
+
+// Deux CF Workers deployes sur les comptes CF de l'utilisateur (memes que
+// ceux utilises par le connecteur 1xBet). Chacun accepte /?url=<encoded>
+// et proxy le GET depuis l'infra Cloudflare → IP acceptee par le WAF
+// PremierBet. Duplication volontaire : chaque dossier bookmaker doit
+// rester autonome (regle du repo).
+const CF_WORKERS = [
+  'https://hidden-pine-7436.veolalex3.workers.dev',
+  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
+];
+let cfCursor = 0;
+function orderedWorkers() {
+  const start = cfCursor++ % CF_WORKERS.length;
+  return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
+}
 
 const BASE = 'https://sports-api.premierbet.com/cg/v1';
 const COMMON_PARAMS = {
@@ -24,23 +39,24 @@ function qs(extra = {}) {
   return p.toString();
 }
 
-// Fetch via CF Worker (mode force independant de PROXY_MODE global).
-// Log OK/KO explicite pour diagnostiquer la reponse depuis les logs CI.
-async function fetchWithLog(url, { noCache = false } = {}) {
+// Fetch via CF Workers en round-robin. On essaye chaque worker jusqu'a
+// obtenir une reponse. Log OK/KO explicite pour diag.
+async function fetchWithLog(url) {
   const short = url.replace(BASE, '');
   const t0 = Date.now();
-  const j = await proxyFetchJson(url, {
-    mode: 'cfworker',
-    timeoutMs: 25_000,
-    noCache,
-  });
-  const dur = Date.now() - t0;
-  if (j) {
-    const keys = Object.keys(j).slice(0, 4).join(',');
-    console.log(`[premierbet] cfworker OK ${short} (${dur}ms) keys=[${keys}]`);
-    return j;
+  for (const w of orderedWorkers()) {
+    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, {
+      timeoutMs: 20_000,
+    });
+    if (j) {
+      const dur = Date.now() - t0;
+      const keys = Object.keys(j).slice(0, 4).join(',');
+      const workerHost = w.replace(/^https?:\/\//, '').slice(0, 20);
+      console.log(`[premierbet] OK ${short} via ${workerHost} (${dur}ms) keys=[${keys}]`);
+      return j;
+    }
   }
-  console.log(`[premierbet] cfworker KO ${short} (${dur}ms)`);
+  console.log(`[premierbet] KO ${short} (${Date.now() - t0}ms) — tous workers KO`);
   return null;
 }
 
