@@ -180,21 +180,46 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
     if (n === 'yes' || n === 'y') set('h2_btts_yes', c);
     else if (n === 'no' || n === 'n') set('h2_btts_no', c);
   }
-  // Corners total.
-  const cor = findMarket(bts, 'Corners Under/Over') || findMarket(bts, 'Corners U/O');
+  // Corners total. YellowBet en live/prematch : "Total corners Under/Over"
+  const cor = findMarket(bts, 'Total corners Under/Over')
+    || findMarket(bts, 'Corners Under/Over') || findMarket(bts, 'Corners U/O');
   if (cor) for (const o of cor.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
     if (n === 'over') set(`cor_over_${l}`, c);
     else if (n === 'under') set(`cor_under_${l}`, c);
   }
-  // Corners HT total.
-  const corHt = findMarket(bts, 'HT Corners U/O') || findMarket(bts, 'HT Corners Under/Over');
+  // Corners HT total. YellowBet : "1st Half : Corners Under/Over"
+  const corHt = findMarket(bts, '1st Half : Corners Under/Over')
+    || findMarket(bts, 'HT Corners U/O') || findMarket(bts, 'HT Corners Under/Over');
   if (corHt) for (const o of corHt.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
     if (n === 'over') set(`cor_ht_over_${l}`, c);
     else if (n === 'under') set(`cor_ht_under_${l}`, c);
+  }
+  // Corners handicap. YellowBet : "Corner handicap" (outcomes 1/2 + line dans o.l).
+  const corHcp = findMarket(bts, 'Corner handicap') || findMarket(bts, 'Corners Handicap');
+  if (corHcp) for (const o of corHcp.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1' || n === 'home') set(`cor_hcp_home_${l}`, c);
+    else if (n === '2' || n === 'away') set(`cor_hcp_away_${-l}`, c);
+  }
+  // Corners handicap HT. YellowBet : "1st Half : Corner Handicap"
+  const corHtHcp = findMarket(bts, '1st Half : Corner Handicap');
+  if (corHtHcp) for (const o of corHtHcp.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1' || n === 'home') set(`cor_ht_hcp_home_${l}`, c);
+    else if (n === '2' || n === 'away') set(`cor_ht_hcp_away_${-l}`, c);
+  }
+  // Corner Odd/Even. YellowBet : "Corner Odd/Even" et "1st Half : Corner Odd/Even"
+  const corOe = findMarket(bts, 'Corner Odd/Even') || findMarket(bts, 'Corners Odd/Even');
+  if (corOe) for (const o of corOe.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'odd') set('cor_odd', c);
+    else if (n === 'even') set('cor_even', c);
   }
   // HT/H2 Odd/Even. YellowBet : "1st Half : Odd/Even Goals" et "2nd Half : Odd / Even".
   const htoe = findMarket(bts, '1st Half : Odd/Even Goals') || findMarket(bts, 'HT Odd/Even goals');
