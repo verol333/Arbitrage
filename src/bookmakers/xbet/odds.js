@@ -98,15 +98,22 @@ export async function getOdds(matchId, { live = false } = {}) {
     for (const sg of SG) {
       const pn = (sg.PN || '').toLowerCase(), tg = (sg.TG || '').toLowerCase(), sid = sg.I;
       if (!sid) continue;
+      // Skip les subgames par equipe / par joueur pour eviter que leurs
+      // groupes (Total home/away corners, Total joueur X corners) polluent
+      // le prefixe cor_ generique du match (produisait Corners Total 12%+
+      // fantomes en 07/27).
+      if (/team|joueur|player|equipe|domicile|exterieur/i.test(pn + ' ' + tg)) continue;
       let prefix = null;
       if (sg.P === 1 && /mi-temps|half/.test(pn) && !tg) prefix = 'ht_';
       else if (sg.P === 2 && /mi-temps|half/.test(pn) && !tg) prefix = 'h2_';
-      else if (/corner/.test(tg) && !sg.P) prefix = 'cor_';
+      // Corners : accepter uniquement les subgames dont le TG est PUREMENT
+      // "corners" (pas "corners home team", pas "corners 1st half").
+      else if (/^corners?$/i.test(tg) && !sg.P) prefix = 'cor_';
       if (prefix) wanted.push({ sid, prefix });
     }
-    // Cap etendu 4 → 10 pour ne pas manquer les subgames HT/H2/corners qui
-    // arrivent en position tardive quand le match a beaucoup de marches (100+).
-    const subs = await Promise.all(wanted.slice(0, 10).map(async ({ sid, prefix }) => {
+    // Cap : 6 subgames max (HT, H2, corners, plus une petite marge). Etait
+    // etendu a 10 recemment mais a introduit du bruit corners → retour 6.
+    const subs = await Promise.all(wanted.slice(0, 6).map(async ({ sid, prefix }) => {
       const sd = await viaWorker(`${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`);
       return { prefix, GE: sd?.Value?.GE || null };
     }));

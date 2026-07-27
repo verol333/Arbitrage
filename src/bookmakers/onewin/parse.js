@@ -188,20 +188,30 @@ export function winFlatOdds(groups, names) {
         if (n === 'even' || /even|pair/.test(n)) odds.even = Number(o.cf);
       }
     }
+    // Helper strict yes/no : n'accepte QUE outcome_type explicite (yes/no/w1/w2)
+    // ou nom exactement "yes"/"no". Retourne null si ambigu (evite les
+    // inversions yes/no observees le 27/07 sur ht_btts_no=3.75 fantome).
+    const yesNo = (o) => {
+      const oc = String(o.outcome || '').toLowerCase().trim();
+      const n = String(o.name || '').toLowerCase().trim();
+      if (oc === 'yes' || oc === 'w1' || n === 'yes') return 'yes';
+      if (oc === 'no' || oc === 'w2' || n === 'no') return 'no';
+      return null;
+    };
     // 1st half BTTS (avait ete oublie — 2nd half seul present).
     if (/1st half.*both teams|both teams.*1st half/i.test(low)) {
       for (const o of list) {
-        const n = (o.name || '').toLowerCase();
-        if (n === 'yes' || n.includes('yes')) odds.ht_btts_yes = Number(o.cf);
-        if (n === 'no' || n.includes('no')) odds.ht_btts_no = Number(o.cf);
+        const yn = yesNo(o);
+        if (yn === 'yes') odds.ht_btts_yes = Number(o.cf);
+        else if (yn === 'no') odds.ht_btts_no = Number(o.cf);
       }
     }
     // 2nd half BTTS.
     if (/2nd half.*both teams|both teams.*2nd half/i.test(low)) {
       for (const o of list) {
-        const n = (o.name || '').toLowerCase();
-        if (n === 'yes' || n.includes('yes')) odds.h2_btts_yes = Number(o.cf);
-        if (n === 'no' || n.includes('no')) odds.h2_btts_no = Number(o.cf);
+        const yn = yesNo(o);
+        if (yn === 'yes') odds.h2_btts_yes = Number(o.cf);
+        else if (yn === 'no') odds.h2_btts_no = Number(o.cf);
       }
     }
     // 2nd half double chance.
