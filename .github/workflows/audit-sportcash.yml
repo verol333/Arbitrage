@@ -48,3 +48,7 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: node scripts/audit-cross-live-match.js
+      - name: Audit LIVE full YB + BM
+        working-directory: .
+        continue-on-error: true
+        run: node scripts/audit-live-full.js
