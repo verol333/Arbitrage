@@ -1,8 +1,8 @@
 // PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
-// L'API mobile est publique et non protegee par Cloudflare. Chemin :
-//   1) fetch direct avec UA browser + logging status/body
-//   2) fallback proxyFetchJson si direct KO
-import { proxyFetchJson } from '../../net/fetcher.js';
+// Port fidele du script Python de l'utilisateur : requests.Session() sur
+// /cg/v1 avec {country=CG, group=g5, platform=mobile, locale=fr}, sans
+// header custom. Marche depuis son PC.
+import { fetchJson } from '../../net/fetcher.js';
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
 
 const BASE = 'https://sports-api.premierbet.com/cg/v1';
@@ -12,32 +12,23 @@ const COMMON_PARAMS = {
   platform: 'mobile',
   locale: 'fr',
 };
-// UA browser standard — l'API mobile accepte les fetch anonymes mais on evite
-// tout UA custom qui pourrait declencher un rejet cote WAF.
-const HEADERS = {
-  accept: 'application/json, text/plain, */*',
-  'accept-language': 'fr-FR,fr;q=0.9',
-  'user-agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-  origin: 'https://sports.premierbet.com',
-  referer: 'https://sports.premierbet.com/',
-};
 
 const semaphore = createSemaphore(6);
-const cacheLong = createTtlCache(60 * 1000);   // listing 60s
-const cacheShort = createTtlCache(15 * 1000);  // détail event 15s
+const cacheLong = createTtlCache(60 * 1000);   // listings 60s
+const cacheShort = createTtlCache(15 * 1000);  // detail event 15s
 
 function qs(extra = {}) {
   const p = new URLSearchParams({ ...COMMON_PARAMS, ...extra });
   return p.toString();
 }
 
-// Fetch direct avec status/body logging (pour comprendre si geo-block, WAF,
-// rate-limit, ou reponse vide). Fallback proxy si status = 0/403/451/curl-fail.
+// Fetch direct comme le script Python (aucun header, comportement natif).
+// Log status/body si != 200 pour diagnostiquer geo-block vs autre chose.
 async function directGet(url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 25_000);
   try {
-    const res = await fetch(url, { headers: HEADERS, signal: ctrl.signal });
+    const res = await fetch(url, { signal: ctrl.signal });
     const body = await res.text();
     return { status: res.status, body, ct: res.headers.get('content-type') || '' };
   } catch (e) {
@@ -45,41 +36,25 @@ async function directGet(url) {
   } finally { clearTimeout(t); }
 }
 
-async function fetchWithLog(url, { noCache = false } = {}) {
+async function fetchWithLog(url) {
   const short = url.replace(BASE, '');
-  // 1) Direct
   const t0 = Date.now();
   const r = await directGet(url);
   const dur = Date.now() - t0;
-  if (r.status === 200 && /json/i.test(r.ct)) {
+  if (r.status === 200) {
     try {
       const j = JSON.parse(r.body);
       const keys = Object.keys(j).slice(0, 4).join(',');
-      console.log(`[premierbet] direct OK ${short} (${dur}ms) keys=[${keys}]`);
+      console.log(`[premierbet] OK ${short} (${dur}ms) keys=[${keys}]`);
       return j;
-    } catch (e) {
-      console.log(`[premierbet] direct 200 non-JSON ${short} (${dur}ms) ct=${r.ct}`);
+    } catch {
+      console.log(`[premierbet] 200 non-JSON ${short} (${dur}ms) ct=${r.ct}`);
+      return null;
     }
-  } else {
-    const snippet = (r.body || r.err || '').slice(0, 140).replace(/\s+/g, ' ');
-    console.log(`[premierbet] direct KO ${short} (${dur}ms) status=${r.status} ct=${r.ct} body=${snippet}`);
   }
-  // 2) Fallback proxy (utilise PROXY_MODE — si secret casse, echec silencieux mais logge)
-  const t1 = Date.now();
-  const j = await proxyFetchJson(url, {
-    timeoutMs: 25_000,
-    setHeaders: HEADERS,
-    extraHeaders: HEADERS,
-    noCache,
-  });
-  const dur2 = Date.now() - t1;
-  if (!j) {
-    console.log(`[premierbet] proxy fallback KO ${short} (${dur2}ms)`);
-    return null;
-  }
-  const keys = Object.keys(j).slice(0, 4).join(',');
-  console.log(`[premierbet] proxy fallback OK ${short} (${dur2}ms) keys=[${keys}]`);
-  return j;
+  const snippet = (r.body || r.err || '').slice(0, 120).replace(/\s+/g, ' ');
+  console.log(`[premierbet] KO ${short} (${dur}ms) status=${r.status} ct=${r.ct} body=${snippet}`);
+  return null;
 }
 
 // GET JSON avec cache. `long=true` → TTL 60s (listings), sinon 15s (détails).
@@ -91,7 +66,7 @@ export async function pbGet(path, extra = {}, { long = false, noCache = false } 
     if (hit !== undefined) return hit;
   }
   return semaphore(async () => {
-    const j = await fetchWithLog(url, { noCache });
+    const j = await fetchWithLog(url);
     if (j && !noCache) cache.set(url, j);
     return j;
   });
@@ -108,7 +83,6 @@ export function extractEvents(result) {
   for (const category of data.categories || []) {
     for (const competition of category.competitions || []) {
       for (const ev of competition.events || []) {
-        // Injecte compet/catégorie si l'event ne les porte pas déjà (utile pour la ligue).
         if (!ev.competitionName && competition.name) ev.competitionName = competition.name;
         if (!ev.categoryName && category.name) ev.categoryName = category.name;
         out.push(ev);
@@ -139,9 +113,7 @@ export function extractMarkets(event) {
   return out;
 }
 
-// Cherche la ligne (handicap/total) sur un marché ou un outcome. L'API mobile
-// PremierBet la porte parfois sur le market (baseValue/argument), parfois seulement
-// dans le nom de l'outcome ("Plus 2.5", "1 (+1.5)").
+// Cherche la ligne (handicap/total) sur un marché ou un outcome.
 export function extractLine(market, outcome = null) {
   const candidates = [
     market?.baseValue, market?.base, market?.argument, market?.line,
@@ -152,7 +124,6 @@ export function extractLine(market, outcome = null) {
     const n = Number(c);
     if (Number.isFinite(n)) return n;
   }
-  // Fallback : parse depuis les noms (marché ou outcome).
   const src = `${market?.name || ''} ${outcome?.name || ''}`;
   const m = src.match(/[-+]?\d+(?:[.,]\d+)?/);
   return m ? Number(m[0].replace(',', '.')) : NaN;
@@ -161,8 +132,7 @@ export function extractLine(market, outcome = null) {
 export const isOutright = (s) => /outright|winner|to win the|top scorer|qualif|advance|group [a-z] winner|vainqueur du tournoi/i.test(s || '');
 export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b/i.test(s || '');
 
-// eventNames = [home, away]. On garde la logique simple mais on tolère les
-// séparateurs classiques si un jour l'API renvoie un string composite.
+// eventNames = [home, away] dans l'API mobile.
 export function splitTeams(event) {
   const arr = event?.eventNames;
   if (Array.isArray(arr) && arr.length >= 2) {
