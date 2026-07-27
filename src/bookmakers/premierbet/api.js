@@ -1,26 +1,14 @@
 // PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
-// L'API mobile marche depuis une IP residentielle (le script Python de
-// l'utilisateur passe sans probleme), mais Cloudflare bloque les IPs
-// datacenter GitHub Actions. Solution : routage via les CF Workers de
-// l'utilisateur (memes URLs que 1xBet — deja deployes, gratuits, 100k
-// req/jour chacun). Round-robin pour repartir la charge.
-import { fetchJson } from '../../net/fetcher.js';
+// Client HTTP direct qui reproduit fidelement le script Python de reference
+// (requests.Session sur /cg/v1 avec country=CG&group=g5&platform=mobile&locale=fr).
+// Aucun scraping, aucun navigateur, aucun cookie/token — endpoints publics
+// decouverts par sniffing de l'app mobile Android.
+//
+// Logging structure sans donnee sensible :
+//   [premierbet] GET /path?params status=N size=Nkb dur=Nms keys=[a,b,c]
+// Permet de comparer environnement local (200 OK) vs prod GH Actions
+// (403 CF observe — bloque au niveau IP source).
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
-
-// Deux CF Workers deployes sur les comptes CF de l'utilisateur (memes que
-// ceux utilises par le connecteur 1xBet). Chacun accepte /?url=<encoded>
-// et proxy le GET depuis l'infra Cloudflare → IP acceptee par le WAF
-// PremierBet. Duplication volontaire : chaque dossier bookmaker doit
-// rester autonome (regle du repo).
-const CF_WORKERS = [
-  'https://hidden-pine-7436.veolalex3.workers.dev',
-  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
-];
-let cfCursor = 0;
-function orderedWorkers() {
-  const start = cfCursor++ % CF_WORKERS.length;
-  return CF_WORKERS.map((_, i) => CF_WORKERS[(start + i) % CF_WORKERS.length]);
-}
 
 const BASE = 'https://sports-api.premierbet.com/cg/v1';
 const COMMON_PARAMS = {
@@ -29,6 +17,9 @@ const COMMON_PARAMS = {
   platform: 'mobile',
   locale: 'fr',
 };
+// Le Python de reference n'envoie AUCUN header custom ; on garde le meme
+// comportement (Node fetch envoie ses defauts : accept-encoding, host).
+const HEADERS = { accept: 'application/json' };
 
 const semaphore = createSemaphore(6);
 const cacheLong = createTtlCache(60 * 1000);   // listings 60s
@@ -39,62 +30,56 @@ function qs(extra = {}) {
   return p.toString();
 }
 
-// Fetch via CF Workers en round-robin avec log detaille du status HTTP
-// retourne. Si tous KO, on voit le vrai code (403/502/timeout) pour diag.
-async function tryWorker(worker, target) {
-  const url = `${worker}/?url=${encodeURIComponent(target)}`;
+// Log structure : URL, methode, status, taille (octets), duree (ms),
+// cles JSON de premier niveau. Aucun body, header, ou identifiant.
+function logResult({ path, params, status, size, dur, jsonKeys, snippet }) {
+  const keys = jsonKeys ? `keys=[${jsonKeys.slice(0, 4).join(',')}]` : '';
+  const err = snippet ? `body=${snippet.slice(0, 80).replace(/\s+/g, ' ')}` : '';
+  console.log(`[premierbet] GET ${path}?${params} status=${status} size=${size}b dur=${dur}ms ${keys}${err}`);
+}
+
+async function httpGet(url) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 20_000);
+  const t = setTimeout(() => ctrl.abort(), 25_000);
+  const t0 = Date.now();
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
+    const res = await fetch(url, { headers: HEADERS, signal: ctrl.signal });
     const body = await res.text();
-    return { status: res.status, body, ct: res.headers.get('content-type') || '' };
+    return { status: res.status, body, dur: Date.now() - t0 };
   } catch (e) {
-    return { status: 0, body: '', ct: '', err: e.message || String(e) };
+    return { status: 0, body: '', dur: Date.now() - t0, err: e.message || String(e) };
   } finally { clearTimeout(t); }
 }
 
-async function fetchWithLog(url) {
-  const short = url.replace(BASE, '');
-  const t0 = Date.now();
-  const attempts = [];
-  for (const w of orderedWorkers()) {
-    const r = await tryWorker(w, url);
-    const workerHost = w.replace(/^https?:\/\//, '').split('.')[0];
-    if (r.status === 200) {
-      try {
-        const j = JSON.parse(r.body);
-        const keys = Object.keys(j).slice(0, 4).join(',');
-        console.log(`[premierbet] OK ${short} via ${workerHost} (${Date.now() - t0}ms) keys=[${keys}]`);
-        return j;
-      } catch {
-        attempts.push(`${workerHost}=200 non-JSON`);
-        continue;
-      }
-    }
-    const snippet = (r.body || r.err || '').slice(0, 80).replace(/\s+/g, ' ');
-    attempts.push(`${workerHost}=${r.status}${snippet ? ' body=' + snippet : ''}`);
-  }
-  console.log(`[premierbet] KO ${short} (${Date.now() - t0}ms) — ${attempts.join(' | ')}`);
-  return null;
-}
-
-// GET JSON avec cache. `long=true` → TTL 60s (listings), sinon 15s (détails).
+// GET JSON avec cache. `long=true` → TTL 60s (listings), sinon 15s (details).
 export async function pbGet(path, extra = {}, { long = false, noCache = false } = {}) {
-  const url = `${BASE}${path}?${qs(extra)}`;
+  const params = qs(extra);
+  const url = `${BASE}${path}?${params}`;
   const cache = long ? cacheLong : cacheShort;
   if (!noCache) {
     const hit = cache.get(url);
     if (hit !== undefined) return hit;
   }
   return semaphore(async () => {
-    const j = await fetchWithLog(url, { noCache });
-    if (j && !noCache) cache.set(url, j);
-    return j;
+    const r = await httpGet(url);
+    const size = r.body.length;
+    if (r.status === 200) {
+      try {
+        const j = JSON.parse(r.body);
+        logResult({ path, params, status: 200, size, dur: r.dur, jsonKeys: Object.keys(j) });
+        if (!noCache) cache.set(url, j);
+        return j;
+      } catch {
+        logResult({ path, params, status: 200, size, dur: r.dur, snippet: r.body });
+        return null;
+      }
+    }
+    logResult({ path, params, status: r.status || '0', size, dur: r.dur, snippet: r.body || r.err });
+    return null;
   });
 }
 
-// Formats de réponse :
+// Formats de reponse :
 //   featured/live/highlights → data = array plat d'events
 //   upcoming                 → data.categories[].competitions[].events[]
 export function extractEvents(result) {
@@ -114,8 +99,8 @@ export function extractEvents(result) {
   return out;
 }
 
-// Dédoublonne les marchés d'un event : un market peut apparaître dans plusieurs
-// marketGroups (Principal, Buts, etc.). On garde la première occurrence par id.
+// Dedoublonne les marches d'un event : un market peut apparaitre dans plusieurs
+// marketGroups. On garde la premiere occurrence par id.
 export function extractMarkets(event) {
   const raw = [];
   if (Array.isArray(event?.markets)) raw.push(...event.markets);
@@ -135,7 +120,7 @@ export function extractMarkets(event) {
   return out;
 }
 
-// Cherche la ligne (handicap/total) sur un marché ou un outcome.
+// Cherche la ligne (handicap/total) sur un marche ou un outcome.
 export function extractLine(market, outcome = null) {
   const candidates = [
     market?.baseValue, market?.base, market?.argument, market?.line,
