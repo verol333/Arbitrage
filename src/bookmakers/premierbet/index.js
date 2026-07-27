@@ -1,14 +1,17 @@
 import { listMatches } from './list.js';
 import { getOdds } from './odds.js';
 
+// PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1). Publique et
+// rapide → prématch + live supportés sans budget proxy externe.
 export default {
   key: 'premierbet',
   label: 'PremierBet',
-  supports: { prematch: true, live: false }, // live = trop cher (budget Scrape.do 1000/mois)
+  supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (sport !== 'football') return [];
-    // Horizon étendu à 168h (7j) pour capturer plus d'events depuis bestsellers.
-    return listMatches({ live, horizonHours: 168 });
+    return listMatches({ live, horizonHours });
   },
-  async getOdds(match) { return getOdds(match); },
+  async getOdds(match, { live = false } = {}) {
+    return getOdds(match, { live });
+  },
 };

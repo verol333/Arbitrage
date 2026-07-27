@@ -1,35 +1,91 @@
-import { pget, isVirtual, isOutright, splitTeams } from './api.js';
+// Liste des matchs foot PremierBet Congo (prématch + live).
+//   Prématch : /events/upcoming?date=YYYY-MM-DD sur J+0…J+ceil(horizon/24).
+//   Live     : /events/live?sportId=1&zoomSportId=61 (liste plate).
+// La dédoublonnage se fait par eventId ; les virtuels/outrights sont écartés.
+import { pbGet, extractEvents, splitTeams, leagueOf, isVirtual, isOutright } from './api.js';
 
-// eventType=1 pour foot (validé via probe : "Inter Milan - AC Monza" a eventType=1).
-// treatAsSport=1 est aussi un indicateur foot fiable.
-const FOOT_EVENT_TYPES = new Set([1]);
+const SPORT_ID_FOOT = '1';
+// Congo-Brazzaville = UTC+1 fixe.
+const TZ_OFFSET_MS = 60 * 60 * 1000;
 
-export async function listMatches({ live = false, maxMatches = 300, horizonHours = 72 } = {}) {
-  if (live) return [];
+function dayKey(ms) {
+  const d = new Date(ms + TZ_OFFSET_MS);
+  return d.toISOString().slice(0, 10);
+}
+
+function liveMeta(ev) {
+  const sb = ev?.scoreboard || {};
+  const home = sb.homeScore ?? sb.home ?? null;
+  const away = sb.awayScore ?? sb.away ?? null;
+  const score = (home != null && away != null) ? `${home}-${away}` : (sb.score || null);
+  const minute = sb.minute ?? sb.currentMinute ?? sb.gameMinute ?? null;
+  const period = sb.periodName || sb.period || ev?.state || null;
+  return { score, minute: minute != null ? Number(minute) : null, period };
+}
+
+function buildMatch(ev, { withLive = false } = {}) {
+  const teams = splitTeams(ev);
+  if (!teams) return null;
+  const league = leagueOf(ev);
+  const label = `${teams.home} ${teams.away} ${league}`;
+  if (isVirtual(label) || isOutright(ev?.eventName || ev?.name || '')) return null;
+  const start = Number(ev?.startTime) || null;
+  return {
+    id: String(ev.id),
+    home: teams.home,
+    away: teams.away,
+    league,
+    start,
+    __raw: { markets: ev?.markets || null, marketGroups: ev?.marketGroups || null },
+    ...(withLive ? { live: liveMeta(ev) } : {}),
+  };
+}
+
+export async function listPrematch({ horizonHours = 72 } = {}) {
   const nowMs = Date.now();
   const horizonMs = nowMs + horizonHours * 3600 * 1000;
-  const best = (await pget('market/events/bestsellers')) || [];
+  const days = Math.max(1, Math.ceil(horizonHours / 24) + 1);
+  const dates = [];
+  for (let i = 0; i < days; i++) dates.push(dayKey(nowMs + i * 24 * 3600 * 1000));
+
+  const seen = new Set();
   const out = [];
-  let seenFoot = 0, filteredOutright = 0, filteredVirtual = 0, filteredHorizon = 0, noTeams = 0;
-  for (const e of best) {
-    // Filtre foot par eventType (fiable) OU treatAsSport (fallback)
-    const isFoot = FOOT_EVENT_TYPES.has(e.eventType) || FOOT_EVENT_TYPES.has(e.treatAsSport);
-    if (!isFoot) continue;
-    seenFoot++;
-    if (isOutright(e.eventName)) { filteredOutright++; continue; }
-    const teams = splitTeams(e.eventName);
-    if (!teams) { noTeams++; continue; }
-    const leagueName = e.category3Name || e.category2Name || e.category1Name || '';
-    if (isVirtual(`${teams.home} ${teams.away} ${leagueName}`)) { filteredVirtual++; continue; }
-    if (!e.eventStart || e.eventStart <= nowMs + 2 * 60 * 1000 || e.eventStart > horizonMs) { filteredHorizon++; continue; }
-    const markets = Array.isArray(e.eventGames) ? e.eventGames : [];
-    out.push({
-      id: String(e.eventId), home: teams.home, away: teams.away,
-      league: leagueName, start: e.eventStart,
-      __raw: { markets },
-    });
-    if (out.length >= maxMatches) break;
+  let filteredHorizon = 0, filteredDuplicate = 0, filteredVirtual = 0;
+
+  const pages = await Promise.all(dates.map((date) => pbGet(
+    '/events/upcoming', { timeOffset: '-60', sportId: SPORT_ID_FOOT, date }, { long: true },
+  )));
+  // On enrichit aussi via highlights (matchs "à la une" pas toujours dans upcoming).
+  pages.push(await pbGet('/events/highlights', { sportId: SPORT_ID_FOOT }, { long: true }));
+
+  for (const page of pages) {
+    for (const ev of extractEvents(page)) {
+      if (seen.has(ev.id)) { filteredDuplicate++; continue; }
+      const m = buildMatch(ev);
+      if (!m) { filteredVirtual++; continue; }
+      if (!m.start || m.start <= nowMs + 60 * 1000 || m.start > horizonMs) { filteredHorizon++; continue; }
+      seen.add(ev.id);
+      out.push(m);
+    }
   }
-  console.log(`[premierbet] bestsellers=${best.length} foot=${seenFoot} kept=${out.length} filtered=(outright:${filteredOutright} virtual:${filteredVirtual} horizon:${filteredHorizon} noTeams:${noTeams})`);
+  console.log(`[premierbet] prematch kept=${out.length} dedup=${filteredDuplicate} horizon=${filteredHorizon} virtual/outright=${filteredVirtual}`);
   return out;
+}
+
+export async function listLive() {
+  const page = await pbGet('/events/live', {
+    sportId: SPORT_ID_FOOT, zoomSportId: '61',
+  }, { long: false });
+  const events = extractEvents(page);
+  const out = [];
+  for (const ev of events) {
+    const m = buildMatch(ev, { withLive: true });
+    if (m) out.push(m);
+  }
+  console.log(`[premierbet] live kept=${out.length}`);
+  return out;
+}
+
+export async function listMatches({ live = false, horizonHours = 72 } = {}) {
+  return live ? listLive() : listPrematch({ horizonHours });
 }
