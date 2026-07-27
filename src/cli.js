@@ -26,6 +26,10 @@ async function notifyWebhook(result, { live = false, sport = 'football' } = {}) 
       const first = result.opportunities[0];
       log(`  → live sample: score=${first.live_score ?? 'null'} min=${first.live_minute ?? 'null'} period=${first.live_period ?? 'null'} src=${first.live_score_source ?? 'null'} match=${first.match_label}`);
     }
+    // Log detaille de chaque opp pour diag (surtout traquer les surebets fantomes)
+    for (const o of result.opportunities) {
+      log(`  📊 ${o.profit_pct}% | ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${o.leg_a_odd} vs ${o.leg_b_book}:${o.leg_b_label}=${o.leg_b_odd} | ${o.match_label}`);
+    }
     await sendWebhook({
       type: 'arbitrage_alert',
       scan_type: live ? 'live' : 'prematch',
