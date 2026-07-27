@@ -1,7 +1,8 @@
 // PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
-// L'API mobile publique n'est PAS protégée par Cloudflare : fetch direct suffit.
-// (L'ancienne intégration passait par Scrape.do sur premierbetzone.com/rest.)
-import { fetchJson } from '../../net/fetcher.js';
+// L'API mobile est publique et non protegee par Cloudflare, mais peut geo-block
+// selon l'IP source. Chemin : direct → si echec, fallback via proxyFetchJson
+// (cfworker / residential / jina — selon PROXY_MODE).
+import { proxyFetchJson } from '../../net/fetcher.js';
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
 
 const BASE = 'https://sports-api.premierbet.com/cg/v1';
@@ -11,8 +12,16 @@ const COMMON_PARAMS = {
   platform: 'mobile',
   locale: 'fr',
 };
+// UA browser standard — l'API mobile accepte les fetch anonymes mais on evite
+// tout UA custom qui pourrait declencher un rejet cote WAF.
+const HEADERS = {
+  accept: 'application/json, text/plain, */*',
+  'accept-language': 'fr-FR,fr;q=0.9',
+  'user-agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  origin: 'https://sports.premierbet.com',
+  referer: 'https://sports.premierbet.com/',
+};
 
-// Concurrence bornée pour ne pas se faire rate-limit + cache court (odds live).
 const semaphore = createSemaphore(6);
 const cacheLong = createTtlCache(60 * 1000);   // listing 60s
 const cacheShort = createTtlCache(15 * 1000);  // détail event 15s
@@ -20,6 +29,27 @@ const cacheShort = createTtlCache(15 * 1000);  // détail event 15s
 function qs(extra = {}) {
   const p = new URLSearchParams({ ...COMMON_PARAMS, ...extra });
   return p.toString();
+}
+
+// Directement fetch avec proxy pour eviter geo-block depuis les runners CI
+// (US/EU). proxyFetchJson choisit automatiquement le fournisseur configure
+// (PROXY_MODE : cfworker | residential | jina).
+async function fetchWithLog(url, { noCache = false } = {}) {
+  const t0 = Date.now();
+  const j = await proxyFetchJson(url, {
+    timeoutMs: 25_000,
+    setHeaders: HEADERS,
+    extraHeaders: HEADERS,
+    noCache,
+  });
+  const dur = Date.now() - t0;
+  if (!j) {
+    console.log(`[premierbet] fetch KO url=${url.replace(BASE, '')} (${dur}ms)`);
+    return null;
+  }
+  const keys = Object.keys(j).slice(0, 4).join(',');
+  console.log(`[premierbet] fetch OK url=${url.replace(BASE, '')} (${dur}ms) keys=[${keys}]`);
+  return j;
 }
 
 // GET JSON avec cache. `long=true` → TTL 60s (listings), sinon 15s (détails).
@@ -31,14 +61,7 @@ export async function pbGet(path, extra = {}, { long = false, noCache = false } 
     if (hit !== undefined) return hit;
   }
   return semaphore(async () => {
-    const j = await fetchJson(url, {
-      timeoutMs: 20_000,
-      headers: {
-        accept: 'application/json, text/plain, */*',
-        'user-agent': 'PremierBet/Mobile',
-      },
-    });
-    // L'API renvoie `{ data: ... }` — on garde tel quel, le parseur s'en occupe.
+    const j = await fetchWithLog(url, { noCache });
     if (j && !noCache) cache.set(url, j);
     return j;
   });
