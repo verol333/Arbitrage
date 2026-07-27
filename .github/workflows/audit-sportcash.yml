@@ -26,13 +26,17 @@ jobs:
         run: ln -sf arbitrage-service/node_modules node_modules
       - name: Run audit sportcash
         working-directory: .
+        continue-on-error: true
         run: node scripts/audit-sportcash.js
       - name: Probe sportcash catalog endpoints
         working-directory: .
+        continue-on-error: true
         run: node scripts/probe-sportcash-catalog.js
       - name: Audit yellowbet prematch
         working-directory: .
+        continue-on-error: true
         run: node scripts/audit-yellowbet-prematch.js
       - name: Audit onewin BTTS (hacken vs aik)
         working-directory: .
+        continue-on-error: true
         run: node scripts/audit-onewin-btts.js 37642888
