@@ -10,10 +10,20 @@ const findMarket = (bts, name) => {
   return bts.find((m) => String(m?.n || '').trim().toLowerCase() === target) || null;
 };
 
-export function yellowbetFlatOdds(bts) {
+// Normalise un nom d'equipe pour matching : minuscules + suppression accents
+// + suppression tokens communs (fc/sc/…), suffit ici pour comparer au libelle
+// de marche YellowBet ("Kuopion Palloseura total" contient toujours le nom).
+function normTeam(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
   const odds = {};
   if (!Array.isArray(bts)) return odds;
   const set = (k, c) => { if (c && (!odds[k] || c > odds[k])) odds[k] = c; };
+  const homeN = normTeam(home);
+  const awayN = normTeam(away);
 
   const ft = findMarket(bts, 'FT 1X2');
   if (ft) for (const o of ft.odds || []) {
@@ -104,16 +114,27 @@ export function yellowbetFlatOdds(bts) {
       else if (n === '2' || n === 'away') set(`${pfx}${keyBase}_away_${-l}`, c);
     }
   }
-  // Individual totals.
+  // Individual totals. YellowBet expose ces marches sous 2 formats :
+  //   1) Generique : "Team Total", "Home Total", "Away Total"
+  //   2) Avec le nom de l'equipe : "Kuopion Palloseura total",
+  //      "1st half - Sabah Masazir total", "2nd half - {team} total"
+  // Le format (2) domine — on identifie le side via le nom de l'equipe passe
+  // au parseur depuis index.js (match.home / match.away).
   for (const mkt of bts) {
-    const mn = (mkt?.n || '').toLowerCase();
-    if (!/team.*total|individual.*total|home.*total|away.*total/i.test(mn)) continue;
-    const isHome = /home|team\s*1|1st team/i.test(mn);
-    const isAway = /away|team\s*2|2nd team/i.test(mn);
-    if (!isHome && !isAway) continue;
-    const side = isHome ? 'home' : 'away';
-    const isHt = /\bht\b|1st half/i.test(mn);
-    const isH2 = /\b2nd half\b/i.test(mn);
+    const raw = String(mkt?.n || '');
+    const mn = normTeam(raw);
+    if (!/total/.test(mn)) continue;
+    // Skip marches non-individual : "total goals", "2nd half : totals", etc.
+    if (/goals?( ranges?)?$|^total goals?$|total goals rangess?|halftime.fulltime|multigoal|exact/i.test(mn)) continue;
+    if (/^total goals$|^under.over$|^ht u.o$|^2nd half\s*:\s*totals?$/i.test(mn)) continue;
+    let side = null;
+    if (/\bhome\b|\bteam\s*1\b|\b1st team\b/.test(mn)) side = 'home';
+    else if (/\baway\b|\bteam\s*2\b|\b2nd team\b/.test(mn)) side = 'away';
+    else if (homeN && mn.includes(homeN)) side = 'home';
+    else if (awayN && mn.includes(awayN)) side = 'away';
+    if (!side) continue;
+    const isHt = /\bht\b|1st half/.test(mn);
+    const isH2 = /\b2nd half\b/.test(mn);
     const pfx = isHt ? 'ht_' : isH2 ? 'h2_' : '';
     for (const o of mkt.odds || []) {
       const l = lineOf(o); if (!isHalfLine(l)) continue;
@@ -122,35 +143,42 @@ export function yellowbetFlatOdds(bts) {
       else if (n === 'under') set(`${pfx}tt_${side}_under_${l}`, c);
     }
   }
-  // HT Double Chance.
-  const htdc = findMarket(bts, 'HT Double Chance');
+  // HT Double Chance. YellowBet expose sous "1st Half Double Chance".
+  const htdc = findMarket(bts, '1st Half Double Chance') || findMarket(bts, 'HT Double Chance');
   if (htdc) for (const o of htdc.odds || []) {
     const n = lbl(o).replace(/\s/g, ''), c = priceOf(o);
     if (n === '1x') set('ht_dc_1X', c);
     else if (n === '12') set('ht_dc_12', c);
     else if (n === 'x2') set('ht_dc_X2', c);
   }
-  // HT BTTS.
-  const htgg = findMarket(bts, 'HT GG/NG');
+  // HT BTTS. YellowBet : "1st Half : Goal Goal / No Goal" (y/n en shortcuts).
+  const htgg = findMarket(bts, '1st Half : Goal Goal / No Goal') || findMarket(bts, 'HT GG/NG');
   if (htgg) for (const o of htgg.odds || []) {
     const n = lbl(o), c = priceOf(o);
-    if (n === 'yes') set('ht_btts_yes', c);
-    else if (n === 'no') set('ht_btts_no', c);
+    if (n === 'yes' || n === 'y') set('ht_btts_yes', c);
+    else if (n === 'no' || n === 'n') set('ht_btts_no', c);
   }
-  // 2nd Half Double Chance.
-  const h2dc = findMarket(bts, '2nd Half : Double Chance');
+  // HT DNB. YellowBet : "1st Half Draw no bet".
+  const htdnb = findMarket(bts, '1st Half Draw no bet') || findMarket(bts, 'HT Draw No Bet');
+  if (htdnb) for (const o of htdnb.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1') set('ht_dnb_1', c);
+    else if (n === '2') set('ht_dnb_2', c);
+  }
+  // 2nd Half Double Chance. YellowBet : "2nd half : Double Chance".
+  const h2dc = findMarket(bts, '2nd half : Double Chance') || findMarket(bts, '2nd Half : Double Chance');
   if (h2dc) for (const o of h2dc.odds || []) {
     const n = lbl(o).replace(/\s/g, ''), c = priceOf(o);
     if (n === '1x') set('h2_dc_1X', c);
     else if (n === '12') set('h2_dc_12', c);
     else if (n === 'x2') set('h2_dc_X2', c);
   }
-  // 2nd Half BTTS.
-  const h2gg = findMarket(bts, '2nd Half : GG/NG');
+  // 2nd Half BTTS. YellowBet : "2nd Half : Both Teams to score".
+  const h2gg = findMarket(bts, '2nd Half : Both Teams to score') || findMarket(bts, '2nd Half : GG/NG');
   if (h2gg) for (const o of h2gg.odds || []) {
     const n = lbl(o), c = priceOf(o);
-    if (n === 'yes') set('h2_btts_yes', c);
-    else if (n === 'no') set('h2_btts_no', c);
+    if (n === 'yes' || n === 'y') set('h2_btts_yes', c);
+    else if (n === 'no' || n === 'n') set('h2_btts_no', c);
   }
   // Corners total.
   const cor = findMarket(bts, 'Corners Under/Over') || findMarket(bts, 'Corners U/O');
@@ -168,18 +196,36 @@ export function yellowbetFlatOdds(bts) {
     if (n === 'over') set(`cor_ht_over_${l}`, c);
     else if (n === 'under') set(`cor_ht_under_${l}`, c);
   }
-  // HT/H2 Odd/Even.
-  const htoe = findMarket(bts, 'HT Odd/Even goals');
+  // HT/H2 Odd/Even. YellowBet : "1st Half : Odd/Even Goals" et "2nd Half : Odd / Even".
+  const htoe = findMarket(bts, '1st Half : Odd/Even Goals') || findMarket(bts, 'HT Odd/Even goals');
   if (htoe) for (const o of htoe.odds || []) {
     const n = lbl(o), c = priceOf(o);
     if (n === 'odd') set('ht_odd', c);
     else if (n === 'even') set('ht_even', c);
   }
-  const h2oe = findMarket(bts, '2nd Half : Odd/Even goals');
+  const h2oe = findMarket(bts, '2nd Half : Odd / Even')
+    || findMarket(bts, '2nd Half : Odd/Even goals')
+    || findMarket(bts, '2nd Half : Odd/Even Goals');
   if (h2oe) for (const o of h2oe.odds || []) {
     const n = lbl(o), c = priceOf(o);
     if (n === 'odd') set('h2_odd', c);
     else if (n === 'even') set('h2_even', c);
+  }
+  // Highest Scoring Half (3-way : 1st/2nd/Equal).
+  const hsh = findMarket(bts, 'Highest Scoring Half');
+  if (hsh) for (const o of hsh.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (/^1(st|)$|^first$/.test(n)) set('half_most_ht', c);
+    else if (/^2(nd|)$|^second$/.test(n)) set('half_most_h2', c);
+    else if (/^equal$|^tie$|^x$|^draw$/.test(n)) set('half_most_equal', c);
+  }
+  // First team to score (3-way : Home/Away/None).
+  const fts = findMarket(bts, 'First Goal') || findMarket(bts, 'First Team To Score');
+  if (fts) for (const o of fts.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1' || n === 'home' || n === 'h') set('fts_home', c);
+    else if (n === '2' || n === 'away' || n === 'a') set('fts_away', c);
+    else if (/no goal|none|no|neither/.test(n)) set('fts_none', c);
   }
 
   // Garde-fou totaux : marge aberrante (< 0.9) → paire supprimée.

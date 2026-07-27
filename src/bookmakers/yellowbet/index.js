@@ -12,6 +12,9 @@ export default {
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
   async getOdds(match) {
-    return yellowbetFlatOdds(match.__raw?.bts || []);
+    // On passe home/away au parseur : YellowBet expose les team totals avec
+    // le NOM DE L'EQUIPE dans le libelle du marche (ex: "Kuopion Palloseura
+    // total"). Sans ces noms, le regex ne peut pas les identifier.
+    return yellowbetFlatOdds(match.__raw?.bts || [], { home: match.home, away: match.away });
   },
 };

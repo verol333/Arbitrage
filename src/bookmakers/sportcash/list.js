@@ -13,10 +13,28 @@ async function listSportEvents(live) {
   if (wc?.bws) for (const bw of wc.bws) for (const av of (bw.avs || [])) evs.push(av);
   // getWidgetCentrali.tms : top matches promus.
   if (wc?.tms) for (const tm of wc.tms) evs.push(tm);
-  // getWidgetCentrali.lms : catalogue par sport ID (1=Foot, 2=Bk, etc.) → .avs
+  // getWidgetCentrali.lms : catalogue par sport ID (1=Foot, 2=Bk, etc.).
+  // Chaque bucket peut exposer plusieurs listes : avs (all), tms (top),
+  // hmv (highlights), hgevs (highest odds). On collecte tout — l'audit
+  // probe-sportcash-catalog a montre 20 events Football alors qu'on n'en
+  // extrayait que 3-7 avec .avs seul.
   if (wc?.lms) for (const sportKey of Object.keys(wc.lms)) {
     const bucket = wc.lms[sportKey];
-    if (bucket?.avs) for (const av of bucket.avs) evs.push(av);
+    for (const listKey of ['avs', 'tms', 'hmv', 'hgevs', 'lvs', 'evs']) {
+      const list = bucket?.[listKey];
+      if (Array.isArray(list)) for (const e of list) evs.push(e);
+    }
+  }
+  // getWidgetCentrali.hgevs / mpe : highest odds events / main promoted events.
+  for (const topKey of ['hgevs', 'mpe']) {
+    const list = wc?.[topKey];
+    if (Array.isArray(list)) for (const e of list) evs.push(e);
+    else if (list && typeof list === 'object') {
+      for (const bucket of Object.values(list)) {
+        if (Array.isArray(bucket)) for (const e of bucket) evs.push(e);
+        else if (Array.isArray(bucket?.avs)) for (const e of bucket.avs) evs.push(e);
+      }
+    }
   }
   // getHomeLandingData.tms / lvs : top et live.
   if (hl?.tms) for (const tm of hl.tms) evs.push(tm);
