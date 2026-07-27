@@ -65,11 +65,15 @@ export async function proxyFetchText(url, opts = {}) {
     const hit = cache.get(cacheKey);
     if (hit !== undefined) return hit;
   }
+  // Force un mode specifique via opts.mode (contourne PROXY_MODE global) —
+  // utile pour un bookmaker qui doit passer par cfworker meme si le mode
+  // global est autre chose.
+  const mode = (opts.mode || config.proxy.mode).toLowerCase();
   return semaphore(async () => {
     let res;
-    if (config.proxy.mode === 'cfworker') res = await cfworkerProxy(url, opts);
-    else if (config.proxy.mode === 'residential') res = await residentialProxy(url, opts);
-    else if (config.proxy.mode === 'headless') {
+    if (mode === 'cfworker') res = await cfworkerProxy(url, opts);
+    else if (mode === 'residential') res = await residentialProxy(url, opts);
+    else if (mode === 'headless') {
       const { headlessFetch } = await import('./headless.js');
       res = await headlessFetch(url, opts);
     } else res = await jinaProxy(url, opts);

@@ -1,8 +1,10 @@
 // PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
-// Port fidele du script Python de l'utilisateur : requests.Session() sur
-// /cg/v1 avec {country=CG, group=g5, platform=mobile, locale=fr}, sans
-// header custom. Marche depuis son PC.
-import { fetchJson } from '../../net/fetcher.js';
+// L'API mobile marche depuis une IP residentielle (le script Python de
+// l'utilisateur passe sans probleme), mais Cloudflare bloque les IPs
+// datacenter GitHub Actions. Solution : routage force via le CF Worker
+// gratuit de l'utilisateur (CF_WORKER_PROXY_URL), qui fait le fetch
+// depuis l'infra Cloudflare (100k req/jour gratuit — largement assez).
+import { proxyFetchJson } from '../../net/fetcher.js';
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
 
 const BASE = 'https://sports-api.premierbet.com/cg/v1';
@@ -22,38 +24,23 @@ function qs(extra = {}) {
   return p.toString();
 }
 
-// Fetch direct comme le script Python (aucun header, comportement natif).
-// Log status/body si != 200 pour diagnostiquer geo-block vs autre chose.
-async function directGet(url) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 25_000);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    const body = await res.text();
-    return { status: res.status, body, ct: res.headers.get('content-type') || '' };
-  } catch (e) {
-    return { status: 0, body: '', ct: '', err: e.message || String(e) };
-  } finally { clearTimeout(t); }
-}
-
-async function fetchWithLog(url) {
+// Fetch via CF Worker (mode force independant de PROXY_MODE global).
+// Log OK/KO explicite pour diagnostiquer la reponse depuis les logs CI.
+async function fetchWithLog(url, { noCache = false } = {}) {
   const short = url.replace(BASE, '');
   const t0 = Date.now();
-  const r = await directGet(url);
+  const j = await proxyFetchJson(url, {
+    mode: 'cfworker',
+    timeoutMs: 25_000,
+    noCache,
+  });
   const dur = Date.now() - t0;
-  if (r.status === 200) {
-    try {
-      const j = JSON.parse(r.body);
-      const keys = Object.keys(j).slice(0, 4).join(',');
-      console.log(`[premierbet] OK ${short} (${dur}ms) keys=[${keys}]`);
-      return j;
-    } catch {
-      console.log(`[premierbet] 200 non-JSON ${short} (${dur}ms) ct=${r.ct}`);
-      return null;
-    }
+  if (j) {
+    const keys = Object.keys(j).slice(0, 4).join(',');
+    console.log(`[premierbet] cfworker OK ${short} (${dur}ms) keys=[${keys}]`);
+    return j;
   }
-  const snippet = (r.body || r.err || '').slice(0, 120).replace(/\s+/g, ' ');
-  console.log(`[premierbet] KO ${short} (${dur}ms) status=${r.status} ct=${r.ct} body=${snippet}`);
+  console.log(`[premierbet] cfworker KO ${short} (${dur}ms)`);
   return null;
 }
 
@@ -66,7 +53,7 @@ export async function pbGet(path, extra = {}, { long = false, noCache = false } 
     if (hit !== undefined) return hit;
   }
   return semaphore(async () => {
-    const j = await fetchWithLog(url);
+    const j = await fetchWithLog(url, { noCache });
     if (j && !noCache) cache.set(url, j);
     return j;
   });
