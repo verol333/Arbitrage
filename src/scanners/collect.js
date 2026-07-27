@@ -281,10 +281,12 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     if (invSum >= 1) continue;
     const profit = (1 - invSum) * 100;
     if (profit < minProfit) continue;
-    // Pas de cap max côté confirmation : les vraies grosses arbs (10-50%)
-    // doivent passer. Les fantômes doivent être éliminés en amont via un
-    // parsing correct, pas par un seuil arbitraire.
-    if (profit > config.scan.maxProfitSanity) continue;
+    // Cap sanity : au-dela de N% (defaut 20), presque toujours un parseur
+    // bugue. On LOG les rejects pour identifier le marche / mapping fautif.
+    if (profit > config.scan.maxProfitSanity) {
+      log(`  ⚠️ REJET sanity ${profit.toFixed(1)}% | ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${freshA} vs ${o.leg_b_book}:${o.leg_b_label}=${freshB} | ${o.team_home} vs ${o.team_away}`);
+      continue;
+    }
     // Cote fraîche → on met à jour l'opp avec la valeur re-lue et on ajoute les timestamps.
     const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;
     const stakeA = (1 / freshA) / invSum * 100;
