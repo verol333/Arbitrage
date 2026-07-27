@@ -40,3 +40,7 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: node scripts/audit-onewin-btts.js 37642888
+      - name: Audit yellowbet LIVE
+        working-directory: .
+        continue-on-error: true
+        run: node scripts/audit-yellowbet-live.js
