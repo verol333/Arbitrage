@@ -106,18 +106,20 @@ export function betmomoFlatOdds(markets) {
           else if (ty === 'away' || ty === 'w2' || ty === '2') odds.h2_dnb_2 = price(e);
         } break;
       }
-      case 'OddEven': {
+      case 'OddEven':
+      case 'EvenOddTotal': {                                   // BetMomo LIVE: "Total Goals Odd/Even"
         for (const e of list) {
           const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
-          if (/odd|impair/.test(ty)) odds.odd = price(e);
-          else if (/even|pair/.test(ty)) odds.even = price(e);
+          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
+          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
         } break;
       }
-      case 'HalfTimeOddEven': {
+      case 'HalfTimeOddEven':
+      case 'HalfEvenOddTotal': {                               // BetMomo LIVE HT variant
         for (const e of list) {
           const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
-          if (/odd|impair/.test(ty)) odds.ht_odd = price(e);
-          else if (/even|pair/.test(ty)) odds.ht_even = price(e);
+          if (/odd|impair/.test(ty)) odds.ht_odd = odds.ht_odd || price(e);
+          else if (/even|pair/.test(ty)) odds.ht_even = odds.ht_even || price(e);
         } break;
       }
       case 'SecondHalfOddEven': {
