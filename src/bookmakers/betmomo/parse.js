@@ -153,11 +153,12 @@ export function betmomoFlatOdds(markets) {
       }
       case 'CornersOverUnder': putTotal('cor_'); break;
       case 'CornersAsianHandicap': putHcp('cor_'); break;
-      case 'CornersOddEven': {
+      case 'CornersOddEven':
+      case 'CornerOddEven': {                                  // BetMomo LIVE variant
         for (const e of list) {
           const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
-          if (/odd|impair/.test(ty)) odds.cor_odd = price(e);
-          else if (/even|pair/.test(ty)) odds.cor_even = price(e);
+          if (/odd|impair/.test(ty)) odds.cor_odd = odds.cor_odd || price(e);
+          else if (/even|pair/.test(ty)) odds.cor_even = odds.cor_even || price(e);
         } break;
       }
       case 'HalfTimeCornersOverUnder': putTotal('cor_ht_'); break;
