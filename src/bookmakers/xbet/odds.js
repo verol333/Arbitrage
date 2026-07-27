@@ -104,7 +104,9 @@ export async function getOdds(matchId, { live = false } = {}) {
       else if (/corner/.test(tg) && !sg.P) prefix = 'cor_';
       if (prefix) wanted.push({ sid, prefix });
     }
-    const subs = await Promise.all(wanted.slice(0, 4).map(async ({ sid, prefix }) => {
+    // Cap etendu 4 → 10 pour ne pas manquer les subgames HT/H2/corners qui
+    // arrivent en position tardive quand le match a beaucoup de marches (100+).
+    const subs = await Promise.all(wanted.slice(0, 10).map(async ({ sid, prefix }) => {
       const sd = await viaWorker(`${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`);
       return { prefix, GE: sd?.Value?.GE || null };
     }));

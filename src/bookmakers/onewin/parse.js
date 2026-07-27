@@ -188,6 +188,14 @@ export function winFlatOdds(groups, names) {
         if (n === 'even' || /even|pair/.test(n)) odds.even = Number(o.cf);
       }
     }
+    // 1st half BTTS (avait ete oublie — 2nd half seul present).
+    if (/1st half.*both teams|both teams.*1st half/i.test(low)) {
+      for (const o of list) {
+        const n = (o.name || '').toLowerCase();
+        if (n === 'yes' || n.includes('yes')) odds.ht_btts_yes = Number(o.cf);
+        if (n === 'no' || n.includes('no')) odds.ht_btts_no = Number(o.cf);
+      }
+    }
     // 2nd half BTTS.
     if (/2nd half.*both teams|both teams.*2nd half/i.test(low)) {
       for (const o of list) {
