@@ -104,6 +104,15 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
     log(`📅 kickoff distribution — ${dist.join(' | ')}`);
   }
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
+  // Diagnostic : combien de matchs chaque bookmaker retrouve dans entries
+  // (permet d'identifier si un book est systematiquement isole car mauvais
+  // matching noms d'equipes — ex Apollo souvent seul le 27/07).
+  if (!live && entries.length) {
+    const perBook = {};
+    for (const b of usable) perBook[b.key] = 0;
+    for (const e of entries) for (const k of Object.keys(e.matches)) perBook[k] = (perBook[k] || 0) + 1;
+    log(`🔗 couverture matching — ${Object.entries(perBook).map(([k, n]) => `${k}:${n}`).join(' | ')}`);
+  }
   const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
   // Tri chronologique simple : matchs les plus proches en premier.
   // (Un tri par couverture excluait les matchs 1win/sportcash du top.)
