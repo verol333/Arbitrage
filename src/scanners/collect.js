@@ -8,6 +8,20 @@ import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
 
+// Fin de journee civile Congo-Brazzaville (UTC+1 fixe, pas d'heure d'ete)
+// exprimee en timestamp UTC. Utilise comme cutoff prematch pour ne renvoyer
+// que les matchs du JOUR (pas ceux de demain).
+const CONGO_OFFSET_MS = 60 * 60 * 1000;
+export function endOfCongoDay(nowMs) {
+  const congoNow = new Date(nowMs + CONGO_OFFSET_MS);
+  const nextMidnightCongo = Date.UTC(
+    congoNow.getUTCFullYear(),
+    congoNow.getUTCMonth(),
+    congoNow.getUTCDate() + 1,
+  );
+  return nextMidnightCongo - CONGO_OFFSET_MS;
+}
+
 function pickComparator(sport) {
   switch (sport) {
     case 'tennis': return compareTwoBooksTennis;
@@ -65,7 +79,9 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   for (const { book, matches } of listed) catalogs.set(book.key, matches);
   log(`📋 ${sport.toUpperCase()} ${live ? 'LIVE' : 'PRÉMATCH'} — ${[...catalogs].map(([k, v]) => `${k}:${v.length}`).join(' | ')}`);
 
-  const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
+  // Jour civil Congo (UTC+1) : on ne remonte que les matchs qui se jouent
+  // aujourd'hui — pas ceux de demain. Cutoff = minuit Congo prochain.
+  const horizonMs = live ? null : endOfCongoDay(Date.now());
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
   const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
   // Tri chronologique simple : matchs les plus proches en premier.
