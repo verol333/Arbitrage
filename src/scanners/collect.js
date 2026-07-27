@@ -281,11 +281,12 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     if (invSum >= 1) continue;
     const profit = (1 - invSum) * 100;
     if (profit < minProfit) continue;
-    // Cap sanity : au-dela de N% (defaut 20), presque toujours un parseur
-    // bugue. On LOG les rejects pour identifier le marche / mapping fautif.
-    if (profit > config.scan.maxProfitSanity) {
-      log(`  ⚠️ REJET sanity ${profit.toFixed(1)}% | ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${freshA} vs ${o.leg_b_book}:${o.leg_b_label}=${freshB} | ${o.team_home} vs ${o.team_away}`);
-      continue;
+    if (profit > config.scan.maxProfitSanity) continue;
+    // Log SPECIAL pour les opps a haut profit (>10%) : quasi-certainement un
+    // mapping bogue quelque part, on veut identifier le marche/bookmaker
+    // fautif pour corriger le parseur (pas cacher via un plafond).
+    if (profit > 10) {
+      log(`  🔍 HIGH ${profit.toFixed(1)}% | ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${freshA} vs ${o.leg_b_book}:${o.leg_b_label}=${freshB} | ${o.team_home} vs ${o.team_away} | ids=${idA}/${idB}`);
     }
     // Cote fraîche → on met à jour l'opp avec la valeur re-lue et on ajoute les timestamps.
     const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;

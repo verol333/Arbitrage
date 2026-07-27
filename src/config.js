@@ -28,11 +28,12 @@ export const config = {
   scan: {
     minProfitPrematch: num(process.env.MIN_PROFIT_PREMATCH, 0.5),
     minProfitLive: num(process.env.MIN_PROFIT_LIVE, 0.5),
-    // Cap de sanity : au-dela de 20%, quasi-toujours un parseur bugue ou
-    // une cote gelee/perimee. Un vrai surebet 20%+ est inedit sur un match
-    // pre-match d'un bookmaker africain. Rejeter proteges les alertes de
-    // pollution (audit 27/07 a montre 40%+ = tous faux positifs YellowBet HT).
-    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 20),
+    // Aucun cap : on remonte TOUTES les opps detectees, y compris 40%+ qui
+    // sont soit reelles (mapping parfait) soit faussees (parseur bogue). Un
+    // plafond arbitraire masquerait les vraies grosses arbs ET rendrait
+    // invisible le mapping bogue qu'il faut corriger. Le bon traitement =
+    // logger chaque opp + verifier les cotes reelles sur les 2 bookmakers.
+    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, Number.POSITIVE_INFINITY),
     maxMatches: num(process.env.MAX_MATCHES, 400),
     horizonHours: num(process.env.HORIZON_HOURS, 72),
   },
