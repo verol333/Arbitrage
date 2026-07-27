@@ -44,3 +44,7 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: node scripts/audit-yellowbet-live.js
+      - name: Audit croisé LIVE match Togo Burkina
+        working-directory: .
+        continue-on-error: true
+        run: node scripts/audit-cross-live-match.js
