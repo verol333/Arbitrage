@@ -5,6 +5,7 @@
 // Under 3.5=2.85 = surebet fantome 27% alors que match 50e min avec 3 buts.
 
 import { evapi } from '../src/bookmakers/yellowbet/api.js';
+import { yellowbetFlatOdds } from '../src/bookmakers/yellowbet/parse.js';
 import { swarmSession, BETMOMO_SID } from '../src/bookmakers/betmomo/api.js';
 
 const TEAM1 = 'Togo';
@@ -38,6 +39,14 @@ if (!ybMatch) {
       return `${o.n || o.id}=${o.p}${line}`;
     });
     console.log(`- "${bt.n}" (${bt.odds?.length}): ${sample.join(' | ')}`);
+  }
+  // Dump les cles parsees par notre parseur pour ce match precis
+  const parsed = yellowbetFlatOdds(ybMatch.bts, { home: ybMatch.h, away: ybMatch.a });
+  console.log(`\n=== YB CLES PARSEES (${Object.keys(parsed).length}) — verif match_over_3.5 ===`);
+  for (const [k, v] of Object.entries(parsed)) {
+    if (/^(match_over|match_under|ht_over|ht_under|h2_over|h2_under)_/.test(k)) {
+      console.log(`  ${k} = ${v}`);
+    }
   }
 }
 
