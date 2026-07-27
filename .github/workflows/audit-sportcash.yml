@@ -52,3 +52,7 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: node scripts/audit-live-full.js
+      - name: Sanity 1X2 LIVE (YB + BM) — cotes vs score
+        working-directory: .
+        continue-on-error: true
+        run: node scripts/audit-live-1x2-sanity.js
