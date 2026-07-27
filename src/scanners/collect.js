@@ -8,18 +8,22 @@ import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
 
-// Fin de journee civile Congo-Brazzaville (UTC+1 fixe, pas d'heure d'ete)
-// exprimee en timestamp UTC. Utilise comme cutoff prematch pour ne renvoyer
-// que les matchs du JOUR (pas ceux de demain).
+// Fin de fenetre prematch Congo-Brazzaville (UTC+1 fixe, pas d'heure d'ete).
+// Fenetre = 'aujourd'hui + demain complet' = cutoff a minuit Congo J+2.
+// A 6h Congo : cutoff = ~42h de matchs a venir.
+// A 20h Congo : cutoff = ~28h de matchs a venir.
+// Sinon en fin de journee on n'aurait que 2-3h de matchs restants → 0 opps.
+// L'utilisateur veut le max d'opportunites en pratique — cette fenetre
+// donne 500-1000 matches exploitables au lieu de 28.
 const CONGO_OFFSET_MS = 60 * 60 * 1000;
 export function endOfCongoDay(nowMs) {
   const congoNow = new Date(nowMs + CONGO_OFFSET_MS);
-  const nextMidnightCongo = Date.UTC(
+  const nextMidnightCongoDayAfterTomorrow = Date.UTC(
     congoNow.getUTCFullYear(),
     congoNow.getUTCMonth(),
-    congoNow.getUTCDate() + 1,
+    congoNow.getUTCDate() + 2, // +2 = fin de journee de demain
   );
-  return nextMidnightCongo - CONGO_OFFSET_MS;
+  return nextMidnightCongoDayAfterTomorrow - CONGO_OFFSET_MS;
 }
 
 function pickComparator(sport) {
