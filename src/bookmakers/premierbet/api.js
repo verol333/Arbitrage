@@ -39,24 +39,43 @@ function qs(extra = {}) {
   return p.toString();
 }
 
-// Fetch via CF Workers en round-robin. On essaye chaque worker jusqu'a
-// obtenir une reponse. Log OK/KO explicite pour diag.
+// Fetch via CF Workers en round-robin avec log detaille du status HTTP
+// retourne. Si tous KO, on voit le vrai code (403/502/timeout) pour diag.
+async function tryWorker(worker, target) {
+  const url = `${worker}/?url=${encodeURIComponent(target)}`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20_000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    const body = await res.text();
+    return { status: res.status, body, ct: res.headers.get('content-type') || '' };
+  } catch (e) {
+    return { status: 0, body: '', ct: '', err: e.message || String(e) };
+  } finally { clearTimeout(t); }
+}
+
 async function fetchWithLog(url) {
   const short = url.replace(BASE, '');
   const t0 = Date.now();
+  const attempts = [];
   for (const w of orderedWorkers()) {
-    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, {
-      timeoutMs: 20_000,
-    });
-    if (j) {
-      const dur = Date.now() - t0;
-      const keys = Object.keys(j).slice(0, 4).join(',');
-      const workerHost = w.replace(/^https?:\/\//, '').slice(0, 20);
-      console.log(`[premierbet] OK ${short} via ${workerHost} (${dur}ms) keys=[${keys}]`);
-      return j;
+    const r = await tryWorker(w, url);
+    const workerHost = w.replace(/^https?:\/\//, '').split('.')[0];
+    if (r.status === 200) {
+      try {
+        const j = JSON.parse(r.body);
+        const keys = Object.keys(j).slice(0, 4).join(',');
+        console.log(`[premierbet] OK ${short} via ${workerHost} (${Date.now() - t0}ms) keys=[${keys}]`);
+        return j;
+      } catch {
+        attempts.push(`${workerHost}=200 non-JSON`);
+        continue;
+      }
     }
+    const snippet = (r.body || r.err || '').slice(0, 80).replace(/\s+/g, ' ');
+    attempts.push(`${workerHost}=${r.status}${snippet ? ' body=' + snippet : ''}`);
   }
-  console.log(`[premierbet] KO ${short} (${Date.now() - t0}ms) — tous workers KO`);
+  console.log(`[premierbet] KO ${short} (${Date.now() - t0}ms) — ${attempts.join(' | ')}`);
   return null;
 }
 
