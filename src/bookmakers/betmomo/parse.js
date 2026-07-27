@@ -71,11 +71,17 @@ export function betmomoFlatOdds(markets) {
       case 'AsianHandicap': putHcp(''); break;
       case 'Team1OverUnder': putTeamTotal('home', ''); break;
       case 'Team2OverUnder': putTeamTotal('away', ''); break;
+      // BetMomo LIVE : variantes "Asian" (memes lignes, base parfois quart)
+      // isHalfLine filtre les quarts (X.25/X.75), donc no-op sur lignes non standards.
+      case 'Team1TotalOverUnderAsian': putTeamTotal('home', ''); break;
+      case 'Team2TotalOverUnderAsian': putTeamTotal('away', ''); break;
       case 'HalfTimeResult': put1x2('ht_'); break;
       case 'HalfTimeDoubleChance': putDC('ht_'); break;
       case '1stHalfBothTeamsToScore': putBtts('ht_'); break;
       case 'HalfTimeOverUnder': putTotal('ht_'); break;
+      case 'HalfCommonTotalOverUnder2WayAsian': putTotal('ht_'); break;   // LIVE HT total Asian
       case 'HalfTimeAsianHandicap': putHcp('ht_'); break;
+      case 'HalfHandicap2WayAsian': putHcp('ht_'); break;                 // LIVE HT hcp Asian
       case 'HalfTimeTeam1OverUnder': putTeamTotal('home', 'ht_'); break;
       case 'HalfTimeTeam2OverUnder': putTeamTotal('away', 'ht_'); break;
       case 'SecondHalfResult': put1x2('h2_'); break;
