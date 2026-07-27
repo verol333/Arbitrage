@@ -82,6 +82,23 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // Jour civil Congo (UTC+1) : on ne remonte que les matchs qui se jouent
   // aujourd'hui — pas ceux de demain. Cutoff = minuit Congo prochain.
   const horizonMs = live ? null : endOfCongoDay(Date.now());
+  // Diagnostic : distribution kickoff par bookmaker (past / today / demain / plus tard / null)
+  if (!live) {
+    const nowMs = Date.now();
+    const tomorrowMs = horizonMs + 24 * 3600 * 1000;
+    const dist = [...catalogs].map(([k, list]) => {
+      const c = { past: 0, today: 0, tomorrow: 0, later: 0, nostart: 0 };
+      for (const m of list) {
+        if (!m.start) { c.nostart++; continue; }
+        if (m.start < nowMs) { c.past++; continue; }
+        if (m.start <= horizonMs) { c.today++; continue; }
+        if (m.start <= tomorrowMs) { c.tomorrow++; continue; }
+        c.later++;
+      }
+      return `${k}:today=${c.today}(past=${c.past}/tom=${c.tomorrow}/lat=${c.later}/nul=${c.nostart})`;
+    });
+    log(`📅 kickoff distribution — ${dist.join(' | ')}`);
+  }
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
   const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
   // Tri chronologique simple : matchs les plus proches en premier.
