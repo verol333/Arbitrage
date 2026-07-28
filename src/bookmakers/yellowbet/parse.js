@@ -184,6 +184,8 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
   //      "1st half - Sabah Masazir total", "2nd half - {team} total"
   // Le format (2) domine — on identifie le side via le nom de l'equipe passe
   // au parseur depuis index.js (match.home / match.away).
+  const DBG_TT = process.env.YB_DEBUG_TT === 'true';
+  const dbgLines = DBG_TT ? [] : null;
   for (const mkt of bts) {
     const raw = String(mkt?.n || '');
     const mn = normTeam(raw);
@@ -196,6 +198,10 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
     else if (/\baway\b|\bteam\s*2\b|\b2nd team\b/.test(mn)) side = 'away';
     else if (homeN && mn.includes(homeN)) side = 'home';
     else if (awayN && mn.includes(awayN)) side = 'away';
+    if (DBG_TT) {
+      const sample = (mkt.odds || []).map((o) => `${o.n || o.id}=${o.p}${o.l != null ? ` l=${o.l}` : ''}`).join(' | ');
+      dbgLines.push(`  raw="${raw}" side=${side || 'SKIP'} → ${sample}`);
+    }
     if (!side) continue;
     const isHt = /\bht\b|1st half/.test(mn);
     const isH2 = /\b2nd half\b/.test(mn);
@@ -206,6 +212,9 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
       if (n === 'over') set(`${pfx}tt_${side}_over_${l}`, c);
       else if (n === 'under') set(`${pfx}tt_${side}_under_${l}`, c);
     }
+  }
+  if (DBG_TT && dbgLines.length) {
+    console.log(`[YB-TT] ${home} vs ${away} :\n${dbgLines.join('\n')}`);
   }
   // HT Double Chance. YellowBet expose sous "1st Half Double Chance".
   const htdc = findMarket(bts, '1st Half Double Chance') || findMarket(bts, 'HT Double Chance');
