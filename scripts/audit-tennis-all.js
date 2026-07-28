@@ -17,11 +17,14 @@ async function auditBook(book, live) {
     for (const m of sample) {
       let odds = {};
       try {
+        // IMPORTANT : passer {live, sport, noCache} — sans live, xbet fetche
+        // LineFeed pour un match LIVE-only → 0 cles. Prod passe listOpts.
+        const opts = { live, sport: 'tennis', noCache: true };
         if (book.getOddsBatch) {
-          const map = await book.getOddsBatch([m], { noCache: true });
+          const map = await book.getOddsBatch([m], opts);
           odds = map.get(m.id) || {};
         } else if (book.getOdds) {
-          odds = await book.getOdds(m, { noCache: true });
+          odds = await book.getOdds(m, opts);
         }
       } catch (e) {
         console.log(`  [${m.home} vs ${m.away}] getOdds error: ${e.message}`);
