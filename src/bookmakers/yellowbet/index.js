@@ -21,9 +21,13 @@ async function fetchFreshBts(matchId) {
 export default {
   key: 'yellowbet',
   label: 'YellowBet',
-  supports: { prematch: true, live: true },
+  // LIVE DESACTIVE : cotes YB LIVE peu fiables (staleness observee malgre
+  // re-fetch, cotes qui ne correspondent pas au site YB au moment de l'envoi).
+  // Prematch reste actif. A reactiver quand un endpoint LIVE fiable est trouve.
+  supports: { prematch: true, live: false },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (!['football', 'basketball', 'tennis', 'volleyball'].includes(sport)) return [];
+    if (live) return []; // securite : refuse LIVE meme si supports.live etait vrai
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
   async getOdds(match, { noCache = false } = {}) {

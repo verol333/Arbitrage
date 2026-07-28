@@ -60,3 +60,8 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: node scripts/audit-betmomo-prematch-ht.js
+      - name: Audit TENNIS tous bookmakers (prematch + live)
+        working-directory: .
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/audit-tennis-all.js
