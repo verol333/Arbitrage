@@ -25,11 +25,11 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
   const homeN = normTeam(home);
   const awayN = normTeam(away);
 
-  // Match winner : "FT 1X2" (foot) OR "Match Winner"/"P1 - P2" (tennis).
-  // Tennis YellowBet expose "Match Winner 2-way" avec outcomes W1/W2 (pas 1/2)
-  // — c'est pourquoi match_1/match_2 etaient absents dans l'audit tennis.
-  const ft = findMarket(bts, 'FT 1X2') || findMarket(bts, 'Match Winner')
-    || findMarket(bts, 'Winner') || findMarket(bts, 'Match result');
+  // Match winner : "FT 1X2" (foot) OR "2 Way" (tennis/volley 2-outcomes).
+  // Confirme via audit raw : tennis YB expose "2 Way" avec outcomes 1/2.
+  const ft = findMarket(bts, 'FT 1X2') || findMarket(bts, '2 Way')
+    || findMarket(bts, 'Match Winner') || findMarket(bts, 'Winner')
+    || findMarket(bts, 'Match result');
   if (ft) for (const o of ft.odds || []) {
     const n = lbl(o), c = priceOf(o);
     if (n === '1' || n === 'w1' || n === 'p1') set('match_1', c);
@@ -49,7 +49,8 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
     if (n === 'yes') set('btts_yes', c);
     else if (n === 'no') set('btts_no', c);
   }
-  const uo = findMarket(bts, 'Under/Over');
+  // Total match : "Under/Over" (foot) OR "Total Games" (tennis).
+  const uo = findMarket(bts, 'Under/Over') || findMarket(bts, 'Total Games');
   if (uo) for (const o of uo.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
@@ -90,11 +91,63 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
     if (n === '1') set('dnb_1', c);
     else if (n === '2') set('dnb_2', c);
   }
-  const oe = findMarket(bts, 'Odd/Even goals');
+  const oe = findMarket(bts, 'Odd/Even goals') || findMarket(bts, 'Odd/even games');
   if (oe) for (const o of oe.odds || []) {
     const n = lbl(o), c = priceOf(o);
     if (n === 'odd') set('odd', c);
     else if (n === 'even') set('even', c);
+  }
+  // ─── TENNIS-specific : per-set winners + total sets ──────────────────────
+  // 1st Set Winner (2 outcomes 1/2).
+  const s1w = findMarket(bts, '1st Set Winner');
+  if (s1w) for (const o of s1w.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1') set('s1_match_1', c);
+    else if (n === '2') set('s1_match_2', c);
+  }
+  const s2w = findMarket(bts, 'Who wins second set') || findMarket(bts, '2nd Set Winner');
+  if (s2w) for (const o of s2w.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1') set('s2_match_1', c);
+    else if (n === '2') set('s2_match_2', c);
+  }
+  const s3w = findMarket(bts, 'Who wins third set') || findMarket(bts, '3rd Set Winner');
+  if (s3w) for (const o of s3w.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1') set('s3_match_1', c);
+    else if (n === '2') set('s3_match_2', c);
+  }
+  // 1st set total games (Over/Under with lines).
+  const s1t = findMarket(bts, '1st set - total games');
+  if (s1t) for (const o of s1t.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'over') set(`s1_over_${l}`, c);
+    else if (n === 'under') set(`s1_under_${l}`, c);
+  }
+  const s2t = findMarket(bts, '2nd set - total games');
+  if (s2t) for (const o of s2t.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'over') set(`s2_over_${l}`, c);
+    else if (n === 'under') set(`s2_under_${l}`, c);
+  }
+  // 1st set game handicap.
+  const s1h = findMarket(bts, '1st set - game handicap');
+  if (s1h) for (const o of s1h.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1' || n === 'home') set(`s1_hcp_home_${l}`, c);
+    else if (n === '2' || n === 'away') set(`s1_hcp_away_${-l}`, c);
+  }
+  // Total number of sets (best of 3) : "2 sets" / "3 sets" → set_over/under_2.5.
+  const tns = findMarket(bts, 'Total number of sets (best of 3)')
+    || findMarket(bts, 'Total number of sets (best of 5)');
+  if (tns) for (const o of tns.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    // "2 sets" = pas plus de 2 → under 2.5. "3 sets" = plus de 2 → over 2.5.
+    if (/^2\s*sets?$/.test(n)) set('set_under_2.5', c);
+    else if (/^3\s*sets?$/.test(n)) set('set_over_2.5', c);
   }
   // Handicap YellowBet — TROIS variantes possibles (tennis surtout) :
   //   • "Handicap jeux" / "Games Handicap" → jeux gagnés (tennis main) → hcp_home_X
