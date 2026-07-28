@@ -88,12 +88,12 @@ export function apolloFlatOdds(offers) {
     else if (t === '2') odds[`set_hcp_away_${-l}`] = c;
   });
   // 915 : Total Sets Over/Under (Type '2' Under, Type '3' Over typiquement).
-  eachOdd(offers, 915, (_t, n, c, sbv) => {
+  eachOdd(offers, 915, (t, n, c, sbv) => {
     const l = parseFloat(sbv || '2.5');
     if (!isHalfLine(l)) return;
     const s = String(n).toLowerCase();
-    if (s.includes('under') || n === '2') odds[`set_under_${l}`] = c;
-    else if (s.includes('over') || n === '3') odds[`set_over_${l}`] = c;
+    if (s.includes('under') || t === '2') odds[`set_under_${l}`] = c;
+    else if (s.includes('over') || t === '3') odds[`set_over_${l}`] = c;
   });
   // 597 : 1st Set TOTAL GAMES (Sbv 6.5-12.5, pas "Player Total"). Corrigé.
   eachOdd(offers, 597, (_t, n, c, sbv) => {
