@@ -59,15 +59,24 @@ async function doScan({ live, sport }) {
 }
 
 async function doMultiSportScan({ live }) {
+  // Scan tous les sports en PARALLELE (foot + tennis + ...). Chaque sport a
+  // sa propre pipeline independante → aucun sport ne bloque un autre, pas
+  // de priorite. Le webhook envoie les opps sport-par-sport a la fin.
+  const results = await Promise.allSettled(
+    sports.map(async (sport) => {
+      const r = await doScan({ live, sport });
+      return { sport, opps: r.opportunities.length, ms: r.stats.duration_ms };
+    }),
+  );
   let totalOpps = 0;
   const allStats = [];
-  for (const sport of sports) {
-    try {
-      const r = await doScan({ live, sport });
-      totalOpps += r.opportunities.length;
-      allStats.push({ sport, opps: r.opportunities.length, ms: r.stats.duration_ms });
-    } catch (e) {
-      log(`⚠️ ${sport}: ${e.message}`);
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === 'fulfilled') {
+      totalOpps += r.value.opps;
+      allStats.push(r.value);
+    } else {
+      log(`⚠️ ${sports[i]}: ${r.reason?.message || r.reason}`);
     }
   }
   return { totalOpps, allStats };
