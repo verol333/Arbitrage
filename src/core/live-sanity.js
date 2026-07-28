@@ -6,6 +6,18 @@
 // Renvoie un tableau de raisons ; vide si l'opp est plausible.
 export function liveSanityReject(opp) {
   if (!opp.is_live) return [];
+  // GARDE-FOU COTES ABERRANTES LIVE :
+  // Une cote LIVE >15 pour un marche 2-way (Total, Handicap) est quasi
+  // toujours un marche suspendu / stale / une fausse cote. Un book fournit
+  // la cote absurde (ex 1win Over 3.5 = 25 ne bouge pas pendant 5min) et
+  // l'autre book donne du normal → arbitrage fantome asymetrique.
+  const oddA = Number(opp.leg_a_odd) || 0;
+  const oddB = Number(opp.leg_b_odd) || 0;
+  // Ratio > 10 = tres suspect (une cote 10x plus grande que l'autre).
+  const ratio = Math.max(oddA, oddB) / Math.max(1, Math.min(oddA, oddB));
+  if (Math.max(oddA, oddB) > 15 && ratio > 10) {
+    return [`COTE ABERRANTE (${oddA} vs ${oddB}, ratio ${ratio.toFixed(1)}) — marche probablement suspendu/stale`];
+  }
   const liveA = opp.leg_a_live || null;
   const liveB = opp.leg_b_live || null;
   // Preuves de fraicheur par leg — un leg est "prouve LIVE" s'il expose au
