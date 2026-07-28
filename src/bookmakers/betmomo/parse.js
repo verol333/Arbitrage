@@ -79,18 +79,27 @@ export function betmomoFlatOdds(markets) {
       case 'HalfTimeDoubleChance': putDC('ht_'); break;
       case '1stHalfBothTeamsToScore': putBtts('ht_'); break;
       case 'HalfTimeOverUnder': putTotal('ht_'); break;
-      case 'HalfCommonTotalOverUnder2WayAsian': putTotal('ht_'); break;   // LIVE HT total Asian
+      case 'HalfTimeOverUnderAsian': putTotal('ht_'); break;              // PREMATCH HT total Asian ('s' final)
+      case 'HalfCommonTotalOverUnder2WayAsian': putTotal('ht_'); break;   // LIVE HT total Asian (nom different)
+      case 'HalfCommonTotalOverUnder3Way': putTotal('ht_'); break;        // 3-way total (Over/Exactly/Under) — on ne prend que Over+Under
       case 'HalfTimeAsianHandicap': putHcp('ht_'); break;
+      case 'FirstHalfHandicap': putHcp('ht_'); break;                     // Handicap 1H 3-way (Home/Tie/Away) — putHcp ignore Tie
       case 'HalfHandicap2WayAsian': putHcp('ht_'); break;                 // LIVE HT hcp Asian
       case 'HalfTimeTeam1OverUnder': putTeamTotal('home', 'ht_'); break;
+      case 'HalfTimeTeam1OverUnderAsian': putTeamTotal('home', 'ht_'); break;   // PREMATCH Asian
       case 'HalfTimeTeam2OverUnder': putTeamTotal('away', 'ht_'); break;
+      case 'HalfTimeTeam2OverUnderAsian': putTeamTotal('away', 'ht_'); break;   // PREMATCH Asian
       case 'SecondHalfResult': put1x2('h2_'); break;
       case 'SecondHalfDoubleChance': putDC('h2_'); break;
       case '2ndHalfBothTeamsToScore': putBtts('h2_'); break;
       case 'SecondHalfOverUnder': putTotal('h2_'); break;
+      case 'SecondHalfOverUnderAsian': putTotal('h2_'); break;            // PREMATCH 2H total Asian
       case 'SecondHalfAsianHandicap': putHcp('h2_'); break;
+      case 'SecondHalfHandicap': putHcp('h2_'); break;                    // 2H hcp 3-way
       case 'SecondHalfTeam1OverUnder': putTeamTotal('home', 'h2_'); break;
+      case 'SecondHalfTeam1OverUnderAsian': putTeamTotal('home', 'h2_'); break;
       case 'SecondHalfTeam2OverUnder': putTeamTotal('away', 'h2_'); break;
+      case 'SecondHalfTeam2OverUnderAsian': putTeamTotal('away', 'h2_'); break;
       case 'DrawNoBet': {
         for (const e of list) {
           const ty = String(e.type_1 || e.type || '').toLowerCase();
