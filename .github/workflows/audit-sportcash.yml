@@ -75,3 +75,8 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         run: node scripts/audit-tennis-cross-check.js
+      - name: Audit YB LIVE team totals (matchs argentins Banfield/Tigre/etc)
+        working-directory: .
+        continue-on-error: true
+        timeout-minutes: 2
+        run: node scripts/audit-yb-live-team-totals.js
