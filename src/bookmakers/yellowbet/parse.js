@@ -25,12 +25,16 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
   const homeN = normTeam(home);
   const awayN = normTeam(away);
 
-  const ft = findMarket(bts, 'FT 1X2');
+  // Match winner : "FT 1X2" (foot) OR "Match Winner"/"P1 - P2" (tennis).
+  // Tennis YellowBet expose "Match Winner 2-way" avec outcomes W1/W2 (pas 1/2)
+  // — c'est pourquoi match_1/match_2 etaient absents dans l'audit tennis.
+  const ft = findMarket(bts, 'FT 1X2') || findMarket(bts, 'Match Winner')
+    || findMarket(bts, 'Winner') || findMarket(bts, 'Match result');
   if (ft) for (const o of ft.odds || []) {
     const n = lbl(o), c = priceOf(o);
-    if (n === '1') set('match_1', c);
-    else if (n === 'x') set('match_X', c);
-    else if (n === '2') set('match_2', c);
+    if (n === '1' || n === 'w1' || n === 'p1') set('match_1', c);
+    else if (n === 'x' || n === 'draw') set('match_X', c);
+    else if (n === '2' || n === 'w2' || n === 'p2') set('match_2', c);
   }
   const dc = findMarket(bts, 'Double Chance');
   if (dc) for (const o of dc.odds || []) {

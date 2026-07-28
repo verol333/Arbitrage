@@ -65,3 +65,8 @@ jobs:
         continue-on-error: true
         timeout-minutes: 3
         run: node scripts/audit-tennis-all.js
+      - name: Audit TENNIS raw (noms marches xbet-live/YB/apollo/BM-live)
+        working-directory: .
+        continue-on-error: true
+        timeout-minutes: 2
+        run: node scripts/audit-tennis-raw.js
