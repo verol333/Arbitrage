@@ -70,3 +70,8 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         run: node scripts/audit-tennis-raw.js
+      - name: Audit TENNIS cross-check (Roncadelli vs Nicod : cotes vs site)
+        working-directory: .
+        continue-on-error: true
+        timeout-minutes: 2
+        run: node scripts/audit-tennis-cross-check.js

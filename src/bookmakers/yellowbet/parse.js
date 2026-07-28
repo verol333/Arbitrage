@@ -159,7 +159,14 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
     const name = String(mkt.n || '').toLowerCase();
     // Skip "European Handicap" (line = "0:1" format, pas un nombre demi-ligne)
     if (/european|europ.en/i.test(name)) continue;
-    const isSets = /\bset(s)?\b/i.test(name);
+    // Skip "1st set - game handicap" / "2nd set - game handicap" (deja mappes
+    // specifiquement a s1_hcp/s2_hcp — sinon double stockage sous set_hcp qui
+    // agrege games avec sets = fausses opps).
+    if (/\d(st|nd|rd|th)\s*set\s*[-:]\s*game/i.test(name)) continue;
+    // Determinat sets vs games : STRICT — n'accepte set(s) que sans "game" ni
+    // numero de set (ex "1st set" → per-set, deja gere). "Set handicap" seul
+    // reste set_hcp. "Game handicap" reste hcp.
+    const isSets = /\bset(s)?\b/i.test(name) && !/\bgame(s)?\b/i.test(name);
     const isHt = /\bht\b|1st half/i.test(name);
     const isH2 = /\b2nd half\b/i.test(name);
     const pfx = isHt ? 'ht_' : isH2 ? 'h2_' : '';
