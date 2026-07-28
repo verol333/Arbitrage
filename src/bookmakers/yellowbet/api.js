@@ -15,13 +15,25 @@ export function isVirtual(ev) {
   return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(s);
 }
 
+// Parse ev.lv qui, pour les vrais LIVE, est une string JSON contenant
+// { hs, as, t, p, hcc, acc, hyc, ayc, ... }. Pour les non-live c'est absent.
+function parseLv(ev) {
+  const raw = ev?.lv;
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  if (typeof raw !== 'string') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export function toMatch(ev) {
-  // Best-effort : YellowBet evapi expose parfois score via ev.hs/ev.as/ev.sc et minute via ev.mm/ev.t.
-  const hs = ev.hs ?? ev.homeScore ?? null;
-  const as = ev.as ?? ev.awayScore ?? null;
+  const lv = parseLv(ev);
+  // Priorite : payload lv (vrai LIVE) > fallback flat fields.
+  const hs = lv?.hs ?? ev.hs ?? ev.homeScore ?? null;
+  const as = lv?.as ?? ev.as ?? ev.awayScore ?? null;
   const score = (hs != null && as != null) ? `${hs}-${as}` : (ev.sc || null);
-  const minute = ev.mm ?? ev.mn ?? ev.min ?? ev.t ?? null;
-  const period = ev.sst ?? ev.stat ?? ev.per ?? null;
+  const minRaw = lv?.t ?? ev.mm ?? ev.mn ?? ev.min ?? ev.t ?? null;
+  const minute = minRaw != null ? Number(minRaw) : null;
+  const period = lv?.p ?? ev.sst ?? ev.stat ?? ev.per ?? null;
   return {
     id: String(ev.id),
     home: ev.h || '', away: ev.a || '', league: ev.ln || '',

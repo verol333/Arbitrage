@@ -3,6 +3,7 @@
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
 import { compareTwoBooks, compareTwoBooksTennis, compareTwoBooksBasket, compareTwoBooksHockey, compareTwoBooksVolley, dedupeOpportunities } from '../core/arbitrage.js';
+import { filterLiveSanity } from '../core/live-sanity.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
@@ -198,13 +199,23 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   tick('confirm+freshLive done');
   log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
 
+  // Sanity LIVE : rejette les opps dont une cote 1X2/DC est incoherente
+  // avec score+minute (cote gelee, pre-match retournee en LIVE, etc.).
+  let finalConfirmed = confirmed;
+  if (live) {
+    const { kept, dropped } = filterLiveSanity(confirmed, log);
+    if (dropped.length) log(`🛡️ live sanity : ${dropped.length} opps rejetees, ${kept.length} gardees`);
+    finalConfirmed = kept;
+  }
+
   return {
-    opportunities: confirmed,
+    opportunities: finalConfirmed,
     stats: {
       catalogs: [...catalogs].map(([k, v]) => ({ book: k, matches: v.length })),
       entries: sorted.length,
       candidates: deduped.length,
       confirmed: confirmed.length,
+      sanity_kept: finalConfirmed.length,
       duration_ms: Date.now() - t0,
     },
   };
