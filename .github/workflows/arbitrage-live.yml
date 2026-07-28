@@ -63,5 +63,3 @@ jobs:
           MAX_MATCHES: '150'
           SCAN_SPORTS: 'football,tennis'
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
-          # DEBUG TEMPORAIRE : verbose YB team totals parsing (retirer apres diagnostic)
-          YB_DEBUG_TT: 'true'

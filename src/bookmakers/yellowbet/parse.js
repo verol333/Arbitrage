@@ -193,6 +193,12 @@ export function yellowbetFlatOdds(bts, { home = '', away = '' } = {}) {
     // Skip marches non-individual : "total goals", "2nd half : totals", etc.
     if (/goals?( ranges?)?$|^total goals?$|total goals rangess?|halftime.fulltime|multigoal|exact/i.test(mn)) continue;
     if (/^total goals$|^under.over$|^ht u.o$|^2nd half\s*:\s*totals?$/i.test(mn)) continue;
+    // CRITIQUE : YB expose "CA Banfield total corners", "X total cards", "X total shots"
+    // etc — ce sont des totaux INDIVIDUELS mais PAS des buts. Sans ce garde-fou
+    // le parseur les prend pour des tt_home/away_over_X et produit des cotes
+    // fausses face au vrai total-goals d'un autre book (ex: 1win 25 vs YB 1.71
+    // qui etait en realite total corners Sarmiento).
+    if (/\b(corners?|cards?|shots?|fouls?|offsides?|throw[- ]?ins?|yellow|red|penalt|substitut|booking)\b/.test(mn)) continue;
     let side = null;
     if (/\bhome\b|\bteam\s*1\b|\b1st team\b/.test(mn)) side = 'home';
     else if (/\baway\b|\bteam\s*2\b|\b2nd team\b/.test(mn)) side = 'away';
