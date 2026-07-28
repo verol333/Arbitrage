@@ -8,11 +8,21 @@ export function liveSanityReject(opp) {
   if (!opp.is_live) return [];
   const liveA = opp.leg_a_live || null;
   const liveB = opp.leg_b_live || null;
+  // Preuves de fraicheur par leg — un leg est "prouve LIVE" s'il expose au
+  // moins un score (minute optionnelle, certains books comme Congobet ne
+  // l'ont pas). Si NI leg_a NI leg_b n'a de preuve, ce n'est pas verifiable
+  // comme une vraie opp LIVE → rejet strict (evite les fausses opps ou un
+  // book sert du pre-match masque en live).
+  const snapA = parseSnap(liveA);
+  const snapB = parseSnap(liveB);
+  const opPick = parseSnap(opp);
+  if (!snapA && !snapB && !opPick) {
+    return ['STALE (aucune preuve de fraicheur LIVE : ni leg_a_live ni leg_b_live ni live_score_at_confirm)'];
+  }
   // Le snapshot le PLUS FRAIS vient de live_score_at_confirm (pose par
   // refreshLiveSnapshots juste avant l'envoi). Priorite : opp (fresh) >
   // legA/legB (initial scan). Merge pour combiner les infos manquantes.
-  const opPick = parseSnap(opp);
-  const legMerge = mergeSnaps(parseSnap(liveA), parseSnap(liveB));
+  const legMerge = mergeSnaps(snapA, snapB);
   const pick = mergeSnaps(opPick, legMerge);
   if (!pick) return [];
   const { hs, as, mm } = pick;
