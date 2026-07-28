@@ -4,9 +4,15 @@ import { sportcashFlatOdds } from './parse.js';
 export default {
   key: 'sportcash',
   label: 'Sportcash',
-  supports: { prematch: true, live: true },
+  // LIVE DESACTIVE : sportcash getEvento(isLive:true) retourne 0 markets ;
+  // le workaround en list.js force isLive:false, ce qui renvoie des cotes
+  // PRE-MATCH. Utiliser ces cotes en LIVE creait des surebets fantomes
+  // (l'engine croyait avoir des cotes fraiches alors qu'elles etaient figees
+  // pre-kickoff). A reactiver quand un endpoint LIVE fiable est identifie.
+  supports: { prematch: true, live: false },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (sport !== 'football') return []; // tennis pas dans widgets Sportcash
+    if (live) return []; // securite : refuse LIVE meme si supports.live etait vrai
     return listMatches({ live, horizonHours });
   },
   async getOdds(match) { return sportcashFlatOdds(match.__raw?.markets || []); },
