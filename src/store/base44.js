@@ -50,12 +50,16 @@ async function bulkCreate(opps) {
   }
 }
 
-export async function persistOpportunities(opps, { live = false } = {}) {
+export async function persistOpportunities(opps, { live = false, sport = 'football' } = {}) {
   if (!base44Configured()) {
     // TODO: brancher un provider alternatif (Postgres/SQLite) si besoin de persistance
     // sans Base44. Les opportunités restent en mémoire dans scanners/state.js.
     return;
   }
-  await markStale({ live });
+  // IMPORTANT : passer sport → markStale filtre {sport} pour ne pas polluer
+  // les autres sports. Sans ce fix, un scan tennis marquait les foot comme
+  // stale (defaut 'football') et laissait les anciennes tennis 'live' →
+  // accumulation ou disparition selon comment l'app filtre.
+  await markStale({ live, sport });
   await bulkCreate(opps);
 }
