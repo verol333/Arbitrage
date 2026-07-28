@@ -30,16 +30,23 @@ try {
 // ═══ YELLOWBET tennis PREMATCH raw ══════════════════════════════════════════
 console.log('\n════════════ YELLOWBET tennis PREMATCH (raw dump) ════════════');
 try {
-  const j = await evapi('https://yellowbet.cg/services/evapi/event/GetEvents?count=100&take=100&sportIds=35');
-  const evs = (j?.data || []).filter((e) => e.sid === 35 && e.bts?.length);
-  console.log(`  ${evs.length} tennis events`);
+  // sportIds URL param ignoré côté YB — fetch générique + filtre client-side.
+  const iso = (d) => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const now = new Date();
+  const to = new Date(now.getTime() + 48 * 3600 * 1000);
+  const j = await evapi(`https://yellowbet.cg/services/evapi/event/GetEvents?fromDate=${iso(now)}&toDate=${iso(to)}&skip=0&take=500&count=500&pageSize=500`);
+  const evs = (j?.data || []).filter((e) => e.sid === 35 && e.bts?.length && !e.lv);
+  console.log(`  ${evs.length} tennis PREMATCH events`);
   if (evs.length) {
-    const ev = evs[0];
+    // Prendre un event singles (pas doubles) pour voir tous les marchés
+    const ev = evs.find((e) => !e.h.includes('/') && !e.a.includes('/')) || evs[0];
     console.log(`  Sample: ${ev.h} vs ${ev.a} | ${ev.bts.length} markets`);
-    // Liste noms uniques de marchés
-    const names = [...new Set(ev.bts.map((b) => b.n))].slice(0, 30);
-    console.log(`  Market names:`);
-    for (const bt of ev.bts.slice(0, 25)) {
+    // Chercher spécifiquement le winner
+    console.log(`  All market names (unique):`);
+    const names = [...new Set(ev.bts.map((b) => b.n))];
+    for (const n of names) console.log(`    - "${n}"`);
+    console.log(`  === Sample markets (first 15) with odds ===`);
+    for (const bt of ev.bts.slice(0, 15)) {
       const sample = (bt.odds || []).slice(0, 4).map((o) => `${o.n || o.id}=${o.p}${o.l != null ? ` l=${o.l}` : ''}`);
       console.log(`    "${bt.n}" (${(bt.odds || []).length}): ${sample.join(' | ')}`);
     }
