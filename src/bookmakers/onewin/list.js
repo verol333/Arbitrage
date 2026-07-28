@@ -3,7 +3,9 @@ import { API_BASE, ORIGIN, UA, PLATFORM, WIN_SID, WIN_SID_ALT } from './api.js';
 async function winGetMany(sportId, offset, { live = false } = {}) {
   const now = Math.floor(Date.now() / 1000);
   const body = live
-    ? { sportId, isLive: true, startAtFrom: now - 4 * 3600, startAtTo: now + 600, limit: 200, offset, l: 'en-001', p: PLATFORM }
+    // Fenetre LIVE stricte : uniquement les matchs deja commences (pas +600s).
+    // La fenetre "future" incluait des matchs pre-kickoff avec cotes pre-match.
+    ? { sportId, isLive: true, startAtFrom: now - 4 * 3600, startAtTo: now, limit: 200, offset, l: 'en-001', p: PLATFORM }
     : { sportId, startAtFrom: now - 3600, startAtTo: now + 3 * 86400, limit: 1000, offset, l: 'en-001', p: PLATFORM };
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 12_000);

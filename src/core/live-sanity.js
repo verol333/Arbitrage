@@ -8,21 +8,22 @@ export function liveSanityReject(opp) {
   if (!opp.is_live) return [];
   const liveA = opp.leg_a_live || null;
   const liveB = opp.leg_b_live || null;
-  // Merge des 2 snapshots (chaque bookmaker en a un). Prend le score max
-  // et la minute max — plus recente = plus proche de la verite.
-  const pick = mergeSnaps(mergeSnaps(parseSnap(liveA), parseSnap(liveB)), parseSnap(opp));
+  // Le snapshot le PLUS FRAIS vient de live_score_at_confirm (pose par
+  // refreshLiveSnapshots juste avant l'envoi). Priorite : opp (fresh) >
+  // legA/legB (initial scan). Merge pour combiner les infos manquantes.
+  const opPick = parseSnap(opp);
+  const legMerge = mergeSnaps(parseSnap(liveA), parseSnap(liveB));
+  const pick = mergeSnaps(opPick, legMerge);
   if (!pick) return [];
   const { hs, as, mm } = pick;
   const reasons = [];
-  const check = (label, cote) => {
+  const check = (label, cote, marketFamily) => {
     if (!cote) return;
-    const r = coteImpossible(label, cote, hs, as, mm);
+    const r = coteImpossible(label, cote, hs, as, mm, marketFamily);
     if (r) reasons.push(`${label} @${cote} — ${r}`);
   };
-  // Verifie chaque jambe : label est celui affiche a l'utilisateur ("Domicile",
-  // "Extérieur", "Nul ou Extérieur", "Domicile (DNB)", ...).
-  check(opp.leg_a_label, opp.leg_a_odd);
-  check(opp.leg_b_label, opp.leg_b_odd);
+  check(opp.leg_a_label, opp.leg_a_odd, opp.market_family);
+  check(opp.leg_b_label, opp.leg_b_odd, opp.market_family);
   return reasons;
 }
 
@@ -56,25 +57,66 @@ function mergeSnaps(a, b) {
 
 // Renvoie une string decrivant l'incoherence, ou null si OK.
 // hs/as = score courant, mm = minute jouee.
-function coteImpossible(label, cote, hs, as, mm) {
+function coteImpossible(label, cote, hs, as, mm, marketFamily) {
   const L = String(label || '').toLowerCase();
+  const F = String(marketFamily || '').toLowerCase();
   const lead = hs - as;                 // + = home devant
+  const totalGoals = hs + as;
   const timeLeft = mm != null ? Math.max(0, 90 - mm) : null;
   const hasTime = timeLeft != null;
 
-  // ─── CHECKS SCORE-SEULEMENT (minute inconnue, ex : BM sans current_game_time) ─
-  // Ces regles marchent quelle que soit la minute — un ecart de +3 ne peut
-  // pas donner une cote de gagnant a >5, meme au tout debut du match.
+  // ─── BTTS (les deux equipes marquent) ─────────────────────────────────────
+  // Depuis MATCH_FAMILY : "BTTS" / famille contient "btts" ou "both teams"
+  const isBttsMarket = /btts|both.*teams/i.test(F);
+  const isYes = /^(oui|yes)/.test(L);
+  const isNo = /^(non|no)/.test(L);
+  if (isBttsMarket) {
+    // Les 2 equipes ont deja marque : BTTS Yes est ACQUIS
+    if (hs >= 1 && as >= 1) {
+      if (isYes && cote > 1.15) return `BTTS Yes acquis (${hs}-${as}) cote>1.15 stale`;
+      if (isNo && cote < 30) return `BTTS No impossible (${hs}-${as}) cote<30`;
+    }
+    // Une seule equipe a marque : BTTS Yes probable, cote elevee = stale pre-match
+    if ((hs >= 1) !== (as >= 1) && cote >= 3 && isYes) {
+      return `BTTS Yes @${hs}-${as} cote>=3 (probablement pre-match stale)`;
+    }
+  }
+
+  // ─── OVER/UNDER buts total ─────────────────────────────────────────────────
+  // Famille "Total Buts Match X.Y" ou "1MT Total Buts X.Y" — extraire la ligne
+  const totMatch = F.match(/^total\s+buts?\s+match\s+(\d+(?:\.\d+)?)/);
+  if (totMatch) {
+    const line = parseFloat(totMatch[1]);
+    const isOver = /^\+/.test(L) || /over/i.test(L);
+    const isUnder = /^−|^-/.test(L) || /under/i.test(L);
+    // Total deja > ligne → Over ACQUIS
+    if (totalGoals > line) {
+      if (isOver && cote > 1.15) return `Over ${line} acquis (${totalGoals} buts) cote>1.15 stale`;
+      if (isUnder && cote < 30) return `Under ${line} impossible (${totalGoals} buts) cote<30`;
+    }
+    // Total = ligne exacte impossible (ligne est demi) mais couvrons quand meme :
+    if (totalGoals === line + 0.5) {
+      // On est exactement sur/sous la barre demi — tout est ouvert, pas d'anomalie evidente
+    }
+  }
+  // Total buts par mi-temps : "1MT Total Buts X.Y" / "2MT Total Buts X.Y"
+  const htTotMatch = F.match(/^(?:1mt|2mt)\s+total\s+buts?\s+(\d+(?:\.\d+)?)/);
+  if (htTotMatch && hasTime) {
+    // 1MT : ne verifier que si mm > 45 (mi-temps finie ou vers la fin) car les
+    // buts marques peuvent l'etre en 2MT. Pour 2MT : verifier si mm > 45.
+    // Pour rester conservateur, on skip ces marches ici.
+  }
+
+  // ─── CHECKS SCORE-SEULEMENT 1X2/DC (minute inconnue) ─────────────────────
   const isHomeWinL = /domicile|home|équipe 1|joueur 1|éq\.1/.test(L) && !/nul|draw|dnb|extérieur|away|éq\.2|joueur 2/.test(L);
   const isAwayWinL = /extérieur|away|équipe 2|joueur 2|éq\.2/.test(L) && !/nul|draw|dnb|domicile|home|éq\.1|joueur 1/.test(L);
-  if (isHomeWinL && lead >= 3 && cote > 5) return `home menant +${lead} score-only cote>5 impossible`;
-  if (isAwayWinL && lead <= -3 && cote > 5) return `away menant +${-lead} score-only cote>5 impossible`;
+  if (isHomeWinL && lead >= 3 && cote > 5) return `home menant +${lead} cote>5 impossible`;
+  if (isAwayWinL && lead <= -3 && cote > 5) return `away menant +${-lead} cote>5 impossible`;
   if (isHomeWinL && lead >= 2 && cote > 8) return `home menant +${lead} cote>8 impossible`;
   if (isAwayWinL && lead <= -2 && cote > 8) return `away menant +${-lead} cote>8 impossible`;
-  // Nul avec ecart >=3 = quasi impossible (comeback tres rare) → cote <8 suspect
   if (/^nul$|^draw$/.test(L) && Math.abs(lead) >= 3 && cote < 6) return `nul avec ecart ${Math.abs(lead)} cote<6 impossible`;
-  // Si pas de minute → on s'arrete la (impossible d'appliquer les seuils temporels).
   if (!hasTime) return null;
+
   // Seuils temporels :
   //  >=80' + big lead → cote gagnant doit etre <1.4
   //  >=60' + lead 2+  → cote gagnant doit etre <1.7
