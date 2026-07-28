@@ -21,18 +21,17 @@ async function fetchFreshBts(matchId) {
 export default {
   key: 'yellowbet',
   label: 'YellowBet',
-  // LIVE reactive avec garde-fous. Precedent commit avait tout coupe suite a
-  // staleness observee, mais l'user confirme que YB LIVE est source majeure
-  // d'opps. Protections en place :
-  //   1) getOddsBatch(noCache:true) re-fetch fresh via evapi GetEvents live
-  //   2) parseur YB parse ev.lv JSON pour score+minute → sanity strict
-  //      rejette opps avec cote incoherente vs etat du match
-  //   3) filterLiveSanity rejette opps sans preuve de fraicheur (au moins
-  //      un leg doit avoir un snapshot live)
-  supports: { prematch: true, live: true },
+  // LIVE DESACTIVE. Diagnostic YB_DEBUG_TT a prouve que le mapping YB LIVE
+  // est fake : "CA Banfield total corners" etait pris pour un total de buts
+  // individuels et matche contre le vrai total-goals d'un autre book, creant
+  // des faux surebets 37%. Skipper corners/cards/etc dans le parseur ne suffit
+  // pas — le probleme est systemique dans le mapping YB LIVE (marches mal
+  // typees). On coupe YB en LIVE et on garde les autres bookmakers.
+  supports: { prematch: true, live: false },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
+    if (live) return [];
     if (!['football', 'basketball', 'tennis', 'volleyball'].includes(sport)) return [];
-    return live ? listLive(sport) : listPrematch(horizonHours, sport);
+    return listPrematch(horizonHours, sport);
   },
   async getOdds(match, { noCache = false } = {}) {
     if (noCache && match.id != null) {
