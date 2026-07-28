@@ -81,18 +81,20 @@ console.log(`BM live: ${bmMatches.length} matchs`);
 // ═══ Fetch YB LIVE ════════════════════════════════════════════════════════
 console.log('=== Fetching YB LIVE ...');
 const ybData = await evapi('https://yellowbet.cg/services/evapi/event/GetEvents?isLive=true&count=500&take=500');
-const ybEvents = (ybData?.data || []).filter((e) => e.sid === 31 && e.bts?.length);
-console.log(`YB live foot: ${ybEvents.length}`);
+const ybAll = (ybData?.data || []).filter((e) => e.sid === 31 && e.bts?.length);
+// PRODUCTION filter : n'accepte que ev.lv truthy (vrai live)
+const ybEvents = ybAll.filter((e) => e.lv);
+console.log(`YB total (sid=31,bts>0): ${ybAll.length}, dont TRULY live (ev.lv=true): ${ybEvents.length}`);
 
-// Dump structure du 1er event YB pour reperer si score+minute existe quelque part
-if (ybEvents.length) {
-  const ev = ybEvents[0];
-  console.log(`\n=== YB EV[0] fields === (${ev.h} vs ${ev.a})`);
+// Dump 3 events truly-live pour reperer score/minute
+for (let i = 0; i < Math.min(3, ybEvents.length); i++) {
+  const ev = ybEvents[i];
+  console.log(`\n=== YB TRULY-LIVE EV[${i}] fields === (${ev.h} vs ${ev.a})`);
   const kv = {};
   for (const [k, v] of Object.entries(ev)) {
     if (k === 'bts') continue;
     const t = typeof v;
-    kv[k] = t === 'object' ? (Array.isArray(v) ? `[${v.length}]` : JSON.stringify(v).slice(0, 80)) : v;
+    kv[k] = t === 'object' ? (Array.isArray(v) ? `[${v.length}]` : JSON.stringify(v).slice(0, 120)) : v;
   }
   console.log(JSON.stringify(kv, null, 2));
 }
