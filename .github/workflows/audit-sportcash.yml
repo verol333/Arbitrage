@@ -56,3 +56,7 @@ jobs:
         working-directory: .
         continue-on-error: true
         run: node scripts/audit-live-1x2-sanity.js
+      - name: Audit BetMomo PREMATCH 1re mi-temps (cotes vs raw)
+        working-directory: .
+        continue-on-error: true
+        run: node scripts/audit-betmomo-prematch-ht.js
