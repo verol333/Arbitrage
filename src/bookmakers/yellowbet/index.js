@@ -21,13 +21,17 @@ async function fetchFreshBts(matchId) {
 export default {
   key: 'yellowbet',
   label: 'YellowBet',
-  // LIVE DESACTIVE : cotes YB LIVE peu fiables (staleness observee malgre
-  // re-fetch, cotes qui ne correspondent pas au site YB au moment de l'envoi).
-  // Prematch reste actif. A reactiver quand un endpoint LIVE fiable est trouve.
-  supports: { prematch: true, live: false },
+  // LIVE reactive avec garde-fous. Precedent commit avait tout coupe suite a
+  // staleness observee, mais l'user confirme que YB LIVE est source majeure
+  // d'opps. Protections en place :
+  //   1) getOddsBatch(noCache:true) re-fetch fresh via evapi GetEvents live
+  //   2) parseur YB parse ev.lv JSON pour score+minute → sanity strict
+  //      rejette opps avec cote incoherente vs etat du match
+  //   3) filterLiveSanity rejette opps sans preuve de fraicheur (au moins
+  //      un leg doit avoir un snapshot live)
+  supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (!['football', 'basketball', 'tennis', 'volleyball'].includes(sport)) return [];
-    if (live) return []; // securite : refuse LIVE meme si supports.live etait vrai
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
   async getOdds(match, { noCache = false } = {}) {
