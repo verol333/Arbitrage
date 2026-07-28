@@ -8,8 +8,9 @@ export function liveSanityReject(opp) {
   if (!opp.is_live) return [];
   const liveA = opp.leg_a_live || null;
   const liveB = opp.leg_b_live || null;
-  // Choisit le snapshot avec un score parse (priorite leg_a puis leg_b).
-  const pick = parseSnap(liveA) || parseSnap(liveB) || parseSnap(opp);
+  // Merge des 2 snapshots (chaque bookmaker en a un). Prend le score max
+  // et la minute max — plus recente = plus proche de la verite.
+  const pick = mergeSnaps(mergeSnaps(parseSnap(liveA), parseSnap(liveB)), parseSnap(opp));
   if (!pick) return [];
   const { hs, as, mm } = pick;
   const reasons = [];
@@ -27,15 +28,29 @@ export function liveSanityReject(opp) {
 
 function parseSnap(x) {
   if (!x) return null;
-  // Accepte {score:"h-a", minute:N} ou {live_score,"h-a", live_minute:N}
   const score = x.score ?? x.live_score ?? x.live_score_at_confirm ?? null;
   const minute = x.minute ?? x.live_minute ?? x.live_minute_at_confirm ?? null;
-  if (!score || minute == null) return null;
+  if (!score) return null;
   const m = String(score).match(/^(\d+)\s*[-:]\s*(\d+)$/);
   if (!m) return null;
   const hs = Number(m[1]), as = Number(m[2]);
-  const mm = Number(minute);
-  if (!Number.isFinite(hs) || !Number.isFinite(as) || !Number.isFinite(mm)) return null;
+  if (!Number.isFinite(hs) || !Number.isFinite(as)) return null;
+  const mmNum = Number(minute);
+  // Minute optionnelle : Number.isFinite(NaN)===false → mm=null si non parsable.
+  const mm = Number.isFinite(mmNum) ? mmNum : null;
+  return { hs, as, mm };
+}
+
+// Merge deux snapshots (leg A + leg B) : garde le score de A si dispo, sinon B.
+// Utilise la minute la PLUS elevee (source la plus recente / fiable).
+function mergeSnaps(a, b) {
+  if (a && !b) return a;
+  if (!a && b) return b;
+  if (!a && !b) return null;
+  // Si les 2 scores different, on prend le max de chaque cote (= plus recent).
+  const hs = Math.max(a.hs, b.hs);
+  const as = Math.max(a.as, b.as);
+  const mm = a.mm != null && b.mm != null ? Math.max(a.mm, b.mm) : (a.mm ?? b.mm);
   return { hs, as, mm };
 }
 
@@ -44,14 +59,28 @@ function parseSnap(x) {
 function coteImpossible(label, cote, hs, as, mm) {
   const L = String(label || '').toLowerCase();
   const lead = hs - as;                 // + = home devant
-  const timeLeft = Math.max(0, 90 - mm);
-  // Seuils :
+  const timeLeft = mm != null ? Math.max(0, 90 - mm) : null;
+  const hasTime = timeLeft != null;
+
+  // ─── CHECKS SCORE-SEULEMENT (minute inconnue, ex : BM sans current_game_time) ─
+  // Ces regles marchent quelle que soit la minute — un ecart de +3 ne peut
+  // pas donner une cote de gagnant a >5, meme au tout debut du match.
+  const isHomeWinL = /domicile|home|équipe 1|joueur 1|éq\.1/.test(L) && !/nul|draw|dnb|extérieur|away|éq\.2|joueur 2/.test(L);
+  const isAwayWinL = /extérieur|away|équipe 2|joueur 2|éq\.2/.test(L) && !/nul|draw|dnb|domicile|home|éq\.1|joueur 1/.test(L);
+  if (isHomeWinL && lead >= 3 && cote > 5) return `home menant +${lead} score-only cote>5 impossible`;
+  if (isAwayWinL && lead <= -3 && cote > 5) return `away menant +${-lead} score-only cote>5 impossible`;
+  if (isHomeWinL && lead >= 2 && cote > 8) return `home menant +${lead} cote>8 impossible`;
+  if (isAwayWinL && lead <= -2 && cote > 8) return `away menant +${-lead} cote>8 impossible`;
+  // Nul avec ecart >=3 = quasi impossible (comeback tres rare) → cote <8 suspect
+  if (/^nul$|^draw$/.test(L) && Math.abs(lead) >= 3 && cote < 6) return `nul avec ecart ${Math.abs(lead)} cote<6 impossible`;
+  // Si pas de minute → on s'arrete la (impossible d'appliquer les seuils temporels).
+  if (!hasTime) return null;
+  // Seuils temporels :
   //  >=80' + big lead → cote gagnant doit etre <1.4
   //  >=60' + lead 2+  → cote gagnant doit etre <1.7
   //  >=60' + lead 1   → cote gagnant doit etre <2.5
-  // Cote perdant (menant qui est en fait derriere) < 1.5 = impossible.
-  const isHomeWin = /domicile|home|équipe 1|joueur 1|éq\.1/.test(L) && !/nul|draw|dnb|extérieur|away|éq\.2|joueur 2/.test(L);
-  const isAwayWin = /extérieur|away|équipe 2|joueur 2|éq\.2/.test(L) && !/nul|draw|dnb|domicile|home|éq\.1|joueur 1/.test(L);
+  const isHomeWin = isHomeWinL;
+  const isAwayWin = isAwayWinL;
   const isDraw = /^nul$|^draw$/.test(L);
   const isDcX2 = /nul ou ext|x\s*2|x2/.test(L);      // Nul + Ext gagne
   const isDc1X = /dom.*nul|1\s*x|1x/.test(L);         // Dom + Nul gagne
