@@ -4,6 +4,10 @@ import { isHalfLine } from '../../core/markets.js';
 
 export function betmomoFlatOdds(markets) {
   const odds = {};
+  // Helper : ecrit une cle SEULEMENT si pas deja definie (evite overwrites
+  // entre cases qui partagent le meme slot — ex HandicapSets vs SetHandicap
+  // vs 'Sets Handicap' ecrivent tous a set_hcp_* : le premier parse gagne).
+  const setOnce = (k, v) => { if (odds[k] == null && v != null) odds[k] = v; };
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);
   const ok = (e) => e && e.price != null && Number(e.price) > 1;
@@ -191,8 +195,8 @@ export function betmomoFlatOdds(markets) {
         for (const e of list) {
           const base = Number(e.base);
           const ty = String(e.type_1 || e.type || '').toLowerCase();
-          if (ty === '1' || ty === 'home') odds[`set_hcp_home_${base}`] = price(e);
-          else if (ty === '2' || ty === 'away') odds[`set_hcp_away_${base}`] = price(e);
+          if (ty === '1' || ty === 'home') setOnce(`set_hcp_home_${base}`, price(e));
+          else if (ty === '2' || ty === 'away') setOnce(`set_hcp_away_${base}`, price(e));
         } break;
       }
       case 'TotalGamesOddorEven': {                            // Alias de TotalGamesOdd/Even
@@ -228,11 +232,17 @@ export function betmomoFlatOdds(markets) {
       case '2ndSetTotalPoints': putTotal('s2_'); break;
       case '3rdSetTotalPoints': putTotal('s3_'); break;
       case 'HandicapSets': {
+        // DEBUG : trace tous les events HandicapSets pour identifier les
+        // overwrites potentiels. Actif SEULEMENT si BM_DEBUG_HCP env est true.
+        if (process.env.BM_DEBUG_HCP === 'true') {
+          const items = list.map((e) => `${e.type_1 || e.type}=${e.price} b=${e.base}`);
+          console.log(`[BM-HCP] HandicapSets ${m.name || ''} : ${items.join(' | ')}`);
+        }
         for (const e of list) {
           const base = Number(e.base);
           const ty = String(e.type_1 || e.type || '').toLowerCase();
-          if (ty === '1' || ty === 'home') odds[`set_hcp_home_${base}`] = price(e);
-          else if (ty === '2' || ty === 'away') odds[`set_hcp_away_${base}`] = price(e);
+          if (ty === '1' || ty === 'home') setOnce(`set_hcp_home_${base}`, price(e));
+          else if (ty === '2' || ty === 'away') setOnce(`set_hcp_away_${base}`, price(e));
         } break;
       }
       // ─── BASKETBALL (BetConstruct types) ───────────────────────────────────
@@ -303,8 +313,8 @@ export function betmomoFlatOdds(markets) {
         for (const e of list) {
           const base = Number(e.base);
           const ty = String(e.type_1 || e.type || '').toLowerCase();
-          if (ty === 'home' || ty === '1') odds[`set_hcp_home_${base}`] = price(e);
-          else if (ty === 'away' || ty === '2') odds[`set_hcp_away_${base}`] = price(e);
+          if (ty === 'home' || ty === '1') setOnce(`set_hcp_home_${base}`, price(e));
+          else if (ty === 'away' || ty === '2') setOnce(`set_hcp_away_${base}`, price(e));
         } break;
       }
       // IGNORÉ : SetPointHandicap ambigu (quel set ?) — pollue set_hcp_*.
