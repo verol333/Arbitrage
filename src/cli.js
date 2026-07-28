@@ -20,32 +20,33 @@ async function sendWebhook(payload) {
   } finally { clearTimeout(t); }
 }
 
-async function notifyWebhook(result, { live = false, sport = 'football' } = {}) {
-  if (result.opportunities?.length) {
-    if (live) {
-      const first = result.opportunities[0];
-      log(`  → live sample: score=${first.live_score ?? 'null'} min=${first.live_minute ?? 'null'} period=${first.live_period ?? 'null'} src=${first.live_score_source ?? 'null'} match=${first.match_label}`);
-    }
-    // Log detaille de chaque opp pour diag (surtout traquer les surebets fantomes)
-    for (const o of result.opportunities) {
-      log(`  📊 ${o.profit_pct}% | ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${o.leg_a_odd} vs ${o.leg_b_book}:${o.leg_b_label}=${o.leg_b_odd} | ${o.match_label}`);
-    }
-    await sendWebhook({
-      type: 'arbitrage_alert',
-      scan_type: live ? 'live' : 'prematch',
-      sport,
-      timestamp: new Date().toISOString(),
-      count: result.opportunities.length,
-      opportunities: result.opportunities,
-      stats: result.stats,
-    });
+async function notifyWebhookCombined(opps, { live = false } = {}) {
+  if (!opps.length) return;
+  // Log detaille de chaque opp (tous sports confondus, tries par profit).
+  for (const o of opps) {
+    const src = o.sport ? `[${o.sport}] ` : '';
+    log(`  📊 ${o.profit_pct}% ${src}| ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${o.leg_a_odd} vs ${o.leg_b_book}:${o.leg_b_label}=${o.leg_b_odd} | ${o.match_label}`);
   }
+  // Un seul payload combine tous les sports. Chaque opp porte son 'sport'.
+  // sports_included expose la liste des sports presents pour l'app.
+  const sportsIn = [...new Set(opps.map((o) => o.sport).filter(Boolean))];
+  await sendWebhook({
+    type: 'arbitrage_alert',
+    scan_type: live ? 'live' : 'prematch',
+    sport: sportsIn.length === 1 ? sportsIn[0] : 'multi',
+    sports_included: sportsIn,
+    timestamp: new Date().toISOString(),
+    count: opps.length,
+    opportunities: opps,
+  });
 }
 
 const mode = process.argv[2] || 'prematch';
 const sports = (process.env.SCAN_SPORTS || 'football').split(',').map((s) => s.trim()).filter(Boolean);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Scan un seul sport : runScan + persistence (webhook envoye plus tard,
+// AGREGE avec les autres sports pour eviter que l'app ecrase les payloads).
 async function doScan({ live, sport }) {
   const result = await runScan({
     live, sport,
@@ -54,32 +55,36 @@ async function doScan({ live, sport }) {
     horizonHours: Number(process.env.HORIZON_HOURS || 72),
   });
   await persistOpportunities(result.opportunities, { live, sport });
-  await notifyWebhook(result, { live, sport });
   return result;
 }
 
 async function doMultiSportScan({ live }) {
   // Scan tous les sports en PARALLELE (foot + tennis + ...). Chaque sport a
-  // sa propre pipeline independante → aucun sport ne bloque un autre, pas
-  // de priorite. Le webhook envoie les opps sport-par-sport a la fin.
+  // sa propre pipeline independante → aucun sport ne bloque un autre.
   const results = await Promise.allSettled(
     sports.map(async (sport) => {
       const r = await doScan({ live, sport });
-      return { sport, opps: r.opportunities.length, ms: r.stats.duration_ms };
+      return { sport, opps: r.opportunities, ms: r.stats.duration_ms, stats: r.stats };
     }),
   );
-  let totalOpps = 0;
+  const allOpps = [];
   const allStats = [];
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     if (r.status === 'fulfilled') {
-      totalOpps += r.value.opps;
-      allStats.push(r.value);
+      allOpps.push(...r.value.opps);
+      allStats.push({ sport: r.value.sport, opps: r.value.opps.length, ms: r.value.ms });
     } else {
       log(`⚠️ ${sports[i]}: ${r.reason?.message || r.reason}`);
     }
   }
-  return { totalOpps, allStats };
+  // UN SEUL webhook pour TOUS les sports → l'app ne peut pas ecraser un
+  // sport par un autre. Chaque opp porte son propre 'sport' dans son objet.
+  if (allOpps.length) {
+    const trie = allOpps.slice().sort((a, b) => (b.profit_pct || 0) - (a.profit_pct || 0));
+    await notifyWebhookCombined(trie, { live });
+  }
+  return { totalOpps: allOpps.length, allStats };
 }
 
 if (mode === 'prematch') {
