@@ -9,6 +9,7 @@ const findMarket = (bts, name) => {
   const target = name.toLowerCase();
   return bts.find((m) => String(m?.n || '').trim().toLowerCase() === target) || null;
 };
+const findMarkets = (bts, re) => bts.filter((m) => re.test(String(m?.n || '').trim().toLowerCase()));
 
 export function yellowbetFlatOdds(bts) {
   const odds = {};
@@ -102,6 +103,75 @@ export function yellowbetFlatOdds(bts) {
       const n = lbl(o), c = priceOf(o);
       if (n === '1' || n === 'home') set(`${pfx}${keyBase}_home_${l}`, c);
       else if (n === '2' || n === 'away') set(`${pfx}${keyBase}_away_${-l}`, c);
+    }
+  }
+  // Tennis — noms variables FR/EN. On garde une section dédiée pour éviter de
+  // mélanger handicap jeux, handicap sets, total jeux match et total sets.
+  for (const mkt of findMarkets(bts, /\b(match\s*winner|winner|vainqueur|gagnant)\b/)) {
+    if (/set|handicap|total|correct|score/i.test(mkt.n || '')) continue;
+    for (const o of mkt.odds || []) {
+      const n = lbl(o), c = priceOf(o);
+      if (n === '1' || /home|joueur\s*1|player\s*1|competitor\s*1/.test(n)) set('match_1', c);
+      else if (n === '2' || /away|joueur\s*2|player\s*2|competitor\s*2/.test(n)) set('match_2', c);
+    }
+  }
+  for (const mkt of findMarkets(bts, /\b(total\s*games?|games?\s*(u\/o|under\/over|over\/under)|total\s*jeux)\b/)) {
+    if (/player|joueur|team|home|away|set|half/i.test(mkt.n || '')) continue;
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (/over|plus/.test(n)) set(`match_over_${l}`, c);
+      else if (/under|moins/.test(n)) set(`match_under_${l}`, c);
+    }
+  }
+  for (const mkt of findMarkets(bts, /\b(total\s*sets?|sets?\s*(u\/o|under\/over|over\/under)|total\s*sets?)\b/)) {
+    if (/correct|score|handicap/i.test(mkt.n || '')) continue;
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (/over|plus/.test(n)) set(`set_over_${l}`, c);
+      else if (/under|moins/.test(n)) set(`set_under_${l}`, c);
+    }
+  }
+  for (const mkt of bts) {
+    const mn = String(mkt?.n || '').toLowerCase();
+    const setWinner = mn.match(/\b(?:set\s*([123])|([123])(?:st|nd|rd)?\s*set)\b.*\b(winner|vainqueur|gagnant)\b/);
+    if (!setWinner) continue;
+    const pfx = `s${setWinner[1] || setWinner[2]}_`;
+    for (const o of mkt.odds || []) {
+      const n = lbl(o), c = priceOf(o);
+      if (n === '1' || /home|joueur\s*1|player\s*1|competitor\s*1/.test(n)) set(`${pfx}match_1`, c);
+      else if (n === '2' || /away|joueur\s*2|player\s*2|competitor\s*2/.test(n)) set(`${pfx}match_2`, c);
+    }
+  }
+  for (const mkt of bts) {
+    const mn = String(mkt?.n || '').toLowerCase();
+    const setTotal = mn.match(/\b(?:set\s*([123])|([123])(?:st|nd|rd)?\s*set)\b.*\b(total\s*games?|games?\s*(u\/o|under\/over|over\/under)|total\s*jeux)\b/);
+    if (!setTotal) continue;
+    const pfx = `s${setTotal[1] || setTotal[2]}_`;
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (/over|plus/.test(n)) set(`${pfx}over_${l}`, c);
+      else if (/under|moins/.test(n)) set(`${pfx}under_${l}`, c);
+    }
+  }
+  for (const mkt of bts) {
+    const mn = String(mkt?.n || '').toLowerCase();
+    if (!/\b(player|joueur|competitor)\s*[12].*\b(total\s*games?|total\s*jeux|games?\s*(u\/o|under\/over|over\/under))\b/.test(mn)) continue;
+    const side = /\b(player|joueur|competitor)\s*1\b/.test(mn) ? 'home' : 'away';
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (/over|plus/.test(n)) set(`tt_${side}_over_${l}`, c);
+      else if (/under|moins/.test(n)) set(`tt_${side}_under_${l}`, c);
+    }
+  }
+  for (const mkt of findMarkets(bts, /\b(total\s*games?|games?)\b.*\b(odd\/even|even\/odd|pair|impair)\b|\b(odd\/even|even\/odd|pair|impair)\b.*\b(total\s*games?|games?)\b/)) {
+    for (const o of mkt.odds || []) {
+      const n = lbl(o), c = priceOf(o);
+      if (/odd|impair/.test(n)) set('odd', c);
+      else if (/even|pair/.test(n)) set('even', c);
     }
   }
   // Individual totals.
