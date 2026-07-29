@@ -121,6 +121,72 @@ export async function getOdds(matchId) {
         else if (/aucun|no goal|none/i.test(s)) odds.fts_none = Number(it.odds);
       }
     }
+    // ─── TENNIS bettype IDs (probe v3 : Lehecka vs Wong dump) ────────────────
+    // Match Winner 2-way (pas de X).
+    else if (id === 10002) {
+      for (const it of items) {
+        const s = (it.shortName || '').trim();
+        if (s === '1') odds.match_1 = Number(it.odds);
+        else if (s === '2') odds.match_2 = Number(it.odds);
+      }
+    }
+    // Total Games (match). ctx.total = 20.5/21.5/22.5
+    else if (id === 10155) readTotal(items, total, `match_over_${total}`, `match_under_${total}`);
+    // Sets Handicap (Ecart de sets). shortName "1 (-1.5)" / "2 (+1.5)"
+    else if (id === 10044) readHcpEcart(bt, items, (l) => `set_hcp_home_${l}`, (l) => `set_hcp_away_${l}`);
+    // Games Handicap (Ecart de jeux)
+    else if (id === 10045) readHcpEcart(bt, items, (l) => `hcp_home_${l}`, (l) => `hcp_away_${l}`);
+    // Player 1 Total Games (tt_home)
+    else if (id === 10048) {
+      if (total != null && isHalfLine(total)) for (const it of items) {
+        if (/>|\+|plus|over/.test(it.shortName)) odds[`tt_home_over_${total}`] = Number(it.odds);
+        else if (/<|moins|under/.test(it.shortName)) odds[`tt_home_under_${total}`] = Number(it.odds);
+      }
+    }
+    // Player 2 Total Games (tt_away)
+    else if (id === 10157) {
+      if (total != null && isHalfLine(total)) for (const it of items) {
+        if (/>|\+|plus|over/.test(it.shortName)) odds[`tt_away_over_${total}`] = Number(it.odds);
+        else if (/<|moins|under/.test(it.shortName)) odds[`tt_away_under_${total}`] = Number(it.odds);
+      }
+    }
+    // Total exact de sets (2 ou 3 en best-of-3) → set_under/over_2.5
+    else if (id === 10158) {
+      for (const it of items) {
+        const s = (it.shortName || '').trim();
+        if (s === '2') odds['set_under_2.5'] = Number(it.odds);
+        else if (s === '3') odds['set_over_2.5'] = Number(it.odds);
+      }
+    }
+    // Vainqueur du set (per-set winner). ctx.setnr = "1"/"2"/"3"
+    // shortName format "1er - 1" / "2ème - 2" etc.
+    else if (id === 10161) {
+      const setnr = ctxNum(bt, 'setnr');
+      if (setnr >= 1 && setnr <= 3) {
+        const pfx = `s${setnr}_`;
+        for (const it of items) {
+          const s = (it.shortName || '');
+          if (/-\s*1\s*$/.test(s)) odds[`${pfx}match_1`] = Number(it.odds);
+          else if (/-\s*2\s*$/.test(s)) odds[`${pfx}match_2`] = Number(it.odds);
+        }
+      }
+    }
+    // Per-set games handicap (Ecart de jeux dans le set)
+    else if (id === 10162) {
+      const setnr = ctxNum(bt, 'setnr');
+      if (setnr >= 1 && setnr <= 3) {
+        const pfx = `s${setnr}_`;
+        readHcpEcart(bt, items, (l) => `${pfx}hcp_home_${l}`, (l) => `${pfx}hcp_away_${l}`);
+      }
+    }
+    // Per-set total games (Nombre de jeux du set)
+    else if (id === 10163) {
+      const setnr = ctxNum(bt, 'setnr');
+      if (setnr >= 1 && setnr <= 3 && total != null && isHalfLine(total)) {
+        const pfx = `s${setnr}_`;
+        readTotal(items, total, `${pfx}over_${total}`, `${pfx}under_${total}`);
+      }
+    }
   }
   return odds;
 }
