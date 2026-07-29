@@ -1,0 +1,16 @@
+=== Test 1 : basic (1 credit) sur sports-api.betpawa.cg/v1/sports/events-count ===
+  status=502 credits=? remaining=? len=458 isJson=true isCf=false ms=744
+  snippet: {"URL":"https://sports-api.betpawa.cg/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses":["The hostname is not valid for scraping.","The 
+
+=== Test 2 : render=true (5 credits) ===
+  status=502 credits=? remaining=? len=458 isJson=true isCf=false ms=519
+  snippet: {"URL":"https://sports-api.betpawa.cg/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses":["The hostname is not valid for scraping.","The 
+
+=== Test 3 : super=true (10 credits) — IP residentielle ===
+  status=502 credits=? remaining=? len=458 isJson=true isCf=false
+  snippet: {"URL":"https://sports-api.betpawa.cg/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses":["The hostname is not valid for scraping.","The 
+
+=== Résumé ===
+  basic: 502 ✓JSON 
+  render: 502 ✓JSON 
+  super: 502 ✓JSON 
