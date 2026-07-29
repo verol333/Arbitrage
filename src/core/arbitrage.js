@@ -91,6 +91,41 @@ function dcCoherence(o, prefix = '') {
   return flags;
 }
 
+// Meme logique pour DNB (Draw No Bet) vs 1X2 : dnb_1 gagne si home gagne,
+// remboursement si nul → fair dnb_1 = (P(1)+P(X)/2)/(P(1)+P(2)) approximativement.
+// En pratique on utilise l'egalite classique : 1/dnb_1 + 1/dnb_2 ≈ 1 + margin
+// et 1/dnb_1 ≈ P_fair(1) / (P_fair(1)+P_fair(2)).
+// Un book qui expose DNB incoherente avec son 1X2 → skip cette DNB.
+function dnbCoherence(o, prefix = '') {
+  const m1 = o[`${prefix}match_1`], mX = o[`${prefix}match_X`], m2 = o[`${prefix}match_2`];
+  const flags = { dnb_1: true, dnb_2: true };
+  if (!m1 || !mX || !m2) return flags;
+  const totalRaw = 1 / m1 + 1 / mX + 1 / m2;
+  if (totalRaw < 0.9 || totalRaw > 1.5) return flags;
+  const p1 = (1 / m1) / totalRaw, p2 = (1 / m2) / totalRaw;
+  const p1Cond = p1 / (p1 + p2), p2Cond = p2 / (p1 + p2);
+  const check = (key, expected) => {
+    const dnb = o[`${prefix}${key}`];
+    if (!dnb) return true;
+    const raw = 1 / dnb;
+    // Tolerance 20% (DNB moins standardise que DC)
+    return raw >= expected * 0.80 && raw <= expected * 1.25;
+  };
+  flags.dnb_1 = check('dnb_1', p1Cond);
+  flags.dnb_2 = check('dnb_2', p2Cond);
+  return flags;
+}
+
+// Check general 2-way : si book expose SUR LE MEME MARCHE les 2 cotes, verifier
+// que 1/A + 1/B <= 1.20 (margin book max 20%). Si superieur, une des 2 cotes
+// est aberrante → book unreliable pour ce marche. Utilise pour proteger contre
+// des bugs isoles sur BTTS/Total/Hcp/Corners d'un book.
+function twoWaySane(oddA, oddB) {
+  if (!oddA || !oddB) return true; // pas de check possible
+  const sum = 1 / oddA + 1 / oddB;
+  return sum <= 1.20;
+}
+
 // Compare deux jeux de cotes plates 3-way (foot) entre 2 books quelconques.
 // Traite : Total, 1X2+DC, DNB, Handicap, Total indiv., BTTS, Mi-temps, Corners,
 // Pair/Impair, 1ère équipe à marquer, Mi-temps la plus prolifique.
@@ -116,9 +151,10 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     if (dcB[dk]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[dk], bookB);
     if (dcA[dk]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[dk], bookA);
   }
-  // Draw No Bet.
-  pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB);
-  pushArb(out, 'Draw No Bet', 'Domicile (DNB)', ob.dnb_1, bookB, 'Extérieur (DNB)', oa.dnb_2, bookA);
+  // Draw No Bet — cross-check DNB vs 1X2 self-consistency intra-book.
+  const dnbA = dnbCoherence(oa, ''), dnbB = dnbCoherence(ob, '');
+  if (dnbB.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB);
+  if (dnbA.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', ob.dnb_1, bookB, 'Extérieur (DNB)', oa.dnb_2, bookA);
   // Handicaps ASIATIQUES ±L (demi-lignes, 2-way sans nul). Label explicite
   // pour distinguer du Handicap Européen 3-way (non traité ici).
   for (const l of HCP_LINES) {
@@ -166,11 +202,13 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, lbl, 'Oui', oa[`${pfx}btts_yes`], bookA, 'Non', ob[`${pfx}btts_no`], bookB);
     pushArb(out, lbl, 'Oui', ob[`${pfx}btts_yes`], bookB, 'Non', oa[`${pfx}btts_no`], bookA);
   }
-  // DNB par mi-temps.
-  pushArb(out, '1MT Draw No Bet', 'Dom. (DNB)', oa.ht_dnb_1, bookA, 'Ext. (DNB)', ob.ht_dnb_2, bookB);
-  pushArb(out, '1MT Draw No Bet', 'Dom. (DNB)', ob.ht_dnb_1, bookB, 'Ext. (DNB)', oa.ht_dnb_2, bookA);
-  pushArb(out, '2MT Draw No Bet', 'Dom. (DNB)', oa.h2_dnb_1, bookA, 'Ext. (DNB)', ob.h2_dnb_2, bookB);
-  pushArb(out, '2MT Draw No Bet', 'Dom. (DNB)', ob.h2_dnb_1, bookB, 'Ext. (DNB)', oa.h2_dnb_2, bookA);
+  // DNB par mi-temps — meme cross-check.
+  const dnbAht = dnbCoherence(oa, 'ht_'), dnbBht = dnbCoherence(ob, 'ht_');
+  if (dnbBht.dnb_2) pushArb(out, '1MT Draw No Bet', 'Dom. (DNB)', oa.ht_dnb_1, bookA, 'Ext. (DNB)', ob.ht_dnb_2, bookB);
+  if (dnbAht.dnb_2) pushArb(out, '1MT Draw No Bet', 'Dom. (DNB)', ob.ht_dnb_1, bookB, 'Ext. (DNB)', oa.ht_dnb_2, bookA);
+  const dnbAh2 = dnbCoherence(oa, 'h2_'), dnbBh2 = dnbCoherence(ob, 'h2_');
+  if (dnbBh2.dnb_2) pushArb(out, '2MT Draw No Bet', 'Dom. (DNB)', oa.h2_dnb_1, bookA, 'Ext. (DNB)', ob.h2_dnb_2, bookB);
+  if (dnbAh2.dnb_2) pushArb(out, '2MT Draw No Bet', 'Dom. (DNB)', ob.h2_dnb_1, bookB, 'Ext. (DNB)', oa.h2_dnb_2, bookA);
   // Pair/Impair.
   pushArb(out, 'Pair/Impair', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB);
   pushArb(out, 'Pair/Impair', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA);
