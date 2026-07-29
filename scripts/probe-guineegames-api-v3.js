@@ -36,7 +36,7 @@ console.log(`Date probe: ${dateToday}`);
 
 // Essai upcoming avec date
 console.log('\n=== upcoming football today ===');
-const up = await get('/events/upcoming', { sportId: 1, date: dateToday, limit: 20 });
+const up = await get('/events/upcoming', { sportId: 1, date: dateToday, timeOffset: 0, limit: 20 });
 if (up?.data) {
   const data = up.data;
   const cats = Array.isArray(data) ? [] : (data.categories || []);
