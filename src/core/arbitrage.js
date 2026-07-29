@@ -59,6 +59,38 @@ const linesOf = (a, b, pattern) => {
   return set;
 };
 
+// Cross-check self-consistency DC vs 1X2 dans UN book. Un book qui expose
+// 1X2 ET DC doit satisfaire (a la marge pres) :
+//   1/dc_XY  >= P_fair(X) + P_fair(Y) - 15%
+// Sinon la DC est "trop haute" (implique moins de prob que ses composantes)
+// = book a une erreur d'affichage/cache → sur-cote fake qui creerait des
+// arbs fantomes. Bug decouvert 29/07 : Congobet Victoria-Unirea Roumanie
+// (Home=7.2 X=4.8 Away=1.22) exposait X2=1.47 alors que fair(X+away)=0.88
+// → surebet fake 24% face au 1xbet Home=13.2.
+// Retourne { has1x2, dc1x, dc12, dcX2 } — flags true si CE marche DC est
+// coherent (ou si aucune verification possible, on laisse passer).
+function dcCoherence(o, prefix = '') {
+  const m1 = o[`${prefix}match_1`], mX = o[`${prefix}match_X`], m2 = o[`${prefix}match_2`];
+  const flags = { dc_1X: true, dc_12: true, dc_X2: true };
+  if (!m1 || !mX || !m2) return flags; // pas de 1X2 : on ne peut pas verifier
+  const totalRaw = 1 / m1 + 1 / mX + 1 / m2;
+  if (totalRaw < 0.9 || totalRaw > 1.5) return flags; // 1X2 lui-meme suspect
+  const p1 = (1 / m1) / totalRaw, pX = (1 / mX) / totalRaw, p2 = (1 / m2) / totalRaw;
+  const check = (key, sumFair) => {
+    const dc = o[`${prefix}${key}`];
+    if (!dc) return true;
+    const raw = 1 / dc;
+    // Book DC implicite doit etre >= somme des probs fair de ses 2 outcomes
+    // (avec 15% de tolerance descendante pour marges elevees). Si raw << fair,
+    // la cote DC est trop haute donc bugguee.
+    return raw >= sumFair * 0.85;
+  };
+  flags.dc_1X = check('dc_1X', p1 + pX);
+  flags.dc_12 = check('dc_12', p1 + p2);
+  flags.dc_X2 = check('dc_X2', pX + p2);
+  return flags;
+}
+
 // Compare deux jeux de cotes plates 3-way (foot) entre 2 books quelconques.
 // Traite : Total, 1X2+DC, DNB, Handicap, Total indiv., BTTS, Mi-temps, Corners,
 // Pair/Impair, 1ère équipe à marquer, Mi-temps la plus prolifique.
@@ -72,15 +104,17 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB);
     pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA);
   }
-  // 1X2 croisés Double Chance.
+  // 1X2 croisés Double Chance. Cross-check DC vs 1X2 self-consistency dans le
+  // book qui fournit la DC (evite les fausses opps type Congobet 24% Victoria).
+  const dcA = dcCoherence(oa, ''), dcB = dcCoherence(ob, '');
   const dcPairs = [
     ['match_1', 'dc_X2', '1X2 — 1 + X2', 'Domicile', 'Nul ou Extérieur'],
     ['match_2', 'dc_1X', '1X2 — 2 + 1X', 'Extérieur', 'Domicile ou Nul'],
     ['match_X', 'dc_12', '1X2 — X + 12', 'Nul', 'Un gagnant (12)'],
   ];
   for (const [sk, dk, fam, aL, bL] of dcPairs) {
-    pushArb(out, fam, aL, oa[sk], bookA, bL, ob[dk], bookB);
-    pushArb(out, fam, aL, ob[sk], bookB, bL, oa[dk], bookA);
+    if (dcB[dk]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[dk], bookB);
+    if (dcA[dk]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[dk], bookA);
   }
   // Draw No Bet.
   pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB);
@@ -115,15 +149,16 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
       pushArb(out, fam, `+${l}`, ob[ok], bookB, `−${l}`, oa[uk], bookA);
     }
   }
-  // 1X2+DC mi-temps.
+  // 1X2+DC mi-temps. Meme cross-check DC vs 1X2 par mi-temps.
   for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
+    const dcAhalf = dcCoherence(oa, pfx), dcBhalf = dcCoherence(ob, pfx);
     for (const [sk, dk, aL, bL] of [
       ['match_1', 'dc_X2', 'Domicile', 'Nul ou Ext.'],
       ['match_2', 'dc_1X', 'Extérieur', 'Dom. ou Nul'],
       ['match_X', 'dc_12', 'Nul', 'Un gagnant'],
     ]) {
-      pushArb(out, `${lbl} 1X2 — ${aL}`, aL, oa[`${pfx}${sk}`], bookA, bL, ob[`${pfx}${dk}`], bookB);
-      pushArb(out, `${lbl} 1X2 — ${aL}`, aL, ob[`${pfx}${sk}`], bookB, bL, oa[`${pfx}${dk}`], bookA);
+      if (dcBhalf[dk]) pushArb(out, `${lbl} 1X2 — ${aL}`, aL, oa[`${pfx}${sk}`], bookA, bL, ob[`${pfx}${dk}`], bookB);
+      if (dcAhalf[dk]) pushArb(out, `${lbl} 1X2 — ${aL}`, aL, ob[`${pfx}${sk}`], bookB, bL, oa[`${pfx}${dk}`], bookA);
     }
   }
   // BTTS par mi-temps.
