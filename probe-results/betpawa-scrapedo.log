@@ -1,38 +1,82 @@
-=== 1 : dump SPA shell www.betpawa.ke/ pour extraire endpoints ===
-  status=200 len=7282
-  JS bundles found: 18
-    /_next/static/chunks/polyfills-42372ed130431b0a.js
-    /env.js?v=2.236.103
-    /_next/static/chunks/webpack-3e88249d52705f80.js
-    /_next/static/chunks/build-version-6d8f7a427f35c351.js
-    /_next/static/chunks/main-c36231d4f7515711.js
-  API-like URLs in shell: 0
+=== 1 : fetch /events (contient SSR data probablement) ===
+  status=200 len=7978
+  __NEXT_DATA__ found, 161 bytes
+  page: /events
+  buildId: K-QaKK3K5hAUUXamhTsb1
+  runtimeConfig keys: 
+  props keys: pageProps
+  pageProps keys: 
+  pageProps sample: {}
 
-=== 2 : tester routes SSR /upcoming/football, /events, /event/... ===
-  /upcoming/football: status=200 len=7282 hasOddsPattern=true
-    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
-  /events: status=200 len=7978 hasOddsPattern=true
-    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
-  /live: status=200 len=7988 hasOddsPattern=true
-    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
-  /sports/football: status=200 len=7282 hasOddsPattern=true
-    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
+=== 2 : fetch env.js pour identifier API base URL ===
+  status=200 len=793
+  content: window.APP_CONFIG = {
+  sentry: {
+    dsn: 'https://7dbd827f7c2773299b99ce1c442758d5@o318738.ingest.us.sentry.io/4509988594384896',
+    environment: 'production',
+    sampleRate: 0.1,
+    tracesSampleRate: 0.1,
+    release: '2.236.103',
+    enabled: true,
+    debug: false,
+    enableLogs: true
+  },
+  turnstile: {
+    siteKey: '0x4AAAAAAACPCDJy5S2_QFTr'
+  },
+  firebase: {
+    apiKey: 'AIzaSyAYoNFpEfI44t9T-SMg_THZgP8Mc5iuwNA',
+    authDomain: 'betpawa-firebase-web.firebaseapp.com',
+    projectId: 'betpawa-firebase-web',
+    storageBucket: 'betpawa-firebase-web.firebasestorage.app',
+    messagingSenderId: '559534940926',
+    appId: '1:559534940926:web:99ded9de507365be8b3baf',
+    vapidKey: 'BGkAn84BV97mRekGg7NKla0ANRVdA-GXokZu0w13LrC2oAF67Y2SLlt5E_Po2pHACunEilsaDtO9zWL54OHWo_U'
+  }
+};
 
-=== 3 : tester patterns API relatifs ===
-  /api/sports-service/v1/sports/events-count?eventState=PRE_MATCH: status=404 len=96 isJson=true
-    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"df494934-7c24-4b1b-85c7-b0efd8ac08b6"}
-  /api/sports-service/v1/events/upcoming?sportId=1&limit=5: status=404 len=96 isJson=true
-    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"cc704e89-5b4b-4068-be3f-45ecb0e9192d"}
-  /_next/data/latest/upcoming/football.json: status=404 len=7101 isJson=false
-    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
-  /api/v1/sports: status=404 len=96 isJson=true
-    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"e9f6415a-e8f0-458a-870e-289fd8c6b4be"}
-  /api/events: status=404 len=96 isJson=true
-    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"835d815e-2216-4310-804f-d91f1865a069"}
 
-=== 4 : chercher subdomains dans les JS bundles ===
-  fetching https://www.betpawa.ke/_next/static/chunks/polyfills-42372ed130431b0a.js
-  status=200 len=112541
-  0 unique API-ish URLs in bundle:
+=== 3 : fetch main JS chunk et grep /api/ patterns ===
+  status=200 len=478494
+  0 API paths:
+
+=== 4 : lister tous les chunks _app + _document + pages ===
+  pages chunks in shell: 2
+    /_next/static/chunks/pages/_app-9fc65478a0b0092f.js
+    /_next/static/chunks/pages/%5B%5B...page%5D%5D-5ca187021eb1ea15.js
+
+  ↳ fetching /_next/static/chunks/pages/_app-9fc65478a0b0092f.js
+  status=200 len=1037799
+  39 API paths in _app:
+    /api/sportsbook/v2
+    /api/sportsbook/v3
+    /api/sportsbook/v4
+    /api/preference/v1
+    /api/payment/v1
+    /api/payment/v2
+    /api/fixed-odds-bets/v1
+    /api/betslip/validator/v2/place-bet
+    /api/integration/v1
+    /api/integration/v3
+    /api/user/v1
+    /api/user/v3
+    /api/messaging/v1
+    /api/sportsbook/virtual/v2
+    /api/pool/v1
+    /api/progressive-jackpot/v1
+    /api/cashout/v2
+    /api/betslip/view/v1/betslip
+    /api/incident-management-tool
+    /api/firebase/v1
+    /api/kyc-verification/v1
+    /api/ledger/v2/funds/balance/list
+    /api/sportsbook/v1
+    /api/messaging/v2/messages
+    /api/sportsbook/virtual/v3
+    /api/user/v2
+    /api/auth/v1/logout
+    /api/ledger/v1/funds/transactions
+    /api/compensation/v1
+    /api/pool/v1/ticket
 
 === FIN ===
