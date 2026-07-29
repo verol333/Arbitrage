@@ -1,16 +1,35 @@
-=== Test 1 : basic (1 credit) sur sports-api.betpawa.cg/v1/sports/events-count ===
-  status=502 credits=? remaining=? len=458 isJson=true isCf=false ms=744
-  snippet: {"URL":"https://sports-api.betpawa.cg/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses":["The hostname is not valid for scraping.","The 
+=== Phase 1 : verifier accessibilite www.betpawa.<TLD> (HTML basic, 1 credit) ===
+  .ke: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+  .ug: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+  .rw: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+  .zm: status=502 len=408 isCf=false snippet={"URL":"https://www.betpawa.zm/","StatusCode":502,"Message":["You provided a private, inte
+  .gh: status=502 len=408 isCf=false snippet={"URL":"https://www.betpawa.gh/","StatusCode":502,"Message":["You provided a private, inte
+  .tz: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+  .ng: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+  .cm: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+  .cg: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
 
-=== Test 2 : render=true (5 credits) ===
-  status=502 credits=? remaining=? len=458 isJson=true isCf=false ms=519
-  snippet: {"URL":"https://sports-api.betpawa.cg/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses":["The hostname is not valid for scraping.","The 
+=== Phase 2 : identifier TLDs accessibles (200 non-CF) ===
+  7 TLDs OK : ke, ug, rw, tz, ng, cm, cg
 
-=== Test 3 : super=true (10 credits) — IP residentielle ===
-  status=502 credits=? remaining=? len=458 isJson=true isCf=false
-  snippet: {"URL":"https://sports-api.betpawa.cg/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses":["The hostname is not valid for scraping.","The 
+=== Phase 3 : pour chaque TLD accessible, tester sports-api ===
 
-=== Résumé ===
-  basic: 502 ✓JSON 
-  render: 502 ✓JSON 
-  super: 502 ✓JSON 
+--- .ke ---
+  api basic: status=502 len=458 isJson=true isCf=false credits=? remaining=?
+  snippet: {"URL":"https://sports-api.betpawa.ke/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+  api render: status=502 len=458 isJson=true isCf=false credits=? remaining=?
+  snippet: {"URL":"https://sports-api.betpawa.ke/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+
+--- .ug ---
+  api basic: status=502 len=458 isJson=true isCf=false credits=? remaining=?
+  snippet: {"URL":"https://sports-api.betpawa.ug/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+  api render: status=502 len=458 isJson=true isCf=false credits=? remaining=?
+  snippet: {"URL":"https://sports-api.betpawa.ug/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+
+--- .rw ---
+  api basic: status=502 len=458 isJson=true isCf=false credits=? remaining=?
+  snippet: {"URL":"https://sports-api.betpawa.rw/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+  api render: status=502 len=458 isJson=true isCf=false credits=? remaining=?
+  snippet: {"URL":"https://sports-api.betpawa.rw/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+
+=== FIN ===
