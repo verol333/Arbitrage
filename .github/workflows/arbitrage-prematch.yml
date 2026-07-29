@@ -39,7 +39,7 @@ jobs:
         working-directory: .
         continue-on-error: true
         timeout-minutes: 3
-        run: node scripts/probe-betpawa-v2.js
+        run: node scripts/probe-betpawa-v3.js
         env:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
