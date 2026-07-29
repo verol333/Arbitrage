@@ -2,6 +2,10 @@ name: Probe — BetPawa via Scrape.do
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/probe-betpawa-scrapedo.js'
+      - '.github/workflows/probe-betpawa-scrapedo.yml'
 
 jobs:
   probe:
