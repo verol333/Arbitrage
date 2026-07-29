@@ -5,8 +5,8 @@
 import { pbGet, extractEvents, splitTeams, leagueOf, isVirtual, isOutright } from './api.js';
 
 const SPORT_ID_FOOT = '1';
-// Congo-Brazzaville = UTC+1 fixe.
-const TZ_OFFSET_MS = 60 * 60 * 1000;
+// Guinee = UTC+0. timeOffset envoye a l'API = 0.
+const TZ_OFFSET_MS = 0;
 
 function dayKey(ms) {
   const d = new Date(ms + TZ_OFFSET_MS);
@@ -53,10 +53,10 @@ export async function listPrematch({ horizonHours = 72 } = {}) {
   let filteredHorizon = 0, filteredDuplicate = 0, filteredVirtual = 0;
 
   const pages = await Promise.all(dates.map((date) => pbGet(
-    '/events/upcoming', { timeOffset: '-60', sportId: SPORT_ID_FOOT, date }, { long: true },
+    '/events/upcoming', { timeOffset: '0', sportId: SPORT_ID_FOOT, date }, { long: true },
   )));
   // On enrichit aussi via highlights (matchs "à la une" pas toujours dans upcoming).
-  pages.push(await pbGet('/events/highlights', { sportId: SPORT_ID_FOOT }, { long: true }));
+  pages.push(await pbGet('/events/highlights', { sportId: SPORT_ID_FOOT, timeOffset: '0' }, { long: true }));
 
   for (const page of pages) {
     for (const ev of extractEvents(page)) {
