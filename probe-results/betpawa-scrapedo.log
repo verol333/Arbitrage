@@ -1,34 +1,76 @@
-=== 1 : render=true sur /events/list/upcoming (5 credits) ===
-  status=200 len=57932 ms=6699
-  numeric odds-like values: 3510
-  sample: 2.236, 2.236, 0.552, 7.447, 8.552, 0.552, 3.447, 8.552, 7.447, 3.447, 0.552, 1.447, 2.552, 0.552, 3.447, 2.552, 1.447, 3.447, 0.552, 5.447
-  event links: 0
-  team names: 0
-  body middle: 2-14 / iOS 12-14 - prevents crash before async polyfill loads (function() { if (typeof BigInt === 'undefined') { window.BigInt = function(value) { return Number(value); }; window.BigInt.asIntN = function(bits, n) { return n; }; window.BigInt.asUintN = function(bits, n) { return n; }; window.BigInt.__shim = true; } })(); // MediaQueryList.addEventListener polyfill for iOS < 14 / Safari < 14 // iOS 12 does not expose MediaQueryList globally, so patch via instance prototype. (function() { if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return; var probe = window.matchMedia('(min-width: 0px)'); if (!probe || typeof probe.addEventListener === 'function') return; if (typeof probe.addListener !== 'function') return; var proto = Object.getPrototypeOf(probe); if (!prot
+=== 15 chunks à scanner ===
+  main-c36231d4f7515711.js: len=478494 eps=0
+  _app-9fc65478a0b0092f.js: len=1037799 eps=39
+  62033-312a3cdfab38c19a.js: len=14098 eps=0
+  51666-7a86a3d51cfd86bd.js: len=9367 eps=0
+  9519-947c599fb64e5f2c.js: len=35603 eps=0
+  98148-0225b3c802978383.js: len=22116 eps=0
+  4060-b6020e3ea6cbbb8c.js: len=9182 eps=0
+  %5B%5B...page%5D%5D-5ca187021e: len=1695 eps=0
 
-=== 2 : chercher URLs API dans HTML rendu ===
-  0 API-like URLs:
+=== 39 endpoints uniques ===
+  /api/auth/v1/logout
+  /api/betslip/validator/v2/place-bet
+  /api/betslip/view/v1/betslip
+  /api/brand/v1
+  /api/campaign/v1/campaign/eligibility
+  /api/cashout/v2
+  /api/compensation/v1
+  /api/firebase/v1
+  /api/fixed-odds-bets/admin/v1
+  /api/fixed-odds-bets/v1
+  /api/fixed-odds-bets/v2
+  /api/incident-management-tool
+  /api/integration/v1
+  /api/integration/v2
+  /api/integration/v3
+  /api/kyc-verification/v1
+  /api/ledger/v1/funds/transactions
+  /api/ledger/v2/funds/balance/list
+  /api/messaging/v1
+  /api/messaging/v2/messages
+  /api/miniapp/v1
+  /api/payment/v1
+  /api/payment/v2
+  /api/pool/v1
+  /api/pool/v1/ticket
+  /api/preference/v1
+  /api/progressive-jackpot/v1
+  /api/region/v2
+  /api/sportsbook/v1
+  /api/sportsbook/v1/video-stream/perform
+  /api/sportsbook/v1/video-stream/sportradar
+  /api/sportsbook/v2
+  /api/sportsbook/v3
+  /api/sportsbook/v4
+  /api/sportsbook/virtual/v2
+  /api/sportsbook/virtual/v3
+  /api/user/v1
+  /api/user/v2
+  /api/user/v3
 
-=== 3 : tester chunks framework + webpack + main-app ===
-  total chunks in shell: 15
-    /_next/static/chunks/polyfills-42372ed130431b0a.js
-    /_next/static/chunks/webpack-3e88249d52705f80.js
-    /_next/static/chunks/build-version-6d8f7a427f35c351.js
-    /_next/static/chunks/main-c36231d4f7515711.js
-    /_next/static/chunks/proto-json-converter-4ba0aec22250826e.js
-    /_next/static/chunks/zod-b9d658137d322042.js
-    /_next/static/chunks/calculator-bundle-c4ce2805aadba300.js
-    /_next/static/chunks/redux-0dbe7600fc5407d2.js
-    /_next/static/chunks/pages/_app-9fc65478a0b0092f.js
-    /_next/static/chunks/62033-312a3cdfab38c19a.js
-    /_next/static/chunks/51666-7a86a3d51cfd86bd.js
-    /_next/static/chunks/9519-947c599fb64e5f2c.js
-    /_next/static/chunks/98148-0225b3c802978383.js
-    /_next/static/chunks/4060-b6020e3ea6cbbb8c.js
-    /_next/static/chunks/pages/%5B%5B...page%5D%5D-5ca187021eb1ea15.js
+=== Par chunk ===
 
-  ↳ fetching webpack chunk /_next/static/chunks/webpack-3e88249d52705f80.js
-  status=200 len=27811
-  chunk numeric IDs: 1485
+_app-9fc65478a0b0092f.js:
+  /api/sportsbook/v2
+  /api/sportsbook/v3
+  /api/sportsbook/v4
+  /api/preference/v1
+  /api/payment/v1
+  /api/payment/v2
+  /api/fixed-odds-bets/v1
+  /api/betslip/validator/v2/place-bet
+  /api/integration/v1
+  /api/integration/v3
+  /api/user/v1
+  /api/user/v3
+  /api/messaging/v1
+  /api/sportsbook/virtual/v2
+  /api/pool/v1
+  /api/progressive-jackpot/v1
+  /api/cashout/v2
+  /api/betslip/view/v1/betslip
+  /api/incident-management-tool
+  /api/firebase/v1
 
 === FIN ===
