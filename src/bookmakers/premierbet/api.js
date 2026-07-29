@@ -1,20 +1,19 @@
-// PremierBet Congo — API mobile (sports-api.premierbet.com/cg/v1).
-// Client HTTP direct qui reproduit fidelement le script Python de reference
-// (requests.Session sur /cg/v1 avec country=CG&group=g5&platform=mobile&locale=fr).
-// Aucun scraping, aucun navigateur, aucun cookie/token — endpoints publics
-// decouverts par sniffing de l'app mobile Android.
+// PremierBet via Guineegames — API EDITEC (sports-api.guineegames.com/v1).
+// Le premierbet.com direct est bloque par Cloudflare au niveau IP GH Actions.
+// Guineegames est une marque soeur EDITEC utilisant EXACTEMENT LE MEME BACKEND
+// (plateforme "sahara.editec-online.com") donc EXACTEMENT LES MEMES COTES que
+// PremierBet. User a verifie via F12 network inspection.
+// L'endpoint retrouve : GET /v1/events/{id}?country=GN&group=g6&platform=desktop
 //
-// Logging structure sans donnee sensible :
-//   [premierbet] GET /path?params status=N size=Nkb dur=Nms keys=[a,b,c]
-// Permet de comparer environnement local (200 OK) vs prod GH Actions
-// (403 CF observe — bloque au niveau IP source).
+// Comme le backend est identique, on labelle les cotes comme "premierbet" dans
+// l'engine d'arbitrage — c'est ce que l'user veut afficher dans son app.
 import { createSemaphore, createTtlCache } from '../../net/limiter.js';
 
-const BASE = 'https://sports-api.premierbet.com/cg/v1';
+const BASE = 'https://sports-api.guineegames.com/v1';
 const COMMON_PARAMS = {
-  country: 'CG',
-  group: 'g5',
-  platform: 'mobile',
+  country: 'GN',
+  group: 'g6',
+  platform: 'desktop',
   locale: 'fr',
 };
 // Le Python de reference n'envoie AUCUN header custom ; on garde le meme
@@ -38,12 +37,23 @@ function logResult({ path, params, status, size, dur, jsonKeys, snippet }) {
   console.log(`[premierbet] GET ${path}?${params} status=${status} size=${size}b dur=${dur}ms ${keys}${err}`);
 }
 
+// Headers navigateur pour paraitre venant de guineegames.com (le meme
+// front-end qui fait ces calls). Sans ces headers l'API renvoie 403.
 async function httpGet(url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 25_000);
   const t0 = Date.now();
   try {
-    const res = await fetch(url, { headers: HEADERS, signal: ctrl.signal });
+    const res = await fetch(url, {
+      headers: {
+        ...HEADERS,
+        origin: 'https://www.guineegames.com',
+        referer: 'https://www.guineegames.com/',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
+        'accept-language': 'fr-FR,fr;q=0.9',
+      },
+      signal: ctrl.signal,
+    });
     const body = await res.text();
     return { status: res.status, body, dur: Date.now() - t0 };
   } catch (e) {
