@@ -1,9 +1,10 @@
 import { xget, parseTs, splitTeams, isVirtual } from './api.js';
 import { sportcashFlatOdds } from './parse.js';
 
-const SPORT_LABEL = 'Football';
+// Label 'ds' expose par Sportcash pour chaque sport. Verifie via widget dump.
+const SPORT_LABELS = { football: 'Football', tennis: 'Tennis' };
 
-async function listSportEvents(live) {
+async function listSportEvents(live, sportLabel) {
   const [wc, hl] = await Promise.all([
     xget('getWidgetCentrali', {}),
     xget('getHomeLandingData', { timezone: '1' }),
@@ -45,7 +46,7 @@ async function listSportEvents(live) {
 
   const seen = new Set(); const out = [];
   for (const e of evs) {
-    if (e.ds !== SPORT_LABEL) continue;
+    if (e.ds !== sportLabel) continue;
     const key = `${e.p}_${e.a}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -57,11 +58,13 @@ async function listSportEvents(live) {
   return out;
 }
 
-export async function listMatches({ live = false, maxMatches, horizonHours = 72 } = {}) {
+export async function listMatches({ live = false, maxMatches, horizonHours = 72, sport = 'football' } = {}) {
+  const sportLabel = SPORT_LABELS[sport];
+  if (!sportLabel) return [];
   const limit = maxMatches ?? (live ? 200 : 600);
   const nowMs = Date.now();
   const horizonMs = nowMs + horizonHours * 3600 * 1000;
-  let events = await listSportEvents(live);
+  let events = await listSportEvents(live, sportLabel);
   if (!live) events = events.filter((e) => e.start && e.start > nowMs + 2 * 60 * 1000 && e.start <= horizonMs);
   events = events.slice(0, limit);
   if (!events.length) return [];
@@ -105,6 +108,6 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
   const parsedSizes = out.map((m) => Object.keys(sportcashFlatOdds(m.__raw?.markets || [])).length);
   const firstOk = out.find((m) => (m.__raw?.markets || []).length > 0);
   const firstCsSample = firstOk ? [...new Set((firstOk.__raw.markets || []).map((m) => m.cs))].slice(0, 20) : [];
-  console.log(`[sportcash] getEvento: ${ok} ok / ${empty} empty / ${events.length} total | raw=${JSON.stringify(rawSizes)} parsed=${JSON.stringify(parsedSizes)} first_cs=${JSON.stringify(firstCsSample)}`);
+  console.log(`[sportcash:${sport}] getEvento: ${ok} ok / ${empty} empty / ${events.length} total | raw=${JSON.stringify(rawSizes)} parsed=${JSON.stringify(parsedSizes)} first_cs=${JSON.stringify(firstCsSample)}`);
   return out;
 }

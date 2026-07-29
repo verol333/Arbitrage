@@ -11,9 +11,13 @@ export default {
   // pre-kickoff). A reactiver quand un endpoint LIVE fiable est identifie.
   supports: { prematch: true, live: false },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (sport !== 'football') return []; // tennis pas dans widgets Sportcash
+    // Tennis pas encore active : le parseur sportcash utilise des cs codes
+    // decouverts pour foot uniquement. Activer tennis sans mapping cs->famille
+    // produirait 0 cotes (comme YB LIVE l'avait fait avec ses corners). Probe
+    // requis d'abord pour lister les cs codes tennis.
+    if (sport !== 'football') return [];
     if (live) return []; // securite : refuse LIVE meme si supports.live etait vrai
-    return listMatches({ live, horizonHours });
+    return listMatches({ live, horizonHours, sport });
   },
   async getOdds(match) { return sportcashFlatOdds(match.__raw?.markets || []); },
 };

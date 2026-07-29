@@ -7,9 +7,11 @@ export default {
   label: '1win',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    // sports supportés : football, basketball, hockey, volleyball (via WIN_SID).
-    // tennis : sportId 1win peu fiable, laissé désactivé.
-    if (sport === 'tennis') return [];
+    // sports supportés : football, basketball, hockey, volleyball, tennis.
+    // Tennis reactive avec plusieurs sportIds fallback (WIN_SID_ALT.tennis).
+    // Parseur foot-oriente extrait winner/total-games/hcp-games automatiquement
+    // pour tennis (groupes 'Match Winner'/'Total'/'Handicap'). Set-based
+    // markets non extraits — deja couverts par yellowbet/apollo/betmomo.
     return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match) {
