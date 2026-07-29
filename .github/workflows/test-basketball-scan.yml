@@ -1,0 +1,61 @@
+name: TEST — Scan basketball avec logs
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/test-basketball-scan.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - name: Link node_modules
+        working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run prematch scan (log tee)
+        run: |
+          mkdir -p ../probe-results
+          node dist/action.min.js prematch 2>&1 | tee ../probe-results/scan-basketball.log || true
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          BASE44_API_URL: ${{ secrets.BASE44_API_URL }}
+          BASE44_SERVICE_KEY: ${{ secrets.BASE44_SERVICE_KEY }}
+          MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
+          HORIZON_HOURS: '72'
+          MAX_MATCHES: '600'
+          SCAN_SPORTS: 'basketball'
+      - name: Commit log
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # trim to last 500 lines to avoid huge commits
+          tail -n 500 probe-results/scan-basketball.log > probe-results/scan-basketball.tail.log
+          mv probe-results/scan-basketball.tail.log probe-results/scan-basketball.log
+          git add probe-results/scan-basketball.log
+          git commit -m "SCAN basketball run ${{ github.run_id }}" || echo "nothing to commit"
+          git push || true
