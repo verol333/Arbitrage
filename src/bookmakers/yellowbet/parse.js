@@ -9,6 +9,7 @@ const findMarket = (bts, name) => {
   const target = name.toLowerCase();
   return bts.find((m) => String(m?.n || '').trim().toLowerCase() === target) || null;
 };
+const findMarkets = (bts, re) => bts.filter((m) => re.test(String(m?.n || '').trim().toLowerCase()));
 
 // Normalise un nom d'equipe pour matching : minuscules + suppression accents
 // + suppression tokens communs (fc/sc/…), suffit ici pour comparer au libelle
