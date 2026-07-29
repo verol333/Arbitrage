@@ -1,35 +1,38 @@
-=== Phase 1 : verifier accessibilite www.betpawa.<TLD> (HTML basic, 1 credit) ===
-  .ke: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
-  .ug: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
-  .rw: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
-  .zm: status=502 len=408 isCf=false snippet={"URL":"https://www.betpawa.zm/","StatusCode":502,"Message":["You provided a private, inte
-  .gh: status=502 len=408 isCf=false snippet={"URL":"https://www.betpawa.gh/","StatusCode":502,"Message":["You provided a private, inte
-  .tz: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
-  .ng: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
-  .cm: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
-  .cg: status=200 len=7282 isCf=false snippet=<!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><me
+=== 1 : dump SPA shell www.betpawa.ke/ pour extraire endpoints ===
+  status=200 len=7282
+  JS bundles found: 18
+    /_next/static/chunks/polyfills-42372ed130431b0a.js
+    /env.js?v=2.236.103
+    /_next/static/chunks/webpack-3e88249d52705f80.js
+    /_next/static/chunks/build-version-6d8f7a427f35c351.js
+    /_next/static/chunks/main-c36231d4f7515711.js
+  API-like URLs in shell: 0
 
-=== Phase 2 : identifier TLDs accessibles (200 non-CF) ===
-  7 TLDs OK : ke, ug, rw, tz, ng, cm, cg
+=== 2 : tester routes SSR /upcoming/football, /events, /event/... ===
+  /upcoming/football: status=200 len=7282 hasOddsPattern=true
+    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
+  /events: status=200 len=7978 hasOddsPattern=true
+    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
+  /live: status=200 len=7988 hasOddsPattern=true
+    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
+  /sports/football: status=200 len=7282 hasOddsPattern=true
+    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
 
-=== Phase 3 : pour chaque TLD accessible, tester sports-api ===
+=== 3 : tester patterns API relatifs ===
+  /api/sports-service/v1/sports/events-count?eventState=PRE_MATCH: status=404 len=96 isJson=true
+    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"df494934-7c24-4b1b-85c7-b0efd8ac08b6"}
+  /api/sports-service/v1/events/upcoming?sportId=1&limit=5: status=404 len=96 isJson=true
+    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"cc704e89-5b4b-4068-be3f-45ecb0e9192d"}
+  /_next/data/latest/upcoming/football.json: status=404 len=7101 isJson=false
+    preview: <!DOCTYPE html><html data-theme="light"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><link rel="manifest" href="/manifest.json"/
+  /api/v1/sports: status=404 len=96 isJson=true
+    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"e9f6415a-e8f0-458a-870e-289fd8c6b4be"}
+  /api/events: status=404 len=96 isJson=true
+    preview: {"error":"NOT_FOUND","params":null,"payload":null,"uuid":"835d815e-2216-4310-804f-d91f1865a069"}
 
---- .ke ---
-  api basic: status=502 len=458 isJson=true isCf=false credits=? remaining=?
-  snippet: {"URL":"https://sports-api.betpawa.ke/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
-  api render: status=502 len=458 isJson=true isCf=false credits=? remaining=?
-  snippet: {"URL":"https://sports-api.betpawa.ke/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
-
---- .ug ---
-  api basic: status=502 len=458 isJson=true isCf=false credits=? remaining=?
-  snippet: {"URL":"https://sports-api.betpawa.ug/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
-  api render: status=502 len=458 isJson=true isCf=false credits=? remaining=?
-  snippet: {"URL":"https://sports-api.betpawa.ug/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
-
---- .rw ---
-  api basic: status=502 len=458 isJson=true isCf=false credits=? remaining=?
-  snippet: {"URL":"https://sports-api.betpawa.rw/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
-  api render: status=502 len=458 isJson=true isCf=false credits=? remaining=?
-  snippet: {"URL":"https://sports-api.betpawa.rw/v1/sports/events-count?eventState=PRE_MATCH","StatusCode":502,"Message":["You provided a private, internal or invalid hostname, which is not allowed for scraping.","Please check your target URL."],"PossibleCauses
+=== 4 : chercher subdomains dans les JS bundles ===
+  fetching https://www.betpawa.ke/_next/static/chunks/polyfills-42372ed130431b0a.js
+  status=200 len=112541
+  0 unique API-ish URLs in bundle:
 
 === FIN ===
