@@ -94,6 +94,24 @@ async function probeCongobetTennis() {
         console.log(`    ${v} → ${Array.isArray(items) ? items.length : (r ? 'obj' : 'null')}`);
       } catch (e) { console.log(`    ${v} → ERR ${e.message}`); }
     }
+    // Dump bettypes complets pour un event tennis identifie
+    console.log(`\n  BETTYPES tennis (via events/{id}) :`);
+    const firstLeafWithEvents = testLeaves.find((lf) => lf.eventsCount > 0);
+    if (firstLeafWithEvents) {
+      const page = await congoJson(`${CONGO_API}events?eventCategoryIds=${firstLeafWithEvents.id}&offset=0&length=5&l=fr`);
+      const items = Array.isArray(page) ? page : (page?.data || []);
+      if (items[0]) {
+        const evId = items[0].id;
+        console.log(`    event id=${evId} : ${items[0].homeTeamName} vs ${items[0].awayTeamName}`);
+        const full = await congoJson(`${CONGO_API}events/${evId}`);
+        const bts = full?.eventBetTypes || [];
+        console.log(`    total bettypes: ${bts.length}`);
+        for (const bt of bts.slice(0, 30)) {
+          const items = (bt.eventBetTypeItems || []).slice(0, 3).map((it) => `${it.shortName}=${it.odds}`).join(' | ');
+          console.log(`      id=${bt.betTypeId} "${bt.name}" ctx=${bt.betTypeContext || ''} items: ${items}`);
+        }
+      }
+    }
   } catch (e) {
     console.log(`  ERROR: ${e.message}`);
   }
