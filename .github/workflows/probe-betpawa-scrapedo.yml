@@ -7,6 +7,9 @@ on:
       - 'scripts/probe-betpawa-scrapedo.js'
       - '.github/workflows/probe-betpawa-scrapedo.yml'
 
+permissions:
+  contents: write
+
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -16,6 +19,8 @@ jobs:
         working-directory: arbitrage-service
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -30,6 +35,17 @@ jobs:
         run: ln -sf arbitrage-service/node_modules node_modules
       - name: Run probe
         working-directory: .
-        run: node scripts/probe-betpawa-scrapedo.js
+        run: |
+          mkdir -p probe-results
+          node scripts/probe-betpawa-scrapedo.js 2>&1 | tee probe-results/betpawa-scrapedo.log
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+      - name: Commit results
+        working-directory: .
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add probe-results/betpawa-scrapedo.log || true
+          git commit -m "PROBE BetPawa Scrape.do : resultats run ${{ github.run_id }}" || echo "nothing to commit"
+          git push || true
