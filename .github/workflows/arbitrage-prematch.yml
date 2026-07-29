@@ -34,12 +34,12 @@ jobs:
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
 
-      - name: Probe tennis missing books (1win/sportcash/congobet) — dispatch only
+      - name: Probe Congobet Victoria mismatch (dispatch only)
         if: github.event_name == 'workflow_dispatch'
         working-directory: .
         continue-on-error: true
-        timeout-minutes: 2
-        run: node scripts/probe-tennis-missing-books.js
+        timeout-minutes: 3
+        run: node scripts/probe-congobet-victoria.js
         env:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
