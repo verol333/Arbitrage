@@ -1,86 +1,67 @@
 #!/usr/bin/env node
-// Probe BetPawa v4 : grep MAIN bundle + inspect SSR data injecte dans HTML
+// Probe BetPawa v5 : trouve exact endpoints sportsbook/v3 pour events + odds
 
 const TOKEN = process.env.SCRAPE_DO_KEY;
 if (!TOKEN) { console.log('SCRAPE_DO_KEY missing'); process.exit(1); }
 
 async function get(targetUrl, params = {}) {
   const qs = new URLSearchParams({ token: TOKEN, url: targetUrl, ...params }).toString();
+  const start = Date.now();
   const res = await fetch(`https://api.scrape.do/?${qs}`, {
     method: 'GET', signal: AbortSignal.timeout(60_000),
   });
   const body = await res.text();
-  return { status: res.status, len: body.length, body };
+  return {
+    ms: Date.now() - start, status: res.status, len: body.length,
+    isJson: body.trim().startsWith('{') || body.trim().startsWith('['),
+    body,
+  };
 }
 
 const BASE = 'https://www.betpawa.ke';
 
-console.log('=== 1 : fetch /events (contient SSR data probablement) ===');
-const events = await get(BASE + '/events');
-console.log(`  status=${events.status} len=${events.len}`);
-// Find __NEXT_DATA__ payload
-const nextDataMatch = events.body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-if (nextDataMatch) {
-  try {
-    const nd = JSON.parse(nextDataMatch[1]);
-    console.log(`  __NEXT_DATA__ found, ${nextDataMatch[1].length} bytes`);
-    console.log(`  page: ${nd.page || '?'}`);
-    console.log(`  buildId: ${nd.buildId || '?'}`);
-    console.log(`  runtimeConfig keys: ${Object.keys(nd.runtimeConfig || {}).join(',')}`);
-    console.log(`  props keys: ${Object.keys(nd.props || {}).join(',')}`);
-    if (nd.runtimeConfig) console.log(`  runtimeConfig: ${JSON.stringify(nd.runtimeConfig).slice(0, 400)}`);
-    // pageProps might contain initial events
-    const pp = nd.props?.pageProps;
-    if (pp) {
-      console.log(`  pageProps keys: ${Object.keys(pp).join(',')}`);
-      console.log(`  pageProps sample: ${JSON.stringify(pp).slice(0, 500)}`);
-    }
-  } catch (e) {
-    console.log(`  __NEXT_DATA__ parse error: ${e.message}`);
-    console.log(`  raw: ${nextDataMatch[1].slice(0, 400)}`);
-  }
-} else {
-  console.log('  no __NEXT_DATA__ found');
+console.log('=== 1 : fetch [[...page]] chunk pour lire endpoints reels ===');
+const catchAll = await get(BASE + '/_next/static/chunks/pages/%5B%5B...page%5D%5D-5ca187021eb1ea15.js');
+console.log(`  status=${catchAll.status} len=${catchAll.len}`);
+if (catchAll.status === 200) {
+  const eps = new Set();
+  // Capture path templates like /api/sportsbook/v3/... including template literals ${}
+  for (const m of catchAll.body.matchAll(/["'`](\/api\/sportsbook\/[^"'`\s]+)["'`]/g)) eps.add(m[1]);
+  for (const m of catchAll.body.matchAll(/["'`](\/api\/betslip\/[^"'`\s]+)["'`]/g)) eps.add(m[1]);
+  for (const m of catchAll.body.matchAll(/["'`](\/api\/integration\/[^"'`\s]+)["'`]/g)) eps.add(m[1]);
+  console.log(`  ${eps.size} sportsbook/betslip/integration paths:`);
+  [...eps].sort().forEach(p => console.log(`    ${p}`));
 }
 
-console.log('\n=== 2 : fetch env.js pour identifier API base URL ===');
-const env = await get(BASE + '/env.js?v=2.236.103');
-console.log(`  status=${env.status} len=${env.len}`);
-console.log(`  content: ${env.body.slice(0, 1500)}`);
-
-console.log('\n=== 3 : fetch main JS chunk et grep /api/ patterns ===');
-const main = await get(BASE + '/_next/static/chunks/main-c36231d4f7515711.js');
-console.log(`  status=${main.status} len=${main.len}`);
-if (main.status === 200) {
-  const apiPaths = new Set();
-  for (const m of main.body.matchAll(/["'`](\/api\/[a-zA-Z0-9\/_.-]+)["'`]/g)) apiPaths.add(m[1]);
-  for (const m of main.body.matchAll(/["'`](https?:\/\/[a-z0-9.-]+\.betpawa\.[a-z]+[^"'`\s]*)["'`]/gi)) apiPaths.add(m[0]);
-  console.log(`  ${apiPaths.size} API paths:`);
-  [...apiPaths].slice(0, 40).forEach(p => console.log(`    ${p}`));
-}
-
-console.log('\n=== 4 : lister tous les chunks _app + _document + pages ===');
-const chunks = [
-  '/_next/static/chunks/pages/_app-',
-  '/_next/static/chunks/pages/index-',
-  '/_next/static/chunks/pages/events-',
+console.log('\n=== 2 : tester patterns evidents /api/sportsbook/v3/* ===');
+const candidates = [
+  '/api/sportsbook/v3/events?eventType=PRE_MATCH&categoryId=2',
+  '/api/sportsbook/v3/events/upcoming?categoryId=2&hoursOffset=48',
+  '/api/sportsbook/v3/sports',
+  '/api/sportsbook/v3/categories',
+  '/api/sportsbook/v3/competitions?categoryId=2',
+  '/api/sportsbook/v2/events?type=PRE_MATCH',
+  '/api/sportsbook/v3/menu?type=PRE_MATCH',
+  '/api/sportsbook/v3/marketsCategories',
+  '/api/sportsbook/v3/highlights?categoryId=2',
 ];
-// Extract exact chunk paths from shell
-const shell = await get(BASE + '/');
-const chunkPaths = [...shell.body.matchAll(/["']([^"']*\/_next\/static\/chunks\/pages\/[^"']+\.js)["']/g)].map(m => m[1]);
-console.log(`  pages chunks in shell: ${chunkPaths.length}`);
-chunkPaths.slice(0, 8).forEach(p => console.log(`    ${p}`));
+for (const p of candidates) {
+  const r = await get(BASE + p);
+  const preview = r.body.slice(0, 250).replace(/\s+/g, ' ');
+  console.log(`  ${p}: status=${r.status} len=${r.len} isJson=${r.isJson}`);
+  console.log(`    ↳ ${preview}`);
+}
 
-// Fetch _app chunk (typically has API config)
-const appChunk = chunkPaths.find(p => p.includes('_app'));
-if (appChunk) {
-  console.log(`\n  ↳ fetching ${appChunk}`);
-  const app = await get(BASE + appChunk);
-  console.log(`  status=${app.status} len=${app.len}`);
-  const apiPaths = new Set();
-  for (const m of app.body.matchAll(/["'`](\/api\/[a-zA-Z0-9\/_.\-{}]+)["'`]/g)) apiPaths.add(m[1]);
-  console.log(`  ${apiPaths.size} API paths in _app:`);
-  [...apiPaths].slice(0, 30).forEach(p => console.log(`    ${p}`));
+console.log('\n=== 3 : tester avec headers x-pawa-brand / x-pawa-language ===');
+// BetPawa often uses x-pawa-* custom headers
+const headers = 'x-pawa-brand:betpawa-kenya|x-pawa-language:en';
+for (const p of ['/api/sportsbook/v3/menu?type=PRE_MATCH', '/api/sportsbook/v3/sports']) {
+  const r = await get(BASE + p, {
+    customHeaders: 'true',
+    forwardHeaders: 'x-pawa-brand,x-pawa-language',
+  });
+  console.log(`  ${p}: status=${r.status} len=${r.len} isJson=${r.isJson}`);
+  console.log(`    ↳ ${r.body.slice(0, 200).replace(/\s+/g, ' ')}`);
 }
 
 console.log('\n=== FIN ===');
