@@ -44,6 +44,12 @@ export async function listPrematch(sport = 'football') {
       });
     }
   };
+  // Query params : le param betTypeId=10001 (id 1X2 foot) filtre les events
+  // qui n'ont PAS ce marche → retourne 0 pour tennis (pas de 1X2 en tennis).
+  // Fix : omettre betTypeId pour les sports != football. Probe v2 confirme :
+  //   events?eventCategoryIds=54994&betTypeId=10001 → 0
+  //   events?eventCategoryIds=54994                 → 8 (De Minaur vs Tsitsipas)
+  const btParam = sport === 'football' ? '&fetchEventBetTypesMode=0&betTypeId=10001' : '';
   const leaves = await listLeafCategories(SPORT_ID);
   if (leaves.length) {
     const BATCH = 8;
@@ -51,7 +57,7 @@ export async function listPrematch(sport = 'football') {
       const batch = leaves.slice(i, i + BATCH);
       await Promise.all(batch.map(async (lf) => {
         for (let off = 0; off < 400; off += 20) {
-          const page = await congoJson(`${CONGO_API}events?eventCategoryIds=${lf.id}&offset=${off}&length=50&fetchEventBetTypesMode=0&betTypeId=10001&l=fr`);
+          const page = await congoJson(`${CONGO_API}events?eventCategoryIds=${lf.id}&offset=${off}&length=50${btParam}&l=fr`);
           const items = Array.isArray(page) ? page : (page?.data || null);
           if (!Array.isArray(items) || !items.length) break;
           addItems(items);
@@ -62,7 +68,7 @@ export async function listPrematch(sport = 'football') {
   }
   let empty = 0;
   for (let p = 0; p < 6; p++) {
-    const page = await congoJson(`${CONGO_API}events?eventCategoryIds=${SPORT_ID}&offset=${p * 50}&length=50&fetchEventBetTypesMode=0&betTypeId=10001&l=fr`);
+    const page = await congoJson(`${CONGO_API}events?eventCategoryIds=${SPORT_ID}&offset=${p * 50}&length=50${btParam}&l=fr`);
     const items = Array.isArray(page) ? page : (page?.data || null);
     if (!Array.isArray(items) || !items.length) { if (++empty >= 2) break; continue; }
     empty = 0;
