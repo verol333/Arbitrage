@@ -30,22 +30,22 @@ for (const sport of SPORTS) {
     console.log(`  ${book.key.padEnd(12)} ${matches.length.toString().padStart(4)} matchs (${ms}ms)`);
     summary[sport][book.key] = { matches: matches.length, ms };
 
-    // Pour les 3 premiers matchs, essayer d'extraire les cotes pour compter les marchés
+    // Echantillon 10 matchs (evite biais des openers minimalistes) + max/min
     if (matches.length > 0 && book.getOdds) {
-      let totalMarkets = 0;
-      let sampled = 0;
-      const sample = matches.slice(0, 3);
+      const perMatch = [];
+      const sample = matches.slice(0, Math.min(10, matches.length));
       for (const m of sample) {
         try {
           const odds = await book.getOdds(m, { sport, live: false });
-          const nKeys = Object.keys(odds || {}).length;
-          totalMarkets += nKeys;
-          sampled++;
-        } catch { /* skip */ }
+          perMatch.push(Object.keys(odds || {}).length);
+        } catch { perMatch.push(0); }
       }
-      const avgMarkets = sampled > 0 ? Math.round(totalMarkets / sampled) : 0;
-      summary[sport][book.key].avgMarkets = avgMarkets;
-      console.log(`     ↳ ~${avgMarkets} marchés/match (echantillon ${sampled}/3)`);
+      const avg = perMatch.length > 0 ? Math.round(perMatch.reduce((a, b) => a + b, 0) / perMatch.length) : 0;
+      const max = Math.max(...perMatch, 0);
+      const min = Math.min(...perMatch);
+      summary[sport][book.key].avgMarkets = avg;
+      summary[sport][book.key].maxMarkets = max;
+      console.log(`     ↳ marches/match : avg=${avg} min=${min} max=${max} (echantillon ${perMatch.length}/10) — dist=[${perMatch.join(',')}]`);
     }
   }
 }
