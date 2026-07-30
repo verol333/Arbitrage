@@ -79,4 +79,27 @@ if (champs?.Value) {
   raw.filter(c => !passed.includes(c)).slice(0, 5).forEach(c => console.log(`    ${c.LE || c.L}`));
 }
 
+console.log('\n=== 8 : simuler BATCH prod (12 concurrent) sur les 15 champs ===');
+if (champs?.Value?.length) {
+  const champIds = [...new Set(champs.Value
+    .filter(c => !/spéci|special|player|vs player|winner|outright/i.test(c.LE || c.L || ''))
+    .map(c => c.LI || c.CI)
+    .filter(Boolean))];
+  console.log(`  ${champIds.length} champIds distincts`);
+  const BATCH = 12;
+  let allMatches = 0;
+  for (let i = 0; i < champIds.length; i += BATCH) {
+    const batch = champIds.slice(i, i + BATCH);
+    const t0 = Date.now();
+    const res = await Promise.all(batch.map((ci) =>
+      viaWorker(`${FEED}/service-api/LineFeed/Get1x2_VZip?champs=${ci}&count=100&lng=en&mode=4&country=93&partner=192&getEmpty=true`, 5000)
+    ));
+    const okCount = res.filter(r => r?.Value?.length).length;
+    const matchCount = res.reduce((s, r) => s + (r?.Value?.length || 0), 0);
+    allMatches += matchCount;
+    console.log(`  batch ${i}-${i+batch.length}: ${okCount}/${batch.length} OK, ${matchCount} matches in ${Date.now()-t0}ms`);
+  }
+  console.log(`  TOTAL : ${allMatches} matches (avec timeout 5s comme prod)`);
+}
+
 console.log('\n=== FIN ===');
