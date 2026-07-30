@@ -1,0 +1,40 @@
+=== 1 : GetChampsZip sport=3 (basketball) sur 1xbet.cg country=93 ===
+    hidden-pine-7436 → JSON(2100b) in 797ms
+  Value: 15 champs
+  samples: {"LI":197289,"CI":153,"L":"WNBA"}
+           {"LI":1276843,"CI":225,"L":"Club Friendlies"}
+           {"LI":1897545,"CI":4,"L":"Australia. NBL1. Women"}
+           {"LI":1531223,"CI":153,"L":"BIG3 Championship"}
+           {"LI":24805,"CI":31,"L":"Brazil. LBF. Women"}
+
+=== 2 : Top matches Get1x2_VZip sport=3 (fallback quand 0 champs) ===
+    hidden-pine-7436 → JSON(100145b) in 209ms
+  Value: 40 matches
+  samples: Woosuk University vs Hanyang University (South Korea. University League)
+           Wuhan Shengfan Yellow Crane (Women) vs Xinjiang Tianshan (Women) (China. National Championship. Women)
+           Yulon Group vs National Taiwan University of Arts (Club Friendlies)
+
+=== 3 : test avec country=1 (US/global) ===
+    hidden-pine-7436 → JSON(2100b) in 138ms
+  Value: 15 champs
+
+=== 4 : test lng=fr et lng=ru ===
+    hidden-pine-7436 → JSON(2795b) in 502ms
+  lng=fr: 15 champs
+    hidden-pine-7436 → null in 125ms
+    billowing-sea-2d8e → null in 559ms
+  lng=ru: 0 champs
+
+=== 5 : autre domaine 1xbet.com (public) ===
+    hidden-pine-7436 → null in 26ms
+    billowing-sea-2d8e → null in 27ms
+
+=== 6 : comparaison sport=1 (football) meme URL ===
+    hidden-pine-7436 → JSON(44214b) in 177ms
+  Football champs: 296
+
+=== 7 : est-ce que le filtre isRealChamp masque tout ? ===
+  15 total → 15 passent isRealChamp
+  bloqués:
+
+=== FIN ===
