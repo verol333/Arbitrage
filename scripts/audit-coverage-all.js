@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Audit complet : combien de matchs + marchés par book x sport
-// Objectif : verifier qu'on recupere le max possible
+// Objectif : verifier qu'on recupere le max possible (post fixes)
 
 import { bookmakers } from '../src/bookmakers/index.js';
 
