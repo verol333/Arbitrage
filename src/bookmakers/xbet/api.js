@@ -31,10 +31,22 @@ function orderedWorkers() {
 
 // CF workers round-robin, timeout court (5s) pour fail-fast : mieux vaut
 // perdre 1 match qu'attendre 10s à chaque échec sur 500 matchs.
-export async function viaWorker(url) {
+export async function viaWorker(url, { timeoutMs = 5_000 } = {}) {
   for (const w of orderedWorkers()) {
-    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs: 5_000 });
+    const j = await fetchJson(`${w}/?url=${encodeURIComponent(url)}`, { headers: HEADERS, timeoutMs });
     if (j) return j;
+  }
+  return null;
+}
+
+// Variante avec retry pour les appels critiques (list init) — si les 2 workers
+// echouent au 1er coup, on retente 1 fois apres 500ms (evite les faux 0 quand
+// 1xbet.cg a un hoquet transitoire). Timeout etendu a 10s.
+export async function viaWorkerCritical(url) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const j = await viaWorker(url, { timeoutMs: 10_000 });
+    if (j) return j;
+    if (attempt < 1) await new Promise((r) => setTimeout(r, 500));
   }
   return null;
 }

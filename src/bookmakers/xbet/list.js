@@ -1,4 +1,4 @@
-import { FEED, COUNTRY, PARTNER, viaWorker, mapXItems, isFakeTeam, isVirtual } from './api.js';
+import { FEED, COUNTRY, PARTNER, viaWorker, viaWorkerCritical, mapXItems, isFakeTeam, isVirtual } from './api.js';
 import { teamSim } from '../../core/text.js';
 
 // Sport IDs 1xBet (standards) : 1=Football, 2=Ice Hockey, 3=Basketball,
@@ -28,13 +28,15 @@ function dedupeMatches(matches) {
 export async function listPrematch({ sport = 'football' } = {}) {
   const sid = SPORT_IDS[sport];
   if (!sid) return [];
-  const champs = await viaWorker(`${FEED}/service-api/LineFeed/GetChampsZip?sport=${sid}&lng=en&country=${COUNTRY}&partner=${PARTNER}`);
+  // Appel critique : retry + timeout 10s pour eviter les faux 0 sur les
+  // sports secondaires (basket/tennis/hockey) quand 1xbet.cg a un hoquet.
+  const champs = await viaWorkerCritical(`${FEED}/service-api/LineFeed/GetChampsZip?sport=${sid}&lng=en&country=${COUNTRY}&partner=${PARTNER}`);
   const champIds = [...new Set((champs?.Value || [])
     .filter((c) => isRealChamp(c.LE || c.L))
     .map((c) => c.LI || c.CI)
     .filter(Boolean))];
   if (!champIds.length) {
-    const top = await viaWorker(`${FEED}/service-api/LineFeed/Get1x2_VZip?sports=${sid}&count=100&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
+    const top = await viaWorkerCritical(`${FEED}/service-api/LineFeed/Get1x2_VZip?sports=${sid}&count=100&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
     return dedupeMatches(mapXItems(top?.Value));
   }
   const seen = new Set(); const all = [];
@@ -66,7 +68,7 @@ function xbetLiveMeta(m) {
 export async function listLive({ sport = 'football' } = {}) {
   const sid = SPORT_IDS[sport];
   if (!sid) return [];
-  const raw = await viaWorker(`${FEED}/service-api/LiveFeed/Get1x2_VZip?sports=${sid}&count=500&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
+  const raw = await viaWorkerCritical(`${FEED}/service-api/LiveFeed/Get1x2_VZip?sports=${sid}&count=500&lng=en&mode=4&country=${COUNTRY}&partner=${PARTNER}&getEmpty=true`);
   const list = (raw?.Value || [])
     .filter((m) => m.I && m.O1 && m.O2 && !isFakeTeam(m.O1) && !isFakeTeam(m.O2) && !isVirtual(m.O1, m.O2, m.LE || m.L || ''))
     .map((m) => ({ id: m.I, home: m.O1, away: m.O2, league: m.LE || m.L || '', start: m.S ? m.S * 1000 : null, live: xbetLiveMeta(m) }));
