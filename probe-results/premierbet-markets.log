@@ -1,0 +1,39 @@
+=== 1 : recup liste matchs foot ===
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-30 status=200 size=60492b dur=468ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-02 status=200 size=82229b dur=529ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-31 status=200 size=78165b dur=552ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-01 status=200 size=135457b dur=763ms keys=[data,pagination]
+[premierbet] GET /events/highlights?country=GN&group=g6&platform=desktop&locale=fr&sportId=1&timeOffset=0 status=200 size=150136b dur=251ms keys=[data,pagination]
+[premierbet] prematch kept=553 dedup=106 horizon=307 virtual/outright=0
+  553 matchs foot
+  sample: Majorque vs Al-Ittihad Club | Atletico Petroleos de Luanda vs CD Teruel | Stade Lavallois MFC vs US Granville
+
+=== 2 : GET /events/7272177 sur "Majorque vs Al-Ittihad Club" ===
+[premierbet] GET /events/7272177?country=GN&group=g6&platform=desktop&locale=fr status=200 size=75454b dur=97ms keys=[id,providerId,providerName,eventNames]
+  event top-keys: id,providerId,providerName,eventNames,startTime,sportId,sportName,categoryId,categoryName,competitionId,competitionName,state,marketGroups,isCashoutAvailable
+  event.markets: undefined
+  event.marketGroups: Array(7)
+
+  === marketGroups details ===
+    group "Principal" id=undefined: 14 markets
+    group "Buts" id=undefined: 19 markets
+    group "Combo" id=undefined: 12 markets
+    group "1ère mi-temps" id=undefined: 14 markets
+    group "2ème mi-temps" id=undefined: 6 markets
+    group "Autres" id=undefined: 8 markets
+    group "Créateur de pari" id=undefined: 30 markets
+
+  62 marches extraits (dedoublonnes)
+  20 premiers noms : 1X2 | 2 Buts D'avance - 1X2 | Nombre total de buts | Les deux équipes marquent | Double chance | Pari remboursé en cas de match nul | Score exact | Resultat + Les deux équipes marquent | Résultat et plus/moins de | 1X2 - Handicap | Mi-Temps avec le plus de buts | Mi-Temps avec le plus de buts - Equipe à domicile | Mi-Temps avec le plus de buts - Equipe à l'extérieur | Mi-Temps/Fin de match | Total équipe à domicile | Total équipe à l'extérieur | Buts équipe à domicile | Buts équipe à l'extérieur | Seule équipe à marquer | Equipe à domicile ne concède pas de but
+  26 cotes plates
+  cles : match_1, match_X, match_2, btts_yes, btts_no, dc_1X, dc_12, dc_X2, odd, even, ht_match_1, ht_match_X, ht_match_2, ht_btts_yes, ht_btts_no, ht_dc_1X, ht_dc_12, ht_dc_X2, h2_match_1, h2_match_X, h2_match_2, h2_btts_yes, h2_btts_no, h2_dc_1X, h2_dc_12, h2_dc_X2
+
+=== 3 : test avec long=true (parfois plus de marches) ===
+[premierbet] GET /events/7272177?country=GN&group=g6&platform=desktop&locale=fr status=200 size=75454b dur=98ms keys=[id,providerId,providerName,eventNames]
+  long=true : 62 marches
+
+=== 4 : essai endpoint alternatif /events/{id}/markets ===
+[premierbet] GET /events/7272177/markets?country=GN&group=g6&platform=desktop&locale=fr status=500 size=68b dur=93ms body={"status":500,"error":"No endpoint GET /v1/events/7272177/markets."}
+  null
+
+=== FIN ===
