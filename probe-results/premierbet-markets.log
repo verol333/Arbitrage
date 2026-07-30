@@ -1,77 +1,33 @@
-[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-30 status=200 size=60492b dur=667ms keys=[data,pagination]
-[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-02 status=200 size=82229b dur=617ms keys=[data,pagination]
-[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-31 status=200 size=78165b dur=718ms keys=[data,pagination]
-[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-01 status=200 size=135457b dur=924ms keys=[data,pagination]
-[premierbet] GET /events/highlights?country=GN&group=g6&platform=desktop&locale=fr&sportId=1&timeOffset=0 status=200 size=149670b dur=316ms keys=[data,pagination]
-[premierbet] prematch kept=551 dedup=105 horizon=309 virtual/outright=0
-Match: Stade Lavallois MFC vs US Granville (id=7286461)
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-30 status=200 size=60113b dur=814ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-31 status=200 size=78165b dur=756ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-02 status=200 size=82229b dur=850ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-01 status=200 size=135457b dur=1033ms keys=[data,pagination]
+[premierbet] GET /events/highlights?country=GN&group=g6&platform=desktop&locale=fr&sportId=1&timeOffset=0 status=200 size=149670b dur=331ms keys=[data,pagination]
+[premierbet] prematch kept=552 dedup=105 horizon=307 virtual/outright=0
+Match: Stade Lavallois MFC vs US Granville
 
-[premierbet] GET /events/7286461?country=GN&group=g6&platform=desktop&locale=fr status=200 size=75039b dur=197ms keys=[id,providerId,providerName,eventNames]
-62 marches extraits
+[premierbet] GET /events/7286461?country=GN&group=g6&platform=desktop&locale=fr status=200 size=75039b dur=209ms keys=[id,providerId,providerName,eventNames]
+"Nombre total de buts" — outcome-level dump :
+  market keys: id,name,active,outcomes,isCashoutAvailable,isBetBuilderAvailable,betBuilderMarketType
+  outcome keys=id,name,value,handicap,active,orderNumber,columnNumber extractLine=2.5 data={"id":"1495","name":"plus de","value":"1.63","handicap":"2.5","active":true,"orderNumber":3,"columnNumber":1}
+  plus de val=1.63 line=2.5
+  moins de val=2.09 line=2.5
+  plus de val=1.03 line=0.5
+  moins de val=8.60 line=0.5
+  plus de val=1.20 line=1.5
+  moins de val=3.95 line=1.5
 
-  "1X2" [line=null] → 1=1.47 | X=4.40 | 2=6.20
-  "2 Buts D'avance - 1X2" [line=null] → 1=1.44 | X=4.31 | 2=6.08
-  "Nombre total de buts" [line=null] → plus de=1.63 | moins de=2.09 | plus de=1.03 | moins de=8.60 | plus de=1.20 | moins de=3.95 | plus de=2.55 | moins de=1.43 | plus de=4.40 | moins de=1.16
-  "Les deux équipes marquent" [line=null] → Oui=1.79 | Non=1.88
-  "Double chance" [line=null] → 1X=1.11 | 12=1.17 | X2=2.20
-  "Pari remboursé en cas de match nul" [line=null] → 1=1.17 | 2=4.30
-  "Score exact" [line=null] → 1:0=6.60 | 0:0=12.00 | 0:1=15.00 | 2:0=6.40 | 1:1=7.20 | 0:2=34.00 | 2:1=7.20 | 2:2=15.00 | 1:2=17.00 | 3:0=9.00 | 3:3=74.00 | 0:3=100.00 | 3:1=10.00 | Autres=21.00 | 1:3=56.00 | 3:2=23.00 | 2:3=53.00 | 4:00=17.00 | 0:4=100.00 | 4:1=19.00 | 1:4=100.00 | 4:2=43.00 | 2:4=100.00 | 5:0=39.00 | 0:5=100.00 | 5:1=45.00 | 1:5=100.00 | 6:0=100.00 | 0:6=100.00
-  "Resultat + Les deux équipes marquent" [line=null] → 1 + Oui=2.95 | X + Oui=5.40 | 2 + Oui=11.00 | 1 + Non=2.38 | X + Non=14.00 | 2 + Non=11.00
-  "Résultat et plus/moins de" [line=null] → 1 et plus de=1.66 | X et plus de=5.40 | 2 et plus de=8.00 | 1 et moins de=7.60 | X et moins de=14.00 | 2 et moins de=18.00 | 1 et plus de=2.06 | X et plus de=15.00 | 2 et plus de=10.00 | 1 et moins de=3.90 | X et moins de=5.60 | 2 et moins de=13.00 | 1 et plus de=3.35 | X et plus de=15.00 | 2 et plus de=23.00 | 1 et moins de=2.24 | X et moins de=5.60 | 2 et moins de=7.40 | 1 et plus de=5.60 | X et plus de=78.00 | 2 et plus de=36.00 | 1 et moins de=1.78 | X et moins de=4.30 | 2 et moins de=6.60
-  "1X2 - Handicap" [line=null] → 1=1.11 | X=7.00 | 2=15.00 | 1=2.22 | X=3.70 | 2=2.55 | 1=4.10 | X=4.40 | 2=1.58
-  "Mi-Temps avec le plus de buts" [line=null] → 1er=2.85 | 2ème=2.05 | Egalité=3.55
-  "Mi-Temps avec le plus de buts - Equipe à domicile" [line=null] → 1er=2.90 | 2ème=2.29 | Egalité=2.95
-  "Mi-Temps avec le plus de buts - Equipe à l'extérieur" [line=null] → 1er=4.00 | 2ème=3.05 | Egalité=1.84
-  "Mi-Temps/Fin de match" [line=null] → 1/1=2.01 | 1/X=17.00 | 1/2=60.00 | X/1=4.30 | X/X=6.60 | X/2=13.00 | 2/1=23.00 | 2/X=19.00 | 2/2=11.00
-  "Total équipe à domicile" [line=null] → plus de=1.51 | moins de=2.30 | plus de=1.09 | moins de=5.40 | plus de=2.50 | moins de=1.42
-  "Total équipe à l'extérieur" [line=null] → plus de=1.58 | moins de=2.14 | plus de=3.65 | moins de=1.21 | plus de=7.80 | moins de=1.03
-  "Buts équipe à domicile" [line=null] → 0=7.00 | 2=3.30 | 1=3.45 | 3+=2.60
-  "Buts équipe à l'extérieur" [line=null] → 0=2.18 | 2=5.40 | 1=2.46 | 3+=14.00
-  "Seule équipe à marquer" [line=null] → Seulement domicile=2.45 | Seulement équipe extérieure=12.00 | Les deux équipes=1.78 | Aucun=15.00
-  "Equipe à domicile ne concède pas de but" [line=null] → Oui=2.12 | Non=1.57
-  "Equipe à l'extérieur ne concède pas de but" [line=null] → Oui=5.20 | Non=1.09
-  "Equipe à domicile marque dans deux Mi-Temps?" [line=null] → Oui=2.13 | Non=1.56
-  "Equipe à l'extérieur marque un but à chaque Mi-Temps?" [line=null] → Oui=5.40 | Non=1.08
-  "Plus de 1.5 buts au cours de chaque Mi-Temps" [line=null] → Oui=4.10 | Non=1.17
-  "Moins de 1.5 buts au cours de chaque Mi-Temps" [line=null] → Oui=2.70 | Non=1.37
-  "Nombre de buts Pair/Impair" [line=null] → Impair=1.84 | Pair=1.80
-  "Pair/Impair - Equipe à domicile" [line=null] → Impair=1.85 | Pair=1.79
-  "Pair/Impair équipe à l'extérieur" [line=null] → Impair=2.16 | Pair=1.57
-  "Les deux équipes marquent total" [line=null] → Oui + Plus De=2.06 | Oui + Moins De=8.20 | Non + Plus De=5.20 | Non + Moins De=2.49
-  "Les deux équipes marquent - 1er Mi-Temps / 2ème Mi-Temps" [line=null] → Oui / Oui=15.00 | Non / Oui=3.85 | Oui / Non=5.40 | Non / Non=1.50
-  "Multiscores" [line=null] → 1:0, 2:0 ou 3:0=2.90 | X=4.10 | 0:1, 0:2 ou 0:3=12.00 | 2:1, 3:1 ou 4:1=4.10 | Autres - Victorie de l'équipe à domicile=35.00 | 1:2, 1:3 ou 1:4=15.00 | 4:0, 5:0 ou 6:0=13.00 | Autres - Victorie de l'équipe à l'extérieur=100.00 | 0:4, 0:5 ou 0:6=100.00 | 3:2, 4:2, 4:3 ou 5:1=12.00 | 2:3, 2:4, 3:4 ou 1:5=45.00
-  "Double Chance et Les deux équipes marquent" [line=null] → 1X / Oui=2.05 | X2 / Oui=3.80 | 12 / Oui=2.44 | 1X / Non=2.14 | X2 / Non=6.60 | 12 / Non=2.07
-  "Double Chance et Total de Buts" [line=null] → 1X / Plus De=1.34 | X2 / Plus De=3.30 | 12 / Plus De=1.43 | 1X / Plus De=1.86 | X2 / Plus De=6.20 | 12 / Plus De=1.77 | 1X / Plus De=2.80 | X2 / Plus De=9.20 | 12 / Plus De=2.95 | 1X / Plus De=5.20 | X2 / Plus De=24.00 | 12 / Plus De=4.80 | 1X / Moins De=5.00 | X2 / Moins De=8.00 | 12 / Moins De=5.40 | 1X / Moins De=2.39 | X2 / Moins De=3.95 | 12 / Moins De=3.05 | 1X / Moins De=1.68 | X2 / Moins De=3.30 | 12 / Moins De=1.80 | 1X / Moins De=1.33 | X2 / Moins De=2.65 | 12 / Moins De=1.46
-  "1ère Mi-Temps Matchbet, les deux équipes marquent" [line=null] → 1 + Oui=11.00 | X + Oui=7.40 | 2 + Oui=34.00 | 1 + Non=2.07 | X + Non=3.15 | 2 + Non=6.40
-  "1ère Mi-Temps - Matchbet Total" [line=null] → 1 et plus de=3.55 | X et plus de=7.60 | 2 et plus de=18.00 | 1 et moins de=3.35 | X et moins de=3.20 | 2 et moins de=7.80
-  "1er Mi-Temps - Double Chance et Les deux équipes marquent" [line=null] → 1X / Oui=4.70 | X2 / Oui=6.40 | 12 / Oui=8.80 | 1X / Non=1.37 | X2 / Non=2.24 | 12 / Non=1.66
-  "Score exact Mi-Temps/Fin de match" [line=null] → 0-0 1-0=12.00 | 0-0 0-0=12.00 | 0-0 0-1=25.00 | 0-0 2-0=20.00 | 0-0 1-1=24.00 | 0-0 0-2=97.00 | 0-0 2-1=45.00 | 1-0 1-1=25.00 | 0-0 1-2=100.00 | 0-0 3-0=50.00 | 0-1 1-1=29.00 | 0-0 0-3=100.00 | 1-0 1-0=14.00 | 1-1 1-1=34.00 | 0-1 0-1=36.00 | 1-0 2-0=12.00 | 0-0 4+=33.00 | 0-1 0-2=71.00 | 1-0 2-1=25.00 | 1-0 4+=12.00 | 0-1 1-2=63.00 | 1-0 3-0=21.00 | 0-1 4+=27.00 | 0-1 0-3=100.00 | 0-1 2-1=46.00 | 1-1 4+=14.00 | 1-0 1-2=94.00 | 1-1 2-1=31.00 | 2-0 4+=11.00 | 1-1 1-2=69.00 | 2-0 2-0=30.00 | 0-2 4+=64.00 | 0-2 0-2=100.00 | 2-0 2-1=58.00 | 2-1 4+=18.00 | 0-2 1-2=100.00 | 2-0 3-0=26.00 | 1-2 4+=43.00 | 0-2 0-3=100.00 | 2-1 2-1=70.00 | 3-0 4+=22.00 | 1-2 1-2=100.00 | 3-0 3-0=94.00 | 0-3 4+=100.00 | 0-3 0-3=100.00 | 4+ 4+=14.00
-  "1ère Mi-Temps - 1X2" [line=null] → 1=1.90 | X=2.46 | 2=6.00
-  "1ère Mi-Temps - Plus de/Moins de" [line=null] → plus de=2.32 | moins de=1.52 | plus de=1.28 | moins de=3.25 | plus de=5.00 | moins de=1.13
-  "1ère Mi-Temps - Les deux équipes marquent" [line=null] → Oui=4.00 | Non=1.18
-  "1ère Mi-Temps - Double chance" [line=null] → 1X=1.12 | 12=1.40 | X2=1.64
-  "1ère Mi-Temps - Pari remboursé en cas de match nul" [line=null] → 1=1.23 | 2=3.50
-  "1ère Mi-Temps - Handicap" [line=null] → 1=1.11 | X=5.60 | 2=26.00 | 1=4.60 | X=2.95 | 2=1.78 | 1=13.00 | X=5.40 | 2=1.16
-  "1ère Mi-Temps - Plus de/Moins de équipe à domicile" [line=null] → plus de=1.51 | moins de=2.28 | plus de=3.35 | moins de=1.25 | plus de=7.40 | moins de=1.04
-  "1ère Mi-Temps - Plus de/Moins de équipe à l'extérieur" [line=null] → plus de=2.70 | moins de=1.38 | plus de=8.00 | moins de=1.03
-  "1ère Mi-Temps - Equipe à domicile ne concède pas de but" [line=null] → Oui=1.38 | Non=2.70
-  "1ère Mi-Temps - Equipe à l'extérieur ne concède pas de but" [line=null] → Oui=2.28 | Non=1.51
-  "1ère Mi-Temps - Score exact" [line=null] → 1:0=3.15 | 0:0=3.05 | 0:1=7.40 | 2:0=6.40 | 1:1=7.80 | 0:2=37.00 | 2:1=16.00 | 2:2=82.00 | 1:2=39.00 | Autres=9.60
-  "2ème Mi-Temps - 1X2" [line=null] → 1=1.79 | X=2.80 | 2=5.20
-  "2ème Mi-Temps - Les deux équipes marquent un but" [line=null] → Oui=3.25 | Non=1.26
-  "2ème Mi-temps - Plus de/Moins de" [line=null] → plus de=1.87 | moins de=1.77
-  "2ème Mi-Temps - Double chance" [line=null] → 1X=1.13 | 12=1.32 | X2=1.73
-  "2ème Mi-Temps - Total équipe à domicile" [line=null] → plus de=1.39 | moins de=2.65
-  "2ème Mi-Temps - Total équipe à l'extérieur" [line=null] → plus de=2.29 | moins de=1.51
-  "Equipe à domicile gagne les deux Mi-Temps" [line=null] → Oui=3.30 | Non=1.25
-  "Equipe à domicile gagne une Mi-Temps" [line=null] → Oui=1.25 | Non=3.35
-  "Equipe à l'extérieur gagne les deux Mi-Temps" [line=null] → Oui=9.60 | Non=1.01
-  "Equipe à l'extérieur gagne une Mi-Temps" [line=null] → Oui=2.90 | Non=1.32
-  "Pari remboursé si l'équipe à domicile gagne" [line=null] → X=1.58 | 2=2.14
-  "Pari remboursé si l'équipe à l'extérieur gagne" [line=null] → 1=1.24 | X=3.40
-  "Equipe à domicile gagne sans concéder de but" [line=null] → Oui=2.36 | Non=1.44
-  "Equipe à l'extérieur gagne sans concéder de but" [line=null] → Oui=6.60 | Non=1.03
+"1X2 - Handicap" — outcome-level dump :
+  1 val=1.11 line=1 keys=id,name,value,handicap,active,orderNumber,columnNumber
+  X val=7.00 line=1 keys=id,name,value,handicap,active,orderNumber,columnNumber
+  2 val=15.00 line=1 keys=id,name,value,handicap,active,orderNumber,columnNumber
+  1 val=2.22 line=1 keys=id,name,value,handicap,active,orderNumber,columnNumber
 
-=== flat odds parsed ===
-32 cotes plates
-cles: btts_no, btts_yes, dc_12, dc_1X, dc_X2, dnb_1, dnb_2, even, h2_btts_no, h2_btts_yes, h2_dc_12, h2_dc_1X, h2_dc_X2, h2_match_1, h2_match_2, h2_match_X, half_most_equal, half_most_h2, ht_btts_no, ht_btts_yes, ht_dc_12, ht_dc_1X, ht_dc_X2, ht_dnb_1, ht_dnb_2, ht_match_1, ht_match_2, ht_match_X, match_1, match_2, match_X, odd
+=== 58 cotes plates ===
+  match: 3 — match_1, match_2, match_X
+  tt: 12 — tt_away_over_0.5, tt_away_over_1.5, tt_away_over_2.5, tt_away_under_0.5, tt_away_under_1.5, tt_away_under_2.5, tt_home_over_0.5, tt_home_over_1.5, tt_home_over_2.5, tt_home_under_0.5, tt_home_under_1.5, tt_home_under_2.5
+  over: 5 — match_over_0.5, match_over_1.5, match_over_2.5, match_over_3.5, match_over_4.5
+  under: 5 — match_under_0.5, match_under_1.5, match_under_2.5, match_under_3.5, match_under_4.5
+  ht: 10 — ht_btts_no, ht_btts_yes, ht_dc_12, ht_dc_1X, ht_dc_X2, ht_dnb_1, ht_dnb_2, ht_match_1, ht_match_2, ht_match_X
+  h2: 12 — h2_btts_no, h2_btts_yes, h2_dc_12, h2_dc_1X, h2_dc_X2, h2_match_1, h2_match_2, h2_match_X, h2_tt_away_over_0.5, h2_tt_away_under_0.5, h2_tt_home_over_0.5, h2_tt_home_under_0.5
+  other: 11 — btts_no, btts_yes, dc_12, dc_1X, dc_X2, dnb_1, dnb_2, even, half_most_equal, half_most_h2, odd
