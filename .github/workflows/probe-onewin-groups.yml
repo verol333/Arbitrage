@@ -1,0 +1,43 @@
+name: Probe — 1win groupes markets
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/probe-onewin-groups.js'
+      - '.github/workflows/probe-onewin-groups.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults: { run: { working-directory: arbitrage-service } }
+    steps:
+      - uses: actions/checkout@v4
+        with: { token: '${{ secrets.GITHUB_TOKEN }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run probe
+        working-directory: .
+        run: |
+          mkdir -p probe-results
+          node scripts/probe-onewin-groups.js 2>&1 | tee probe-results/onewin-groups.log
+      - name: Commit log
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add probe-results/onewin-groups.log
+          git commit -m "Probe onewin groups ${{ github.run_id }}" || echo "nothing"
+          git push || true
