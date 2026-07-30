@@ -1,15 +1,18 @@
-=== Probe endpoints ===
-  ✓ getSportList? → 1247ms size=6651 keys=Array(162)
+=== 1 : getSportList (162 items) — inspecter structure ===
+  Array of 162
+  sample[0]: {"id":8096,"rnk":1,"ds":"SRL FOOTBALL"}
+  sample[1]: {"id":1,"rnk":2,"ds":"Football"}
+  foot item: {"id":8096,"rnk":1,"ds":"SRL FOOTBALL"}
 
-=== Getting widget landing to see all keys ===
-  wc keys: bws,tms,lms,mpe,hgevs
-  lms sports: 1,2,4,5,23
-    lms[1]: keys=avs,ag,dts,ds,ics,iccs total-events=10
-    lms[2]: keys=avs,ag,dts,ds,ics,iccs total-events=3
-    lms[4]: keys=avs,ag,dts,ds,ics,iccs total-events=1
-    lms[5]: keys=avs,ag,dts,ds,ics,iccs total-events=10
-    lms[23]: keys=avs,ag,dts,ds,ics,iccs total-events=7
+=== 2 : endpoints hierarchy — Manifestazioni ===
 
-=== Trying getPalinsestoBySport variants ===
+=== 3 : endpoints hierarchy — Avvenimenti (events) ===
+
+=== 4 : essai patterns sportcash-specifiques ===
+
+=== 5 : capture www.sportcash.ci HTML pour trouver endpoints XHR ===
+  HTML non-JSON, tentative fetch text
+  scommesse/calcio status=404 len=193850
+  endpoints trouves : 0
 
 === FIN ===
