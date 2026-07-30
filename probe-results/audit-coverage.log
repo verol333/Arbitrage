@@ -1,0 +1,93 @@
+Audit couverture : 8 books x 3 sports
+
+
+════════ FOOTBALL ════════
+  1xbet        1744 matchs (13357ms)
+     ↳ ~153 marchés/match (echantillon 3/3)
+  1win          750 matchs (997ms)
+     ↳ ~14 marchés/match (echantillon 3/3)
+  congobet      546 matchs (5406ms)
+     ↳ ~113 marchés/match (echantillon 3/3)
+  yellowbet     637 matchs (3031ms)
+     ↳ ~100 marchés/match (echantillon 3/3)
+  apollo        488 matchs (1964ms)
+     ↳ ~68 marchés/match (echantillon 3/3)
+  betmomo       397 matchs (8238ms)
+     ↳ ~25 marchés/match (echantillon 3/3)
+[sportcash:football] getEvento: 14 ok / 0 empty / 14 total | raw=[3,322,324,2,346,1016,4,339,325,638,409,126,1124,606] parsed=[3,45,47,3,43,49,3,47,47,49,51,29,47,47] first_cs=[3,16,17]
+  sportcash      14 matchs (2517ms)
+     ↳ ~32 marchés/match (echantillon 3/3)
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-30 status=200 size=60492b dur=379ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-07-31 status=200 size=78164b dur=482ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-02 status=200 size=82229b dur=549ms keys=[data,pagination]
+[premierbet] GET /events/upcoming?country=GN&group=g6&platform=desktop&locale=fr&timeOffset=0&sportId=1&date=2026-08-01 status=200 size=135945b dur=645ms keys=[data,pagination]
+[premierbet] GET /events/highlights?country=GN&group=g6&platform=desktop&locale=fr&sportId=1&timeOffset=0 status=200 size=150136b dur=256ms keys=[data,pagination]
+[premierbet] prematch kept=554 dedup=106 horizon=307 virtual/outright=0
+  premierbet    554 matchs (910ms)
+     ↳ ~3 marchés/match (echantillon 3/3)
+
+════════ TENNIS ════════
+  1xbet         368 matchs (3338ms)
+     ↳ ~33 marchés/match (echantillon 3/3)
+  1win            0 matchs (294ms)
+  congobet       68 matchs (1492ms)
+     ↳ ~9 marchés/match (echantillon 3/3)
+  yellowbet      22 matchs (2853ms)
+     ↳ ~44 marchés/match (echantillon 3/3)
+  apollo         77 matchs (723ms)
+     ↳ ~10 marchés/match (echantillon 3/3)
+  betmomo       206 matchs (955ms)
+     ↳ ~15 marchés/match (echantillon 3/3)
+  sportcash       0 matchs (0ms)
+  premierbet      0 matchs (0ms)
+
+════════ BASKETBALL ════════
+  1xbet          40 matchs (1929ms)
+     ↳ ~65 marchés/match (echantillon 3/3)
+  1win           66 matchs (316ms)
+     ↳ ~31 marchés/match (echantillon 3/3)
+  congobet        9 matchs (1016ms)
+     ↳ ~19 marchés/match (echantillon 3/3)
+  yellowbet      22 matchs (2525ms)
+     ↳ ~8 marchés/match (echantillon 3/3)
+  apollo         11 matchs (595ms)
+     ↳ ~48 marchés/match (echantillon 3/3)
+  betmomo         9 matchs (419ms)
+     ↳ ~13 marchés/match (echantillon 3/3)
+  sportcash       0 matchs (0ms)
+  premierbet      0 matchs (0ms)
+
+
+═══ SUMMARY ═══
+
+football:
+  1xbet        1744 matchs | ~153 marches/m
+  1win          750 matchs | ~14 marches/m
+  congobet      546 matchs | ~113 marches/m
+  yellowbet     637 matchs | ~100 marches/m
+  apollo        488 matchs | ~68 marches/m
+  betmomo       397 matchs | ~25 marches/m
+  sportcash      14 matchs | ~32 marches/m
+  premierbet    554 matchs | ~3 marches/m
+
+tennis:
+  1xbet         368 matchs | ~33 marches/m
+  1win            0 matchs | ~0 marches/m
+  congobet       68 matchs | ~9 marches/m
+  yellowbet      22 matchs | ~44 marches/m
+  apollo         77 matchs | ~10 marches/m
+  betmomo       206 matchs | ~15 marches/m
+  sportcash       0 matchs | ~0 marches/m
+  premierbet      0 matchs | ~0 marches/m
+
+basketball:
+  1xbet          40 matchs | ~65 marches/m
+  1win           66 matchs | ~31 marches/m
+  congobet        9 matchs | ~19 marches/m
+  yellowbet      22 matchs | ~8 marches/m
+  apollo         11 matchs | ~48 marches/m
+  betmomo         9 matchs | ~13 marches/m
+  sportcash       0 matchs | ~0 marches/m
+  premierbet      0 matchs | ~0 marches/m
+
+=== FIN ===
