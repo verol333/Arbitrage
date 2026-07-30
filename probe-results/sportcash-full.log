@@ -1,0 +1,15 @@
+=== Probe endpoints ===
+  ✓ getSportList? → 1247ms size=6651 keys=Array(162)
+
+=== Getting widget landing to see all keys ===
+  wc keys: bws,tms,lms,mpe,hgevs
+  lms sports: 1,2,4,5,23
+    lms[1]: keys=avs,ag,dts,ds,ics,iccs total-events=10
+    lms[2]: keys=avs,ag,dts,ds,ics,iccs total-events=3
+    lms[4]: keys=avs,ag,dts,ds,ics,iccs total-events=1
+    lms[5]: keys=avs,ag,dts,ds,ics,iccs total-events=10
+    lms[23]: keys=avs,ag,dts,ds,ics,iccs total-events=7
+
+=== Trying getPalinsestoBySport variants ===
+
+=== FIN ===
