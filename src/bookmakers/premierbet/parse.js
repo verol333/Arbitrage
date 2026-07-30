@@ -81,13 +81,16 @@ function putBtts(market, odds, pfx) {
   }
 }
 
-// Over/Under générique. `slot(l)` construit la clé under/over à partir de la ligne.
+// Over/Under générique. La ligne (2.5, 3.5, etc.) est lue PAR OUTCOME parce que
+// premierbet met plusieurs lignes dans un seul market : outcomes = ["plus de"=1.63,
+// "moins de"=2.09, "plus de"=1.03, "moins de"=8.60, ...] avec la ligne dans
+// outcome.baseValue. Lire au niveau market retournait line=null → rien parse.
 function putOverUnder(market, odds, slotUnder, slotOver) {
-  const line = extractLine(market);
-  if (!isHalfLine(line)) return;
   for (const o of (market.outcomes || [])) {
     const v = oddOf(o);
     if (!v) continue;
+    const line = extractLine(market, o);
+    if (!isHalfLine(line)) continue;
     const n = norm(o.name || '');
     if (/^(plus|sup|over|\+)/.test(n) || /^plus de/.test(n)) odds[slotOver(line)] = v;
     else if (/^(moins|inf|under|-)/.test(n) || /^moins de/.test(n)) odds[slotUnder(line)] = v;
@@ -106,19 +109,25 @@ function putTeamTotal(market, odds, side, pfx) {
     (l) => `${pfx}tt_${side}_over_${l}`);
 }
 
+// Handicap : ligne PAR OUTCOME (premierbet met plusieurs lignes de handicap
+// dans un seul market — ex: "1X2 - Handicap" a 3 lignes = 9 outcomes 1/X/2).
+// Supporte 2-way (dom/ext) et 3-way (1/X/2 avec draw remboursé).
 function putHandicap(market, odds, pfx) {
-  const line = extractLine(market);
-  if (!isHalfLine(line)) return;
   const outcomes = market.outcomes || [];
-  outcomes.forEach((o, i) => {
+  for (let i = 0; i < outcomes.length; i++) {
+    const o = outcomes[i];
     const v = oddOf(o);
-    if (!v) return;
+    if (!v) continue;
+    const line = extractLine(market, o);
+    if (!isHalfLine(line)) continue;
     const n = norm(o.name || '');
-    const isHome = /home|dom|^1(\s|\(|\+|-|$)/.test(n) || i === 0;
-    const isAway = /away|ext|^2(\s|\(|\+|-|$)/.test(n) || (i === outcomes.length - 1 && !isHome);
+    // 3-way : "1", "X", "2" — n est nul si on lit juste le chiffre
+    if (/^x$|^n$|nul|draw/.test(n)) continue; // ignore draw en handicap
+    const isHome = /^1(\s|\(|\+|-|$|$)/.test(n) || /home|dom/.test(n);
+    const isAway = /^2(\s|\(|\+|-|$|$)/.test(n) || /away|ext/.test(n);
     if (isHome) odds[`${pfx}hcp_home_${line}`] = v;
     else if (isAway) odds[`${pfx}hcp_away_${-line}`] = v;
-  });
+  }
 }
 
 function putDnb(market, odds, pfx) {
