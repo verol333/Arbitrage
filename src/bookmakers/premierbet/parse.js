@@ -188,7 +188,7 @@ export function premierbetFlatOdds(markets) {
     if (/(les deux equipes marquent|both teams to score|btts)/.test(n) && !corners) {
       putBtts(m, odds, period); continue;
     }
-    if (/(draw no bet|match nul rembours|remboursement match nul|nul rembours)/.test(n) && !corners) {
+    if (/(draw no bet|match nul rembours|remboursement match nul|nul rembours|rembours.*match nul|pari rembours)/.test(n) && !corners) {
       putDnb(m, odds, period); continue;
     }
     if (/(pair.*impair|impair.*pair|odd.*even|even.*odd)/.test(n)) {
@@ -197,16 +197,20 @@ export function premierbetFlatOdds(markets) {
     if (/(1(ere|re)|first|premiere).*(equipe|team).*(marquer|score)/.test(n)) {
       putFts(m, odds); continue;
     }
-    if (/(mi[- ]?temps la plus (prolifique|marquante)|highest scoring half|meilleure mi[- ]?temps)/.test(n)) {
-      putHalfMost(m, odds); continue;
+    if (/(mi[- ]?temps la plus (prolifique|marquante)|highest scoring half|meilleure mi[- ]?temps|mi[- ]?temps avec le plus de buts)/.test(n)) {
+      // Ne matche que le marche "quelle mi-temps" — pas les variantes team-specifiques.
+      if (!/(equipe|dom|ext|home|away|receveur|visiteur)/.test(n)) {
+        putHalfMost(m, odds); continue;
+      }
     }
-    // Team totals (buts d'une équipe)
-    if (/total (des )?buts?.*(dom|home|equipe 1|j1|receveur)/.test(n)
-        || /total (dom|home).*buts/.test(n)) {
+    // Team totals (buts d'une équipe) — accepter avec ou sans mot "buts".
+    // Ex : "Total buts equipe a domicile", "Total equipe a domicile", "Buts equipe a domicile"
+    if (/(total (des )?buts?|buts?|total).*(dom|home|equipe 1|j1|receveur)/.test(n)
+        && !/handicap|nul/.test(n)) {
       putTeamTotal(m, odds, 'home', period); continue;
     }
-    if (/total (des )?buts?.*(ext|away|equipe 2|j2|visiteur)/.test(n)
-        || /total (ext|away).*buts/.test(n)) {
+    if (/(total (des )?buts?|buts?|total).*(ext|away|equipe 2|j2|visiteur)/.test(n)
+        && !/handicap|nul/.test(n)) {
       putTeamTotal(m, odds, 'away', period); continue;
     }
     // Handicap (Asiatique ou européen) — testé avant "total" car peut contenir "buts".
@@ -214,7 +218,9 @@ export function premierbetFlatOdds(markets) {
     // Total buts / corners total / plus ou moins / over-under.
     // Convention markets.js : plein-temps = "match_over_L", 1MT = "ht_over_L",
     // corners = "cor_over_L", corners 1MT = "cor_ht_over_L".
-    const isGoalsTotal = /(total (de )?buts?|plus[- ]?ou[- ]?moins|over[/ ]?under|nombre de buts|total goals)/.test(n);
+    // Exclure les combos "Resultat + O/U" (parser combo casserait les cotes plates).
+    if (/resultat et plus|resultat et moins|resultat.*plus[/ -]?moins/.test(n)) continue;
+    const isGoalsTotal = /(total (de )?buts?|nombre (total )?de buts|plus[- ]?ou[- ]?moins|over[/ ]?under|total goals)/.test(n);
     const isCornersTotal = corners && /(total|nombre)/.test(n);
     if (isGoalsTotal || isCornersTotal) {
       const totPfx = corners ? cornerPfx : (period === '' ? 'match_' : period);
