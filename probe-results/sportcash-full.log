@@ -1,18 +1,53 @@
-=== 1 : getSportList (162 items) — inspecter structure ===
-  Array of 162
-  sample[0]: {"id":8096,"rnk":1,"ds":"SRL FOOTBALL"}
-  sample[1]: {"id":1,"rnk":2,"ds":"Football"}
-  foot item: {"id":8096,"rnk":1,"ds":"SRL FOOTBALL"}
+=== 1 : scan sportcash.ci page racine ===
+  /: status=200 len=195367
+  /paris: status=404 len=193836
+  /paris/football: status=404 len=193845
+  /scommesse: status=404 len=193844
+  /betting: status=404 len=193840
+  /betting/football: status=404 len=193849
+  /paris-sportifs: status=404 len=193854
+  /paris-sportifs/football: status=404 len=193863
 
-=== 2 : endpoints hierarchy — Manifestazioni ===
+=== 2 : fetch page racine, grep endpoints ===
+  / status=200 len=195367
+  0 endpoints XHR trouves:
 
-=== 3 : endpoints hierarchy — Avvenimenti (events) ===
+=== 3 : fetch les JS bundles pour extraire endpoints ===
+  16 scripts references
+    https://www.googletagmanager.com/gtag/js?id=G-4LD67TZN70
+    /js/desktop/third-party/html5shiv-3.7.3.min.js?v=20260708004
+    /js/desktop/third-party/respond-1.4.2.min.js?v=20260708004
+    /js/desktop/third-party/jquery-3.7.1.min.js?v=20260708004
+    /js/contogioco-services.js?v=20260708004
+    /js/gsap.min.js?v=20260708004
+    /js/sweetalert2.min.js?v=20260708004
+    /js/jsCookie.min.js?v=20260708004
+    js?id=G-4LD67TZN70: 489723b
+    html5shiv-3.7.3.min.js?v=20260708004: 2730b
+    respond-1.4.2.min.js?v=20260708004: 4377b
+    jquery-3.7.1.min.js?v=20260708004: 87533b
+    contogioco-services.js?v=20260708004: 19408b
 
-=== 4 : essai patterns sportcash-specifiques ===
+  18 identifiants get*/find*/search* dans JS :
+    getContainerVersion
+    getCookieValues
+    getEventName
+    getHitData
+    getHitKeys
+    getItem
+    getMetadata
+    getQueryParameters
+    getReferrerQueryParameters
+    getReferrerUrl
+    getTimestamp
+    getTimestampMillis
+    getType
+    getUSPData
+    getUntrustedMessageValue
+    getUrl
+    getUserAgent
+    searchQueryParams
 
-=== 5 : capture www.sportcash.ci HTML pour trouver endpoints XHR ===
-  HTML non-JSON, tentative fetch text
-  scommesse/calcio status=404 len=193850
-  endpoints trouves : 0
+=== 4 : essayer les nouveaux endpoints trouves avec sport=1 ===
 
 === FIN ===
