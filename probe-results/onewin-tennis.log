@@ -1,0 +1,24 @@
+=== Enumerer sportIds 1win ===
+  sport=18: 1000 matchs — ex: "Dinamo Tbilisi II vs Aragvelebi" (world)
+  sport=19: 10 matchs — ex: "South Africa vs New Zealand" (rugby-union)
+  sport=20: 9 matchs — ex: "Collingwood Magpies vs Geelong Cats" (australia)
+  sport=21: 91 matchs — ex: "Seattle Seahawks vs New England Patriots" (usa)
+  sport=22: 3 matchs — ex: "Kyren Wilson vs Mark Williams" (international)
+  sport=23: 75 matchs — ex: "Wellington Saints vs Otago Nuggets" (new-zealand)
+  sport=24: 260 matchs — ex: "Dmytro Neborak vs Oleksandr Shkurupii" (world)
+  sport=25: 126 matchs — ex: "South Africa Emerging Players vs University Sports South Africa XI" (national-teams)
+  sport=26: 25 matchs — ex: "Richie Howson vs Burnett Richie" (world)
+  sport=27: 15 matchs — ex: "Italy vs USA" (world)
+  sport=28: 1 matchs — ex: "Hebraica vs Estudiantil Porteno" (argentina)
+  sport=29: 20 matchs — ex: "Tampa Bay Rays vs Texas Rangers" (usa)
+  sport=31: 3 matchs — ex: "Katja Stam / Raisa Schoon vs Anna Lena Grune / Janne Uhl" (brazil)
+  sport=33: 395 matchs — ex: "Gael Monfils (mACEsman9) vs Pete Sampras (shcherba11)" (cybertennis)
+  sport=34: 4 matchs — ex: "Humboldt University Of Berlin W vs University Of Valencia (w)" (europe)
+  sport=35: 53 matchs — ex: "Colorado Avalanche (ZLOYY) vs Edmonton Oilers (Polov)" (cyberhockey)
+
+=== Chercher sport tennis via category/league keywords ===
+  sport=12: 0 total → 0 tennis-like
+  sport=4: 0 total → 0 tennis-like
+  sport=8: 0 total → 0 tennis-like
+  sport=20: 9 total → 0 tennis-like
+  sport=21: 91 total → 0 tennis-like
