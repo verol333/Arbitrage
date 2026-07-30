@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// Probe sportcash v2 : explorer getSportList + hierarchy Sport→Manif→Ev
-
+// Probe sportcash v3 : trouver l'URL pari + endpoints XHR reels
 import { fetchJson } from '../src/net/fetcher.js';
 
 const BASE = 'https://sportcash.ci/XSportDatastore';
@@ -14,115 +13,61 @@ async function xget(endpoint, params = {}) {
   return { j, ms: Date.now() - t0 };
 }
 
-console.log('=== 1 : getSportList (162 items) — inspecter structure ===');
-const sl = await xget('getSportList');
-if (sl.j && Array.isArray(sl.j)) {
-  console.log(`  Array of ${sl.j.length}`);
-  console.log(`  sample[0]: ${JSON.stringify(sl.j[0])}`);
-  console.log(`  sample[1]: ${JSON.stringify(sl.j[1])}`);
-  // Chercher item avec label football
-  const foot = sl.j.find(x => /foot|calcio|soccer/i.test(JSON.stringify(x)));
-  if (foot) console.log(`  foot item: ${JSON.stringify(foot)}`);
-} else if (sl.j) {
-  console.log(`  keys=${Object.keys(sl.j).join(',')}`);
-  console.log(`  first values: ${JSON.stringify(sl.j).slice(0, 400)}`);
+console.log('=== 1 : scan sportcash.ci page racine ===');
+for (const path of ['/', '/paris', '/paris/football', '/scommesse', '/betting', '/betting/football', '/paris-sportifs', '/paris-sportifs/football']) {
+  const res = await fetch(`https://sportcash.ci${path}`, { headers: HDR });
+  console.log(`  ${path}: status=${res.status} len=${(await res.text()).length}`);
 }
 
-console.log('\n=== 2 : endpoints hierarchy — Manifestazioni ===');
-const manifEndpoints = [
-  'getManifestazioneList',
-  'getManifestazioni',
-  'getListaManifestazioniSport',
-  'getManifestazioniBySport',
-  'getMenu',
-  'getMenuSport',
-  'getSportMenu',
-  'getSportCategories',
-  'getSottoManif',
-  'getBambini',
-];
-for (const ep of manifEndpoints) {
-  for (const params of [{}, { sport: '1' }, { p: '1' }, { pal: '1' }, { idSport: '1' }, { spid: '1' }]) {
+console.log('\n=== 2 : fetch page racine, grep endpoints ===');
+const res = await fetch('https://sportcash.ci/', { headers: HDR });
+const html = await res.text();
+console.log(`  / status=${res.status} len=${html.length}`);
+const xhrs = new Set([...html.matchAll(/XSportDatastore\/(\w+)/g)].map(m => m[1]));
+console.log(`  ${xhrs.size} endpoints XHR trouves:`);
+[...xhrs].sort().forEach(e => console.log(`    ${e}`));
+
+console.log('\n=== 3 : fetch les JS bundles pour extraire endpoints ===');
+const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1]);
+console.log(`  ${scripts.length} scripts references`);
+scripts.slice(0, 8).forEach(s => console.log(`    ${s}`));
+
+const jsEndpoints = new Set();
+for (const script of scripts.slice(0, 5)) {
+  const url = script.startsWith('http') ? script : `https://sportcash.ci${script}`;
+  try {
+    const r = await fetch(url, { headers: HDR });
+    const t = await r.text();
+    for (const m of t.matchAll(/["'`](\w{3,30})["'`]/g)) {
+      const w = m[1];
+      if (/^get[A-Z]\w+/.test(w) || /^find[A-Z]\w+/.test(w) || /^search[A-Z]\w+/.test(w)) jsEndpoints.add(w);
+    }
+    for (const m of t.matchAll(/XSportDatastore\/(\w+)/g)) jsEndpoints.add(m[1]);
+    console.log(`    ${url.split('/').pop()}: ${t.length}b`);
+  } catch (e) { console.log(`    ${url}: ERR ${e.message}`); }
+}
+console.log(`\n  ${jsEndpoints.size} identifiants get*/find*/search* dans JS :`);
+[...jsEndpoints].sort().forEach(e => console.log(`    ${e}`));
+
+console.log('\n=== 4 : essayer les nouveaux endpoints trouves avec sport=1 ===');
+const CANDIDATES = [...jsEndpoints].filter(e => /avvenim|palin|manif|evento|event|sport/i.test(e));
+for (const ep of CANDIDATES.slice(0, 20)) {
+  const paramsToTry = [
+    {}, { sport: '1' }, { pal: '1' }, { idSport: '1' },
+    { p: '1' }, { manif: '1' }, { spid: '1' },
+  ];
+  for (const params of paramsToTry) {
     const { j, ms } = await xget(ep, params);
     if (j) {
       const size = JSON.stringify(j).length;
-      const type = Array.isArray(j) ? `Array(${j.length})` : `Obj(keys=${Object.keys(j).slice(0, 5).join(',')})`;
-      console.log(`  ✓ ${ep}?${new URLSearchParams(params).toString()} → ${ms}ms ${type} size=${size}`);
-      if (Array.isArray(j) && j.length > 0) console.log(`    sample: ${JSON.stringify(j[0]).slice(0, 200)}`);
-      break;
-    }
-  }
-}
-
-console.log('\n=== 3 : endpoints hierarchy — Avvenimenti (events) ===');
-const evEndpoints = [
-  'getAvvenimentiSport',
-  'getAvvenimentiManifestazione',
-  'getListaAvvenimenti',
-  'getListaAvvenimentiSport',
-  'getAvvenimentiByManif',
-  'getEvents',
-  'getEventsBySport',
-  'getAllAvvenimenti',
-  'getElencoAvvenimenti',
-  'getEventiByManif',
-  'getEventiSport',
-];
-for (const ep of evEndpoints) {
-  for (const params of [
-    { sport: '1' }, { pal: '1' }, { idSport: '1' },
-    { spid: '1' }, { idManifestazione: '1' }, { manif: '1' },
-    { p: '1', a: '' }, { sport: '1', manif: '1' },
-  ]) {
-    const { j, ms } = await xget(ep, params);
-    if (j) {
-      const size = JSON.stringify(j).length;
-      const type = Array.isArray(j) ? `Array(${j.length})` : `Obj(keys=${Object.keys(j).slice(0, 5).join(',')})`;
-      console.log(`  ✓ ${ep}?${new URLSearchParams(params).toString()} → ${ms}ms ${type} size=${size}`);
-      if (Array.isArray(j) && j.length > 0) console.log(`    sample[0]: ${JSON.stringify(j[0]).slice(0, 250)}`);
-      break;
-    }
-  }
-}
-
-console.log('\n=== 4 : essai patterns sportcash-specifiques ===');
-const misc = [
-  'getPalinsestoManifestazione',
-  'getPalinsestoAvvenimenti',
-  'getRicercaAvvenimenti',
-  'getRicerca',
-  'searchEvents',
-  'ricerca',
-  'getTuttiAvvenimenti',
-  'getAvvsBySport',
-  'getPalinsestoSport',
-];
-for (const ep of misc) {
-  const { j, ms } = await xget(ep, { sport: '1' });
-  if (j) {
-    const size = JSON.stringify(j).length;
-    console.log(`  ✓ ${ep}?sport=1 → ${ms}ms size=${size}`);
-    if (typeof j === 'object' && !Array.isArray(j)) {
-      for (const [k, v] of Object.entries(j)) {
-        if (Array.isArray(v)) console.log(`    ${k}: Array(${v.length})`);
-        else if (typeof v === 'object') console.log(`    ${k}: keys=${Object.keys(v).slice(0, 3).join(',')}`);
+      const type = Array.isArray(j) ? `Array(${j.length})` : `Obj(${Object.keys(j).slice(0,5).join(',')})`;
+      if (size > 100) {
+        console.log(`  ✓ ${ep}?${new URLSearchParams(params).toString()} → ${ms}ms ${type} size=${size}`);
+        if (Array.isArray(j) && j.length > 0) console.log(`    sample: ${JSON.stringify(j[0]).slice(0, 250)}`);
+        break;
       }
     }
   }
 }
-
-console.log('\n=== 5 : capture www.sportcash.ci HTML pour trouver endpoints XHR ===');
-const html = await fetchJson('https://sportcash.ci/scommesse/calcio', { headers: HDR, timeoutMs: 15000 });
-if (html) console.log(`  HTML returned (${JSON.stringify(html).length} bytes)`);
-else console.log('  HTML non-JSON, tentative fetch text');
-
-const res = await fetch('https://sportcash.ci/scommesse/calcio', { headers: HDR });
-const text = await res.text();
-console.log(`  scommesse/calcio status=${res.status} len=${text.length}`);
-// Chercher URLs XSportDatastore dans le HTML
-const xhrPaths = [...text.matchAll(/XSportDatastore\/(\w+)/g)].map(m => m[1]);
-const unique = [...new Set(xhrPaths)].sort();
-console.log(`  endpoints trouves : ${unique.length}`);
-unique.forEach(e => console.log(`    ${e}`));
 
 console.log('\n=== FIN ===');
