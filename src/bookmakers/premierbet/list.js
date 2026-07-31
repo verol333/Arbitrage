@@ -1,40 +1,73 @@
-import { pget, isVirtual, isOutright, splitTeams } from './api.js';
+import { mget, isVirtual, isOutright, splitTeams } from './api.js';
 
-const FOOT_EVENT_TYPES = new Set([1]);
-// eventType=1 pas 100% fiable chez PremierBet (baseball MLB, tennis singles/doubles
-// remontent parfois avec eventType=1). Filtre secondaire par nom de ligue + pattern
-// des noms d'équipe (tennis doubles = "X / Y", baseball = catégorie contient MLB).
-const NON_FOOT_LEAGUE_RE = /tennis|baseball|basketball|volleyball|hockey|mma|boxing|cricket|\bnfl\b|\bnba\b|\bnhl\b|\bmlb\b|table tennis|snooker|darts|handball|rugby|badminton|golf|esports?|counter.?strike|dota|starcraft|league of legends/i;
+const SPORT_ID = '1';
+const NON_FOOT_RE = /tennis|baseball|basketball|volleyball|hockey|mma|boxing|cricket|\bnfl\b|\bnba\b|\bnhl\b|\bmlb\b|table tennis|snooker|darts|handball|rugby|badminton|golf|esports?|counter.?strike|dota|starcraft|league of legends/i;
 
-export async function listMatches({ live = false, maxMatches = 300, horizonHours = 168 } = {}) {
-  if (live) return [];
-  const nowMs = Date.now();
-  const horizonMs = nowMs + horizonHours * 3600 * 1000;
-  const best = (await pget('market/events/bestsellers')) || [];
+function extractEvents(result) {
+  if (!result || !result.data) return [];
+  const data = result.data;
+  if (Array.isArray(data)) return data;
   const out = [];
-  let seenFoot = 0, filteredOutright = 0, filteredVirtual = 0, filteredHorizon = 0, noTeams = 0, filteredNonFoot = 0;
-  for (const e of best) {
-    const isFoot = FOOT_EVENT_TYPES.has(e.eventType) || FOOT_EVENT_TYPES.has(e.treatAsSport);
-    if (!isFoot) continue;
-    seenFoot++;
-    if (isOutright(e.eventName)) { filteredOutright++; continue; }
-    const teams = splitTeams(e.eventName);
-    if (!teams) { noTeams++; continue; }
-    // Doubles tennis : "Nom1 / Nom2 vs Nom3 / Nom4" → skip
-    if (teams.home.includes(' / ') || teams.away.includes(' / ')) { filteredNonFoot++; continue; }
-    const leagueName = e.category3Name || e.category2Name || e.category1Name || '';
-    const allCategories = [e.category1Name, e.category2Name, e.category3Name].filter(Boolean).join(' ').toLowerCase();
-    if (NON_FOOT_LEAGUE_RE.test(allCategories)) { filteredNonFoot++; continue; }
-    if (isVirtual(`${teams.home} ${teams.away} ${leagueName}`)) { filteredVirtual++; continue; }
-    if (!e.eventStart || e.eventStart <= nowMs + 2 * 60 * 1000 || e.eventStart > horizonMs) { filteredHorizon++; continue; }
-    const markets = Array.isArray(e.eventGames) ? e.eventGames : [];
+  for (const cat of (data.categories || [])) {
+    for (const comp of (cat.competitions || [])) {
+      out.push(...(comp.events || []));
+    }
+  }
+  return out;
+}
+
+export async function listMatches({ live = false, horizonHours = 168, maxMatches = 600 } = {}) {
+  const nowMs = Date.now();
+  const horizonMs = nowMs + horizonHours * 3600_000;
+  const ids = new Map();
+
+  const endpoints = live
+    ? [{ path: '/events/live', extra: { sportId: SPORT_ID, zoomSportId: '61' } }]
+    : [
+        { path: '/events/upcoming', extra: { sportId: SPORT_ID, timeOffset: '-60', date: new Date().toISOString().slice(0, 10) } },
+        { path: '/events/highlights', extra: { sportId: SPORT_ID } },
+      ];
+
+  const results = await Promise.all(endpoints.map(({ path, extra }) => mget(path, extra)));
+  const counts = {};
+
+  for (let i = 0; i < results.length; i++) {
+    const name = endpoints[i].path.split('/').pop();
+    const events = extractEvents(results[i]);
+    counts[name] = events.length;
+    for (const ev of events) {
+      if (!ev.id || ids.has(ev.id)) continue;
+      ids.set(ev.id, ev);
+    }
+  }
+
+  const out = [];
+  let filtered = { outright: 0, virtual: 0, horizon: 0, noTeams: 0, nonFoot: 0 };
+
+  for (const ev of ids.values()) {
+    const teams = splitTeams(ev.eventNames);
+    if (!teams) { filtered.noTeams++; continue; }
+    if (teams.home.includes(' / ') || teams.away.includes(' / ')) { filtered.nonFoot++; continue; }
+    const cat = [ev.categoryName, ev.competitionName].filter(Boolean).join(' ');
+    if (NON_FOOT_RE.test(cat)) { filtered.nonFoot++; continue; }
+    const label = `${teams.home} ${teams.away} ${cat}`;
+    if (isOutright(ev.eventNames?.join?.(' ') || '')) { filtered.outright++; continue; }
+    if (isVirtual(label)) { filtered.virtual++; continue; }
+    if (!live) {
+      const st = ev.startTime;
+      if (!st || st <= nowMs + 2 * 60_000 || st > horizonMs) { filtered.horizon++; continue; }
+    }
     out.push({
-      id: String(e.eventId), home: teams.home, away: teams.away,
-      league: leagueName, start: e.eventStart,
-      __raw: { markets },
+      id: String(ev.id),
+      home: teams.home,
+      away: teams.away,
+      league: ev.competitionName || ev.categoryName || '',
+      start: ev.startTime || null,
     });
     if (out.length >= maxMatches) break;
   }
-  console.log(`[premierbet] bestsellers=${best.length} foot=${seenFoot} kept=${out.length} filtered=(outright:${filteredOutright} virtual:${filteredVirtual} horizon:${filteredHorizon} noTeams:${noTeams} nonFoot:${filteredNonFoot})`);
+
+  const src = Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(' ');
+  console.log(`[premierbet] ${src} unique=${ids.size} kept=${out.length} filtered=(outright:${filtered.outright} virtual:${filtered.virtual} horizon:${filtered.horizon} noTeams:${filtered.noTeams} nonFoot:${filtered.nonFoot})`);
   return out;
 }
