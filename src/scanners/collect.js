@@ -511,6 +511,7 @@ function idFields(matches) {
     '1xbet': 'onexbet_match_id', '1win': 'onewin_match_id', congobet: 'congobet_match_id',
     yellowbet: 'yellowbet_match_id', apollo: 'apollo_match_id', betmomo: 'betmomo_match_id',
     sportcash: 'sportcash_match_id', premierbet: 'premierbet_match_id',
+    betpawa: 'betpawa_match_id',
   };
   const out = {};
   for (const [k, m] of Object.entries(matches)) {

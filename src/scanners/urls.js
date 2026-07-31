@@ -24,6 +24,8 @@ export function matchUrl(bookKey, m) {
     }
     case 'premierbet':
       return `https://premierbetzone.com/sports/soccer/event/${m.id}`;
+    case 'betpawa':
+      return `https://cg.betpawa.com/events/${m.id}`;
     default:
       return null;
   }
