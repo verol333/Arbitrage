@@ -28,4 +28,4 @@ export function splitTeams(da) {
   return { home: parts[0].trim(), away: parts.slice(1).join(' - ').trim() };
 }
 
-export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b/i.test(s || '');
+export { isVirtualText as isVirtual } from '../../core/text.js';

@@ -147,7 +147,7 @@ export function extractLine(market, outcome = null) {
 }
 
 export const isOutright = (s) => /outright|winner|to win the|top scorer|qualif|advance|group [a-z] winner|vainqueur du tournoi/i.test(s || '');
-export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b/i.test(s || '');
+export { isVirtualText as isVirtual } from '../../core/text.js';
 
 // eventNames = [home, away] dans l'API mobile.
 export function splitTeams(event) {

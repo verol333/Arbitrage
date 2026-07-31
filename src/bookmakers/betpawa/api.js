@@ -54,5 +54,4 @@ export async function bpGet(params = {}, { long = false, noCache = false } = {})
   });
 }
 
-export const isVirtual = (s) =>
-  /\bsrl\b|simulated|esoccer|e-?soccer|cyber|virtual|fifa/i.test(s || '');
+export { isVirtualText as isVirtual } from '../../core/text.js';

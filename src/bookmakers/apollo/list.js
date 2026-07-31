@@ -1,4 +1,5 @@
 import { APOLLO_SID, apolloGet } from './api.js';
+import { isVirtualText } from '../../core/text.js';
 
 // Apollo expose peu de champs live au niveau list ; on tente Result / MatchResults.
 function apolloLiveMeta(m) {
@@ -26,7 +27,7 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
   const dateTo = '2046-04-07T22:59:59.000Z';
   const out = [];
   const seen = new Set();
-  const isVirtual = (h, a, lg) => /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(`${h} ${a} ${lg}`);
+  const isVirtual = (h, a, lg) => isVirtualText(`${h} ${a} ${lg}`);
   const PAGE = 200;
   for (let offset = 0; offset < maxMatches; offset += PAGE) {
     let path = `/sport/offer/v3/sports/offer?Offset=${offset}&Limit=${PAGE}&DateFrom=${now}&DateTo=${dateTo}&SportIds=${sid}`;

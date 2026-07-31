@@ -1,4 +1,5 @@
 import { API_BASE, ORIGIN, UA, PLATFORM, WIN_SID, WIN_SID_ALT } from './api.js';
+import { isVirtualText } from '../../core/text.js';
 
 async function winGetMany(sportId, offset, { live = false } = {}) {
   const now = Math.floor(Date.now() / 1000);
@@ -43,7 +44,7 @@ function toMatch(m) {
 const isReal = (m) => m.id && m.home && m.away
   && !/\(v\)/i.test(m.home) && !/\(v\)/i.test(m.away)
   && !/replay/i.test(m.home) && !/replay/i.test(m.away)
-  && !/\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?/i.test(`${m.home} ${m.away} ${m.league || ''}`);
+  && !isVirtualText(`${m.home} ${m.away} ${m.league || ''}`);
 
 // 1win expose plusieurs sportId pour un même sport (ex. basket VTB=19 et PBA=23).
 // On concatène tous les IDs mappés puis on dédup par match.id.

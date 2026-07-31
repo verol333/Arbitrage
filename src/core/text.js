@@ -208,3 +208,9 @@ export function teamSim(a, b) {
   if (minLen === 1 && maxLen >= 3) return inter / maxLen;
   return Math.max(base, inter / minLen);
 }
+
+const VIRTUAL_RE = /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?fighting\b|\be-?basketball\b|\be-?hockey\b|\be-?tennis\b/i;
+
+export function isVirtualText(s) {
+  return VIRTUAL_RE.test(s || '');
+}

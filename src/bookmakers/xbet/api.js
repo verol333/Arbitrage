@@ -57,9 +57,10 @@ export function isFakeTeam(name) {
     || /^home$/i.test(n) || /^away$/i.test(n);
 }
 
+import { isVirtualText } from '../../core/text.js';
+
 export function isVirtual(home, away, league) {
-  const s = `${home} ${away} ${league}`.toLowerCase();
-  return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?fighting\b|\be-?basketball\b|\be-?hockey\b|\be-?tennis\b/i.test(s);
+  return isVirtualText(`${home} ${away} ${league}`);
 }
 
 export function mapXItems(items) {

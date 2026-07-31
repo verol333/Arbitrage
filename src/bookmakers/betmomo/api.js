@@ -44,7 +44,8 @@ export function isOutright(g) {
   if (/outright/i.test(String(g.league || ''))) return true;
   return /^\d{4}$|\bchampionship\b|\bwinner\b|\boutright\b|top scorer|to qualify/i.test(String(g.team1_name));
 }
+import { isVirtualText } from '../../core/text.js';
+
 export function isVirtual(g) {
-  const s = `${g.team1_name || ''} ${g.team2_name || ''} ${g.league || ''}`.toLowerCase();
-  return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\be-?fighting\b/i.test(s);
+  return isVirtualText(`${g.team1_name || ''} ${g.team2_name || ''} ${g.league || ''}`);
 }

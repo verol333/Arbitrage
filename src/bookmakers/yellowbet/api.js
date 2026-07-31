@@ -10,9 +10,10 @@ export async function evapi(url) {
   return fetchJson(url, { headers: SET_HEADERS, timeoutMs: 20_000 });
 }
 
+import { isVirtualText } from '../../core/text.js';
+
 export function isVirtual(ev) {
-  const s = `${ev.h || ''} ${ev.a || ''} ${ev.ln || ''}`.toLowerCase();
-  return /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(s);
+  return isVirtualText(`${ev.h || ''} ${ev.a || ''} ${ev.ln || ''}`);
 }
 
 // Parse ev.lv qui, pour les vrais LIVE, est une string JSON contenant
