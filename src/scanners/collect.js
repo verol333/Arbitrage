@@ -91,7 +91,9 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
 
   const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
-  const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
+  // Aucun plafond artificiel : le user a explicitement demandé de ne jamais limiter.
+  // Le tri chronologique traite d'abord les matchs proches (kickoff imminent).
+  const cap = maxMatches ?? config.scan.maxMatches ?? Infinity;
   // Tri chronologique simple : matchs les plus proches en premier.
   // (Un tri par couverture excluait les matchs 1win/sportcash du top.)
   const sorted = entries
