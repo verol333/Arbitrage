@@ -24,12 +24,6 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Audit live parsers YB+BM+Congobet
+      - name: Audit PremierBet mobile API markets
         working-directory: .
-        run: node scripts/audit-live-parsers.js
-        env:
-          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
-          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
-          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
-          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
-          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+        run: node scripts/audit-premierbet.js
