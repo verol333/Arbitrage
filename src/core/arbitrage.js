@@ -276,6 +276,7 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
 
 const TENNIS_HCP_LINES = [-6.5, -5.5, -4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
 const SET_HCP_LINES = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5];
+const SET_GAME_HCP_LINES = [-4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5];
 
 // Tennis : match winner 2-way, total jeux, handicap jeux/sets, total sets,
 // per-set winner + totals, totaux joueur, pair/impair jeux.
@@ -313,6 +314,12 @@ export function compareTwoBooksTennis(rawA, bookA, rawB, bookB) {
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
       pushArb(out, `${lbl} Total ${l}`, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB);
       pushArb(out, `${lbl} Total ${l}`, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA);
+    }
+    for (const l of SET_GAME_HCP_LINES) {
+      const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-l}`;
+      const fam = `${lbl} Handicap jeux ${l > 0 ? '+' + l : l}`;
+      pushArb(out, fam, `J1 ${l > 0 ? '+' + l : l}`, oa[hk], bookA, `J2 ${-l > 0 ? '+' + (-l) : -l}`, ob[ak], bookB);
+      pushArb(out, fam, `J1 ${l > 0 ? '+' + l : l}`, ob[hk], bookB, `J2 ${-l > 0 ? '+' + (-l) : -l}`, oa[ak], bookA);
     }
   }
   for (const [side, lbl] of [['home', 'J1'], ['away', 'J2']]) {
