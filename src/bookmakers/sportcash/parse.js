@@ -100,7 +100,13 @@ export function sportcashFlatOdds(markets) {
     switch (m.cs) {
       // ─── Full time (codes vérifiés via audit prématch) ─────────────────────
       case 3: put1x2(m, ''); break;                          // FINAL 1X2
-      case 15: putDcReal(m); break;                          // DOUBLE CHANCE (vrai code, cs=16/17 etaient des combos)
+      // cs=15 DÉSACTIVÉ : le champ `d` (label outcome) est vide dans l'API,
+      // donc on ne peut PAS savoir de manière fiable si ce=1=dc_1X ou dc_X2.
+      // L'audit prouve que le mapping est correct pour certains matchs mais
+      // inversé pour d'autres (ex: Montrose vs Hamilton Academical → arb fake
+      // 19.5% généré par mismatch dc_X2=2.00 vs vrai dc_1X=2.00). Les 1X2
+      // comparators dérivent déjà DC de cs=3 — on n'a pas besoin de cs=15.
+      case 15: break;
       case 18: putBtts(m, ''); break;                        // BOTH TEAMS TO SCORE
       case 19: putOddEven(m, ''); break;                     // ODD/EVEN
       case 560: putHighestScoringHalf(m); break;             // HIGHEST SCORING HALF (3-way)
