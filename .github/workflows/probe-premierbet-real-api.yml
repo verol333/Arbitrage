@@ -24,8 +24,13 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Audit PremierBet mobile API markets
+      - name: Audit 1win + Congobet (temp — 1win/congobet workflows pas encore indexés)
         working-directory: .
-        run: node scripts/audit-premierbet.js
+        run: |
+          echo "===== 1WIN AUDIT ====="
+          node scripts/audit-onewin.js || echo "onewin FAILED"
+          echo ""
+          echo "===== CONGOBET AUDIT ====="
+          node scripts/audit-congobet.js || echo "congobet FAILED"
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
