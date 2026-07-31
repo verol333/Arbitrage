@@ -200,5 +200,11 @@ export function teamSim(a, b) {
       || (wb.length >= 4 && wa.startsWith(wb))
       || fuzzyEq(wa, wb))) inter++;
   }
-  return Math.max(base, inter / Math.min(ta.length, tb.length));
+  const minLen = Math.min(ta.length, tb.length);
+  const maxLen = Math.max(ta.length, tb.length);
+  // Guard: when one name reduces to a single token and the other has 3+,
+  // use maxLen as denominator. Prevents "Paris FC" (→ "paris", 1 token)
+  // from matching "Paris Saint-Germain" (→ 3 tokens) at 1.0.
+  if (minLen === 1 && maxLen >= 3) return inter / maxLen;
+  return Math.max(base, inter / minLen);
 }
