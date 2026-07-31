@@ -103,23 +103,31 @@ export async function getOdds(matchId) {
     // DNB by half.
     else if (id === 10106) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.ht_dnb_1 = Number(it.odds); else if (s === '2') odds.ht_dnb_2 = Number(it.odds); } }
     else if (id === 10119) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.h2_dnb_1 = Number(it.odds); else if (s === '2') odds.h2_dnb_2 = Number(it.odds); } }
-    // Half with most goals.
-    else if (id === 10036) {
+    // Half with most goals — audit prouve id=10022 (pas 10036).
+    // shortName: "1ère" | "2ème" | "X"
+    else if (id === 10022) {
       for (const it of items) {
         const s = (it.shortName || '').toLowerCase();
-        if (/1(st|ère|ere)?\s*(mi|half)/i.test(s) || s === '1') odds.half_most_ht = Number(it.odds);
-        else if (/2(nd|ème|eme)?\s*(mi|half)/i.test(s) || s === '2') odds.half_most_h2 = Number(it.odds);
+        if (/1(st|ère|ere)?\s*(mi|half)?/i.test(s) || s === '1') odds.half_most_ht = Number(it.odds);
+        else if (/2(nd|ème|eme)?\s*(mi|half)?/i.test(s) || s === '2') odds.half_most_h2 = Number(it.odds);
         else if (/egal|equal|draw|x/i.test(s)) odds.half_most_equal = Number(it.odds);
       }
     }
-    // First team to score.
-    else if (id === 10039) {
-      for (const it of items) {
-        const s = (it.shortName || '').trim();
-        if (s === '1') odds.fts_home = Number(it.odds);
-        else if (s === '2') odds.fts_away = Number(it.odds);
-        else if (/aucun|no goal|none/i.test(s)) odds.fts_none = Number(it.odds);
-      }
+    // Combos explicitement ignorés (l'audit prouve que ces IDs sont des combos
+    // multi-marchés non comparables) :
+    // - 10009 : Résultat Mi-temps / Fin de match (9-way)
+    // - 10021 : Handicap Européen (3-way, cs=8 sportcash équivalent)
+    // - 10025 : Les deux équipes marquent et nombre de buts
+    // - 10026 : Résultat du match et les deux équipes marquent
+    // - 10027 : Résultat du match et nombre de buts
+    // - 10039 : Double chance et nombre de buts (PAS "First team to score" !
+    //           l'ancien mapping fts_* était SILENCIEUSEMENT vide car les
+    //           shortName ne matchaient jamais "1"/"2" — accidentellement safe)
+    // - 10040 : Double chance et les deux équipes marquent
+    // - 10116/10117 : 1ère mi-temps - Résultat & (BTTS|nb buts)
+    // - 10309/10310/10312/10489 : DC & BTTS période
+    else if ([10009, 10021, 10025, 10026, 10027, 10039, 10040, 10116, 10117, 10309, 10310, 10312, 10489].includes(id)) {
+      // no-op
     }
   }
   return odds;
