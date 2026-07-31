@@ -27,3 +27,5 @@ jobs:
       - name: Audit PremierBet mobile API markets
         working-directory: .
         run: node scripts/audit-premierbet.js
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
