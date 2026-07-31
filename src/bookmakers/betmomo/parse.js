@@ -81,8 +81,10 @@ export function betmomoFlatOdds(markets) {
       case 'SecondHalfResult': put1x2('h2_'); break;
       case 'SecondHalfDoubleChance': putDC('h2_'); break;
       case '2ndHalfBothTeamsToScore': putBtts('h2_'); break;
-      case 'SecondHalfOverUnder': putTotal('h2_'); break;
-      case 'SecondHalfAsianHandicap': putHcp('h2_'); break;
+      case 'SecondHalfOverUnder':
+      case '2ndHalfTotalOver/Under': putTotal('h2_'); break;    // Alias 2H total (audit prouvait mismatch)
+      case 'SecondHalfAsianHandicap':
+      case '2ndHalfAsianHandicap': putHcp('h2_'); break;         // Alias 2H handicap
       case 'SecondHalfTeam1OverUnder': putTeamTotal('home', 'h2_'); break;
       case 'SecondHalfTeam2OverUnder': putTeamTotal('away', 'h2_'); break;
       case 'DrawNoBet': {
@@ -157,7 +159,16 @@ export function betmomoFlatOdds(markets) {
       case 'Team2CornersOverUnder': putTeamTotal('away', 'cor_'); break;
       // ─── TENNIS markets (BetMomo SWARM types) ─────────────────────────────
       case 'P1P2': put1x2(''); break; // Match Winner 2-way tennis
-      case 'Handicap': putHcp(''); break; // Games Handicap
+      case 'Handicap': {
+        // Games Handicap MATCH-level SEULEMENT. Si m.group_name pointe un set
+        // spécifique (1stSet, 2ndSet, etc.), on ignore pour éviter que la cote
+        // d'un handicap de set particulier soit lue comme handicap match.
+        // Audit tennis Bouzige vs Delaney : Handicap x4 tous en group="Match" — OK.
+        const grp = String(m.group_name || '').toLowerCase();
+        if (grp && !/^(match|handicaps?|regular time)/i.test(grp)) break;
+        putHcp('');
+        break;
+      }
       case 'TotalGamesOver/Under': putTotal('match_'); break;
       case "Player1:Player'sTotalofWonGames": putTeamTotal('home', ''); break;
       case "Player2:Player'sTotalofWonGames": putTeamTotal('away', ''); break;
@@ -273,6 +284,30 @@ export function betmomoFlatOdds(markets) {
       case '2ndPeriodOverUnder': putTotal('p2_'); break;
       case '3rdPeriodResult': put1x2('p3_'); break;
       case '3rdPeriodOverUnder': putTotal('p3_'); break;
+      // Hockey Regular-Time markets (BetConstruct — audit prouvait 50 markets
+      // dispo mais parseur n'en lisait que 6 sur Finland U20 vs Sweden U20).
+      case 'MatchHandicap2': putHcp(''); break;                  // Match handicap plein temps
+      case 'MatchTotal2': putTotal('match_'); break;             // Total buts match plein temps
+      case 'HomeTeamTotal': putTeamTotal('home', ''); break;     // Total buts équipe domicile match
+      case 'AwayTeamTotal': putTeamTotal('away', ''); break;     // Total buts équipe extérieur match
+      case 'OddEvenTotal': {                                     // Odd/Even total buts match
+        for (const e of list) {
+          const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
+          if (/odd|impair/.test(ty)) odds.odd = odds.odd || price(e);
+          else if (/even|pair/.test(ty)) odds.even = odds.even || price(e);
+        } break;
+      }
+      // Variants Asian ignored (base=.75/.25 non half-line, parseur les rejette
+      // déjà via isHalfLine, mais on les liste pour ne pas les traiter accidentellement) :
+      case 'MatchHandicap2Asian':
+      case 'MatchTotal2Asian':
+      case 'HomeTeamTotalAsian':
+      case 'AwayTeamTotalAsian':
+      case 'HalfTimeOverUnderAsian':
+      case 'HalfTimeTeam1OverUnderAsian':
+      case 'HalfTimeTeam2OverUnderAsian':
+      case 'Team1TotalOverUnderAsian':
+      case 'Team2TotalOverUnderAsian': break;
       // IGNORÉS : PeriodHomeTeamTotal / PeriodAwayTeamTotal n'indiquent PAS
       // le numéro de période dans le type — les stocker sous tt_home_* créait
       // des surebets fantômes (comparés à d'autres marchés hockey chez 1xBet).

@@ -88,11 +88,18 @@ export function sportcashFlatOdds(markets) {
     }
   };
 
+  const putDnb = (m, pfx) => {
+    for (const e of (m.eqs || [])) {
+      if (!okSel(e)) continue;
+      if (e.ce === 1) odds[`${pfx}dnb_1`] = price(e);
+      else if (e.ce === 2) odds[`${pfx}dnb_2`] = price(e);
+    }
+  };
+
   for (const m of markets) {
     switch (m.cs) {
       // ─── Full time (codes vérifiés via audit prématch) ─────────────────────
       case 3: put1x2(m, ''); break;                          // FINAL 1X2
-      case 8: putHcp(m, ''); break;                          // HANDICAP
       case 15: putDcReal(m); break;                          // DOUBLE CHANCE (vrai code, cs=16/17 etaient des combos)
       case 18: putBtts(m, ''); break;                        // BOTH TEAMS TO SCORE
       case 19: putOddEven(m, ''); break;                     // ODD/EVEN
@@ -100,17 +107,26 @@ export function sportcashFlatOdds(markets) {
       case 1749: putTotal(m, 'tt_home_'); break;             // HOME TOTAL
       case 1750: putTotal(m, 'tt_away_'); break;             // AWAY TOTAL
       case 7989: putTotal(m, 'match_'); break;               // TOTAL GOALS
+      case 60011: putDnb(m, ''); break;                      // DRAW NO BET (nouveau, découvert via audit)
+      case 60016: putHcp(m, ''); break;                      // ASIAN HANDICAP 2-way (half lines uniquement)
       // ─── 1st half ──────────────────────────────────────────────────────────
       case 14: put1x2(m, 'ht_'); break;                      // 1ST HALF (1X2)
       case 569: putHcp(m, 'ht_'); break;                     // 1ST HALF HANDICAP
-      // ─── 2nd half (nouveaux codes découverts via audit) ───────────────────
+      case 60064: putDnb(m, 'ht_'); break;                   // 1ST HALF DRAW NO BET (nouveau)
+      // ─── 2nd half ──────────────────────────────────────────────────────────
       case 127: put1x2(m, 'h2_'); break;                     // 2ND HALF 1X2
-      case 4009: putHcp(m, 'h2_'); break;                    // 2ND HALF HANDICAP
-      // ─── Corners (nouveaux codes) ─────────────────────────────────────────
+      case 10003: putOddEven(m, 'h2_'); break;               // 2ND HALF ODD/EVEN (nouveau)
+      // ─── Corners ──────────────────────────────────────────────────────────
       case 186:                                              // TOTALE CALCI ANGOLO (italien)
       case 975: putTotal(m, 'cor_'); break;                  // TOTAL CORNERS
       case 9211: putTotal(m, 'cor_ht_'); break;              // 1ST HALF TOTAL CORNERS
       case 3237: putOddEven(m, 'cor_'); break;               // ODD/EVEN CORNERS
+      // ─── Ignorés : cs=8 & cs=4009 sont 3-way European handicaps (ce=1/2/3)
+      // avec lignes entières (h∈[-4,-3,-2,-1,1]). Non comparables à Asian
+      // 2-way ; les mapper vers hcp_home/away donnait des mismatches.
+      // Le vrai Asian half-line est cs=60016 (fulltime) — pas d'équivalent 2H connu.
+      case 8:                                                 // HANDICAP 3-way European
+      case 4009:                                              // 2ND HALF HANDICAP 3-way European
       // ─── Ignorés (combos exotiques non-comparables 2-way pures) ────────────
       case 16: case 17:                                       // DC combos anciennement mal mappes
       case 4:                                                 // HALFTIME/FULLTIME (9-way)
