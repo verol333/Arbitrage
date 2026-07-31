@@ -396,6 +396,14 @@ function marketKeyFromOpp(o) {
     const l = parseFloat(setHcp[1]);
     return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
   }
+  // Per-set game handicap (tennis)
+  const setGameHcp = fam.match(/^(Set [1-5]) Handicap jeux\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (setGameHcp) {
+    const pfxMap = { 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_' };
+    const l = parseFloat(setGameHcp[2]);
+    const pfx = pfxMap[setGameHcp[1]];
+    return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
+  }
   // Handicap match plein-temps (foot Asiatique, basket points, hockey Puck Line, tennis jeux)
   // Accepte les variantes explicites : "Handicap Asiatique +2.5", "Handicap +2.5",
   // "Handicap jeux +2.5", "Handicap points +2.5", "Puck Line -1.5".
