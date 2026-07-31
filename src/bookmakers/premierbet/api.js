@@ -1,4 +1,4 @@
-// PremierBet mobile API — direct access (no proxy needed).
+// PremierBet mobile API — direct access with Scrape.do fallback.
 // Discovered via Android app capture (BlueStacks + mitmproxy).
 // Base: sports-api.premierbet.com/cg/v1
 const BASE = 'https://sports-api.premierbet.com/cg/v1';
@@ -16,7 +16,6 @@ export async function mget(path, extra = {}, timeoutMs = 20_000) {
   const ps = new URLSearchParams({ ...PARAMS, ...extra });
   const targetUrl = `${BASE}${path}?${ps}`;
 
-  // Try direct first
   try {
     const res = await fetch(targetUrl, {
       headers: HEADERS,
@@ -24,27 +23,26 @@ export async function mget(path, extra = {}, timeoutMs = 20_000) {
     });
     if (res.ok) return res.json();
 
-    // 403/503 → try Scrape.do fallback if key is available
     if ((res.status === 403 || res.status === 503) && SDO_KEY) {
-      return sdoFetch(targetUrl, timeoutMs);
+      try { return await sdoFetch(targetUrl); }
+      catch (e2) { console.log(`[premierbet/sdo] ${path} err=${e2.message}`); return null; }
     }
     console.log(`[premierbet] ${path} status=${res.status}`);
     return null;
   } catch (e) {
-    // Network error → try Scrape.do if available
     if (SDO_KEY) {
-      try { return sdoFetch(targetUrl, timeoutMs); }
-      catch { /* fall through */ }
+      try { return await sdoFetch(targetUrl); }
+      catch (e2) { console.log(`[premierbet/sdo] ${path} err=${e2.message}`); return null; }
     }
     console.log(`[premierbet] ${path} err=${e.message}`);
     return null;
   }
 }
 
-async function sdoFetch(targetUrl, timeoutMs) {
+async function sdoFetch(targetUrl) {
   const qs = new URLSearchParams({ token: SDO_KEY, url: targetUrl });
   const res = await fetch(`https://api.scrape.do/?${qs}`, {
-    signal: AbortSignal.timeout(Math.max(timeoutMs, 30_000)),
+    signal: AbortSignal.timeout(60_000),
   });
   if (!res.ok) {
     console.log(`[premierbet/sdo] status=${res.status}`);
