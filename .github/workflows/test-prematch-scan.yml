@@ -1,0 +1,44 @@
+name: Test — Scan Prématch (vérification corrections)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prematch-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/arbitrage-review-updates-2pj748
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --production
+
+      - name: Link node_modules at repo root
+        working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+
+      - name: Run prematch scan (football + tennis + basketball)
+        run: node dist/action.min.js prematch
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          BASE44_API_URL: ${{ secrets.BASE44_API_URL }}
+          BASE44_SERVICE_KEY: ${{ secrets.BASE44_SERVICE_KEY }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
+          HORIZON_HOURS: '72'
+          MAX_MATCHES: '600'
+          SCAN_SPORTS: 'football,tennis,basketball'
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
