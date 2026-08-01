@@ -1,12 +1,12 @@
 // BetPawa foot listing : appel /events/lists/by-queries (protobuf) → extraction
-// des match IDs. Les cotes viennent via getOdds → /events/{id} (JSON).
-import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams } from './api.js';
+// des match IDs. Le protobuf ne fournit pas le startTime → on l'enrichit via
+// /events/{id} en parallèle (batch 40). Sans start, alignCatalogs rejette le
+// candidat en mode prématch (évite les fake arbs sur matchs déjà live).
+import { bpFetchList, bpFetchEvent, buildEventsListUrl, isVirtual, splitTeams } from './api.js';
 
 const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746']);
 
-// PAS de plafond artificiel : on pagine jusqu'à ce que l'API renvoie du vide.
-// Le hard cap (2000) est un garde-fou runaway loop, pas une limite métier.
-export async function listMatches({ live = false, horizonHours = 168 } = {}) {
+export async function listMatches({ live = false } = {}) {
   const eventType = live ? 'LIVE' : 'UPCOMING';
   const seen = new Set();
   const out = [];
@@ -43,6 +43,24 @@ export async function listMatches({ live = false, horizonHours = 168 } = {}) {
     if (added === 0) break;
   }
 
-  console.log(`[betpawa] ${eventType} : ${out.length} matchs foot listés`);
+  // Enrichit startTime via /events/{id} en parallèle (batch 40).
+  // Le protobuf ne le fournit pas — sans start, les matchs BetPawa sont exclus
+  // du prématch (voir matching.js requireStart) → il faut absolument l'obtenir.
+  const BATCH = 40;
+  for (let i = 0; i < out.length; i += BATCH) {
+    const chunk = out.slice(i, i + BATCH);
+    await Promise.all(chunk.map(async (m) => {
+      try {
+        const ev = await bpFetchEvent(m.id, 10_000);
+        const ts = Number(ev?.startTime);
+        if (Number.isFinite(ts) && ts > 0) m.start = ts;
+        // Récupère aussi le nom de compétition et l'état live pour information
+        if (ev?.competitionName) m.league = ev.competitionName;
+      } catch { /* silencieux — le match reste avec start=null (exclu prématch) */ }
+    }));
+  }
+
+  const withStart = out.filter((m) => m.start).length;
+  console.log(`[betpawa] ${eventType} : ${out.length} matchs foot listés (${withStart} avec startTime)`);
   return out;
 }

@@ -57,15 +57,24 @@ export async function bpFetchList(url, timeoutMs = 20_000) {
   }
 }
 
-// Récupère détails d'un match (JSON avec markets + cotes).
+// Cache TTL 60s des event payloads — list.js populate via bpFetchEvent(id)
+// pour extraire startTime, puis getOdds réutilise directement (évite doublon).
+const eventCache = new Map(); // id → { at, data }
+const CACHE_TTL_MS = 60_000;
+
+// Récupère détails d'un match (JSON avec markets + cotes + startTime).
 export async function bpFetchEvent(matchId, timeoutMs = 15_000) {
+  const cached = eventCache.get(String(matchId));
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.data;
   try {
     const res = await fetch(`${BASE}/api/sportsbook/v4/events/${matchId}`, {
       headers: HDR_EVENT,
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) { console.log(`[betpawa/event ${matchId}] status=${res.status}`); return null; }
-    return res.json();
+    const data = await res.json();
+    eventCache.set(String(matchId), { at: Date.now(), data });
+    return data;
   } catch (e) {
     console.log(`[betpawa/event ${matchId}] err=${e.message}`);
     return null;

@@ -35,12 +35,17 @@ function modifiersMatch(refHome, refAway, cHome, cAway) {
 //  - fenêtre ±30 min
 //  - modifieurs cohérents (women/youth/u17/reserves)
 //  - orientation "same" obligatoire
-export function matchBook(ref, cands, used) {
+// `requireStart` : en mode prématch, refuser les candidats sans startTime —
+// sinon BetPawa (start=null) matchait des matchs déjà LIVE aux matchs prématch
+// base d'autres books, générant des faux arbs et des alertes prématch sur
+// matchs qui avaient déjà commencé.
+export function matchBook(ref, cands, used, { requireStart = false } = {}) {
   const HARD_DT = 30 * 60 * 1000;
   const TIGHT_DT = 3 * 60 * 1000; // ±3 min = kickoff quasi-identique
   let best = null, bestScore = -1, bestDt = null;
   for (const c of cands) {
     if (used.has(c.id)) continue;
+    if (requireStart && !c.start) continue;
     const dt = (ref.start && c.start) ? Math.abs(ref.start - c.start) : null;
     if (dt !== null && dt > HARD_DT) continue;
     if (!modifiersMatch(ref.home, ref.away, c.home, c.away)) continue;
@@ -85,7 +90,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
     used.get(base).add(m.id);
     for (const b of books) {
       if (b === base) continue;
-      const cand = matchBook(ref, catalogs.get(b), used.get(b));
+      const cand = matchBook(ref, catalogs.get(b), used.get(b), { requireStart: !!horizonMs });
       if (cand) { matches[b] = cand; used.get(b).add(cand.id); }
     }
     entries.push({ ref, matches });
@@ -102,7 +107,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
       used.get(b).add(m.id);
       for (const other of books) {
         if (other === b) continue;
-        const cand = matchBook(ref, catalogs.get(other), used.get(other));
+        const cand = matchBook(ref, catalogs.get(other), used.get(other), { requireStart: !!horizonMs });
         if (cand) { matches[other] = cand; used.get(other).add(cand.id); }
       }
       entries.push({ ref, matches });
