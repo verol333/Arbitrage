@@ -4,7 +4,7 @@ import { CONGO_API, congoJson } from './api.js';
 //   101=Football (K-League 2 etc.), 102=Basketball (VBA), 103=Tennis (ATP),
 //   104=Rugby XV (Currie Cup), 105=Canadian Football (CFL), 107=Baseball (MLB).
 // Hockey/Volley : non identifiés dans le catalogue Congobet (probe testé 101..115).
-const SPORT_IDS = { football: '101', basketball: '102', tennis: '103' };
+const SPORT_IDS = { football: '101' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);
@@ -52,7 +52,7 @@ export async function listPrematch(sport = 'football') {
   const btParam = sport === 'football' ? '&fetchEventBetTypesMode=0&betTypeId=10001' : '';
   const leaves = await listLeafCategories(SPORT_ID);
   if (leaves.length) {
-    const BATCH = 8;
+    const BATCH = 16;
     for (let i = 0; i < leaves.length; i += BATCH) {
       const batch = leaves.slice(i, i + BATCH);
       await Promise.all(batch.map(async (lf) => {

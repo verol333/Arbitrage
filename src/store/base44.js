@@ -29,14 +29,39 @@ async function base44Fetch(path, init = {}) {
   } finally { clearTimeout(t); }
 }
 
-// Marque les anciennes opportunités comme "stale" avant d'insérer les nouvelles.
-async function markStale({ live, sport = 'football' }) {
+// Marque comme "stale" les anciennes opps du sport courant avant d'insérer
+// les nouvelles.
+async function markStaleFoot({ live }) {
   if (!base44Configured()) return;
-  const filter = { status: 'live', sport, is_live: !!live };
   await base44Fetch(`/entities/${ENTITY}/update-many`, {
     method: 'POST',
-    body: JSON.stringify({ filter, update: { status: 'stale' } }),
+    body: JSON.stringify({
+      filter: { status: 'live', sport: 'football', is_live: !!live },
+      update: { status: 'stale' },
+    }),
   }).catch(() => { /* silencieux — si l'API refuse, on ne bloque pas le scan */ });
+}
+
+// Nettoie systématiquement les vieilles opps NON-FOOT (tennis, basket, hockey,
+// volley) qui traînent en 'live' dans Base44 depuis l'ère multi-sport. Comme
+// on ne scanne plus ces sports, markStaleFoot ne les nettoyait pas et elles
+// restaient visibles indéfiniment côté client. Les 8 appels sont parallélisés
+// et ne bloquent pas — on n'attend pas leur résolution avant de continuer.
+function purgeNonFootStale() {
+  if (!base44Configured()) return Promise.resolve();
+  const jobs = [];
+  for (const sport of ['tennis', 'basketball', 'hockey', 'volleyball']) {
+    for (const isLive of [true, false]) {
+      jobs.push(base44Fetch(`/entities/${ENTITY}/update-many`, {
+        method: 'POST',
+        body: JSON.stringify({
+          filter: { status: 'live', sport, is_live: isLive },
+          update: { status: 'stale' },
+        }),
+      }).catch(() => null));
+    }
+  }
+  return Promise.allSettled(jobs);
 }
 
 async function bulkCreate(opps) {
@@ -50,16 +75,9 @@ async function bulkCreate(opps) {
   }
 }
 
-export async function persistOpportunities(opps, { live = false, sport = 'football' } = {}) {
-  if (!base44Configured()) {
-    // TODO: brancher un provider alternatif (Postgres/SQLite) si besoin de persistance
-    // sans Base44. Les opportunités restent en mémoire dans scanners/state.js.
-    return;
-  }
-  // IMPORTANT : passer sport → markStale filtre {sport} pour ne pas polluer
-  // les autres sports. Sans ce fix, un scan tennis marquait les foot comme
-  // stale (defaut 'football') et laissait les anciennes tennis 'live' →
-  // accumulation ou disparition selon comment l'app filtre.
-  await markStale({ live, sport });
+export async function persistOpportunities(opps, { live = false } = {}) {
+  if (!base44Configured()) return;
+  // Purge non-foot et markStale foot en parallèle — pas de dépendance mutuelle.
+  await Promise.allSettled([purgeNonFootStale(), markStaleFoot({ live })]);
   await bulkCreate(opps);
 }

@@ -44,3 +44,13 @@ export function toMatch(ev) {
 }
 
 export const BASE_URL = BASE;
+
+// Re-fetch les cotes fraîches d'un match unique (utilisé au confirm live).
+// L'API YellowBet expose /event/GetEventDetails?id=XXX qui renvoie l'objet
+// ev complet avec bts (bet types = cotes) frais.
+export async function fetchMatchBts(matchId) {
+  const url = `${BASE}/event/GetEventDetails?id=${encodeURIComponent(matchId)}`;
+  const j = await evapi(url).catch(() => null);
+  const ev = j?.data;
+  return Array.isArray(ev?.bts) ? ev.bts : [];
+}

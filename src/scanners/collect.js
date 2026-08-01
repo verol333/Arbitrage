@@ -2,40 +2,11 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTwoBooksTennis, compareTwoBooksBasket, compareTwoBooksHockey, compareTwoBooksVolley, dedupeOpportunities } from '../core/arbitrage.js';
-import { filterLiveSanity } from '../core/live-sanity.js';
+import { compareTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
-
-// Fin de fenetre prematch Congo-Brazzaville (UTC+1 fixe, pas d'heure d'ete).
-// Fenetre = 'aujourd'hui + demain complet' = cutoff a minuit Congo J+2.
-// A 6h Congo : cutoff = ~42h de matchs a venir.
-// A 20h Congo : cutoff = ~28h de matchs a venir.
-// Sinon en fin de journee on n'aurait que 2-3h de matchs restants → 0 opps.
-// L'utilisateur veut le max d'opportunites en pratique — cette fenetre
-// donne 500-1000 matches exploitables au lieu de 28.
-const CONGO_OFFSET_MS = 60 * 60 * 1000;
-export function endOfCongoDay(nowMs) {
-  const congoNow = new Date(nowMs + CONGO_OFFSET_MS);
-  const nextMidnightCongoDayAfterTomorrow = Date.UTC(
-    congoNow.getUTCFullYear(),
-    congoNow.getUTCMonth(),
-    congoNow.getUTCDate() + 2, // +2 = fin de journee de demain
-  );
-  return nextMidnightCongoDayAfterTomorrow - CONGO_OFFSET_MS;
-}
-
-function pickComparator(sport) {
-  switch (sport) {
-    case 'tennis': return compareTwoBooksTennis;
-    case 'basketball': return compareTwoBooksBasket;
-    case 'hockey': return compareTwoBooksHockey;
-    case 'volleyball': return compareTwoBooksVolley;
-    default: return compareTwoBooks;
-  }
-}
 
 async function listSafe(book, opts) {
   try {
@@ -53,23 +24,39 @@ async function readOddsSafe(book, matches, opts) {
   try {
     if (book.getOddsBatch) {
       const batch = await book.getOddsBatch(matches, opts);
-      for (const [id, odds] of batch) map.set(id, odds || {});
+      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}));
       return map;
     }
-    const BATCH = 15;
+    // Batch parallèle par book. Certains books ont une API tolérante et bénéficient
+    // d'un batch >= 40 (1xbet via CF workers, betpawa direct, premierbet via GG).
+    // D'autres (sportcash) ont un delay interne — on garde 25 comme défaut sûr.
+    const BATCH = book.key === 'betpawa' || book.key === 'premierbet' || book.key === '1xbet' ? 50 : 25;
     for (let i = 0; i < matches.length; i += BATCH) {
       const chunk = matches.slice(i, i + BATCH);
       const results = await Promise.all(chunk.map((m) => book.getOdds(m, opts).catch((e) => {
         log(`⚠️ ${book.key} getOdds(${m.id}): ${e.message || e}`);
         return {};
       })));
-      chunk.forEach((m, k) => map.set(m.id, results[k] || {}));
+      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {})));
     }
     return map;
   } catch (e) {
     log(`⚠️ ${book.key} getOdds batch: ${e.message || e}`);
     return map;
   }
+}
+
+// Football-only : retire les clés per-set (s1_/set_) qui polluent le foot,
+// laissées par des parseurs multi-sport encore présents dans certains modules.
+function sanitizeForSport(odds) {
+  if (!odds || typeof odds !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(odds)) {
+    if (/^s[1-5]_/.test(k)) continue;
+    if (/^set_/.test(k)) continue;
+    out[k] = v;
+  }
+  return out;
 }
 
 export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football' } = {}) {
@@ -84,37 +71,11 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   for (const { book, matches } of listed) catalogs.set(book.key, matches);
   log(`📋 ${sport.toUpperCase()} ${live ? 'LIVE' : 'PRÉMATCH'} — ${[...catalogs].map(([k, v]) => `${k}:${v.length}`).join(' | ')}`);
 
-  // Jour civil Congo (UTC+1) : on ne remonte que les matchs qui se jouent
-  // aujourd'hui — pas ceux de demain. Cutoff = minuit Congo prochain.
-  const horizonMs = live ? null : endOfCongoDay(Date.now());
-  // Diagnostic : distribution kickoff par bookmaker (past / today / demain / plus tard / null)
-  if (!live) {
-    const nowMs = Date.now();
-    const tomorrowMs = horizonMs + 24 * 3600 * 1000;
-    const dist = [...catalogs].map(([k, list]) => {
-      const c = { past: 0, today: 0, tomorrow: 0, later: 0, nostart: 0 };
-      for (const m of list) {
-        if (!m.start) { c.nostart++; continue; }
-        if (m.start < nowMs) { c.past++; continue; }
-        if (m.start <= horizonMs) { c.today++; continue; }
-        if (m.start <= tomorrowMs) { c.tomorrow++; continue; }
-        c.later++;
-      }
-      return `${k}:today=${c.today}(past=${c.past}/tom=${c.tomorrow}/lat=${c.later}/nul=${c.nostart})`;
-    });
-    log(`📅 kickoff distribution — ${dist.join(' | ')}`);
-  }
+  const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
-  // Diagnostic : combien de matchs chaque bookmaker retrouve dans entries
-  // (permet d'identifier si un book est systematiquement isole car mauvais
-  // matching noms d'equipes — ex Apollo souvent seul le 27/07).
-  if (!live && entries.length) {
-    const perBook = {};
-    for (const b of usable) perBook[b.key] = 0;
-    for (const e of entries) for (const k of Object.keys(e.matches)) perBook[k] = (perBook[k] || 0) + 1;
-    log(`🔗 couverture matching — ${Object.entries(perBook).map(([k, n]) => `${k}:${n}`).join(' | ')}`);
-  }
-  const cap = Math.min(maxMatches ?? config.scan.maxMatches, 500);
+  // Aucun plafond artificiel : le user a explicitement demandé de ne jamais limiter.
+  // Le tri chronologique traite d'abord les matchs proches (kickoff imminent).
+  const cap = maxMatches ?? config.scan.maxMatches ?? Infinity;
   // Tri chronologique simple : matchs les plus proches en premier.
   // (Un tri par couverture excluait les matchs 1win/sportcash du top.)
   const sorted = entries
@@ -138,7 +99,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
   const oddsFetchedAt = new Date().toISOString();
-  const compare = pickComparator(sport);
+  const compare = compareTwoBooks;
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;
@@ -159,8 +120,10 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         const legBlive = matches[a.leg_b_book]?.live || null;
         all.push({
           ...a, scan_id: scanId, sport, is_live: live,
-          match_label: `${ref.home} vs ${ref.away}`,
-          team_home: ref.home, team_away: ref.away, league: ref.league,
+          match_label: shortMatchLabel(ref.home, ref.away),
+          team_home: shortTeam(ref.home), team_away: shortTeam(ref.away),
+          team_home_full: ref.home, team_away_full: ref.away,
+          league: ref.league,
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
           status: 'live',
@@ -184,6 +147,22 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const deduped = dedupeOpportunities(all).sort((a, b) => b.profit_pct - a.profit_pct);
   log(`🎯 ${deduped.length} opportunités candidates ≥ ${minP}% | ${Date.now() - t0}ms`);
 
+  // Distribution book × candidates : pour comprendre pourquoi certains books
+  // (Sportcash, Apollo, PremierBet) n'apparaissent jamais dans les opps envoyées.
+  // Compte pour chaque book combien de fois il apparaît comme leg_a OU leg_b.
+  const bookInScope = {};
+  const bookCandidates = {};
+  for (const b of usable) {
+    bookInScope[b.key] = sorted.filter((e) => e.matches[b.key] && oddsByBook.get(b.key).get(e.matches[b.key].id) && Object.keys(oddsByBook.get(b.key).get(e.matches[b.key].id) || {}).length).length;
+    bookCandidates[b.key] = 0;
+  }
+  for (const o of deduped) {
+    bookCandidates[o.leg_a_book] = (bookCandidates[o.leg_a_book] || 0) + 1;
+    bookCandidates[o.leg_b_book] = (bookCandidates[o.leg_b_book] || 0) + 1;
+  }
+  const distribCand = usable.map((b) => `${b.key}:${bookCandidates[b.key]}(scope:${bookInScope[b.key]})`).join(' | ');
+  log(`📊 distribution candidates par book — ${distribCand}`);
+
   // Re-fetch juste-à-temps : on relit les cotes des 2 legs de chaque opp avant
   // de les envoyer. Élimine les surebets périmés (cotes ayant bougé pendant le
   // scan). En LIVE, on re-fetch aussi la liste des matchs de chaque book pour
@@ -199,23 +178,30 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   tick('confirm+freshLive done');
   log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
 
-  // Sanity LIVE : rejette les opps dont une cote 1X2/DC est incoherente
-  // avec score+minute (cote gelee, pre-match retournee en LIVE, etc.).
-  let finalConfirmed = confirmed;
-  if (live) {
-    const { kept, dropped } = filterLiveSanity(confirmed, log);
-    if (dropped.length) log(`🛡️ live sanity : ${dropped.length} opps rejetees, ${kept.length} gardees`);
-    finalConfirmed = kept;
+  // Distribution book × confirmed
+  const bookConfirmed = {};
+  for (const b of usable) bookConfirmed[b.key] = 0;
+  for (const o of confirmed) {
+    bookConfirmed[o.leg_a_book] = (bookConfirmed[o.leg_a_book] || 0) + 1;
+    bookConfirmed[o.leg_b_book] = (bookConfirmed[o.leg_b_book] || 0) + 1;
+  }
+  log(`📊 distribution confirmed par book — ${usable.map((b) => `${b.key}:${bookConfirmed[b.key]}`).join(' | ')}`);
+
+  // Log les 5 premières opps envoyées (sample) : profit, marché, books, matches
+  if (confirmed.length) {
+    log(`📤 Sample opps envoyees :`);
+    for (const o of confirmed.slice(0, Math.min(5, confirmed.length))) {
+      log(`   ${o.profit_pct}% "${o.match_label}" [${o.market_family}] ${o.leg_a_book}@${o.leg_a_odd} vs ${o.leg_b_book}@${o.leg_b_odd}`);
+    }
   }
 
   return {
-    opportunities: finalConfirmed,
+    opportunities: confirmed,
     stats: {
       catalogs: [...catalogs].map(([k, v]) => ({ book: k, matches: v.length })),
       entries: sorted.length,
       candidates: deduped.length,
       confirmed: confirmed.length,
-      sanity_kept: finalConfirmed.length,
       duration_ms: Date.now() - t0,
     },
   };
@@ -307,6 +293,15 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
   }));
   const confirmedAt = new Date().toISOString();
   const confirmedAtMs = Date.now();
+  const rejectReasons = { noKey: 0, noOddsA: 0, noOddsB: 0, missingFresh: 0, badRange: 0, noArb: 0, lowProfit: 0, capMax: 0 };
+  const rejectByBook = {};
+  const trackReject = (o, reason) => {
+    rejectReasons[reason] = (rejectReasons[reason] || 0) + 1;
+    for (const b of [o.leg_a_book, o.leg_b_book]) {
+      if (!rejectByBook[b]) rejectByBook[b] = {};
+      rejectByBook[b][reason] = (rejectByBook[b][reason] || 0) + 1;
+    }
+  };
   const out = [];
   for (const o of opps) {
     const idA = String(o.verify?.leg_a_match?.id || '');
@@ -314,21 +309,21 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     const oddsA = freshOdds.get(o.leg_a_book)?.get(idA) || freshOdds.get(o.leg_a_book)?.get(Number(idA));
     const oddsB = freshOdds.get(o.leg_b_book)?.get(idB) || freshOdds.get(o.leg_b_book)?.get(Number(idB));
     const key = marketKeyFromOpp(o);
-    if (!key || !oddsA || !oddsB) continue;
+    if (!key) { trackReject(o, 'noKey'); continue; }
+    if (!oddsA) { trackReject(o, 'noOddsA'); continue; }
+    if (!oddsB) { trackReject(o, 'noOddsB'); continue; }
     const freshA = oddsA[key.a];
     const freshB = oddsB[key.b];
-    if (!freshA || !freshB || freshA <= 1 || freshB <= 1 || freshA > 80 || freshB > 80) continue;
+    if (freshA == null || freshB == null) { trackReject(o, 'missingFresh'); continue; }
+    if (freshA <= 1 || freshB <= 1 || freshA > 80 || freshB > 80) { trackReject(o, 'badRange'); continue; }
     const invSum = 1 / freshA + 1 / freshB;
-    if (invSum >= 1) continue;
+    if (invSum >= 1) { trackReject(o, 'noArb'); continue; }
     const profit = (1 - invSum) * 100;
-    if (profit < minProfit) continue;
-    if (profit > config.scan.maxProfitSanity) continue;
-    // Log SPECIAL pour les opps a haut profit (>10%) : quasi-certainement un
-    // mapping bogue quelque part, on veut identifier le marche/bookmaker
-    // fautif pour corriger le parseur (pas cacher via un plafond).
-    if (profit > 10) {
-      log(`  🔍 HIGH ${profit.toFixed(1)}% | ${o.market_family} | ${o.leg_a_book}:${o.leg_a_label}=${freshA} vs ${o.leg_b_book}:${o.leg_b_label}=${freshB} | ${o.team_home} vs ${o.team_away} | ids=${idA}/${idB}`);
-    }
+    if (profit < minProfit) { trackReject(o, 'lowProfit'); continue; }
+    // Pas de cap max côté confirmation : les vraies grosses arbs (10-50%)
+    // doivent passer. Les fantômes doivent être éliminés en amont via un
+    // parsing correct, pas par un seuil arbitraire.
+    if (profit > config.scan.maxProfitSanity) { trackReject(o, 'capMax'); continue; }
     // Cote fraîche → on met à jour l'opp avec la valeur re-lue et on ajoute les timestamps.
     const fetchedMs = o.verify?.odds_fetched_at ? Date.parse(o.verify.odds_fetched_at) : confirmedAtMs;
     const stakeA = (1 / freshA) / invSum * 100;
@@ -369,6 +364,20 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
       },
     });
   }
+  // Log distribution des rejets pour comprendre pourquoi des candidates ne passent pas
+  const totalRej = Object.values(rejectReasons).reduce((a, b) => a + b, 0);
+  if (totalRej > 0) {
+    const reasonsSummary = Object.entries(rejectReasons).filter(([, n]) => n > 0).map(([k, n]) => `${k}:${n}`).join(' ');
+    log(`  ❌ rejets confirm (${totalRej}): ${reasonsSummary}`);
+    // Pour chaque book qui a >2 rejets, détail
+    for (const [book, reasons] of Object.entries(rejectByBook)) {
+      const total = Object.values(reasons).reduce((a, b) => a + b, 0);
+      if (total >= 2) {
+        const details = Object.entries(reasons).map(([k, n]) => `${k}:${n}`).join(' ');
+        log(`     - ${book} (${total} rejets): ${details}`);
+      }
+    }
+  }
   return out.sort((a, b) => b.profit_pct - a.profit_pct);
 }
 
@@ -388,43 +397,29 @@ function marketKeyFromOpp(o) {
   if (fam === 'Draw No Bet') return { a: 'dnb_1', b: 'dnb_2' };
   if (fam === '1MT Draw No Bet') return { a: 'ht_dnb_1', b: 'ht_dnb_2' };
   if (fam === '2MT Draw No Bet') return { a: 'h2_dnb_1', b: 'h2_dnb_2' };
-  // Handicap sets (tennis / volley) — VÉRIFIÉ EN PREMIER pour éviter que le
-  // regex Handicap générique (qui inclut "sets" en option) capture ces opps
-  // et retourne la mauvaise clé (hcp_home_X vs set_hcp_home_X).
-  const setHcp = fam.match(/^Handicap sets\s*([+-]?\d+(?:\.\d+)?)$/);
-  if (setHcp) {
-    const l = parseFloat(setHcp[1]);
-    return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
-  }
-  // Handicap match plein-temps (foot Asiatique, basket points, hockey Puck Line, tennis jeux)
-  // Accepte les variantes explicites : "Handicap Asiatique +2.5", "Handicap +2.5",
-  // "Handicap jeux +2.5", "Handicap points +2.5", "Puck Line -1.5".
-  const hcpMatch = fam.match(/^(?:Handicap(?:\s+Asiatique|\s+jeux|\s+points)?|Puck Line)\s*([+-]?\d+(?:\.\d+)?)$/i);
+  // Handicap Asiatique plein-temps
+  const hcpMatch = fam.match(/^Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/i);
   if (hcpMatch) {
     const l = parseFloat(hcpMatch[1]);
     return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
   }
-  // Handicap Asiatique par mi-temps/période/quart
-  const htHcp = fam.match(/^(1MT|2MT|P1|P2|P3) Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/);
+  // Handicap Asiatique 1MT / 2MT
+  const htHcp = fam.match(/^(1MT|2MT) Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/);
   if (htHcp) {
-    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_' };
+    const pfx = htHcp[1] === '1MT' ? 'ht_' : 'h2_';
     const l = parseFloat(htHcp[2]);
-    const pfx = pfxMap[htHcp[1]];
     return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
   }
-  // Total match (buts/points/jeux) — line embedded in family
-  // Accepte : "Total Buts Match 2.5", "Total match 2.5", "Total buts 2.5", etc.
-  const totMatch = fam.match(/^Total (?:Buts Match|match|jeux|points|buts|sets)?\s*(\d+(?:\.\d+)?)$/i);
+  // Total match — accepte "Total Buts Match 2.5", "Total buts 2.5", etc.
+  const totMatch = fam.match(/^Total (?:Buts Match|match|buts)?\s*(\d+(?:\.\d+)?)$/i);
   if (totMatch) {
     const l = parseFloat(totMatch[1]);
-    // Distinguish set totals for tennis
-    if (/Total sets/i.test(fam)) return { a: `set_over_${l}`, b: `set_under_${l}` };
     return { a: `match_over_${l}`, b: `match_under_${l}` };
   }
-  // Half/period/quarter totals — accepte "1MT Total Buts 1.5", "1MT Total 1.5", etc.
-  const partTot = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5|Corners 1MT)\s*(?:Total(?:\s+Buts)?\s*)?(\d+(?:\.\d+)?)$/);
+  // 1MT / 2MT / Corners 1MT totals
+  const partTot = fam.match(/^(1MT|2MT|Corners 1MT)\s*(?:Total(?:\s+Buts)?\s*)?(\d+(?:\.\d+)?)$/);
   if (partTot) {
-    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_', 'Corners 1MT': 'cor_ht_' };
+    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'Corners 1MT': 'cor_ht_' };
     const l = parseFloat(partTot[2]);
     const pfx = pfxMap[partTot[1]];
     return { a: `${pfx}over_${l}`, b: `${pfx}under_${l}` };
@@ -452,19 +447,31 @@ function marketKeyFromOpp(o) {
     if (fam.startsWith('Corners')) return { a: 'cor_odd', b: 'cor_even' };
     return { a: 'odd', b: 'even' };
   }
-  // Team totals (dom./ext.)
-  const ttMatch = fam.match(/^Total (Dom\.|Ext\.|J1|J2|Éq\.1|Éq\.2)\s*(\d+(?:\.\d+)?)$/);
+  // Team totals (Dom. / Ext.)
+  const ttMatch = fam.match(/^Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
   if (ttMatch) {
-    const side = /Dom|J1|Éq\.1/.test(ttMatch[1]) ? 'home' : 'away';
+    const side = ttMatch[1] === 'Dom.' ? 'home' : 'away';
     const l = parseFloat(ttMatch[2]);
     return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
   }
-  // Per-half/quarter/period/set winner (basket/hockey/volley/tennis)
-  const partWin = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5) Winner$/);
-  if (partWin) {
-    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_' };
-    const pfx = pfxMap[partWin[1]];
-    return { a: `${pfx}match_1`, b: `${pfx}match_2` };
+  // 1MT / 2MT Team totals
+  const partTt = fam.match(/^(1MT|2MT) Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
+  if (partTt) {
+    const pfx = partTt[1] === '1MT' ? 'ht_' : 'h2_';
+    const side = partTt[2] === 'Dom.' ? 'home' : 'away';
+    const l = parseFloat(partTt[3]);
+    return { a: `${pfx}tt_${side}_over_${l}`, b: `${pfx}tt_${side}_under_${l}` };
+  }
+  // 1MT/2MT 1X2+DC : arbitrage.js emet "1MT 1X2 — Domicile/Extérieur/Nul" quand
+  // un book expose ht_match_* et l'autre ht_dc_*. Sans ce mapping, tous les
+  // candidates Sportcash mi-temps 1X2 rejetes en noKey.
+  const partDc = fam.match(/^(1MT|2MT) 1X2 — (Domicile|Extérieur|Nul)$/);
+  if (partDc) {
+    const pfx = partDc[1] === '1MT' ? 'ht_' : 'h2_';
+    const sk = partDc[2] === 'Domicile' ? ['match_1', 'dc_X2']
+             : partDc[2] === 'Extérieur' ? ['match_2', 'dc_1X']
+             : ['match_X', 'dc_12'];
+    return { a: `${pfx}${sk[0]}`, b: `${pfx}${sk[1]}` };
   }
   return null;
 }
@@ -504,6 +511,33 @@ function consolidateLive(matches) {
     period: p?.period || null,
     source: s?.book || m?.book || p?.book || null,
   };
+}
+
+// Raccourcit un nom d'équipe long en gardant lisibilité (pas d'abbrev brutale).
+// Stratégie :
+//   ≤22 chars       → garde tel quel
+//   >22 chars       → supprime mots de bruit (FC, CF, Club, Athletic Club, Football Club, U19, U21)
+//   toujours >22    → garde les 2 premiers mots
+//   dernier recours → tronque à 22 avec ellipse discrete
+export function shortTeam(name) {
+  const s = String(name || '').trim();
+  if (s.length <= 22) return s;
+  let cleaned = s
+    .replace(/\b(?:Football Club|Athletic Club|Sporting Club|Sports? Club|FC|CF|SC|AC|CA|CD|BK|SK|IF|IK)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleaned.length <= 22) return cleaned;
+  const words = cleaned.split(/\s+/);
+  if (words.length >= 2) {
+    const two = `${words[0]} ${words[1]}`;
+    if (two.length <= 22) return two;
+    return words[0].slice(0, 22);
+  }
+  return cleaned.slice(0, 21) + '…';
+}
+
+export function shortMatchLabel(home, away) {
+  return `${shortTeam(home)} vs ${shortTeam(away)}`;
 }
 
 function idFields(matches) {

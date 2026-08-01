@@ -2,125 +2,101 @@
 // Port fidele de matchCore.ts (norm/tokenOverlap/acronymMatch/levenshtein/teamSim).
 const DIACRITICS = /[̀-ͯ]/g;
 
-// Alias multilingue : les noms des equipes nationales (et quelques clubs)
-// varient selon la langue du bookmaker (FR chez congobet/yellowbet, EN chez
-// betmomo/apollo, IT chez sportcash). On mappe TOUTES les variantes vers un
-// canonique unique (base EN) applique dans norm() avant token/fuzzy.
-const TEAM_ALIASES = {
-  // Equipes nationales — sources : FIFA / UEFA / CAF codes
-  'angleterre': 'england', 'anglaterre': 'england', 'inghilterra': 'england',
-  'ecosse': 'scotland', 'scozia': 'scotland',
-  'pays de galles': 'wales', 'galles': 'wales',
-  'irlande': 'ireland', 'irlanda': 'ireland',
-  'irlande du nord': 'northern ireland',
-  'espagne': 'spain', 'spagna': 'spain',
-  'italie': 'italy', 'italia': 'italy',
-  'allemagne': 'germany', 'germania': 'germany',
-  'france': 'france', 'francia': 'france',
-  'portugal': 'portugal', 'portogallo': 'portugal',
-  'belgique': 'belgium', 'belgio': 'belgium',
-  'pays bas': 'netherlands', 'hollande': 'netherlands', 'olanda': 'netherlands', 'nederland': 'netherlands',
-  'suisse': 'switzerland', 'svizzera': 'switzerland',
-  'autriche': 'austria', 'austria': 'austria',
-  'grece': 'greece', 'grecia': 'greece',
-  'turquie': 'turkey', 'turchia': 'turkey',
-  'russie': 'russia', 'russia': 'russia',
-  'ukraine': 'ukraine',
-  'pologne': 'poland', 'polonia': 'poland',
-  'republique tcheque': 'czech republic', 'tchequie': 'czech republic', 'repubblica ceca': 'czech republic',
-  'croatie': 'croatia', 'croazia': 'croatia',
-  'serbie': 'serbia', 'serbia': 'serbia',
-  'danemark': 'denmark', 'danimarca': 'denmark',
-  'suede': 'sweden', 'svezia': 'sweden',
-  'norvege': 'norway', 'norvegia': 'norway',
-  'finlande': 'finland', 'finlandia': 'finland',
-  'islande': 'iceland', 'islanda': 'iceland',
-  'roumanie': 'romania', 'romania': 'romania',
-  'hongrie': 'hungary', 'ungheria': 'hungary',
-  'bulgarie': 'bulgaria', 'bulgaria': 'bulgaria',
-  'slovaquie': 'slovakia', 'slovacchia': 'slovakia',
-  'slovenie': 'slovenia', 'slovenia': 'slovenia',
-  'lettonie': 'latvia', 'lettonia': 'latvia',
-  'lituanie': 'lithuania', 'lituania': 'lithuania',
-  'estonie': 'estonia', 'estonia': 'estonia',
-  'georgie': 'georgia', 'georgia': 'georgia',
-  'armenie': 'armenia',
-  'azerbaidjan': 'azerbaijan', 'azerbaigian': 'azerbaijan',
-  // Amerique
-  'etats unis': 'usa', 'etats-unis': 'usa', 'us': 'usa', 'united states': 'usa',
-  'canada': 'canada',
-  'mexique': 'mexico', 'messico': 'mexico',
-  'bresil': 'brazil', 'brasile': 'brazil',
-  'argentine': 'argentina', 'argentina': 'argentina',
-  'colombie': 'colombia', 'colombia': 'colombia',
-  'chili': 'chile', 'cile': 'chile',
-  'uruguay': 'uruguay',
-  'perou': 'peru', 'peru': 'peru',
-  'equateur': 'ecuador', 'ecuador': 'ecuador',
-  'venezuela': 'venezuela',
-  'paraguay': 'paraguay',
-  'bolivie': 'bolivia', 'bolivia': 'bolivia',
-  // Afrique
-  'egypte': 'egypt', 'egitto': 'egypt',
-  'maroc': 'morocco', 'marocco': 'morocco',
-  'algerie': 'algeria', 'algeria': 'algeria',
-  'tunisie': 'tunisia', 'tunisia': 'tunisia',
-  'senegal': 'senegal',
-  'cote d ivoire': 'ivory coast', 'cote divoire': 'ivory coast', 'costa d avorio': 'ivory coast',
-  'ghana': 'ghana',
-  'nigeria': 'nigeria',
-  'cameroun': 'cameroon', 'camerun': 'cameroon',
-  'afrique du sud': 'south africa', 'sudafrica': 'south africa',
-  'republique democratique du congo': 'dr congo', 'rd congo': 'dr congo',
-  'burkina faso': 'burkina faso',
-  'mali': 'mali',
-  'kenya': 'kenya',
-  'zambie': 'zambia', 'zambia': 'zambia',
-  'zimbabwe': 'zimbabwe',
-  'tanzanie': 'tanzania', 'tanzania': 'tanzania',
-  // Asie
-  'japon': 'japan', 'giappone': 'japan',
-  'coree du sud': 'south korea', 'corea del sud': 'south korea',
-  'coree du nord': 'north korea',
-  'chine': 'china', 'cina': 'china',
-  'inde': 'india', 'india': 'india',
-  'indonesie': 'indonesia', 'indonesia': 'indonesia',
-  'thailande': 'thailand', 'tailandia': 'thailand',
-  'vietnam': 'vietnam',
-  'malaisie': 'malaysia', 'malesia': 'malaysia',
-  'philippines': 'philippines', 'filippine': 'philippines',
-  'iran': 'iran',
-  'irak': 'iraq', 'iraq': 'iraq',
-  'arabie saoudite': 'saudi arabia', 'arabia saudita': 'saudi arabia',
-  'qatar': 'qatar',
-  'emirats arabes unis': 'uae', 'emirats': 'uae',
-  'israel': 'israel', 'israele': 'israel',
-  'liban': 'lebanon', 'libano': 'lebanon',
-  'jordanie': 'jordan', 'giordania': 'jordan',
-  'syrie': 'syria', 'siria': 'syria',
-  'palestine': 'palestine',
-  // Oceanie
-  'australie': 'australia', 'australia': 'australia',
-  'nouvelle zelande': 'new zealand', 'nuova zelanda': 'new zealand',
-};
+// Aliases FR/DE/DK/ES/IT/RU → forme canonique (souvent proche du nom local ou anglais).
+// Applique AVANT tokenisation : toutes les variantes convergent vers 1 clé.
+// Objectif : matcher "FC Copenhague" (Sportcash FR) avec "FC Kobenhavn" (1xBet).
+// Chaque entrée : ligne = FR/variant, valeur = clé canonique (unique par entité).
+const CITY_ALIASES = new Map([
+  // Danemark
+  ['copenhague', 'copen'], ['copenhagen', 'copen'], ['kobenhavn', 'copen'], ['kobenhaven', 'copen'],
+  // Allemagne
+  ['munich', 'munch'], ['muenchen', 'munch'], ['munchen', 'munch'],
+  ['cologne', 'koln'], ['koeln', 'koln'],
+  ['nuremberg', 'nurn'], ['nurnberg', 'nurn'], ['nuernberg', 'nurn'],
+  ['brunswick', 'brau'], ['braunschweig', 'brau'],
+  ['hanovre', 'hann'], ['hannover', 'hann'], ['hanover', 'hann'],
+  ['mayence', 'mainz'], ['mainz', 'mainz'],
+  ['sarrebruck', 'saar'], ['saarbrucken', 'saar'], ['saarbruecken', 'saar'],
+  // Autriche
+  ['vienne', 'wien'], ['vienna', 'wien'], ['wien', 'wien'],
+  ['salzbourg', 'salz'], ['salzburg', 'salz'],
+  // Espagne
+  ['seville', 'sevi'], ['sevilla', 'sevi'], ['sevilha', 'sevi'],
+  ['barcelone', 'barc'], ['barcelona', 'barc'],
+  ['saragosse', 'zara'], ['zaragoza', 'zara'],
+  ['grenade', 'gran'], ['granada', 'gran'],
+  ['saint sebastien', 'donost'], ['san sebastian', 'donost'], ['donostia', 'donost'],
+  // Italie
+  ['naples', 'napo'], ['napoli', 'napo'],
+  ['rome', 'roma'], ['roma', 'roma'],
+  ['turin', 'tori'], ['torino', 'tori'], ['juventus', 'juve'], ['juve', 'juve'],
+  ['florence', 'fior'], ['fiorentina', 'fior'],
+  ['milan', 'mila'], ['milano', 'mila'],
+  ['genes', 'geno'], ['gênes', 'geno'], ['genoa', 'geno'], ['genova', 'geno'],
+  // Suisse
+  ['saint gall', 'stgall'], ['st gall', 'stgall'], ['st gallen', 'stgall'], ['sankt gallen', 'stgall'],
+  ['geneve', 'gene'], ['geneva', 'gene'], ['genf', 'gene'],
+  ['bale', 'basel'], ['bâle', 'basel'], ['basel', 'basel'], ['basle', 'basel'],
+  ['zurich', 'zuri'], ['zürich', 'zuri'],
+  // Belgique
+  ['bruges', 'brug'], ['brugge', 'brug'],
+  ['anvers', 'antw'], ['antwerpen', 'antw'], ['antwerp', 'antw'],
+  ['gand', 'gent'], ['gent', 'gent'], ['ghent', 'gent'],
+  ['liege', 'liege'], ['luik', 'liege'],
+  // Pays-Bas
+  ['la haye', 'haag'], ['den haag', 'haag'], ['the hague', 'haag'],
+  // République Tchèque
+  ['prague', 'prah'], ['praha', 'prah'],
+  // Russie / Est
+  ['moscou', 'mosc'], ['moscow', 'mosc'], ['moskva', 'mosc'],
+  ['saint petersbourg', 'stpet'], ['saint petersburg', 'stpet'], ['saint-petersbourg', 'stpet'], ['st petersburg', 'stpet'],
+  ['zenit', 'zeni'],
+  // Portugal
+  ['lisbonne', 'lisb'], ['lisbon', 'lisb'], ['lisboa', 'lisb'],
+  ['porto', 'port'], ['fc porto', 'port'],
+  // Grèce
+  ['athenes', 'ath'], ['athens', 'ath'], ['atenas', 'ath'],
+  ['salonique', 'thes'], ['thessalonique', 'thes'], ['thessaloniki', 'thes'],
+  // Turquie
+  ['istanbul', 'ista'], ['constantinople', 'ista'],
+  // Serbie
+  ['belgrade', 'beog'], ['beograd', 'beog'],
+  ['etoile rouge', 'crvz'], ['red star', 'crvz'], ['crvena zvezda', 'crvz'],
+  ['partizan', 'part'],
+  // Ukraine
+  ['kiev', 'kyiv'], ['kiew', 'kyiv'], ['kyiv', 'kyiv'],
+  ['dynamo kiev', 'dynkyiv'], ['dynamo kyiv', 'dynkyiv'],
+  ['shakhtar', 'shak'], ['chakhtar', 'shak'],
+  // Bosnie
+  ['sarajevo', 'sara'],
+  // Angleterre common variants
+  ['man united', 'manu'], ['manchester united', 'manu'], ['man utd', 'manu'],
+  ['man city', 'manc'], ['manchester city', 'manc'],
+  ['spurs', 'tott'], ['tottenham', 'tott'], ['tottenham hotspur', 'tott'],
+  // France (déjà en français partout, peu d'alias)
+  ['psg', 'psg'], ['paris sg', 'psg'], ['paris saint germain', 'psg'], ['paris saint-germain', 'psg'],
+  ['om', 'olymar'], ['olympique marseille', 'olymar'], ['marseille', 'olymar'],
+  ['ol', 'olylyon'], ['olympique lyonnais', 'olylyon'], ['olympique lyon', 'olylyon'], ['lyon', 'olylyon'],
+  ['asse', 'stet'], ['saint etienne', 'stet'], ['as saint etienne', 'stet'], ['saint-etienne', 'stet'],
+  ['stade rennais', 'renn'], ['rennes', 'renn'],
+]);
 
+// Applique les aliases en pré-normalisation. Remplace chaque terme trouvé (word boundary).
 function applyAliases(s) {
-  // Chercher la plus longue correspondance d'alias (ex: "pays de galles" avant "galles")
-  const keys = Object.keys(TEAM_ALIASES).sort((a, b) => b.length - a.length);
-  let out = s;
-  for (const k of keys) {
-    if (out.includes(k)) out = out.replace(new RegExp(`\\b${k}\\b`, 'g'), TEAM_ALIASES[k]);
+  const lower = ' ' + (s || '').toLowerCase().normalize('NFD').replace(DIACRITICS, '') + ' ';
+  let out = lower;
+  for (const [k, v] of CITY_ALIASES) {
+    // Word boundary : espace avant et après ou début/fin
+    const re = new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, 'g');
+    out = out.replace(re, `$1${v}$2`);
   }
-  return out;
+  return out.trim();
 }
 
 export function norm(s) {
-  const base = (s || '').toLowerCase().normalize('NFD').replace(DIACRITICS, '')
-    .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-  const aliased = applyAliases(base);
-  return aliased
+  return applyAliases(s).toLowerCase()
     .replace(/\b(fc|cf|sc|ac|afc|cd|ec|sd|fk|as|us|ss|rfc|bsc|vfb|tsv|sv|rc|ogc|ssc|club|deportivo|universidad|u\.|de|del|do|da|et|les|the|al|el)\b/g, ' ')
-    .replace(/\s+/g, ' ').trim();
+    .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 export function tokenOverlap(a, b) {
@@ -150,8 +126,11 @@ export function levenshtein(a, b) {
 export function fuzzyEq(wa, wb) {
   if (wa === wb) return true;
   const lo = Math.min(wa.length, wb.length);
-  if (lo < 4) return false;
+  // Chaines courtes (<5) : exiger égalité stricte pour éviter faux positifs
+  // sur des IDs canoniques d'aliases (ex: manu/manc, brau/brug, wien/wiel).
+  if (lo < 5) return false;
   const d = levenshtein(wa, wb);
+  // <=6 : max 1 diff. >6 : max 2 diff.
   return d <= (Math.max(wa.length, wb.length) <= 6 ? 1 : 2);
 }
 
@@ -186,7 +165,52 @@ export function acronymMatch(a, b) {
   return tryOne(a, b) || tryOne(b, a);
 }
 
-// Similarite TOLERANTE d'equipe (overlap + prefixe + acronyme + fuzzy).
+// Jaro-Winkler : mesure de similarité 0..1 tolérante aux variantes orthographiques.
+// jaroWinkler("copenhague", "copenhagen") ~ 0.94, "kobenhavn" ~ 0.55
+// Génère des scores utiles SANS dictionnaire → attrape variantes orthographiques
+// de petites équipes exotiques non listées dans CITY_ALIASES.
+export function jaroWinkler(s1, s2) {
+  if (!s1 || !s2) return 0;
+  if (s1 === s2) return 1;
+  const m = s1.length, n = s2.length;
+  const matchDistance = Math.max(0, Math.floor(Math.max(m, n) / 2) - 1);
+  const s1Matches = new Array(m).fill(false);
+  const s2Matches = new Array(n).fill(false);
+  let matches = 0;
+  for (let i = 0; i < m; i++) {
+    const start = Math.max(0, i - matchDistance);
+    const end = Math.min(i + matchDistance + 1, n);
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j]) continue;
+      if (s1[i] !== s2[j]) continue;
+      s1Matches[i] = true;
+      s2Matches[j] = true;
+      matches++;
+      break;
+    }
+  }
+  if (matches === 0) return 0;
+  let transpositions = 0, k = 0;
+  for (let i = 0; i < m; i++) {
+    if (!s1Matches[i]) continue;
+    while (!s2Matches[k]) k++;
+    if (s1[i] !== s2[k]) transpositions++;
+    k++;
+  }
+  transpositions = Math.floor(transpositions / 2);
+  const jaro = (matches / m + matches / n + (matches - transpositions) / matches) / 3;
+  // Winkler boost : bonus pour préfixe commun (max 4 chars)
+  let prefix = 0;
+  for (let i = 0; i < Math.min(4, m, n); i++) {
+    if (s1[i] === s2[i]) prefix++;
+    else break;
+  }
+  return jaro + prefix * 0.1 * (1 - jaro);
+}
+
+// Similarite TOLERANTE d'equipe (overlap + prefixe + acronyme + fuzzy + Jaro-Winkler).
+// Jaro-Winkler ajoute comme filet de sécurité : capte variantes orthographiques
+// non listées dans CITY_ALIASES (ex : Kylian↔Killian, Baumgartner↔Baumgartler).
 export function teamSim(a, b) {
   const base = tokenOverlap(a, b);
   if (acronymMatch(a, b)) return Math.max(base, 1);
@@ -198,7 +222,14 @@ export function teamSim(a, b) {
     if (tb.some((wb) => wa === wb
       || (wa.length >= 4 && wb.startsWith(wa))
       || (wb.length >= 4 && wa.startsWith(wb))
-      || fuzzyEq(wa, wb))) inter++;
+      || fuzzyEq(wa, wb)
+      || (Math.min(wa.length, wb.length) >= 6 && jaroWinkler(wa, wb) >= 0.90))) inter++;
   }
-  return Math.max(base, inter / Math.min(ta.length, tb.length));
+  const tokScore = inter / Math.min(ta.length, tb.length);
+  // Fallback JW sur chaine complète : min 8 chars pour éviter faux positifs
+  // sur acronymes courts (manu vs manc jw=0.87 = faux positif à éviter).
+  const na = ta.join('');
+  const nb = tb.join('');
+  const jwFull = (na.length >= 8 && nb.length >= 8) ? jaroWinkler(na, nb) : 0;
+  return Math.max(base, tokScore, jwFull >= 0.88 ? jwFull : 0);
 }

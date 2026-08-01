@@ -7,11 +7,7 @@ export default {
   label: '1win',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    // sports supportés : football, basketball, hockey, volleyball, tennis.
-    // Tennis reactive avec plusieurs sportIds fallback (WIN_SID_ALT.tennis).
-    // Parseur foot-oriente extrait winner/total-games/hcp-games automatiquement
-    // pour tennis (groupes 'Match Winner'/'Total'/'Handicap'). Set-based
-    // markets non extraits — deja couverts par yellowbet/apollo/betmomo.
+    if (sport !== 'football') return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match) {
@@ -21,8 +17,15 @@ export default {
   },
   async getOddsBatch(matches) {
     if (!matches.length) return new Map();
-    const ids = matches.map((m) => m.id);
-    const raw = await fetchOddsWS(ids);
+    // Le WS 1win coupe si on lui envoie >~100 IDs (timeout de subscribe).
+    // On chunk en lots de 60 avec un WS neuf par lot, puis on fusionne.
+    const CHUNK = 60;
+    const raw = new Map();
+    for (let i = 0; i < matches.length; i += CHUNK) {
+      const chunk = matches.slice(i, i + CHUNK).map((m) => m.id);
+      const part = await fetchOddsWS(chunk);
+      for (const [k, v] of part) raw.set(k, v);
+    }
     const out = new Map();
     for (const m of matches) {
       const g = raw.get(m.id) || raw.get(String(m.id)) || raw.get(Number(m.id));

@@ -1,20 +1,19 @@
-// Lecture des cotes d'un event PremierBet Congo (API mobile).
-// Chemin unique : GET /events/{id} → tous les marchés dédoublonnés → cotes plates.
-// L'API mobile est publique et rapide → pas de budget à respecter, on peut
-// paralléliser sans compter.
-import { pbGet, extractMarkets } from './api.js';
+import { mget } from './api.js';
 import { premierbetFlatOdds } from './parse.js';
 
-export async function getOdds(match, { live = false } = {}) {
-  // Optimisation : si listLive a déjà renvoyé les markets inline, on parse direct.
-  const inline = match?.__raw?.markets || match?.__raw?.marketGroups;
-  if (inline && (Array.isArray(inline) ? inline.length : Object.keys(inline).length)) {
-    const evLike = { markets: match.__raw.markets, marketGroups: match.__raw.marketGroups };
-    const markets = extractMarkets(evLike);
-    if (markets.length) return premierbetFlatOdds(markets);
+function dedupeMarkets(event) {
+  const raw = [];
+  if (event.markets) raw.push(...event.markets);
+  else if (event.marketGroups) {
+    for (const g of event.marketGroups) raw.push(...(g.markets || []));
   }
-  const data = await pbGet(`/events/${match.id}`, {}, { long: false, noCache: live });
-  const event = data?.data || data || null;
-  const markets = extractMarkets(event);
+  const seen = new Set();
+  return raw.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
+}
+
+export async function getOdds(match) {
+  const event = await mget(`/events/${match.id}`);
+  if (!event) return {};
+  const markets = dedupeMarkets(event);
   return premierbetFlatOdds(markets);
 }

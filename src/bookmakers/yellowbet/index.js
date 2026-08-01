@@ -1,70 +1,24 @@
 import { listPrematch, listLive } from './list.js';
+import { fetchMatchBts } from './api.js';
 import { yellowbetFlatOdds } from './parse.js';
-import { evapi } from './api.js';
-
-// Re-fetch FRAIS des bts pour un match specifique. Utilise en confirmation
-// LIVE pour eviter d'envoyer des cotes de 15+ secondes (source des alertes
-// "cotes anciennes envoyees comme fraiches" observees avec YB).
-async function fetchFreshBts(matchId) {
-  try {
-    // YB expose un endpoint par event : GetEvent?id=X&isLive=true
-    const j = await evapi(`https://yellowbet.cg/services/evapi/event/GetEvent?id=${matchId}&isLive=true`);
-    const ev = j?.data;
-    if (ev?.bts && Array.isArray(ev.bts)) return { bts: ev.bts, home: ev.h, away: ev.a };
-    // Fallback : re-liste tous les live et cherche l'id
-    const list = await evapi('https://yellowbet.cg/services/evapi/event/GetEvents?isLive=true&count=500&take=500');
-    const found = (list?.data || []).find((e) => String(e.id) === String(matchId));
-    return found ? { bts: found.bts || [], home: found.h, away: found.a } : null;
-  } catch { return null; }
-}
 
 export default {
   key: 'yellowbet',
   label: 'YellowBet',
-  // LIVE DESACTIVE. Diagnostic YB_DEBUG_TT a prouve que le mapping YB LIVE
-  // est fake : "CA Banfield total corners" etait pris pour un total de buts
-  // individuels et matche contre le vrai total-goals d'un autre book, creant
-  // des faux surebets 37%. Skipper corners/cards/etc dans le parseur ne suffit
-  // pas — le probleme est systemique dans le mapping YB LIVE (marches mal
-  // typees). On coupe YB en LIVE et on garde les autres bookmakers.
-  supports: { prematch: true, live: false },
+  supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (live) return [];
-    if (!['football', 'basketball', 'tennis', 'volleyball'].includes(sport)) return [];
-    return listPrematch(horizonHours, sport);
+    if (sport !== 'football') return [];
+    return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
-  async getOdds(match, { noCache = false } = {}) {
-    if (noCache && match.id != null) {
-      const fresh = await fetchFreshBts(match.id);
-      if (fresh?.bts?.length) {
-        return yellowbetFlatOdds(fresh.bts, { home: fresh.home || match.home, away: fresh.away || match.away });
-      }
+  // En LIVE (ou confirm noCache) → re-fetch fresh via GetEventDetails.
+  // Sinon → réutilise les bts capturés au listMatches.
+  // Le parser reroute Under/Over/TT en 'rest_*' quand live=true (les cotes YB
+  // exposées en live représentent "REST OF MATCH", buts restants).
+  async getOdds(match, { live = false, noCache = false } = {}) {
+    if (live || noCache) {
+      const bts = await fetchMatchBts(match.id);
+      if (bts.length) return yellowbetFlatOdds(bts, { live });
     }
-    return yellowbetFlatOdds(match.__raw?.bts || [], { home: match.home, away: match.away });
-  },
-  async getOddsBatch(matches, { noCache = false } = {}) {
-    const out = new Map();
-    if (noCache && matches.length) {
-      // Optimisation : une seule re-liste live pour tous les matchs (evite
-      // N appels HTTP). Puis lookup par id.
-      try {
-        const list = await evapi('https://yellowbet.cg/services/evapi/event/GetEvents?isLive=true&count=500&take=500');
-        const byId = new Map();
-        for (const e of list?.data || []) byId.set(String(e.id), e);
-        for (const m of matches) {
-          const ev = byId.get(String(m.id));
-          if (ev?.bts?.length) {
-            out.set(m.id, yellowbetFlatOdds(ev.bts, { home: ev.h || m.home, away: ev.a || m.away }));
-          } else {
-            out.set(m.id, yellowbetFlatOdds(m.__raw?.bts || [], { home: m.home, away: m.away }));
-          }
-        }
-        return out;
-      } catch { /* fallback below */ }
-    }
-    for (const m of matches) {
-      out.set(m.id, yellowbetFlatOdds(m.__raw?.bts || [], { home: m.home, away: m.away }));
-    }
-    return out;
+    return yellowbetFlatOdds(match.__raw?.bts || [], { live });
   },
 };

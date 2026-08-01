@@ -3,21 +3,18 @@ const num = (v, def) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 };
-// Secrets GitHub Actions colles depuis un fichier arrivent parfois avec un
-// trailing newline — casse toute concatenation d'URL. Trim systematique.
-const str = (v) => String(v || '').trim();
 
 export const config = {
   port: num(process.env.PORT, 10000),
   apiSecretKey: process.env.API_SECRET_KEY || '',
 
   proxy: {
-    mode: str(process.env.PROXY_MODE || 'jina').toLowerCase(),
-    jinaKey: str(process.env.JINA_API_KEY),
-    residentialUrl: str(process.env.RESIDENTIAL_PROXY_URL),
-    cfworkerUrl: str(process.env.CF_WORKER_PROXY_URL),
+    mode: (process.env.PROXY_MODE || 'jina').toLowerCase(),
+    jinaKey: process.env.JINA_API_KEY || '',
+    residentialUrl: process.env.RESIDENTIAL_PROXY_URL || '',
+    cfworkerUrl: process.env.CF_WORKER_PROXY_URL || '',
     cacheTtlMs: num(process.env.PROXY_CACHE_TTL_MS, 75_000),
-    maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 6),
+    maxConcurrency: num(process.env.PROXY_MAX_CONCURRENCY, 12),
   },
 
   base44: {
@@ -28,12 +25,10 @@ export const config = {
   scan: {
     minProfitPrematch: num(process.env.MIN_PROFIT_PREMATCH, 0.5),
     minProfitLive: num(process.env.MIN_PROFIT_LIVE, 0.5),
-    // Aucun cap : on remonte TOUTES les opps detectees, y compris 40%+ qui
-    // sont soit reelles (mapping parfait) soit faussees (parseur bogue). Un
-    // plafond arbitraire masquerait les vraies grosses arbs ET rendrait
-    // invisible le mapping bogue qu'il faut corriger. Le bon traitement =
-    // logger chaque opp + verifier les cotes reelles sur les 2 bookmakers.
-    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, Number.POSITIVE_INFINITY),
+    // Aucun cap arbitraire. Les fausses opps doivent être éliminées par la
+    // correction du code (parsers exacts, matching correct, orientation
+    // vérifiée), pas masquées par un plafond.
+    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 999),
     maxMatches: num(process.env.MAX_MATCHES, 400),
     horizonHours: num(process.env.HORIZON_HOURS, 72),
   },

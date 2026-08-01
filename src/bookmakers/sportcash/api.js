@@ -14,12 +14,15 @@ export async function xget(endpoint, params, timeoutMs = 20_000) {
   return fetchJson(`${BASE}/${endpoint}?${qs}`, { headers: HDR, timeoutMs });
 }
 
-// "20260726 15:00:00" (UTC+1, timezone Sportcash) → ms epoch UTC.
+// "20260726 15:00:00" → ms epoch UTC.
+// Sportcash retourne l'heure en UTC (Abidjan/GMT). Aucun décalage à appliquer.
+// (Debug SC vs 1xBet a confirmé decalage +60min systematique quand on soustrayait
+// 1h - c'etait un bug historique.)
 export function parseTs(ts) {
   const m = String(ts || '').match(/^(\d{4})(\d{2})(\d{2})\s+(\d{2}):(\d{2})/);
   if (!m) return null;
   const [, y, mo, d, h, mi] = m;
-  return Date.UTC(+y, +mo - 1, +d, +h - 1, +mi);
+  return Date.UTC(+y, +mo - 1, +d, +h, +mi);
 }
 
 export function splitTeams(da) {
@@ -29,3 +32,13 @@ export function splitTeams(da) {
 }
 
 export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b/i.test(s || '');
+
+// Re-fetch les cotes fraîches d'un match unique (utilisé au confirm live).
+// getEvento(isLive:false) renvoie les cotes actuelles même sur un match live
+// (bug Sportcash documenté). Utilise pal + avv stockés dans match.__raw.
+export async function fetchMatchOdds({ pal, avv }) {
+  if (pal == null || avv == null) return [];
+  const j = await xget('getEvento', { pal: String(pal), avv: String(avv), idAggregata: '-1', isLive: 'false' }, 15_000)
+    .catch(() => null);
+  return j && Array.isArray(j.scs) ? j.scs : [];
+}

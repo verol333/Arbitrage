@@ -10,7 +10,7 @@ on:
 jobs:
   prematch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: arbitrage-service
@@ -30,10 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm install --production
 
-      - name: Link node_modules at repo root
-        working-directory: .
-        run: ln -sf arbitrage-service/node_modules node_modules
-
       - name: Run prematch scan
         run: node dist/action.min.js prematch
         env:
@@ -47,6 +43,6 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
           HORIZON_HOURS: '72'
-          MAX_MATCHES: '600'
-          SCAN_SPORTS: 'football,tennis,basketball'
+          MAX_MATCHES: '5000'
+          SCAN_SPORTS: 'football'
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}

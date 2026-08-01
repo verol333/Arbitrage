@@ -6,7 +6,7 @@ const ENDPOINT = 'wss://eu-swarm-newm.betconstruct.com/';
 export const BETMOMO_SITE_ID = 122;
 // Sport IDs BetMomo (via SWARM sport list) : 1=Football, 2=Ice Hockey,
 // 3=Basketball, 4=Tennis, 5=Volleyball.
-export const BETMOMO_SID = { football: 1, tennis: 4, basketball: 3, hockey: 2, volleyball: 5 };
+export const BETMOMO_SID = { football: 1 };
 
 export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
   return new Promise((resolve, reject) => {
@@ -37,6 +37,20 @@ export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
     ws.on('error', () => { clearTimeout(timer); finish(() => reject(new Error('betmomo-ws-error'))); });
     ws.on('close', (code) => { if (!done) { clearTimeout(timer); finish(() => reject(new Error('betmomo-closed:' + code))); } });
   });
+}
+
+// Re-fetch les cotes fraîches d'un match unique (utilisé au confirm live).
+// Le listMatches capture les cotes en batch mais en LIVE elles bougent en
+// secondes — sans ce refresh, le confirm renvoyait les cotes vieilles de 5min.
+export async function fetchMatchOdds(matchId) {
+  return swarmSession(async (send) => {
+    const oddsData = await send(
+      { game: ['id'], market: ['name', 'type', 'col_count', 'group_name', 'group_id'], event: ['name', 'price', 'base', 'type_1', 'type'] },
+      { game: { id: { '@eq': Number(matchId) } } },
+    );
+    const g = Object.values(oddsData?.game || {})[0];
+    return g ? Object.values(g.market || {}) : [];
+  }).catch(() => []);
 }
 
 export function isOutright(g) {

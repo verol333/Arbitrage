@@ -8,7 +8,7 @@ import { BASE_URL, evapi, isVirtual, toMatch } from './api.js';
 // Hockey : introuvable dans le catalogue YellowBet (pas d'événements identifiés).
 // Note : le paramètre `sportIds=` semble ignoré côté API — on doit filtrer
 // côté client via ev.sid après un fetch large.
-const SPORT_IDS = { football: 31, basketball: 32, tennis: 35, volleyball: 323 };
+const SPORT_IDS = { football: 31 };
 
 // L'API evapi renvoie ~72 matchs par défaut. On force un count élevé et on tente
 // une pagination si l'API supporte skip/take. Champs de tri : gt (game time).
