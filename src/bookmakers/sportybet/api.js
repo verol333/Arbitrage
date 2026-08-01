@@ -34,11 +34,12 @@ async function sbFetch(url, timeoutMs = 20_000) {
   }
 }
 
-// pcUpcomingEvents nécessite `todayGames=true&timeline=8.4` — sans ces params
-// l'API renvoie HTTP 422. Doc SportyBet confirme cette contrainte.
+// pcUpcomingEvents attend option + sortOption + timeline entier. `todayGames`
+// et `timeline=8.4` (décimal) provoquent HTTP 422 en Nigeria. Params minimaux
+// validés : sportId + option=1 + timeline=24 + sortOption=SORT_BY_DEFAULT.
 export async function sbFetchUpcoming({ pageNum = 1, pageSize = 100 } = {}) {
   const ts = Date.now();
-  const url = `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${encodeURIComponent(SPORT_ID_FOOTBALL)}&marketId=${encodeURIComponent(MARKET_IDS)}&pageSize=${pageSize}&pageNum=${pageNum}&todayGames=true&timeline=8.4&_t=${ts}`;
+  const url = `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${encodeURIComponent(SPORT_ID_FOOTBALL)}&marketId=${encodeURIComponent(MARKET_IDS)}&pageSize=${pageSize}&pageNum=${pageNum}&option=1&timeline=24&sortOption=SORT_BY_DEFAULT&_t=${ts}`;
   return sbFetch(url);
 }
 
