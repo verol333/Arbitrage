@@ -45,20 +45,23 @@ async function markStaleFoot({ live }) {
 // Nettoie systématiquement les vieilles opps NON-FOOT (tennis, basket, hockey,
 // volley) qui traînent en 'live' dans Base44 depuis l'ère multi-sport. Comme
 // on ne scanne plus ces sports, markStaleFoot ne les nettoyait pas et elles
-// restaient visibles indéfiniment côté client.
-async function purgeNonFootStale() {
-  if (!base44Configured()) return;
+// restaient visibles indéfiniment côté client. Les 8 appels sont parallélisés
+// et ne bloquent pas — on n'attend pas leur résolution avant de continuer.
+function purgeNonFootStale() {
+  if (!base44Configured()) return Promise.resolve();
+  const jobs = [];
   for (const sport of ['tennis', 'basketball', 'hockey', 'volleyball']) {
     for (const isLive of [true, false]) {
-      await base44Fetch(`/entities/${ENTITY}/update-many`, {
+      jobs.push(base44Fetch(`/entities/${ENTITY}/update-many`, {
         method: 'POST',
         body: JSON.stringify({
           filter: { status: 'live', sport, is_live: isLive },
           update: { status: 'stale' },
         }),
-      }).catch(() => { /* silencieux */ });
+      }).catch(() => null));
     }
   }
+  return Promise.allSettled(jobs);
 }
 
 async function bulkCreate(opps) {
@@ -74,7 +77,7 @@ async function bulkCreate(opps) {
 
 export async function persistOpportunities(opps, { live = false } = {}) {
   if (!base44Configured()) return;
-  await purgeNonFootStale();
-  await markStaleFoot({ live });
+  // Purge non-foot et markStale foot en parallèle — pas de dépendance mutuelle.
+  await Promise.allSettled([purgeNonFootStale(), markStaleFoot({ live })]);
   await bulkCreate(opps);
 }
