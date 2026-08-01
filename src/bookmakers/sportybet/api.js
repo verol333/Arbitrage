@@ -11,7 +11,7 @@ const HDR = {
   'Accept-Language': 'en',
   'Referer': 'https://www.sportybet.com/ng/sport/football/today',
   'Origin': 'https://www.sportybet.com',
-  'Cookie': 'locale=en; sb_country=ng',
+  'Cookie': 'locale=en; device-id=b0671631-24f3-4e60-a281-117254ea1551; sb_country=ng',
   'clientid': 'web',
   'operid': '2',
   'platform': 'web',
@@ -34,9 +34,11 @@ async function sbFetch(url, timeoutMs = 20_000) {
   }
 }
 
-export async function sbFetchUpcoming({ pageNum = 1, pageSize = 200 } = {}) {
+// pcUpcomingEvents nécessite `todayGames=true&timeline=8.4` — sans ces params
+// l'API renvoie HTTP 422. Doc SportyBet confirme cette contrainte.
+export async function sbFetchUpcoming({ pageNum = 1, pageSize = 100 } = {}) {
   const ts = Date.now();
-  const url = `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${encodeURIComponent(SPORT_ID_FOOTBALL)}&marketId=${encodeURIComponent(MARKET_IDS)}&pageSize=${pageSize}&pageNum=${pageNum}&_t=${ts}`;
+  const url = `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${encodeURIComponent(SPORT_ID_FOOTBALL)}&marketId=${encodeURIComponent(MARKET_IDS)}&pageSize=${pageSize}&pageNum=${pageNum}&todayGames=true&timeline=8.4&_t=${ts}`;
   return sbFetch(url);
 }
 
