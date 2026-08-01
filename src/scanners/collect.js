@@ -397,43 +397,29 @@ function marketKeyFromOpp(o) {
   if (fam === 'Draw No Bet') return { a: 'dnb_1', b: 'dnb_2' };
   if (fam === '1MT Draw No Bet') return { a: 'ht_dnb_1', b: 'ht_dnb_2' };
   if (fam === '2MT Draw No Bet') return { a: 'h2_dnb_1', b: 'h2_dnb_2' };
-  // Handicap sets (tennis / volley) — VÉRIFIÉ EN PREMIER pour éviter que le
-  // regex Handicap générique (qui inclut "sets" en option) capture ces opps
-  // et retourne la mauvaise clé (hcp_home_X vs set_hcp_home_X).
-  const setHcp = fam.match(/^Handicap sets\s*([+-]?\d+(?:\.\d+)?)$/);
-  if (setHcp) {
-    const l = parseFloat(setHcp[1]);
-    return { a: `set_hcp_home_${l}`, b: `set_hcp_away_${-l}` };
-  }
-  // Handicap match plein-temps (foot Asiatique, basket points, hockey Puck Line, tennis jeux)
-  // Accepte les variantes explicites : "Handicap Asiatique +2.5", "Handicap +2.5",
-  // "Handicap jeux +2.5", "Handicap points +2.5", "Puck Line -1.5".
-  const hcpMatch = fam.match(/^(?:Handicap(?:\s+Asiatique|\s+jeux|\s+points)?|Puck Line)\s*([+-]?\d+(?:\.\d+)?)$/i);
+  // Handicap Asiatique plein-temps
+  const hcpMatch = fam.match(/^Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/i);
   if (hcpMatch) {
     const l = parseFloat(hcpMatch[1]);
     return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
   }
-  // Handicap Asiatique par mi-temps/période/quart
-  const htHcp = fam.match(/^(1MT|2MT|P1|P2|P3) Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/);
+  // Handicap Asiatique 1MT / 2MT
+  const htHcp = fam.match(/^(1MT|2MT) Handicap(?:\s+Asiatique)?\s*([+-]?\d+(?:\.\d+)?)$/);
   if (htHcp) {
-    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_' };
+    const pfx = htHcp[1] === '1MT' ? 'ht_' : 'h2_';
     const l = parseFloat(htHcp[2]);
-    const pfx = pfxMap[htHcp[1]];
     return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
   }
-  // Total match (buts/points/jeux) — line embedded in family
-  // Accepte : "Total Buts Match 2.5", "Total match 2.5", "Total buts 2.5", etc.
-  const totMatch = fam.match(/^Total (?:Buts Match|match|jeux|points|buts|sets)?\s*(\d+(?:\.\d+)?)$/i);
+  // Total match — accepte "Total Buts Match 2.5", "Total buts 2.5", etc.
+  const totMatch = fam.match(/^Total (?:Buts Match|match|buts)?\s*(\d+(?:\.\d+)?)$/i);
   if (totMatch) {
     const l = parseFloat(totMatch[1]);
-    // Distinguish set totals for tennis
-    if (/Total sets/i.test(fam)) return { a: `set_over_${l}`, b: `set_under_${l}` };
     return { a: `match_over_${l}`, b: `match_under_${l}` };
   }
-  // Half/period/quarter totals — accepte "1MT Total Buts 1.5", "1MT Total 1.5", etc.
-  const partTot = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5|Corners 1MT)\s*(?:Total(?:\s+Buts)?\s*)?(\d+(?:\.\d+)?)$/);
+  // 1MT / 2MT / Corners 1MT totals
+  const partTot = fam.match(/^(1MT|2MT|Corners 1MT)\s*(?:Total(?:\s+Buts)?\s*)?(\d+(?:\.\d+)?)$/);
   if (partTot) {
-    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_', 'Corners 1MT': 'cor_ht_' };
+    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'Corners 1MT': 'cor_ht_' };
     const l = parseFloat(partTot[2]);
     const pfx = pfxMap[partTot[1]];
     return { a: `${pfx}over_${l}`, b: `${pfx}under_${l}` };
@@ -461,19 +447,20 @@ function marketKeyFromOpp(o) {
     if (fam.startsWith('Corners')) return { a: 'cor_odd', b: 'cor_even' };
     return { a: 'odd', b: 'even' };
   }
-  // Team totals (dom./ext.)
-  const ttMatch = fam.match(/^Total (Dom\.|Ext\.|J1|J2|Éq\.1|Éq\.2)\s*(\d+(?:\.\d+)?)$/);
+  // Team totals (Dom. / Ext.)
+  const ttMatch = fam.match(/^Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
   if (ttMatch) {
-    const side = /Dom|J1|Éq\.1/.test(ttMatch[1]) ? 'home' : 'away';
+    const side = ttMatch[1] === 'Dom.' ? 'home' : 'away';
     const l = parseFloat(ttMatch[2]);
     return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
   }
-  // Per-half/quarter/period/set winner (basket/hockey/volley/tennis)
-  const partWin = fam.match(/^(1MT|2MT|P1|P2|P3|Q1|Q2|Q3|Q4|Set 1|Set 2|Set 3|Set 4|Set 5) Winner$/);
-  if (partWin) {
-    const pfxMap = { '1MT': 'ht_', '2MT': 'h2_', 'P1': 'p1_', 'P2': 'p2_', 'P3': 'p3_', 'Q1': 'q1_', 'Q2': 'q2_', 'Q3': 'q3_', 'Q4': 'q4_', 'Set 1': 's1_', 'Set 2': 's2_', 'Set 3': 's3_', 'Set 4': 's4_', 'Set 5': 's5_' };
-    const pfx = pfxMap[partWin[1]];
-    return { a: `${pfx}match_1`, b: `${pfx}match_2` };
+  // 1MT / 2MT Team totals
+  const partTt = fam.match(/^(1MT|2MT) Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
+  if (partTt) {
+    const pfx = partTt[1] === '1MT' ? 'ht_' : 'h2_';
+    const side = partTt[2] === 'Dom.' ? 'home' : 'away';
+    const l = parseFloat(partTt[3]);
+    return { a: `${pfx}tt_${side}_over_${l}`, b: `${pfx}tt_${side}_under_${l}` };
   }
   // 1MT/2MT 1X2+DC : arbitrage.js emet "1MT 1X2 — Domicile/Extérieur/Nul" quand
   // un book expose ht_match_* et l'autre ht_dc_*. Sans ce mapping, tous les

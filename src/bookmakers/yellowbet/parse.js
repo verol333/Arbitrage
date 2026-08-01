@@ -92,26 +92,21 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
     if (n === 'odd') set('odd', c);
     else if (n === 'even') set('even', c);
   }
-  // Handicap YellowBet — TROIS variantes possibles (tennis surtout) :
-  //   • "Handicap jeux" / "Games Handicap" → jeux gagnés (tennis main) → hcp_home_X
-  //   • "Handicap sets" / "Set Handicap"    → sets gagnés (tennis)     → set_hcp_home_X
-  //   • "European Handicap" (foot 3-way, l=0:1) → skip (line n'est pas un nombre)
-  //   • "Handicap" seul ou "Asian Handicap" (foot) → Asian standard    → hcp_home_X
-  // Sans distinction : le parser mélangeait les 2 types → cotes croisées mismatched.
+  // Handicap YellowBet (football uniquement) — 2 variantes acceptées :
+  //   • "Asian Handicap" / "Handicap" seul → hcp_home_X (demi-lignes 2-way)
+  //   • Préfixé "HT"/"1st half" → ht_hcp_*   |   "2nd half" → h2_hcp_*
+  // Skip : "European Handicap" (3-way, line "0:1" pas un nombre demi-ligne).
   for (const mkt of bts.filter((m) => /handicap/i.test(m?.n || '') && !/corner/i.test(m?.n || ''))) {
     const name = String(mkt.n || '').toLowerCase();
-    // Skip "European Handicap" (line = "0:1" format, pas un nombre demi-ligne)
     if (/european|europ.en/i.test(name)) continue;
-    const isSets = /\bset(s)?\b/i.test(name);
     const isHt = /\bht\b|1st half/i.test(name);
     const isH2 = /\b2nd half\b/i.test(name);
     const pfx = isHt ? 'ht_' : isH2 ? 'h2_' : '';
-    const keyBase = isSets ? 'set_hcp' : 'hcp';
     for (const o of mkt.odds || []) {
       const l = lineOf(o); if (!isHalfLine(l)) continue;
       const n = lbl(o), c = priceOf(o);
-      if (n === '1' || n === 'home') set(`${pfx}${keyBase}_home_${l}`, c);
-      else if (n === '2' || n === 'away') set(`${pfx}${keyBase}_away_${-l}`, c);
+      if (n === '1' || n === 'home') set(`${pfx}hcp_home_${l}`, c);
+      else if (n === '2' || n === 'away') set(`${pfx}hcp_away_${-l}`, c);
     }
   }
   // Individual totals.
