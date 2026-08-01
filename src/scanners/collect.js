@@ -2,21 +2,11 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTwoBooksTennis, compareTwoBooksBasket, compareTwoBooksHockey, compareTwoBooksVolley, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
-
-function pickComparator(sport) {
-  switch (sport) {
-    case 'tennis': return compareTwoBooksTennis;
-    case 'basketball': return compareTwoBooksBasket;
-    case 'hockey': return compareTwoBooksHockey;
-    case 'volleyball': return compareTwoBooksVolley;
-    default: return compareTwoBooks;
-  }
-}
 
 async function listSafe(book, opts) {
   try {
@@ -34,7 +24,7 @@ async function readOddsSafe(book, matches, opts) {
   try {
     if (book.getOddsBatch) {
       const batch = await book.getOddsBatch(matches, opts);
-      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}, opts?.sport));
+      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}));
       return map;
     }
     // BATCH augmenté à 25 pour accelerer scan. Books permissifs (1xbet via CF workers,
@@ -46,7 +36,7 @@ async function readOddsSafe(book, matches, opts) {
         log(`⚠️ ${book.key} getOdds(${m.id}): ${e.message || e}`);
         return {};
       })));
-      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {}, opts?.sport)));
+      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {})));
     }
     return map;
   } catch (e) {
@@ -55,23 +45,14 @@ async function readOddsSafe(book, matches, opts) {
   }
 }
 
-// Supprime les clés d'un autre sport qui polluent les cotes.
-// Parseurs Apollo/BetMomo émettent s1_*/set_* universellement — sans connaître le sport.
-// Sur foot on retire tout ce qui appartient à tennis/volley (per-set).
-// Sur tennis/volley on retire ht_/h2_/cor_/btts_/dc_ (foot-only).
-function sanitizeForSport(odds, sport) {
+// Football-only : retire les clés per-set (s1_/set_) qui polluent le foot,
+// laissées par des parseurs multi-sport encore présents dans certains modules.
+function sanitizeForSport(odds) {
   if (!odds || typeof odds !== 'object') return {};
-  const isFoot = sport === 'football' || !sport;
-  const isTennisLike = sport === 'tennis' || sport === 'volleyball';
-  if (!isFoot && !isTennisLike) return odds;
   const out = {};
   for (const [k, v] of Object.entries(odds)) {
-    if (isFoot) {
-      if (/^s[1-5]_/.test(k)) continue;
-      if (/^set_/.test(k)) continue;
-    } else if (isTennisLike) {
-      if (/^(ht_|h2_|cor_|btts_|dc_|dnb_)/.test(k)) continue;
-    }
+    if (/^s[1-5]_/.test(k)) continue;
+    if (/^set_/.test(k)) continue;
     out[k] = v;
   }
   return out;
@@ -117,7 +98,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
   const oddsFetchedAt = new Date().toISOString();
-  const compare = pickComparator(sport);
+  const compare = compareTwoBooks;
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;

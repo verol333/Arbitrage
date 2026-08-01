@@ -6,9 +6,7 @@ export default {
   label: 'Congobet',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    // Sports Congobet supportés : football (101), basketball (102), tennis (103).
-    // Hockey/volley : non identifiés dans le catalogue.
-    if (!['football', 'basketball', 'tennis'].includes(sport)) return [];
+    if (sport !== 'football') return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match) { return getOddsImpl(match.id); },

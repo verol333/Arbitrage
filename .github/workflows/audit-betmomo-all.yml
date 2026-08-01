@@ -26,4 +26,4 @@ jobs:
         run: ln -sf arbitrage-service/node_modules node_modules
       - name: Run audit
         working-directory: .
-        run: node scripts/audit-betpawa.js
+        run: node scripts/audit-betmomo-all-sports.js

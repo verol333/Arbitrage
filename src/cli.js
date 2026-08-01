@@ -39,14 +39,13 @@ async function notifyWebhook(result, { live = false, sport = 'football' } = {}) 
 }
 
 const mode = process.argv[2] || 'prematch';
-const sports = (process.env.SCAN_SPORTS || 'football').split(',').map((s) => s.trim()).filter(Boolean);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sport = 'football';
 
-async function doScan({ live, sport }) {
+async function doScan({ live }) {
   const result = await runScan({
     live, sport,
     minProfit: Number(live ? process.env.MIN_PROFIT_LIVE || 0.5 : process.env.MIN_PROFIT_PREMATCH || 0.5),
-    maxMatches: Number(process.env.MAX_MATCHES || 600),
     horizonHours: Number(process.env.HORIZON_HOURS || 72),
   });
   await persistOpportunities(result.opportunities, { live, sport });
@@ -54,38 +53,22 @@ async function doScan({ live, sport }) {
   return result;
 }
 
-async function doMultiSportScan({ live }) {
-  let totalOpps = 0;
-  const allStats = [];
-  for (const sport of sports) {
-    try {
-      const r = await doScan({ live, sport });
-      totalOpps += r.opportunities.length;
-      allStats.push({ sport, opps: r.opportunities.length, ms: r.stats.duration_ms });
-    } catch (e) {
-      log(`⚠️ ${sport}: ${e.message}`);
-    }
-  }
-  return { totalOpps, allStats };
-}
-
 if (mode === 'prematch') {
-  log(`▶ Scan PRÉMATCH (${sports.join('+')})`);
-  const { totalOpps, allStats } = await doMultiSportScan({ live: false });
-  const summary = allStats.map((s) => `${s.sport}:${s.opps}(${s.ms}ms)`).join(' | ');
-  log(`✅ Prématch terminé — ${totalOpps} opportunités | ${summary}`);
+  log(`▶ Scan PRÉMATCH football`);
+  const r = await doScan({ live: false });
+  log(`✅ Prématch terminé — ${r.opportunities.length} opportunités | ${r.stats.duration_ms}ms`);
 } else if (mode === 'live') {
   const duration = parseInt(process.env.SCAN_DURATION_MINUTES || '30', 10);
   const interval = parseInt(process.env.LIVE_INTERVAL_MS || '15000', 10);
   const end = Date.now() + duration * 60 * 1000;
   let cycles = 0, total = 0;
-  log(`▶ Scan LIVE (${sports.join('+')}) — boucle de ${duration} min, intervalle ${interval / 1000}s`);
+  log(`▶ Scan LIVE football — boucle de ${duration} min, intervalle ${interval / 1000}s`);
   while (Date.now() < end) {
     try {
-      const { totalOpps } = await doMultiSportScan({ live: true });
-      total += totalOpps;
+      const r = await doScan({ live: true });
+      total += r.opportunities.length;
       cycles++;
-      log(`  cycle ${cycles}: ${totalOpps} opps`);
+      log(`  cycle ${cycles}: ${r.opportunities.length} opps`);
     } catch (e) {
       log(`  cycle ${cycles + 1}: erreur — ${e.message}`);
       cycles++;
