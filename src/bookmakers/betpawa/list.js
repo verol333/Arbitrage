@@ -4,13 +4,16 @@ import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams } from './api.js
 
 const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746']);
 
-export async function listMatches({ live = false, horizonHours = 168, maxMatches = 500 } = {}) {
+// PAS de plafond artificiel : on pagine jusqu'à ce que l'API renvoie du vide.
+// Le hard cap (2000) est un garde-fou runaway loop, pas une limite métier.
+export async function listMatches({ live = false, horizonHours = 168 } = {}) {
   const eventType = live ? 'LIVE' : 'UPCOMING';
   const seen = new Set();
   const out = [];
   const PAGE = 100;
+  const HARD_CAP = 2000;
 
-  for (let skip = 0; skip < maxMatches && skip < 2000; skip += PAGE) {
+  for (let skip = 0; skip < HARD_CAP; skip += PAGE) {
     const url = buildEventsListUrl({ eventType, skip, take: PAGE });
     const strings = await bpFetchList(url);
     if (!strings.length) break;

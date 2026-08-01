@@ -72,7 +72,10 @@ export async function bpFetchEvent(matchId, timeoutMs = 15_000) {
   }
 }
 
-export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b/i.test(s || '');
+// Filtre matchs virtuels/e-sport : cyber, esoccer, e-soccer, virtual, simulated,
+// srl (Simulated Reality League), fifa, gt leagues, (sim), suffixe " Esports".
+// Complète le filtre après avoir observé des matchs virtuels remontés depuis l'API.
+export const isVirtual = (s) => /(\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b|\besport|\begt\b|\bgt leagues|\(sim\)|\bsim\b|\bvfl\b)/i.test(s || '');
 
 export function splitTeams(fullName) {
   const s = String(fullName || '').replace(/^["'#%]/, '').replace(/["']$/, '').trim();
