@@ -24,7 +24,7 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Audit BetPawa (temp — workflow betpawa pas indexé)
+      - name: Audit BetPawa (via Cloudflare Worker user)
         working-directory: .
         run: node scripts/audit-betpawa.js
         env:
