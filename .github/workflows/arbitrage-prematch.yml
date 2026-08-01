@@ -1,10 +1,11 @@
 name: Arbitrage — Scan Prématch
 
-# Toutes les 10 minutes — repo PUBLIC = minutes illimitées.
+# Toutes les 5 minutes — repo PUBLIC = minutes illimitées.
+# Le scan lui-même prend ~10 min mais GitHub queue les runs → OK.
 # Code minifié dans dist/action.min.js — illisible, secrets chiffrés.
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:

@@ -27,10 +27,10 @@ async function readOddsSafe(book, matches, opts) {
       for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}));
       return map;
     }
-    // Batch parallèle par book. Certains books ont une API tolérante et bénéficient
-    // d'un batch >= 40 (1xbet via CF workers, betpawa direct, premierbet via GG).
-    // D'autres (sportcash) ont un delay interne — on garde 25 comme défaut sûr.
-    const BATCH = book.key === 'betpawa' || book.key === 'premierbet' || book.key === '1xbet' ? 50 : 25;
+    // Batch parallèle par book. APIs tolérantes (1xbet via CF workers, betpawa
+    // direct, premierbet via GG, sportybet direct) → batch 100. Sportcash a un
+    // delay interne (BATCH=4 en interne). Autres = 40.
+    const BATCH = /^(betpawa|premierbet|1xbet|sportybet)$/.test(book.key) ? 100 : 40;
     for (let i = 0; i < matches.length; i += BATCH) {
       const chunk = matches.slice(i, i + BATCH);
       const results = await Promise.all(chunk.map((m) => book.getOdds(m, opts).catch((e) => {
