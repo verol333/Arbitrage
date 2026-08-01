@@ -1,32 +1,25 @@
-// Debug BetPawa : dump la structure raw du Worker pour comprendre.
-import { fetchViaWorker } from '../src/bookmakers/betpawa/api.js';
+// Audit BetPawa : appel direct + extraction floats protobuf.
 import bp from '../src/bookmakers/betpawa/index.js';
 
-console.log('=== BETPAWA WORKER RAW DUMP ===\n');
+console.log('=== BETPAWA AUDIT (direct call + float extraction) ===\n');
 
-const raw = await fetchViaWorker();
-console.log(`Keys du top-level: ${Object.keys(raw || {}).join(', ')}`);
-console.log(`success=${raw?.success} totalMatches=${raw?.totalMatches} matchesWithOdds=${raw?.matchesWithOdds}`);
-console.log(`data.matches count: ${raw?.matches?.length ?? 'N/A'}\n`);
-
-console.log('--- Sample first 3 raw match objects ---');
-if (raw?.matches) {
-  for (const [i, m] of raw.matches.slice(0, 5).entries()) {
-    console.log(`\n[${i}]`, JSON.stringify(m, null, 2));
-  }
-}
-
-console.log('\n\n--- Via bp.listMatches ---');
 const matches = await bp.listMatches({ live: false, sport: 'football' });
-console.log(`Total : ${matches.length}`);
-const withOdds = [];
-for (const m of matches) {
+console.log(`\nTotal matchs foot UPCOMING : ${matches.length}`);
+const withOdds = matches.filter(m => m.__raw?.odds?.length === 3);
+console.log(`Avec cotes 1X2 extraites : ${withOdds.length}`);
+
+console.log('\n--- Sample 8 first matches with odds ---');
+for (const m of withOdds.slice(0, 8)) {
   const odds = await bp.getOdds(m);
-  if (Object.keys(odds).length > 0) withOdds.push({ home: m.home, away: m.away, odds });
+  console.log(`  ${m.home} vs ${m.away} [id=${m.id}]`);
+  console.log(`    ${Object.entries(odds).map(([k, v]) => `${k}=${v}`).join(' | ')}`);
 }
-console.log(`With odds : ${withOdds.length}`);
-for (const w of withOdds.slice(0, 5)) {
-  console.log(`  ${w.home} vs ${w.away} : ${Object.entries(w.odds).map(([k, v]) => `${k}=${v}`).join(' | ')}`);
-}
+
+// Live check
+console.log('\n\n=== LIVE ===');
+const live = await bp.listMatches({ live: true, sport: 'football' });
+console.log(`Total matchs foot LIVE : ${live.length}`);
+const liveWithOdds = live.filter(m => m.__raw?.odds?.length === 3);
+console.log(`Avec cotes : ${liveWithOdds.length}`);
 
 process.exit(0);
