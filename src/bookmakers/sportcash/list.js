@@ -78,7 +78,8 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72 
         const period = j.pl?.per ?? j.per ?? null;
         liveMeta = { score, minute: Number.isFinite(minute) ? minute : null, period };
       }
-      out.push({ id: e.id, home: e.home, away: e.away, league: e.league, start: e.start, __raw: { markets }, live: liveMeta });
+      out.push({ id: e.id, home: e.home, away: e.away, league: e.league, start: e.start,
+        __raw: { markets, pal: e.p, avv: e.a }, live: liveMeta });
     }
     if (i + BATCH < events.length) await new Promise((r) => setTimeout(r, SLEEP_BETWEEN_CHUNKS_MS));
   }

@@ -57,15 +57,18 @@ export async function bpFetchList(url, timeoutMs = 20_000) {
   }
 }
 
-// Cache TTL 60s des event payloads — list.js populate via bpFetchEvent(id)
-// pour extraire startTime, puis getOdds réutilise directement (évite doublon).
+// Cache TTL court (30s) des event payloads — list.js populate pour extraire
+// startTime, puis getOdds réutilise (évite doublement les requêtes API).
+// En mode fresh=true (getOdds live/confirm) on bypass le cache pour avoir
+// les cotes du moment (les cotes bougent en secondes en live).
 const eventCache = new Map(); // id → { at, data }
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 30_000;
 
-// Récupère détails d'un match (JSON avec markets + cotes + startTime).
-export async function bpFetchEvent(matchId, timeoutMs = 15_000) {
-  const cached = eventCache.get(String(matchId));
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.data;
+export async function bpFetchEvent(matchId, timeoutMs = 15_000, { fresh = false } = {}) {
+  if (!fresh) {
+    const cached = eventCache.get(String(matchId));
+    if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.data;
+  }
   try {
     const res = await fetch(`${BASE}/api/sportsbook/v4/events/${matchId}`, {
       headers: HDR_EVENT,

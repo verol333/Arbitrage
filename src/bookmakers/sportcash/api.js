@@ -32,3 +32,13 @@ export function splitTeams(da) {
 }
 
 export const isVirtual = (s) => /\bcyber|esoccer|e-?soccer|virtual|simulated|\bsrl\b|\bfifa\b/i.test(s || '');
+
+// Re-fetch les cotes fraîches d'un match unique (utilisé au confirm live).
+// getEvento(isLive:false) renvoie les cotes actuelles même sur un match live
+// (bug Sportcash documenté). Utilise pal + avv stockés dans match.__raw.
+export async function fetchMatchOdds({ pal, avv }) {
+  if (pal == null || avv == null) return [];
+  const j = await xget('getEvento', { pal: String(pal), avv: String(avv), idAggregata: '-1', isLive: 'false' }, 15_000)
+    .catch(() => null);
+  return j && Array.isArray(j.scs) ? j.scs : [];
+}

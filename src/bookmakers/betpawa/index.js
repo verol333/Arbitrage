@@ -10,9 +10,10 @@ export default {
     if (sport !== 'football') return [];
     return listMatches({ live, horizonHours });
   },
-  async getOdds(match) {
-    // Chaque match nécessite un appel /events/{id} pour récupérer markets + cotes.
-    const eventJson = await bpFetchEvent(match.id);
+  async getOdds(match, { live = false, noCache = false } = {}) {
+    // En live ou confirm noCache → bypass cache pour cotes fraîches du moment.
+    // En prématch → cache 30s OK (cotes bougent peu, économise des requêtes).
+    const eventJson = await bpFetchEvent(match.id, 15_000, { fresh: live || noCache });
     if (!eventJson) return {};
     return betpawaFlatOdds(eventJson);
   },

@@ -1,4 +1,5 @@
 import { listPrematch, listLive } from './list.js';
+import { fetchMatchBts } from './api.js';
 import { yellowbetFlatOdds } from './parse.js';
 
 export default {
@@ -9,10 +10,15 @@ export default {
     if (sport !== 'football') return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
-  async getOdds(match, { live = false } = {}) {
-    // En live, les Under/Over/Team totals YB sont exposés en "REST OF MATCH"
-    // (buts restants), pas en TOTAL match. Le parser les redirige vers rest_*
-    // pour éviter faux arbs quand comparés avec autres books qui exposent TOTAL.
+  // En LIVE (ou confirm noCache) → re-fetch fresh via GetEventDetails.
+  // Sinon → réutilise les bts capturés au listMatches.
+  // Le parser reroute Under/Over/TT en 'rest_*' quand live=true (les cotes YB
+  // exposées en live représentent "REST OF MATCH", buts restants).
+  async getOdds(match, { live = false, noCache = false } = {}) {
+    if (live || noCache) {
+      const bts = await fetchMatchBts(match.id);
+      if (bts.length) return yellowbetFlatOdds(bts, { live });
+    }
     return yellowbetFlatOdds(match.__raw?.bts || [], { live });
   },
 };
