@@ -24,8 +24,8 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Audit PremierBet mobile API markets
+      - name: Probe BetPawa (workflow betpawa pas encore indexé)
         working-directory: .
-        run: node scripts/audit-premierbet.js
+        run: node scripts/probe-betpawa.js
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
