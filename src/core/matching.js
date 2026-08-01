@@ -42,10 +42,20 @@ function modifiersMatch(refHome, refAway, cHome, cAway) {
 export function matchBook(ref, cands, used, { requireStart = false } = {}) {
   const HARD_DT = 30 * 60 * 1000;
   const TIGHT_DT = 3 * 60 * 1000; // ±3 min = kickoff quasi-identique
+  const NO_START_MIN_SIM = 0.90;   // seuil strict pour candidat sans startTime
   let best = null, bestScore = -1, bestDt = null;
   for (const c of cands) {
     if (used.has(c.id)) continue;
-    if (requireStart && !c.start) continue;
+    // Candidat sans startTime : en prématch on n'accepte que si les noms
+    // d'équipes sont quasi-identiques (>90% similarity). Élimine 99% des
+    // faux appariements (matchs live BetPawa apparaissant en prématch)
+    // tout en gardant les vrais matchs communs (BetPawa suit Betradar
+    // comme les autres books → noms généralement identiques).
+    if (requireStart && !c.start) {
+      const sh0 = teamSim(ref.home, c.home);
+      const sa0 = teamSim(ref.away, c.away);
+      if (Math.min(sh0, sa0) < NO_START_MIN_SIM) continue;
+    }
     const dt = (ref.start && c.start) ? Math.abs(ref.start - c.start) : null;
     if (dt !== null && dt > HARD_DT) continue;
     if (!modifiersMatch(ref.home, ref.away, c.home, c.away)) continue;

@@ -2,7 +2,7 @@
 // des match IDs. Le protobuf ne fournit pas le startTime → on l'enrichit via
 // /events/{id} en parallèle (batch 40). Sans start, alignCatalogs rejette le
 // candidat en mode prématch (évite les fake arbs sur matchs déjà live).
-import { bpFetchList, bpFetchEvent, buildEventsListUrl, isVirtual, splitTeams } from './api.js';
+import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams } from './api.js';
 
 const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746']);
 
@@ -43,24 +43,10 @@ export async function listMatches({ live = false } = {}) {
     if (added === 0) break;
   }
 
-  // Enrichit startTime via /events/{id} en parallèle. Batch 15 pour ne pas
-  // saturer le serveur BetPawa (batch 40 → timeouts massifs). Timeout 25s.
-  // Sans start, les matchs sont exclus du prématch (matching.js requireStart)
-  // → il faut absolument l'obtenir pour BetPawa (protobuf ne le fournit pas).
-  const BATCH = 15;
-  for (let i = 0; i < out.length; i += BATCH) {
-    const chunk = out.slice(i, i + BATCH);
-    await Promise.all(chunk.map(async (m) => {
-      try {
-        const ev = await bpFetchEvent(m.id, 25_000);
-        const ts = Number(ev?.startTime);
-        if (Number.isFinite(ts) && ts > 0) m.start = ts;
-        if (ev?.competitionName) m.league = ev.competitionName;
-      } catch { /* silencieux — start reste null (match exclu du prématch) */ }
-    }));
-  }
-
-  const withStart = out.filter((m) => m.start).length;
-  console.log(`[betpawa] ${eventType} : ${out.length} matchs foot listés (${withStart} avec startTime)`);
+  // Note : le protobuf BetPawa ne fournit pas de startTime. Fetch /events/{id}
+  // pour l'obtenir est trop lent (1000+ requêtes, timeouts massifs même avec
+  // batch réduit). À la place, matching.js accepte les candidats sans start
+  // uniquement si teamSim > 0.90 — élimine les faux appariements sans coût.
+  console.log(`[betpawa] ${eventType} : ${out.length} matchs foot listés (sans startTime)`);
   return out;
 }
