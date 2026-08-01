@@ -6,9 +6,21 @@ function extractEvents(root) {
   if (!root) return [];
   const data = root.data;
   if (!data) return [];
-  // Prématch : data.events[]
+  // Prématch pcUpcomingEvents : data.tournaments[].events[]
+  if (Array.isArray(data.tournaments)) {
+    const out = [];
+    for (const t of data.tournaments) {
+      const evs = Array.isArray(t?.events) ? t.events : [];
+      for (const e of evs) {
+        if (!e.competitionName) e.competitionName = t?.name || '';
+        out.push(e);
+      }
+    }
+    return out;
+  }
+  // Fallback flat : data.events[]
   if (Array.isArray(data.events)) return data.events;
-  // Live : data[].events[] (groupé par tournament)
+  // Live liveOrPrematchEvents : data[].events[] (groupé par tournament)
   if (Array.isArray(data)) {
     const out = [];
     for (const t of data) {
