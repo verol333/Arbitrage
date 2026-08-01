@@ -24,8 +24,6 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Run audit market coverage
+      - name: Run audit
         working-directory: .
-        run: node scripts/audit-market-keys.js
-        env:
-          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+        run: node scripts/audit-onewin.js
