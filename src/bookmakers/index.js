@@ -10,8 +10,9 @@ import betmomo from './betmomo/index.js';
 import sportcash from './sportcash/index.js';
 import premierbet from './premierbet/index.js';
 import betpawa from './betpawa/index.js';
+import sportybet from './sportybet/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, sportcash, premierbet, betpawa];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, sportcash, premierbet, betpawa, sportybet];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
