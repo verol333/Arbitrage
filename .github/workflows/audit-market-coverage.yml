@@ -1,4 +1,4 @@
-name: Audit — New Sports Markets
+name: Audit — Couverture marchés (matrice book × famille)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 8
     defaults:
       run:
         working-directory: arbitrage-service
@@ -24,6 +24,8 @@ jobs:
       - name: Link node_modules
         working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Run audit
+      - name: Audit couverture marchés
         working-directory: .
-        run: node scripts/audit-new-sports-markets.js
+        run: node scripts/audit-market-keys.js
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}

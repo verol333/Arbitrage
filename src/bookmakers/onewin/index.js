@@ -17,8 +17,15 @@ export default {
   },
   async getOddsBatch(matches) {
     if (!matches.length) return new Map();
-    const ids = matches.map((m) => m.id);
-    const raw = await fetchOddsWS(ids);
+    // Le WS 1win coupe si on lui envoie >~100 IDs (timeout de subscribe).
+    // On chunk en lots de 60 avec un WS neuf par lot, puis on fusionne.
+    const CHUNK = 60;
+    const raw = new Map();
+    for (let i = 0; i < matches.length; i += CHUNK) {
+      const chunk = matches.slice(i, i + CHUNK).map((m) => m.id);
+      const part = await fetchOddsWS(chunk);
+      for (const [k, v] of part) raw.set(k, v);
+    }
     const out = new Map();
     for (const m of matches) {
       const g = raw.get(m.id) || raw.get(String(m.id)) || raw.get(Number(m.id));

@@ -27,27 +27,6 @@ export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook) {
   });
 }
 
-// Arbitrage 3 jambes (marché à 3 issues exhaustives — ex : 1ère équipe à marquer).
-export function pushArb3(out, family, l1, a1, ba1, b1, bb1, l2, a2, ba2, b2, bb2, l3, a3, ba3, b3, bb3) {
-  const pick = (a, ba, b, bb) => ((a || 0) >= (b || 0) ? { odd: a || 0, book: ba } : { odd: b || 0, book: bb });
-  const p1 = pick(a1, ba1, b1, bb1), p2 = pick(a2, ba2, b2, bb2), p3 = pick(a3, ba3, b3, bb3);
-  if (p1.odd <= 1 || p2.odd <= 1 || p3.odd <= 1) return;
-  if (p1.odd > MAX_ODD || p2.odd > MAX_ODD || p3.odd > MAX_ODD) return;
-  const invSum = 1 / p1.odd + 1 / p2.odd + 1 / p3.odd;
-  if (invSum >= 1) return;
-  const profit = (1 - invSum) * 100;
-  if (profit > MAX_PROFIT()) return;
-  out.push({
-    market_family: `${family} (3 issues)`,
-    leg_a_book: p1.book, leg_a_label: l1, leg_a_odd: p1.odd,
-    leg_b_book: p2.book, leg_b_label: `${l2} · ${l3} @${p3.odd.toFixed(2)} (${p3.book})`, leg_b_odd: p2.odd,
-    inverse_sum: Math.round(invSum * 10000) / 10000,
-    profit_pct: Math.round(profit * 100) / 100,
-    stake_a_pct: Math.round((1 / p1.odd) / invSum * 1000) / 10,
-    stake_b_pct: Math.round((1 / p2.odd) / invSum * 1000) / 10,
-  });
-}
-
 const HCP_LINES = [-4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5];
 const TT_LINES = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
 const linesOf = (a, b, pattern) => {
@@ -199,15 +178,11 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
       pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA);
     }
   }
-  // 3-way : 1ère équipe à marquer + mi-temps la plus prolifique.
-  pushArb3(out, '1ère équipe à marquer',
-    'Domicile marque en 1er', oa.fts_home, bookA, ob.fts_home, bookB,
-    'Extérieur marque en 1er', oa.fts_away, bookA, ob.fts_away, bookB,
-    'Aucun but', oa.fts_none, bookA, ob.fts_none, bookB);
-  pushArb3(out, 'Mi-temps la plus prolifique',
-    '1ère MT', oa.half_most_ht, bookA, ob.half_most_ht, bookB,
-    '2ème MT', oa.half_most_h2, bookA, ob.half_most_h2, bookB,
-    'Égalité', oa.half_most_equal, bookA, ob.half_most_equal, bookB);
+  // Note : les opps 3-way (1ère équipe à marquer, mi-temps la plus prolifique)
+  // étaient génerées via pushArb3 mais leur `market_family` "... (3 issues)"
+  // n'est pas reconstructible par marketKeyFromOpp, donc rejetées noKey au
+  // re-fetch confirm. Rares en pratique et peu actionnables — retirées pour
+  // éliminer le bruit dans la distribution des rejets.
   return out;
 }
 
