@@ -4,15 +4,13 @@ import { betpawaFlatOdds } from './parse.js';
 export default {
   key: 'betpawa',
   label: 'BetPawa',
-  supports: { prematch: true, live: true },
+  // Live désactivé tant que le Worker CF ne l'expose pas.
+  supports: { prematch: true, live: false },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    // BetPawa Congo — category 2 = Football uniquement pour l'instant.
     if (sport !== 'football') return [];
     return listMatches({ live, horizonHours });
   },
   async getOdds(match) {
-    // Les cotes sont déjà dans __raw (listMatches fait l'appel qui contient
-    // events + odds), donc getOdds parse depuis le buffer déjà récupéré.
     return betpawaFlatOdds(match);
   },
 };

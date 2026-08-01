@@ -1,66 +1,44 @@
-// BetPawa football listing + odds : fait UN appel protobuf qui retourne
-// à la fois les matchs ET leurs cotes 1X2 (+ marketTypes additionnels).
-// On mémorise le raw dans __raw pour le parser dans getOdds sans refetch.
-import { bpGetStrings, buildEventsUrl, isVirtual, splitTeams } from './api.js';
-import { betpawaFlatOdds } from './parse.js';
+// BetPawa foot : appel Cloudflare Worker (JSON propre avec cotes 1X2).
+// Le Worker enveloppe l'auth CF (__cf_bm cookie) et le décodage protobuf.
+import { fetchViaWorker, isVirtual, splitTeams } from './api.js';
 
-export async function listMatches({ live = false, horizonHours = 168, maxMatches = 600 } = {}) {
-  const nowMs = Date.now();
-  const horizonMs = nowMs + horizonHours * 3600 * 1000;
-  const eventType = live ? 'LIVE' : 'UPCOMING';
+export async function listMatches({ live = false, horizonHours = 168 } = {}) {
+  // Le Worker CF actuel ne prend pas de paramètre live/upcoming — il retourne
+  // UPCOMING par défaut. Live à activer plus tard si besoin (nécessite update
+  // du worker chez l'utilisateur).
+  if (live) {
+    console.log('[betpawa] LIVE non supporté par le Worker CF actuel');
+    return [];
+  }
 
-  // BetPawa paginate via skip/take. On boucle jusqu'à épuiser (take=100/page).
+  const data = await fetchViaWorker();
+  if (!data?.matches?.length) {
+    console.log(`[betpawa] Worker CF n'a rien renvoyé (success=${data?.success}, err=${data?.error})`);
+    return [];
+  }
+
+  const out = [];
   const seen = new Set();
-  const out = [];
-  const PAGE = 100;
-
-  for (let skip = 0; skip < maxMatches && skip < 3000; skip += PAGE) {
-    const url = buildEventsUrl({ eventType, skip, take: PAGE });
-    const strings = await bpGetStrings(url);
-    if (!strings.length) break;
-
-    // Parse matches from string stream — cherche IDs (8 chiffres) suivis de
-    // "Home - Away" (nom complet du match). Copie fidèle de la logique
-    // Worker CF du user, mais sans limite 20 et avec extraction odds étendue.
-    const matches = parseMatchesFromStrings(strings);
-    if (!matches.length) break;
-
-    let addedThisPage = 0;
-    for (const m of matches) {
-      if (seen.has(m.id)) continue;
-      seen.add(m.id);
-      if (isVirtual(`${m.home} ${m.away}`)) continue;
-      // eventType UPCOMING → tous futurs (pas de champ start dans protobuf
-      // extrait par ASCII — on filtre par horizon plus tard si dispo).
-      out.push({
-        id: m.id, home: m.home, away: m.away, league: '',
-        start: null,
-        __raw: { strings, matchIndex: m.strIndex },
-      });
-      addedThisPage++;
+  for (const m of data.matches) {
+    if (!m?.id || seen.has(m.id)) continue;
+    seen.add(m.id);
+    // Utilise home/away si présents, sinon splitTeams sur fullName
+    let home = m.home, away = m.away;
+    if (!home || !away || m.fullName) {
+      const teams = splitTeams(m.fullName || `${home} - ${away}`);
+      if (teams) { home = teams.home; away = teams.away; }
     }
-    if (addedThisPage === 0) break; // Fin de pagination
+    if (!home || !away) continue;
+    if (isVirtual(`${home} ${away}`)) continue;
+    out.push({
+      id: String(m.id),
+      home, away,
+      league: '',
+      start: null,
+      // odds 1X2 : [home, draw, away] — le parser les convertit en match_1/X/2
+      __raw: { odds: Array.isArray(m.odds) ? m.odds : [] },
+    });
   }
-
-  console.log(`[betpawa] ${eventType} : ${out.length} matchs foot (unique après filtres)`);
-  return out;
-}
-
-// Parse : parcourt les strings, détecte les blocs match par pattern
-// "8 chiffres" suivi de "Home - Away". Retourne { id, home, away, strIndex }.
-function parseMatchesFromStrings(strings) {
-  const out = [];
-  const MARKET_TYPE_IDS = new Set(['28000810', '28000850']);  // exclusions
-  for (let i = 0; i < strings.length; i++) {
-    const s = strings[i];
-    if (!/^\d{7,10}$/.test(s)) continue;
-    if (MARKET_TYPE_IDS.has(s)) continue;
-    const name = strings[i + 1] || '';
-    if (!name.includes(' - ') || /1X2|UP|LIVE|UPCOMING/.test(name)) continue;
-    const teams = splitTeams(name);
-    if (!teams) continue;
-    out.push({ id: s, home: teams.home, away: teams.away, strIndex: i });
-    i += 3;
-  }
+  console.log(`[betpawa] UPCOMING via Worker CF : ${out.length} matchs foot avec cotes 1X2`);
   return out;
 }
