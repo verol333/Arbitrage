@@ -4,8 +4,8 @@ import { betpawaFlatOdds } from './parse.js';
 export default {
   key: 'betpawa',
   label: 'BetPawa',
-  // Live désactivé tant que le Worker CF ne l'expose pas.
-  supports: { prematch: true, live: false },
+  // Prematch + live via appel direct cg.betpawa.com + décodage protobuf float.
+  supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (sport !== 'football') return [];
     return listMatches({ live, horizonHours });
