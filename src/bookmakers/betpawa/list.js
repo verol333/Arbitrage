@@ -43,20 +43,20 @@ export async function listMatches({ live = false } = {}) {
     if (added === 0) break;
   }
 
-  // Enrichit startTime via /events/{id} en parallèle (batch 40).
-  // Le protobuf ne le fournit pas — sans start, les matchs BetPawa sont exclus
-  // du prématch (voir matching.js requireStart) → il faut absolument l'obtenir.
-  const BATCH = 40;
+  // Enrichit startTime via /events/{id} en parallèle. Batch 15 pour ne pas
+  // saturer le serveur BetPawa (batch 40 → timeouts massifs). Timeout 25s.
+  // Sans start, les matchs sont exclus du prématch (matching.js requireStart)
+  // → il faut absolument l'obtenir pour BetPawa (protobuf ne le fournit pas).
+  const BATCH = 15;
   for (let i = 0; i < out.length; i += BATCH) {
     const chunk = out.slice(i, i + BATCH);
     await Promise.all(chunk.map(async (m) => {
       try {
-        const ev = await bpFetchEvent(m.id, 10_000);
+        const ev = await bpFetchEvent(m.id, 25_000);
         const ts = Number(ev?.startTime);
         if (Number.isFinite(ts) && ts > 0) m.start = ts;
-        // Récupère aussi le nom de compétition et l'état live pour information
         if (ev?.competitionName) m.league = ev.competitionName;
-      } catch { /* silencieux — le match reste avec start=null (exclu prématch) */ }
+      } catch { /* silencieux — start reste null (match exclu du prématch) */ }
     }));
   }
 
