@@ -180,7 +180,14 @@ export function betmomoFlatOdds(markets) {
         } break;
       }
       // Alias tennis découverts via audit (naming inconsistant BetMomo).
+      // BUG identifié user : le parseur prenait le premier handicap sans
+      // vérifier s'il vient d'un set spécifique. Fix : restreindre au
+      // group_name = "Match" pour ne garder QUE le handicap match-level en
+      // nombre de sets. Les handicaps set-spécifiques (1er set, 2ème set)
+      // arrivent avec group_name = "1stSet"/"2ndSet"/"Sets" → rejetés.
       case 'Sets Handicap': {                                  // Alias de HandicapSets (avec espace)
+        const grp = String(m.group_name || '').toLowerCase();
+        if (grp && !/^match$/i.test(grp)) break;
         for (const e of list) {
           const base = Number(e.base);
           const ty = String(e.type_1 || e.type || '').toLowerCase();
@@ -221,6 +228,12 @@ export function betmomoFlatOdds(markets) {
       case '2ndSetTotalPoints': putTotal('s2_'); break;
       case '3rdSetTotalPoints': putTotal('s3_'); break;
       case 'HandicapSets': {
+        // Fix : restreint au match-level (group_name = "Match" pour tennis
+        // sets handicap match, ou "Regular Time"/"Set" pour volley).
+        // Rejeté si group_name pointe un set spécifique (1stSet, 2ndSet…) →
+        // évite confusion signalée par l'utilisateur.
+        const grp = String(m.group_name || '').toLowerCase();
+        if (grp && !/^(match|regular time|handicaps?|set)$/i.test(grp)) break;
         for (const e of list) {
           const base = Number(e.base);
           const ty = String(e.type_1 || e.type || '').toLowerCase();
@@ -228,6 +241,20 @@ export function betmomoFlatOdds(markets) {
           else if (ty === '2' || ty === 'away') odds[`set_hcp_away_${base}`] = price(e);
         } break;
       }
+      // Handicaps set-spécifiques explicitement IGNORÉS (tennis) : évite que
+      // leurs bases (nombre de jeux du set spécifique) polluent set_hcp_* qui
+      // représente handicap SETS match-level (nombre de sets 1.5, 2.5).
+      case '1stSetHandicap':
+      case '2ndSetHandicap':
+      case '3rdSetHandicap':
+      case '4thSetHandicap':
+      case '5thSetHandicap':
+      case 'Set1Handicap':
+      case 'Set2Handicap':
+      case 'Set3Handicap':
+      case 'Set4Handicap':
+      case 'Set5Handicap':
+        break;
       // ─── BASKETBALL (BetConstruct types) ───────────────────────────────────
       // Marchés MATCH plein temps (les vrais noms BetMomo basket) :
       case 'MatchTotal': putTotal('match_'); break;          // Total points match
