@@ -25,11 +25,11 @@ export const config = {
   scan: {
     minProfitPrematch: num(process.env.MIN_PROFIT_PREMATCH, 0.5),
     minProfitLive: num(process.env.MIN_PROFIT_LIVE, 0.5),
-    // Aucun cap : on remonte TOUTES les opps réellement détectées. Les fausses
-    // alertes doivent être éliminées par un parsing correct des marchés
-    // bookmakers (parsers exacts, pas de cotes stale/fantômes), pas par un
-    // plafond arbitraire qui masque les vraies arbs à haut profit.
-    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 999),
+    // Cap 15% : les vraies arbs foot prématch dépassent rarement 5-8%. Au-delà
+    // c'est presque toujours un fake arb dû à orientation home/away inversée
+    // entre books (ex: PremierBet cote 12.5 sur match_2 alors que betmomo cote
+    // 1.51 sur match_1 pour le même match). Filet de sécurité universel.
+    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 15),
     maxMatches: num(process.env.MAX_MATCHES, 400),
     horizonHours: num(process.env.HORIZON_HOURS, 72),
   },

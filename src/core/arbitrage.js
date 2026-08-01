@@ -41,9 +41,29 @@ const linesOf = (a, b, pattern) => {
 // Compare deux jeux de cotes plates 3-way (foot) entre 2 books quelconques.
 // Traite : Total, 1X2+DC, DNB, Handicap, Total indiv., BTTS, Mi-temps, Corners,
 // Pair/Impair, 1ère équipe à marquer, Mi-temps la plus prolifique.
+// Sanity check d'orientation : si les 2 books ont un match_1 défini mais un
+// écart énorme (ex: 1.51 vs 12.5), c'est presque toujours que home/away est
+// inversé entre eux (matchs différents apparillés à tort — ex: senior vs
+// jeune, ou naming réversé). On skip pour éviter les fake arbs 20-25%.
+function orientationsMismatch(oa, ob) {
+  const a1 = oa.match_1, a2 = oa.match_2, b1 = ob.match_1, b2 = ob.match_2;
+  if (!a1 || !a2 || !b1 || !b2) return false;
+  // Si le "favori" (cote la plus basse) est INVERSE entre les 2 books, c'est
+  // une orientation retournée. Seuil : ratio > 2 confirme un désaccord franc.
+  const aFavIsHome = a1 < a2;
+  const bFavIsHome = b1 < b2;
+  if (aFavIsHome === bFavIsHome) return false; // même favori → orientation OK
+  const aRatio = Math.max(a1, a2) / Math.min(a1, a2);
+  const bRatio = Math.max(b1, b2) / Math.min(b1, b2);
+  return aRatio > 2 && bRatio > 2;
+}
+
 export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   const oa = normalizeAliases(rawA);
   const ob = normalizeAliases(rawB);
+  // Skip complet si orientations 1X2 divergent — évite les fake arbs 20-25%
+  // sur matchs mal appariés (BetPawa senior vs autre book jeune, etc.).
+  if (orientationsMismatch(oa, ob)) return [];
   const out = [];
   // Totaux buts plein temps.
   for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
