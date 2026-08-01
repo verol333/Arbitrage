@@ -1,21 +1,23 @@
-// Probe BetPawa : tente plusieurs domaines + endpoints connus pour découvrir
-// l'API cotes. BetPawa a un domaine par pays (cg/ci/ug/ke/gh/ng/rw/tz/mw/zm).
-// Objectif : identifier le premier couple {domain, endpoint} qui renvoie du JSON.
-const DOMAINS = ['cg', 'ci', 'ug', 'ke', 'gh', 'ng', 'rw', 'tz', 'mw', 'zm'];
-const CANDIDATES = [
-  // Endpoints v3 sportsbook (usual BetPawa pattern)
-  { path: '/api/sportsbook/v3/events/list/by-category?categoryId=1&marketId=1X2&take=50', label: 'v3/events/list' },
-  { path: '/api/sportsbook/v3/events/upcoming/football?take=50', label: 'v3/events/upcoming' },
-  // Sportsbook prematch
-  { path: '/api/sportsbook/prematch/events?sportId=1&take=50', label: 'prematch/events' },
-  { path: '/api/sportsbook/prematch/highlights?sportId=1&take=50', label: 'prematch/highlights' },
-  // Query API
-  { path: '/api/query/prematch/events?sportId=1', label: 'query/prematch/events' },
-  { path: '/api/query/prematch/football/events', label: 'query/football/events' },
-  // GraphQL possibly
-  { path: '/api/graphql', label: 'graphql' },
-  // v2 pattern
-  { path: '/api/sportsbook/v2/events?sportId=1&take=50', label: 'v2/events' },
+// Probe BetPawa v2 : élargi + dump du contenu des réponses.
+// v1 a montré 96-byte JSON errors sur cg/ug/ke/rw/mw → il faut voir ce message
+// pour comprendre le vrai path API.
+const CANDIDATES_PATHS = [
+  '/api/sportsbook/v3/events',
+  '/api/sportsbook/v2/events',
+  '/api/sportsbook/events',
+  '/api/prematch/events',
+  '/api/events',
+  '/api/v1/events',
+  '/api/v2/events',
+  '/api/football/events',
+  '/api/upcoming',
+  '/api/highlights',
+  '/api/query',
+  '/graphql',
+  '/api/pwa/events',
+  '/api/mobile/events',
+  // Test HEAD de l'app pour voir si redirect
+  '/',
 ];
 
 const HDR = {
@@ -31,57 +33,60 @@ async function tryOne(url) {
   try {
     const res = await fetch(url, {
       headers: HDR,
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(8_000),
       redirect: 'follow',
     });
     const ct = res.headers.get('content-type') || '';
-    let bodyLen = 0, sample = '', isJson = false, itemCount = null;
-    if (ct.includes('json')) {
-      isJson = true;
-      const text = await res.text();
-      bodyLen = text.length;
-      sample = text.slice(0, 300);
-      try {
-        const j = JSON.parse(text);
-        // Try to count events/items in common structures
-        if (Array.isArray(j)) itemCount = j.length;
-        else if (Array.isArray(j?.data)) itemCount = j.data.length;
-        else if (Array.isArray(j?.events)) itemCount = j.events.length;
-        else if (Array.isArray(j?.result?.items)) itemCount = j.result.items.length;
-        else if (Array.isArray(j?.responses?.[0]?.responses)) itemCount = j.responses[0].responses.length;
-      } catch { /* ignore */ }
-    } else {
-      const text = await res.text();
-      bodyLen = text.length;
-      sample = text.slice(0, 200).replace(/\s+/g, ' ');
-    }
-    return { status: res.status, ct, bodyLen, isJson, itemCount, sample, elapsed: Date.now() - start };
+    const text = await res.text();
+    return {
+      status: res.status,
+      ct,
+      len: text.length,
+      body: text.slice(0, 500).replace(/\s+/g, ' '),
+      elapsed: Date.now() - start,
+    };
   } catch (e) {
     return { error: e.message, elapsed: Date.now() - start };
   }
 }
 
-console.log('=== BETPAWA PROBE : domaines × endpoints ===\n');
+// Test sur cg seulement (domaine attendu principal) + affiche corps réponse
+const cc = 'cg';
+const base = `https://www.betpawa.${cc}`;
+console.log(`=== BETPAWA PROBE v2 : www.betpawa.${cc} — dump réponses ===\n`);
 
-const hits = [];
-for (const cc of DOMAINS) {
-  const base = `https://www.betpawa.${cc}`;
-  for (const c of CANDIDATES) {
-    const url = `${base}${c.path}`;
-    const r = await tryOne(url);
-    const ok = r.status === 200 && r.isJson && (r.itemCount == null || r.itemCount > 0);
-    const marker = ok ? '✅' : (r.status === 200 ? '⚠️' : '❌');
-    console.log(`${marker} ${cc.padEnd(3)} ${c.label.padEnd(30)} status=${r.status ?? 'ERR'} ct=${(r.ct || '').slice(0, 20)} len=${r.bodyLen ?? '?'} items=${r.itemCount ?? '?'} elapsed=${r.elapsed}ms`);
-    if (r.error) console.log(`    err=${r.error}`);
-    else if (ok) console.log(`    sample: ${r.sample.slice(0, 200)}`);
-    if (ok) hits.push({ cc, label: c.label, url, itemCount: r.itemCount });
-  }
-  // Only continue to next domain if current failed everywhere (save time)
-  if (hits.some(h => h.cc === cc)) break;
+for (const path of CANDIDATES_PATHS) {
+  const url = `${base}${path}`;
+  const r = await tryOne(url);
+  console.log(`--- ${path} ---`);
+  console.log(`status=${r.status ?? 'ERR'} ct=${r.ct ?? ''} len=${r.len ?? '?'} t=${r.elapsed}ms`);
+  if (r.error) console.log(`  err: ${r.error}`);
+  else console.log(`  body: ${r.body}`);
+  console.log('');
 }
 
-console.log('\n=== HITS ===');
-for (const h of hits) console.log(`  ${h.cc} : ${h.label} → ${h.url} (items=${h.itemCount})`);
-if (!hits.length) console.log('  AUCUN endpoint accessible — headers ou domaine à revoir');
+// Test aussi sous-domaine api.betpawa.cg
+console.log(`\n=== SUB-DOMAINE api.betpawa.${cc} ===\n`);
+for (const path of ['/', '/events', '/api/events', '/v1/events', '/sportsbook/events']) {
+  const url = `https://api.betpawa.${cc}${path}`;
+  const r = await tryOne(url);
+  console.log(`--- ${path} ---`);
+  console.log(`status=${r.status ?? 'ERR'} ct=${r.ct ?? ''} len=${r.len ?? '?'} t=${r.elapsed}ms`);
+  if (r.error) console.log(`  err: ${r.error}`);
+  else console.log(`  body: ${r.body}`);
+  console.log('');
+}
+
+// Récupère aussi le HTML de la homepage pour trouver des références à l'API
+console.log(`\n=== HOMEPAGE HTML SCAN ===\n`);
+const home = await tryOne(`${base}/fr/events`);
+console.log(`homepage /fr/events status=${home.status ?? 'ERR'} len=${home.len ?? 0}`);
+if (home.body && home.len > 100) {
+  // Cherche URLs de type api/xxx dans le HTML
+  const apiRefs = [...home.body.matchAll(/["'](\/api\/[a-z0-9\/-]+)["']/gi)].map(m => m[1]);
+  const jsRefs = [...home.body.matchAll(/src="([^"]+\.js[^"]*)"/g)].map(m => m[1]);
+  console.log(`  API refs found in HTML: ${[...new Set(apiRefs)].slice(0, 20).join(', ')}`);
+  console.log(`  JS bundles: ${jsRefs.slice(0, 3).join(', ')}`);
+}
 
 process.exit(0);
