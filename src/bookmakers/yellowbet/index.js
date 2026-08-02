@@ -5,7 +5,7 @@ import { yellowbetFlatOdds } from './parse.js';
 export default {
   key: 'yellowbet',
   label: 'YellowBet',
-  supports: { prematch: true, live: true },
+  supports: { prematch: true, live: false }, // live désactivé (mapping 'rest_*' non fiable en cross-book, produit fake arbs)
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (sport !== 'football') return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
