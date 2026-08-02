@@ -18,10 +18,10 @@ async function fetchJson(url) {
   return res.json();
 }
 
-// 1. Récupère 3 matchs upcoming
-const upcoming = await fetchJson(`${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=sr%3Asport%3A1&pageSize=100&pageNum=1&option=1&timeline=24&sortOption=SORT_BY_DEFAULT&_t=${Date.now()}`);
+// 1. Récupère matchs live via liveOrPrematchEvents (endpoint sans param marketId obligatoire)
+const live = await fetchJson(`${BASE}/api/ng/factsCenter/liveOrPrematchEvents?sportId=sr%3Asport%3A1&_t=${Date.now()}`);
 const events = [];
-for (const t of upcoming?.data?.tournaments || []) {
+for (const t of live?.data || []) {
   for (const e of t?.events || []) events.push(e);
   if (events.length >= 3) break;
 }
