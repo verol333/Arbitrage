@@ -27,8 +27,11 @@ export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook) {
   });
 }
 
-const HCP_LINES = [-4.5, -3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5, 3.5, 4.5];
-const TT_LINES = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
+// Découverte DYNAMIQUE des lignes (handicap, total, team total, corners).
+// L'ancien code utilisait des tableaux hard-codés HCP_LINES [-4.5..4.5] et
+// TT_LINES [0.5..5.5] qui manquaient les lignes extrêmes (matchs déséquilibrés
+// avec handicap -5.5/-6.5 ou team totals 6.5+ chez Bayern, Man City, etc.).
+// linesOf extrait les lignes réellement présentes dans les cotes des 2 books.
 const linesOf = (a, b, pattern) => {
   const set = new Set();
   for (const k of [...Object.keys(a), ...Object.keys(b)]) {
@@ -154,18 +157,20 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   const dnbA = dnbCoherence(oa, ''), dnbB = dnbCoherence(ob, '');
   if (dnbB.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB);
   if (dnbA.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', ob.dnb_1, bookB, 'Extérieur (DNB)', oa.dnb_2, bookA);
-  // Handicaps ASIATIQUES ±L (demi-lignes, 2-way sans nul). Label explicite
-  // pour distinguer du Handicap Européen 3-way (non traité ici).
-  for (const l of HCP_LINES) {
-    const hk = `hcp_home_${l}`, ak = `hcp_away_${-l}`;
-    const fam = `Handicap Asiatique ${l > 0 ? '+' + l : l}`;
-    const aL = `Dom. ${l > 0 ? '+' + l : l}`, bL = `Ext. ${-l > 0 ? '+' + (-l) : -l}`;
+  // Handicaps ASIATIQUES ±L (demi-lignes, 2-way sans nul). Lignes découvertes
+  // DYNAMIQUEMENT (avant : hard-codées [-4.5..4.5] → manquait -5.5, -6.5, +5.5,
+  // +6.5 pour matchs déséquilibrés). Pair {hcp_home_l, hcp_away_-l}.
+  for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
+    const fam = `Handicap Asiatique ${lNum > 0 ? '+' + l : l}`;
+    const aL = `Dom. ${lNum > 0 ? '+' + l : l}`, bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
     pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB);
     pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA);
   }
-  // Totaux individuels dom./ext.
+  // Totaux individuels dom./ext. — lignes DYNAMIQUES (avant [0.5..5.5]).
   for (const [side, lbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
-    for (const l of TT_LINES) {
+    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
       const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
       const fam = `Total ${lbl} ${l}`;
       pushArb(out, fam, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB);
@@ -215,19 +220,20 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, lbl, 'Impair', oa[`${pfx}odd`], bookA, 'Pair', ob[`${pfx}even`], bookB);
     pushArb(out, lbl, 'Impair', ob[`${pfx}odd`], bookB, 'Pair', oa[`${pfx}even`], bookA);
   }
-  // Handicap Asiatique par mi-temps (demi-lignes, 2-way).
+  // Handicap Asiatique par mi-temps — lignes DYNAMIQUES.
   for (const [pfx, lbl] of [['ht_', '1MT Handicap Asiatique'], ['h2_', '2MT Handicap Asiatique']]) {
-    for (const l of HCP_LINES) {
-      const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-l}`;
-      const fam = `${lbl} ${l > 0 ? '+' + l : l}`;
-      pushArb(out, fam, `Dom. ${l > 0 ? '+' + l : l}`, oa[hk], bookA, `Ext. ${-l > 0 ? '+' + (-l) : -l}`, ob[ak], bookB);
-      pushArb(out, fam, `Dom. ${l > 0 ? '+' + l : l}`, ob[hk], bookB, `Ext. ${-l > 0 ? '+' + (-l) : -l}`, oa[ak], bookA);
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
+      const lNum = parseFloat(l);
+      const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
+      const fam = `${lbl} ${lNum > 0 ? '+' + l : l}`;
+      pushArb(out, fam, `Dom. ${lNum > 0 ? '+' + l : l}`, oa[hk], bookA, `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
+      pushArb(out, fam, `Dom. ${lNum > 0 ? '+' + l : l}`, ob[hk], bookB, `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
     }
   }
-  // Totaux individuels par mi-temps.
+  // Totaux individuels par mi-temps — lignes DYNAMIQUES.
   for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
     for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
-      for (const l of TT_LINES) {
+      for (const l of linesOf(oa, ob, new RegExp(`^${pfx}tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
         const ok = `${pfx}tt_${side}_over_${l}`, uk = `${pfx}tt_${side}_under_${l}`;
         const fam = `${lbl} Total ${teamLbl} ${l}`;
         pushArb(out, fam, `${teamLbl} +${l}`, oa[ok], bookA, `${teamLbl} −${l}`, ob[uk], bookB);
