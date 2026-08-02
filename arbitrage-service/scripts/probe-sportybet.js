@@ -18,14 +18,16 @@ const HDR = {
 const SPORT = encodeURIComponent('sr:sport:1');
 const MARKETS = encodeURIComponent('1,18,10,29,11,26,36,14,60100');
 
+// Focus : trouver la max pageSize acceptée + tester ordre params avec _t
+const _t = Date.now();
+const OPTS = `option=1&timeline=24&sortOption=SORT_BY_DEFAULT`;
 const variants = [
-  { name: 'V1 minimal', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&pageSize=20&pageNum=1` },
-  { name: 'V2 no marketId no today', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&pageSize=20&pageNum=1&option=1&timeline=24` },
-  { name: 'V3 option+sort+timeline', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=20&pageNum=1&option=1&timeline=24&sortOption=SORT_BY_DEFAULT` },
-  { name: 'V4 todayGames only', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=20&pageNum=1&todayGames=true` },
-  { name: 'V5 wap endpoint mobile', url: `${BASE}/api/ng/factsCenter/wapUpcomingEvents?sportId=${SPORT}&pageSize=20&pageNum=1` },
-  { name: 'V6 liveOrPrematchEvents', url: `${BASE}/api/ng/factsCenter/liveOrPrematchEvents?sportId=${SPORT}` },
-  { name: 'V7 sportsMenu tournaments', url: `${BASE}/api/ng/factsCenter/sportMenu?sportId=${SPORT}&_t=${Date.now()}` },
+  { name: 'PS20 no_t', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=20&pageNum=1&${OPTS}` },
+  { name: 'PS20 with_t', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=20&pageNum=1&${OPTS}&_t=${_t}` },
+  { name: 'PS50 with_t', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=50&pageNum=1&${OPTS}&_t=${_t}` },
+  { name: 'PS100 with_t (bundle URL actuel)', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=100&pageNum=1&${OPTS}&_t=${_t}` },
+  { name: 'PS100 no_t', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=100&pageNum=1&${OPTS}` },
+  { name: 'PS200 no_t', url: `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${SPORT}&marketId=${MARKETS}&pageSize=200&pageNum=1&${OPTS}` },
 ];
 
 async function probe(v) {
