@@ -30,11 +30,13 @@ async function readOddsSafe(book, matches, opts) {
     // Batch size par book, calé sur la tolérance de leur API :
     //   xbet (CF workers custom, ~illimité)                    → 200
     //   betpawa, sportybet (direct HTTPS très tolérants)       → 150
-    //   premierbet (Scrape.do : 1 credit par req, budget bas)  → 100
-    //   autres (congobet/yellowbet/betmomo — risque 503/429)   → 40
+    //   premierbet (guineegames direct)                        → 100
+    //   yellowbet (Cloudflare stealth, 503 si > 15 parallèles) → 12
+    //   congobet/betmomo (risque 503/429)                      → 40
     const BATCH = book.key === '1xbet' ? 200
                 : /^(betpawa|sportybet)$/.test(book.key) ? 150
                 : book.key === 'premierbet' ? 100
+                : book.key === 'yellowbet' ? 12
                 : 40;
     for (let i = 0; i < matches.length; i += BATCH) {
       const chunk = matches.slice(i, i + BATCH);
