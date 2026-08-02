@@ -27,10 +27,15 @@ async function readOddsSafe(book, matches, opts) {
       for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}));
       return map;
     }
-    // Batch parallèle par book. APIs tolérantes (1xbet via CF workers, betpawa
-    // direct, premierbet via GG, sportybet direct) → batch 100. Sportcash a un
-    // delay interne (BATCH=4 en interne). Autres = 40.
-    const BATCH = /^(betpawa|premierbet|1xbet|sportybet)$/.test(book.key) ? 100 : 40;
+    // Batch size par book, calé sur la tolérance de leur API :
+    //   xbet (CF workers custom, ~illimité)                    → 200
+    //   betpawa, sportybet (direct HTTPS très tolérants)       → 150
+    //   premierbet (Scrape.do : 1 credit par req, budget bas)  → 100
+    //   autres (congobet/yellowbet/betmomo — risque 503/429)   → 40
+    const BATCH = book.key === '1xbet' ? 200
+                : /^(betpawa|sportybet)$/.test(book.key) ? 150
+                : book.key === 'premierbet' ? 100
+                : 40;
     for (let i = 0; i < matches.length; i += BATCH) {
       const chunk = matches.slice(i, i + BATCH);
       const results = await Promise.all(chunk.map((m) => book.getOdds(m, opts).catch((e) => {
@@ -87,12 +92,20 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   if (!sorted.length) return { opportunities: [], stats: { catalogs: [...catalogs].map(([k, v]) => ({ book: k, matches: v.length })), entries: 0, duration_ms: Date.now() - t0 } };
 
   const oddsByBook = new Map();
+  const oddsTimings = {};
   const oddsJobs = usable.map(async (b) => {
     const inScope = sorted.map((e) => e.matches[b.key]).filter(Boolean);
+    const bookT0 = Date.now();
     oddsByBook.set(b.key, await readOddsSafe(b, inScope, listOpts));
+    oddsTimings[b.key] = { n: inScope.length, ms: Date.now() - bookT0 };
   });
   await Promise.all(oddsJobs);
   tick('readOdds done');
+  const timingLine = Object.entries(oddsTimings)
+    .sort((a, b) => b[1].ms - a[1].ms)
+    .map(([k, v]) => `${k}:${v.ms}ms/${v.n}`)
+    .join(' | ');
+  log(`⏱️ readOdds par book (trié par lenteur) — ${timingLine}`);
   const covered = usable.map((b) => `${b.key}:${[...oddsByBook.get(b.key)].filter(([, o]) => Object.keys(o || {}).length).length}`);
   log(`💰 cotes lues — ${covered.join(' | ')}`);
 
