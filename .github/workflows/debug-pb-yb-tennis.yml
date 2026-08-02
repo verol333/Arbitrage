@@ -1,0 +1,20 @@
+name: Debug PremierBet+YellowBet Tennis structures
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm install --no-save got-scraping
+      - name: Debug PB + YB
+        run: node scripts/debug-pb-yb-tennis.js
