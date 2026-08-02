@@ -1,0 +1,20 @@
+name: Probe 1win Tennis — Cartographie markets
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install ws
+        run: npm install --no-save ws
+      - name: Probe 1win tennis mapping
+        run: node scripts/probe-1win-tennis-map.js
