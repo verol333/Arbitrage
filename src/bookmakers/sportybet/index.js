@@ -16,8 +16,8 @@ export default {
     if (live || noCache) {
       const evt = await sbFetchEvent(match.id, { live });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
-      if (markets.length) return sportybetFlatOdds(markets);
+      if (markets.length) return sportybetFlatOdds(markets, { live });
     }
-    return sportybetFlatOdds(match.__raw?.markets || []);
+    return sportybetFlatOdds(match.__raw?.markets || [], { live });
   },
 };
