@@ -15,7 +15,7 @@ async function probeBetpawa() {
     'Cookie': 'bp_country=CG',
   };
   log('\n=== BETPAWA (format categories:[X]) ===');
-  for (const id of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20]) {
+  for (const id of [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 30]) {
     try {
       const q = { queries: [{ query: { eventType: 'UPCOMING', categories: [String(id)], zones: {}, hasOdds: true }, view: { marketTypes: ['3743'] }, skip: 0, take: 3 }] };
       const url = `https://cg.betpawa.com/api/sportsbook/v4/events/lists/by-queries?q=${encodeURIComponent(JSON.stringify(q))}`;
@@ -54,14 +54,22 @@ async function probePremierbet() {
       let count = 0, sample = '', sportName = '';
       try {
         const j = JSON.parse(txt);
-        const cats = j?.data?.categories || j?.categories || [];
-        for (const c of cats) for (const comp of (c?.competitions || [])) count += (comp?.events?.length || 0);
-        const ev0 = cats?.[0]?.competitions?.[0]?.events?.[0];
-        if (ev0) {
-          const names = ev0.competitors?.map((x) => x.name) || [];
-          sample = names.length >= 2 ? `${names[0]} vs ${names[1]}` : (ev0.name || '');
+        // Structure guineegames : peut être data:[categories] ou data.categories ou events directement
+        const cats = Array.isArray(j?.data) ? j.data : (j?.data?.categories || j?.categories || []);
+        let firstEv = null;
+        for (const c of cats) {
+          const comps = c?.competitions || c?.tournaments || [];
+          for (const comp of comps) {
+            const evs = comp?.events || [];
+            count += evs.length;
+            if (!firstEv && evs[0]) firstEv = evs[0];
+          }
         }
-        sportName = j?.data?.sport?.name || j?.sport?.name || '';
+        if (firstEv) {
+          const names = firstEv.competitors?.map((x) => x.name) || firstEv.teams?.map((x) => x.name) || [];
+          sample = names.length >= 2 ? `${names[0]} vs ${names[1]}` : (firstEv.name || firstEv.eventName || JSON.stringify(firstEv).slice(0, 100));
+          sportName = firstEv.sport?.name || firstEv.sportName || cats[0]?.name || '';
+        }
       } catch {}
       log(`  sportId=${id} → status=${res.status} events=${count} sport="${sportName}" sample="${sample.slice(0, 60)}"`);
     } catch (e) { log(`  sportId=${id} → ERR ${e.message}`); }
