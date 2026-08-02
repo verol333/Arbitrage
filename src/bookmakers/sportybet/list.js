@@ -62,7 +62,8 @@ function toMatch(ev, live) {
   };
 }
 
-export async function listPrematch({ maxPages = 5, pageSize = 200 } = {}) {
+// pageSize borné à 100 : au-dessus l'API répond HTTP 422 Invalid (vérifié via probe).
+export async function listPrematch({ maxPages = 10, pageSize = 100 } = {}) {
   const seen = new Set();
   const out = [];
   for (let p = 1; p <= maxPages; p++) {
