@@ -10,30 +10,33 @@ import { BASE_URL, evapi, isVirtual, toMatch } from './api.js';
 // côté client via ev.sid après un fetch large.
 const SPORT_IDS = { football: 31 };
 
-// L'API evapi renvoie ~72 matchs par défaut. On force un count élevé et on tente
-// une pagination si l'API supporte skip/take. Champs de tri : gt (game time).
+// L'URL avec fromDate/toDate déclenche un 403 Cloudflare (pattern typique scraper).
+// L'URL simple ?count=N&take=N (comme utilisée en live) passe. On filtre l'horizon
+// client-side sur ev.gt.
 export async function listPrematch(horizonHours = 72, sport = 'football') {
   const sportId = SPORT_IDS[sport];
   if (!sportId) return [];
-  const now = new Date();
-  const to = new Date(now.getTime() + horizonHours * 3600 * 1000);
-  const iso = (d) => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const nowMs = Date.now();
+  const horizonMs = nowMs + horizonHours * 3600 * 1000;
   const collected = new Map();
   const PAGE = 500;
+  // Pagination sans fromDate/toDate (bypass CF block). skip/take fonctionnent.
   for (let skip = 0; skip < 3000; skip += PAGE) {
-    const url = `${BASE_URL}/event/GetEvents?fromDate=${iso(now)}&toDate=${iso(to)}&skip=${skip}&take=${PAGE}&count=${PAGE}&pageSize=${PAGE}`;
+    const url = `${BASE_URL}/event/GetEvents?skip=${skip}&take=${PAGE}&count=${PAGE}`;
     const data = await evapi(url);
     const events = Array.isArray(data?.data) ? data.data : [];
     if (!events.length) break;
     let added = 0;
     for (const ev of events) {
       if (!ev || collected.has(ev.id)) continue;
-      // Filter client-side : le param sportIds= est ignoré par l'API YellowBet.
       if (ev.sid !== sportId || ev.lv || isVirtual(ev)) continue;
+      // Filter horizon client-side (l'API retourne tout, on garde ± dans la fenêtre)
+      const startMs = ev.gt ? new Date(ev.gt).getTime() : null;
+      if (startMs && (startMs < nowMs - 2 * 60_000 || startMs > horizonMs)) continue;
       const m = toMatch(ev);
       if (m.home && m.away) { collected.set(ev.id, m); added++; }
     }
-    if (added === 0) break;
+    if (added === 0 && events.length < PAGE) break;
     if (events.length < PAGE) break;
   }
   return [...collected.values()];

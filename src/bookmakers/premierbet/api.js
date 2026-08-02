@@ -15,12 +15,16 @@ const HEADERS = {
   'Origin': 'https://www.guineegames.com',
 };
 
-export async function mget(path, extra = {}, timeoutMs = 20_000) {
-  const ps = new URLSearchParams({ ...PARAMS, ...extra });
+// noCache=true → ajoute _t=timestamp pour casser tout cache upstream (CDN, proxy).
+// Utilisé en live et au re-fetch confirm pour garantir des cotes fraîches.
+export async function mget(path, extra = {}, timeoutMs = 20_000, { noCache = false } = {}) {
+  const params = { ...PARAMS, ...extra };
+  if (noCache) params._t = String(Date.now());
+  const ps = new URLSearchParams(params);
   const targetUrl = `${BASE}${path}?${ps}`;
   try {
     const res = await fetch(targetUrl, {
-      headers: HEADERS,
+      headers: noCache ? { ...HEADERS, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : HEADERS,
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) { console.log(`[premierbet/gg] ${path} status=${res.status}`); return null; }

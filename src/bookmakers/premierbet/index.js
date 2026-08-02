@@ -9,5 +9,5 @@ export default {
     if (sport !== 'football') return [];
     return listMatches({ live, horizonHours: horizonHours || 168 });
   },
-  async getOdds(match) { return getOdds(match); },
+  async getOdds(match, { live = false, noCache = false } = {}) { return getOdds(match, { live, noCache }); },
 };

@@ -122,10 +122,14 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
     sortedByStart.set(b, withStart);
     noStart.set(b, without);
   }
-  // Retourne les candidats d'un book dans [ref.start-30min, ref.start+30min] ∪ sans-start
+  // Retourne les candidats d'un book :
+  //  - refStart défini : fenêtre [ref-30min, ref+30min] via binary search ∪ sans-start
+  //  - refStart null (orphelin BetPawa etc.) : UNIQUEMENT les matchs sans start
+  //    du candidat book. Sinon on tombait sur "tout le catalog" → 573s d'O(n²)
+  //    sur 956 orphelins BetPawa × 1500 xbet × teamSim Jaro-Winkler.
   const candsIn = (bookKey, refStart) => {
     const without = noStart.get(bookKey);
-    if (!refStart) return catalogs.get(bookKey); // pas de start → tout le catalog
+    if (!refStart) return without; // orphelin sans start → seuls les no-start pertinents
     const arr = sortedByStart.get(bookKey);
     // Binary search : lo = premier index tel que arr[lo].start >= refStart - 30min
     const lo = lowerBound(arr, refStart - HARD_DT);

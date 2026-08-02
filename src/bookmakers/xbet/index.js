@@ -9,7 +9,7 @@ export default {
     if (sport !== 'football') return [];
     return live ? listLive({ sport }) : listPrematch({ sport });
   },
-  async getOdds(match, { live = false } = {}) {
-    return getOddsImpl(match.id, { live });
+  async getOdds(match, { live = false, noCache = false } = {}) {
+    return getOddsImpl(match.id, { live, noCache });
   },
 };

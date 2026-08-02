@@ -82,10 +82,11 @@ function parseMainOnly(GE, odds) {
   });
 }
 
-export async function getOdds(matchId, { live = false } = {}) {
+export async function getOdds(matchId, { live = false, noCache = false } = {}) {
   const feedPath = live ? 'LiveFeed' : 'LineFeed';
   const url = `${FEED}/service-api/${feedPath}/GetGameZip?id=${matchId}&lng=fr&isSubGames=true&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
-  const gd = await viaWorker(url);
+  // En live ou re-fetch confirm : force noCache pour cotes fraîches (bypass allorigins 5min cache).
+  const gd = await viaWorker(url, { noCache: live || noCache });
   if (!gd?.Value) return null;
   const GE = gd.Value.GE || [];
   const odds = {};
