@@ -4,6 +4,17 @@ import { teamSim } from './text.js';
 
 // Renvoie "same" | "swapped" | "ambiguous" — un surebet ne doit être calculé QUE
 // sur des paires "same" (sinon les jambes sont croisées et le surebet est faux).
+// Binary search : plus petit index tel que arr[i].start >= target.
+// arr doit être trié par start asc. Retourne arr.length si target > tous.
+function lowerBound(arr, target) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid].start < target) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
 export function orientation(refHome, refAway, cHome, cAway) {
   const straight = (teamSim(refHome, cHome) + teamSim(refAway, cAway)) / 2;
   const crossed = (teamSim(refHome, cAway) + teamSim(refAway, cHome)) / 2;
@@ -91,6 +102,32 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
   const nowMs = Date.now();
   const inHorizon = (m) => !horizonMs || (m.start && m.start > nowMs + 2 * 60 * 1000 && m.start <= horizonMs);
   const baseList = catalogs.get(base).filter(inHorizon);
+  // Perf : pré-tri par start pour chaque book → recherche fenêtre kickoff via
+  // binary search au lieu de scan O(n) sur chaque appel matchBook.
+  // Sur ~1200 base × 8 books × 500 cands = 4.8M comparaisons Jaro-Winkler (~9min).
+  // Avec fenêtre ±30min : ~50 cands en moyenne → 4.8M → ~500k → ~30s.
+  const HARD_DT = 30 * 60 * 1000;
+  const sortedByStart = new Map(); // bookKey → matchs avec start, triés par start asc
+  const noStart = new Map();       // bookKey → matchs sans start (fallback linéaire)
+  for (const b of books) {
+    const arr = catalogs.get(b);
+    const withStart = [];
+    const without = [];
+    for (const m of arr) (m.start ? withStart : without).push(m);
+    withStart.sort((a, z) => a.start - z.start);
+    sortedByStart.set(b, withStart);
+    noStart.set(b, without);
+  }
+  // Retourne les candidats d'un book dans [ref.start-30min, ref.start+30min] ∪ sans-start
+  const candsIn = (bookKey, refStart) => {
+    const without = noStart.get(bookKey);
+    if (!refStart) return catalogs.get(bookKey); // pas de start → tout le catalog
+    const arr = sortedByStart.get(bookKey);
+    // Binary search : lo = premier index tel que arr[lo].start >= refStart - 30min
+    const lo = lowerBound(arr, refStart - HARD_DT);
+    const hi = lowerBound(arr, refStart + HARD_DT + 1);
+    return arr.slice(lo, hi).concat(without);
+  };
   const used = new Map(); // bookKey → Set<id>
   for (const b of books) used.set(b, new Set());
   const entries = [];
@@ -100,7 +137,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
     used.get(base).add(m.id);
     for (const b of books) {
       if (b === base) continue;
-      const cand = matchBook(ref, catalogs.get(b), used.get(b), { requireStart: !!horizonMs });
+      const cand = matchBook(ref, candsIn(b, ref.start), used.get(b), { requireStart: !!horizonMs });
       if (cand) { matches[b] = cand; used.get(b).add(cand.id); }
     }
     entries.push({ ref, matches });
@@ -117,7 +154,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
       used.get(b).add(m.id);
       for (const other of books) {
         if (other === b) continue;
-        const cand = matchBook(ref, catalogs.get(other), used.get(other), { requireStart: !!horizonMs });
+        const cand = matchBook(ref, candsIn(other, ref.start), used.get(other), { requireStart: !!horizonMs });
         if (cand) { matches[other] = cand; used.get(other).add(cand.id); }
       }
       entries.push({ ref, matches });

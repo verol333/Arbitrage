@@ -77,7 +77,9 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   log(`📋 ${sport.toUpperCase()} ${live ? 'LIVE' : 'PRÉMATCH'} — ${[...catalogs].map(([k, v]) => `${k}:${v.length}`).join(' | ')}`);
 
   const horizonMs = live ? null : Date.now() + (horizonHours ?? config.scan.horizonHours) * 3600 * 1000;
+  const alignT0 = Date.now();
   const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs });
+  log(`  ⏱️ ${sport} alignCatalogs done: +${Date.now() - alignT0}ms (${entries.length} entrées)`);
   // Aucun plafond artificiel : le user a explicitement demandé de ne jamais limiter.
   // Le tri chronologique traite d'abord les matchs proches (kickoff imminent).
   const cap = maxMatches ?? config.scan.maxMatches ?? Infinity;
