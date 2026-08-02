@@ -1,6 +1,5 @@
-// Audit SportyBet : dump TOUS les market IDs + noms + outcomes pour 3 matchs
-// via /event?eventId=... → identifier le vrai ID de "1MT 1X2" (currentement 60100
-// est mappé au bug qui a produit 875 fake arbs).
+// Audit SportyBet : dump TOUS les market IDs présents dans les 3 premiers matchs
+// de liveOrPrematchEvents (qui contient déjà markets[] embarqués).
 
 const BASE = 'https://www.sportybet.com';
 const HDR = {
@@ -14,33 +13,59 @@ const HDR = {
 
 async function fetchJson(url) {
   const res = await fetch(url, { headers: HDR, signal: AbortSignal.timeout(15_000) });
-  if (!res.ok) { console.log(`HTTP ${res.status} ${url.slice(-60)}`); return null; }
+  if (!res.ok) { console.log(`HTTP ${res.status}`); return null; }
   return res.json();
 }
 
-// 1. Récupère matchs live via liveOrPrematchEvents (endpoint sans param marketId obligatoire)
 const live = await fetchJson(`${BASE}/api/ng/factsCenter/liveOrPrematchEvents?sportId=sr%3Asport%3A1&_t=${Date.now()}`);
-const events = [];
+
+// Chercher un match qui a des markets embarqués (chose rare sur liveOrPrematchEvents)
+const eventsWithMarkets = [];
 for (const t of live?.data || []) {
-  for (const e of t?.events || []) events.push(e);
-  if (events.length >= 3) break;
+  for (const e of t?.events || []) {
+    const nm = (e.markets || []).length;
+    if (nm > 0) eventsWithMarkets.push({ ev: e, nMarkets: nm });
+  }
 }
-console.log(`\n=== ${events.length} matchs sample ===\n`);
 
-// 2. Pour chaque match, fetch /event?eventId=X et dump TOUS les markets
-for (const ev of events.slice(0, 3)) {
-  const id = ev.eventId;
-  console.log(`\n████ ${ev.homeTeamName} vs ${ev.awayTeamName} — id=${id}`);
-  console.log(`      URL: ${BASE}/ng/sport/football/${(ev.sport?.category?.tournament?.categoryName || 'x').replace(/\s+/g, '_')}/${(ev.sport?.category?.tournament?.name || 'x').replace(/\s+/g, '_')}/${(ev.homeTeamName || '').replace(/\s+/g, '_')}_vs_${(ev.awayTeamName || '').replace(/\s+/g, '_')}/sr:match:${String(id).replace(/^sr:match:/, '')}`);
+console.log(`\n=== ${eventsWithMarkets.length} matchs avec markets sur liveOrPrematchEvents ===\n`);
 
-  const detail = await fetchJson(`${BASE}/api/ng/factsCenter/event?eventId=${encodeURIComponent(id)}&productId=3&_t=${Date.now()}`);
-  const markets = detail?.data?.markets || [];
-  console.log(`      ${markets.length} markets`);
+// Fallback : essayer avec pcUpcomingEvents (avec marketId=all pour voir tout ce qu'il retourne)
+// D'après doc, marketId=1,2,3,...,60100 : essayer un range large
+if (eventsWithMarkets.length === 0) {
+  console.log(`> Fallback : essayer avec pcUpcomingEvents + marketIds étendus\n`);
+  // Essayons tous les IDs de 1 à 100 + variants 60000+ + spécifiques SportyBet
+  const wideMarketIds = [
+    // Basique
+    1, 2, 3, 10, 11, 12, 14, 16, 18, 19, 20, 26, 29, 45, 47, 60,
+    // Ranges intéressantes
+    68, 74, 77, 81, 89, 90, 91, 92, 100, 128, 129, 165, 166,
+    // 60xxx (1MT/2MT)
+    60100, 60101, 60102, 60103, 60104, 60105,
+    // 70xxx
+    70000, 70001, 70002,
+  ].join(',');
+  const up = await fetchJson(`${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=sr%3Asport%3A1&marketId=${wideMarketIds}&pageSize=5&pageNum=1&option=1&timeline=24&sortOption=SORT_BY_DEFAULT&_t=${Date.now()}`);
+  for (const t of up?.data?.tournaments || []) {
+    for (const e of t?.events || []) {
+      const nm = (e.markets || []).length;
+      if (nm > 0) eventsWithMarkets.push({ ev: e, nMarkets: nm });
+    }
+  }
+  console.log(`> Fallback : ${eventsWithMarkets.length} matchs\n`);
+}
 
+// Dump les markets des 3 premiers matchs
+for (const { ev, nMarkets } of eventsWithMarkets.slice(0, 3)) {
+  console.log(`\n████ ${ev.homeTeamName} vs ${ev.awayTeamName} — id=${ev.eventId} — ${nMarkets} markets`);
+  const markets = ev.markets || [];
+  const uniqIds = new Set();
   for (const m of markets) {
+    uniqIds.add(String(m.id));
     const spec = m.specifier ? ` [${m.specifier}]` : '';
     const outs = (m.outcomes || []).map((o) => `${o.desc}=${o.odds}`).join(' | ');
-    console.log(`  id=${m.id}  ${m.name}${spec}  →  ${outs}`);
+    console.log(`  id=${m.id}  ${m.name || m.desc || '?'}${spec}  →  ${outs}`);
   }
+  console.log(`  → uniqIds: ${[...uniqIds].join(', ')}`);
 }
 console.log('\nDONE');
