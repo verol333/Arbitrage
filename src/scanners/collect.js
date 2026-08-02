@@ -77,7 +77,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // Le tri chronologique traite d'abord les matchs proches (kickoff imminent).
   const cap = maxMatches ?? config.scan.maxMatches ?? Infinity;
   // Tri chronologique simple : matchs les plus proches en premier.
-  // (Un tri par couverture excluait les matchs 1win/sportcash du top.)
+  // (Un tri par couverture excluait les matchs 1win du top.)
   const sorted = entries
     .map((e) => ({ e, start: e.ref.start || Infinity }))
     .sort((a, b) => a.start - b.start)
@@ -544,7 +544,7 @@ function idFields(matches) {
   const idKeyMap = {
     '1xbet': 'onexbet_match_id', '1win': 'onewin_match_id', congobet: 'congobet_match_id',
     yellowbet: 'yellowbet_match_id', apollo: 'apollo_match_id', betmomo: 'betmomo_match_id',
-    sportcash: 'sportcash_match_id', premierbet: 'premierbet_match_id',
+    premierbet: 'premierbet_match_id',
   };
   const out = {};
   for (const [k, m] of Object.entries(matches)) {

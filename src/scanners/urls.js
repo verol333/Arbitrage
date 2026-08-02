@@ -18,10 +18,6 @@ export function matchUrl(bookKey, m) {
       return `https://apollo.games/en/sports/match/${m.id}`;
     case 'betmomo':
       return `https://betmomo.com/en/sportsbook/event/${m.id}`;
-    case 'sportcash': {
-      const [p, a] = String(m.id).split('_');
-      return p && a ? `https://sportcash.ci/#!/event/${p}/${a}` : `https://sportcash.ci/`;
-    }
     case 'premierbet':
       return `https://premierbetzone.com/sports/soccer/event/${m.id}`;
     default:

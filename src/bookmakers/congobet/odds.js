@@ -116,7 +116,7 @@ export async function getOdds(matchId) {
     // Combos explicitement ignorés (l'audit prouve que ces IDs sont des combos
     // multi-marchés non comparables) :
     // - 10009 : Résultat Mi-temps / Fin de match (9-way)
-    // - 10021 : Handicap Européen (3-way, cs=8 sportcash équivalent)
+    // - 10021 : Handicap Européen (3-way, jamais lisible directement)
     // - 10025 : Les deux équipes marquent et nombre de buts
     // - 10026 : Résultat du match et les deux équipes marquent
     // - 10027 : Résultat du match et nombre de buts
