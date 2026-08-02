@@ -101,7 +101,11 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
   const base = books.reduce((a, b) => (catalogs.get(a).length >= catalogs.get(b).length ? a : b));
   const nowMs = Date.now();
   const inHorizon = (m) => !horizonMs || (m.start && m.start > nowMs + 2 * 60 * 1000 && m.start <= horizonMs);
-  const baseList = catalogs.get(base).filter(inHorizon);
+  // Perf : ne garder dans baseList que les matchs avec start valide, sinon le
+  // fix binary search par fenêtre kickoff est court-circuité (candsIn retourne
+  // tout le catalog si ref.start=null). Les matchs base sans start sont
+  // traités dans la boucle "orphelins" plus bas (volume bien plus faible).
+  const baseList = catalogs.get(base).filter((m) => inHorizon(m) && m.start);
   // Perf : pré-tri par start pour chaque book → recherche fenêtre kickoff via
   // binary search au lieu de scan O(n) sur chaque appel matchBook.
   // Sur ~1200 base × 8 books × 500 cands = 4.8M comparaisons Jaro-Winkler (~9min).
