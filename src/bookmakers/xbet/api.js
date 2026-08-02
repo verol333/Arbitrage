@@ -59,18 +59,22 @@ function publicProxies() {
 // Batterie cascade : chaque strategy essaie 1 fois avec timeout court.
 // Total worst case : 2 CF × 5s + 1 direct × 5s + 4 pub × 8s = 47s max.
 // Best case : 1re CF répond en <2s.
-export async function viaWorker(url) {
+// noCache=true : ajoute cache-buster _t sur URL + skip allorigins.win (cache 5min
+// côté serveur, produit des cotes stale en live). CF+direct+3 proxies restants.
+export async function viaWorker(url, { noCache = false } = {}) {
+  const targetUrl = noCache ? `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}` : url;
   // 1. CF workers privés (round-robin)
   for (const w of cfWorkers()) {
-    const j = await tryFetch(`${w}/?url=${encodeURIComponent(url)}`, 5_000);
+    const j = await tryFetch(`${w}/?url=${encodeURIComponent(targetUrl)}`, 5_000);
     if (j) { stats.cf++; return j; }
   }
   // 2. Direct fetch (peut marcher si 1xBet.cg ne bloque pas notre IP)
-  const j = await tryFetch(url, 5_000);
+  const j = await tryFetch(targetUrl, 5_000);
   if (j) { stats.direct++; return j; }
-  // 3. Proxies CORS publics (round-robin)
+  // 3. Proxies CORS publics (round-robin) — skip allorigins.win si noCache (cache 5min).
   for (const { builder, idx } of publicProxies()) {
-    const j2 = await tryFetch(builder(url), 8_000);
+    if (noCache && idx === 0) continue; // idx 0 = allorigins.win
+    const j2 = await tryFetch(builder(targetUrl), 8_000);
     if (j2) { stats.pub++; stats.byPub[idx]++; return j2; }
   }
   stats.fail++;
