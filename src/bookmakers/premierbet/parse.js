@@ -1,159 +1,200 @@
-// Parseur PremierBet mobile API — mapping par MARKET ID (déterministe).
-// Basé sur dump F12 réel : chaque marché a un id stable (7, 29, 155, etc.),
-// stable entre matchs. Les regex par nom français étaient AMBIGUËS : le
-// marché "Equipe à l'extérieur gagne les deux Mi-Temps" (id=318, Oui=8.00)
-// était classé comme "1MT BTTS" par mégarde car son nom contient "les deux"
-// + "mi-temps" — ça écrasait le vrai 1MT BTTS (id=155). D'où fake arbs.
+// Parseur PremierBet — mapping DIFFÉRENT en PREMATCH vs LIVE.
+// Découverte critique (probe live dump 2026-08-02) : les market IDs changent
+// entre les 2 endpoints. Ex : id=3 en prematch = "1X2", en live = "Handicap".
+// Sans distinguer, les cotes handicap étaient lues comme 1X2 → fake arbs
+// massifs (bug user : cote 12.50 sur équipe qui perdait).
 import { isHalfLine } from '../../core/markets.js';
 
-export function premierbetFlatOdds(markets) {
-  const odds = {};
+// Strip score suffix [0:1] des outcome names en live (id=7, 8, 27, 28 etc.)
+function cleanName(n) {
+  return String(n || '').replace(/\[\d+:\d+\]/g, '').trim();
+}
 
-  const byName = (outcomes) => {
-    const map = {};
-    for (const o of (outcomes || [])) {
-      const v = Number(o.value);
-      if (Number.isFinite(v) && v > 1) map[String(o.name || '').trim()] = v;
-    }
-    return map;
-  };
+function byName(outcomes) {
+  const map = {};
+  for (const o of (outcomes || [])) {
+    const v = Number(o.value);
+    if (Number.isFinite(v) && v > 1) map[cleanName(o.name)] = v;
+  }
+  return map;
+}
 
-  const put1x2 = (m, pfx) => {
-    const p = byName(m.outcomes);
-    if (p['1']) odds[`${pfx}match_1`] = p['1'];
-    if (p['X'] || p['x']) odds[`${pfx}match_X`] = p['X'] || p['x'];
-    if (p['2']) odds[`${pfx}match_2`] = p['2'];
-  };
-  const putDC = (m, pfx) => {
-    const p = byName(m.outcomes);
-    if (p['1X'] || p['1x']) odds[`${pfx}dc_1X`] = p['1X'] || p['1x'];
-    if (p['12']) odds[`${pfx}dc_12`] = p['12'];
-    if (p['X2'] || p['x2']) odds[`${pfx}dc_X2`] = p['X2'] || p['x2'];
-  };
-  const putBtts = (m, pfx) => {
-    const p = byName(m.outcomes);
-    const yes = p['Oui'] || p['Yes'] || p['oui'] || p['yes'];
-    const no = p['Non'] || p['No'] || p['non'] || p['no'];
-    if (yes) odds[`${pfx}btts_yes`] = yes;
-    if (no) odds[`${pfx}btts_no`] = no;
-  };
-  const putDnb = (m, pfx) => {
-    const p = byName(m.outcomes);
-    if (p['1']) odds[`${pfx}dnb_1`] = p['1'];
-    if (p['2']) odds[`${pfx}dnb_2`] = p['2'];
-  };
-  const putOddEven = (m, pfx) => {
-    const p = byName(m.outcomes);
-    const odd = p['Impair'] || p['Odd'] || p['impair'] || p['odd'];
-    const even = p['Pair'] || p['Even'] || p['pair'] || p['even'];
-    if (odd) odds[`${pfx}odd`] = odd;
-    if (even) odds[`${pfx}even`] = even;
-  };
-  // Total avec plusieurs lignes : outcomes ont handicap="X.5" + name "Plus de"/"Moins de".
-  const putTotalMultiLine = (m, pfx) => {
-    for (const o of (m.outcomes || [])) {
-      const hRaw = o.handicap;
-      if (hRaw == null) continue;
-      const line = Number(String(hRaw).replace(/^\+/, ''));
-      if (!Number.isFinite(line) || !isHalfLine(line)) continue;
-      const nm = String(o.name || '').toLowerCase();
-      const v = Number(o.value);
-      if (!Number.isFinite(v) || v <= 1) continue;
-      if (/plus|over|\+/.test(nm)) odds[`${pfx}over_${line}`] = v;
-      else if (/moins|under/.test(nm)) odds[`${pfx}under_${line}`] = v;
-    }
-  };
-  const putTeamTotalMultiLine = (m, side, pfx) => {
-    for (const o of (m.outcomes || [])) {
-      const hRaw = o.handicap;
-      if (hRaw == null) continue;
-      const line = Number(String(hRaw).replace(/^\+/, ''));
-      if (!Number.isFinite(line) || !isHalfLine(line)) continue;
-      const nm = String(o.name || '').toLowerCase();
-      const v = Number(o.value);
-      if (!Number.isFinite(v) || v <= 1) continue;
-      if (/plus|over|\+/.test(nm)) odds[`${pfx}tt_${side}_over_${line}`] = v;
-      else if (/moins|under/.test(nm)) odds[`${pfx}tt_${side}_under_${line}`] = v;
-    }
-  };
-  // Handicap asian : outcomes ont handicap ("+1.5"/"-0.5") et name "1"/"2".
-  const putHcpMultiLine = (m, pfx) => {
-    for (const o of (m.outcomes || [])) {
-      const hRaw = o.handicap;
-      if (hRaw == null) continue;
-      const line = Number(String(hRaw).replace(/^\+/, ''));
-      if (!Number.isFinite(line) || !isHalfLine(line)) continue;
-      const nm = String(o.name || '').trim();
-      const v = Number(o.value);
-      if (!Number.isFinite(v) || v <= 1) continue;
-      if (nm === '1') odds[`${pfx}hcp_home_${line}`] = v;
-      else if (nm === '2') odds[`${pfx}hcp_away_${line}`] = v;
-    }
-  };
-  const putHighestScoringHalf = (m) => {
-    const p = byName(m.outcomes);
-    if (p['1er']) odds.half_most_ht = p['1er'];
-    if (p['2ème']) odds.half_most_h2 = p['2ème'];
-    if (p['Egalité'] || p['Égalité']) odds.half_most_equal = p['Egalité'] || p['Égalité'];
-  };
+// Helpers réutilisables (mêmes formats prematch/live pour les markets sans score suffix)
+function put1x2(m, pfx, odds) {
+  const p = byName(m.outcomes);
+  if (p['1']) odds[`${pfx}match_1`] = p['1'];
+  if (p['X'] || p['x']) odds[`${pfx}match_X`] = p['X'] || p['x'];
+  if (p['2']) odds[`${pfx}match_2`] = p['2'];
+}
+function putDC(m, pfx, odds) {
+  const p = byName(m.outcomes);
+  if (p['1X'] || p['1x']) odds[`${pfx}dc_1X`] = p['1X'] || p['1x'];
+  if (p['12']) odds[`${pfx}dc_12`] = p['12'];
+  if (p['X2'] || p['x2']) odds[`${pfx}dc_X2`] = p['X2'] || p['x2'];
+}
+function putBtts(m, pfx, odds) {
+  const p = byName(m.outcomes);
+  const yes = p['Oui'] || p['Yes'] || p['oui'] || p['yes'];
+  const no = p['Non'] || p['No'] || p['non'] || p['no'];
+  if (yes) odds[`${pfx}btts_yes`] = yes;
+  if (no) odds[`${pfx}btts_no`] = no;
+}
+function putDnb(m, pfx, odds) {
+  const p = byName(m.outcomes);
+  if (p['1']) odds[`${pfx}dnb_1`] = p['1'];
+  if (p['2']) odds[`${pfx}dnb_2`] = p['2'];
+}
+function putOddEven(m, pfx, odds) {
+  const p = byName(m.outcomes);
+  const odd = p['Impair'] || p['Odd'] || p['impair'] || p['odd'];
+  const even = p['Pair'] || p['Even'] || p['pair'] || p['even'];
+  if (odd) odds[`${pfx}odd`] = odd;
+  if (even) odds[`${pfx}even`] = even;
+}
+function putTotalMultiLine(m, pfx, odds) {
+  for (const o of (m.outcomes || [])) {
+    const hRaw = o.handicap;
+    if (hRaw == null) continue;
+    const line = Number(String(hRaw).replace(/^\+/, ''));
+    if (!Number.isFinite(line) || !isHalfLine(line)) continue;
+    const nm = String(o.name || '').toLowerCase();
+    const v = Number(o.value);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    if (/plus|over|\+/.test(nm)) odds[`${pfx}over_${line}`] = v;
+    else if (/moins|under/.test(nm)) odds[`${pfx}under_${line}`] = v;
+  }
+}
+function putTeamTotalMultiLine(m, side, pfx, odds) {
+  for (const o of (m.outcomes || [])) {
+    const hRaw = o.handicap;
+    if (hRaw == null) continue;
+    const line = Number(String(hRaw).replace(/^\+/, ''));
+    if (!Number.isFinite(line) || !isHalfLine(line)) continue;
+    const nm = String(o.name || '').toLowerCase();
+    const v = Number(o.value);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    if (/plus|over|\+/.test(nm)) odds[`${pfx}tt_${side}_over_${line}`] = v;
+    else if (/moins|under/.test(nm)) odds[`${pfx}tt_${side}_under_${line}`] = v;
+  }
+}
+function putHcpMultiLine(m, pfx, odds) {
+  for (const o of (m.outcomes || [])) {
+    const hRaw = o.handicap;
+    if (hRaw == null) continue;
+    const line = Number(String(hRaw).replace(/^\+/, ''));
+    if (!Number.isFinite(line) || !isHalfLine(line)) continue;
+    const nm = String(o.name || '').trim();
+    const v = Number(o.value);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    if (nm === '1') odds[`${pfx}hcp_home_${line}`] = v;
+    else if (nm === '2') odds[`${pfx}hcp_away_${line}`] = v;
+  }
+}
+function putHighestScoringHalf(m, odds) {
+  const p = byName(m.outcomes);
+  const first = p['1er'] || p['1ère Mi-Temps'] || p['1ere Mi-Temps'];
+  const second = p['2ème'] || p['2ème Mi-Temps'] || p['2eme Mi-Temps'];
+  const equal = p['Egalité'] || p['Égalité'] || p['Equal'];
+  if (first) odds.half_most_ht = first;
+  if (second) odds.half_most_h2 = second;
+  if (equal) odds.half_most_equal = equal;
+}
 
+// ─── MAPPING PREMATCH (dump F12 initial) ─────────────────────────
+function parsePrematch(markets, odds) {
   for (const m of markets) {
     const id = String(m.id || '');
     switch (id) {
-      // ─── Full time — mapping ID-based (déterministe) ──────────────────────
-      case '3': put1x2(m, ''); break;                                 // 1X2
-      case '7': putBtts(m, ''); break;                                // Les Deux Equipes Marquent
-      case '17': putDC(m, ''); break;                                 // Double Chance
-      case '18': putDnb(m, ''); break;                                // Pari Remboursé si nul (DNB)
-      case '23': putHcpMultiLine(m, ''); break;                       // Handicap Asian
-      case '29': putTotalMultiLine(m, 'match_'); break;               // Total de Buts
-      case '353': putTeamTotalMultiLine(m, 'home', ''); break;        // Total Équipe Domicile
-      case '352': putTeamTotalMultiLine(m, 'away', ''); break;        // Total Équipe Extérieur
-      case '35': putHighestScoringHalf(m); break;                     // Mi-Temps avec le Plus de Buts
-      case '16': putOddEven(m, ''); break;                            // Impair/Pair Total de Buts
-      // ─── 1ère mi-temps ────────────────────────────────────────────────────
-      case '6': put1x2(m, 'ht_'); break;                              // 1ère Mi-Temps 1X2
-      case '155': putBtts(m, 'ht_'); break;                           // 1ère Mi-Temps BTTS (VRAI code — pas confondre avec 315/318)
-      case '44': putDC(m, 'ht_'); break;                              // 1ère Mi-Temps DC
-      case '19': putDnb(m, 'ht_'); break;                             // 1ère Mi-Temps DNB
-      case '119': putTotalMultiLine(m, 'ht_'); break;                 // 1ère Mi-Temps Total
-      case '392': putTeamTotalMultiLine(m, 'home', 'ht_'); break;     // 1ère MT Total Domicile
-      case '393': putTeamTotalMultiLine(m, 'away', 'ht_'); break;     // 1ère MT Total Extérieur
-      case '396': putHcpMultiLine(m, 'ht_'); break;                   // 1ère MT Handicap
-      // ─── 2ème mi-temps ────────────────────────────────────────────────────
-      case '96': put1x2(m, 'h2_'); break;                             // 2ème Mi-Temps 1X2
-      case '156': putBtts(m, 'h2_'); break;                           // 2ème Mi-Temps BTTS
-      case '45': putDC(m, 'h2_'); break;                              // 2ème Mi-Temps DC
-      case '120': putTotalMultiLine(m, 'h2_'); break;                 // 2ème Mi-Temps Total
-      case '397': putTeamTotalMultiLine(m, 'home', 'h2_'); break;     // 2ème MT Total Dom.
-      case '398': putTeamTotalMultiLine(m, 'away', 'h2_'); break;     // 2ème MT Total Ext.
-      // ─── Corners ──────────────────────────────────────────────────────────
-      case '111': put1x2(m, 'cor_'); break;                           // Corners 1X2
-      case '107': putTotalMultiLine(m, 'cor_'); break;                // Nombre de Corners
-      case '1852': putTeamTotalMultiLine(m, 'home', 'cor_'); break;   // Corners Dom.
-      case '1853': putTeamTotalMultiLine(m, 'away', 'cor_'); break;   // Corners Ext.
-      case '109': putHcpMultiLine(m, 'cor_'); break;                  // Handicap Corners
-      case '113': putOddEven(m, 'cor_'); break;                       // Corners Impair/Pair
-      case '110': putHcpMultiLine(m, 'cor_ht_'); break;               // 1ère MT Handicap Corners
-      // ─── IGNORÉS explicitement (documentation) ─────────────────────────────
-      // Combos multi-marchés non comparables 2-way pure :
-      //   386, 36, 414, 554, 573, 570, 569, 413, 412, 571, 1741
-      // 3-way European handicap + scores exacts :
-      //   27 (1X2-Handicap), 332 (Score Exact), 32 (1MT Score Exact), 15 (HT/FT 9-way)
-      // Marchés team-specific yes/no NON confondables avec BTTS :
-      //   315, 316, 318, 319 : "Equipe X Gagne les deux/une Mi-Temps"
-      //     ATTENTION : leurs noms contiennent "les deux" + "mi-temps" mais NE
-      //     SONT PAS BTTS — c'était la source des fake arbs 7.40/8.00 avec le
-      //     mapping par regex.
-      //   102, 103, 317, 320, 321, 322, 394, 395, 408, 409, 406, 407
-      // Autres non pertinents ici :
-      //   327 (10min 1X2), 330, 331 (highest half par équipe),
-      //   5, 125, 390, 404 (first/last team to score),
-      //   21, 22 (buts exacts par équipe 0/1/2/3+),
-      //   751 (2 buts d'avance), 85, 73, 83 (cartons), 410, 411 (odd/even par équipe),
-      //   115 (Premier Corner)
+      case '3': put1x2(m, '', odds); break;
+      case '7': putBtts(m, '', odds); break;
+      case '17': putDC(m, '', odds); break;
+      case '18': putDnb(m, '', odds); break;
+      case '23': putHcpMultiLine(m, '', odds); break;
+      case '29': putTotalMultiLine(m, 'match_', odds); break;
+      case '353': putTeamTotalMultiLine(m, 'home', '', odds); break;
+      case '352': putTeamTotalMultiLine(m, 'away', '', odds); break;
+      case '35': putHighestScoringHalf(m, odds); break;
+      case '16': putOddEven(m, '', odds); break;
+      case '6': put1x2(m, 'ht_', odds); break;
+      case '155': putBtts(m, 'ht_', odds); break;
+      case '44': putDC(m, 'ht_', odds); break;
+      case '19': putDnb(m, 'ht_', odds); break;
+      case '119': putTotalMultiLine(m, 'ht_', odds); break;
+      case '392': putTeamTotalMultiLine(m, 'home', 'ht_', odds); break;
+      case '393': putTeamTotalMultiLine(m, 'away', 'ht_', odds); break;
+      case '396': putHcpMultiLine(m, 'ht_', odds); break;
+      case '96': put1x2(m, 'h2_', odds); break;
+      case '156': putBtts(m, 'h2_', odds); break;
+      case '45': putDC(m, 'h2_', odds); break;
+      case '120': putTotalMultiLine(m, 'h2_', odds); break;
+      case '397': putTeamTotalMultiLine(m, 'home', 'h2_', odds); break;
+      case '398': putTeamTotalMultiLine(m, 'away', 'h2_', odds); break;
+      case '111': put1x2(m, 'cor_', odds); break;
+      case '107': putTotalMultiLine(m, 'cor_', odds); break;
+      case '1852': putTeamTotalMultiLine(m, 'home', 'cor_', odds); break;
+      case '1853': putTeamTotalMultiLine(m, 'away', 'cor_', odds); break;
+      case '109': putHcpMultiLine(m, 'cor_', odds); break;
+      case '113': putOddEven(m, 'cor_', odds); break;
+      case '110': putHcpMultiLine(m, 'cor_ht_', odds); break;
       default: break;
     }
   }
+}
+
+// ─── MAPPING LIVE (dump 2026-08-02 : IDs complètement différents) ─
+// SÉCURITAIRE : ne mappe QUE les markets vérifiés dans le dump live.
+// Les markets ambigus (id=3 handicap avec score suffix, id=7 "reste du match",
+// id=18 combo 1X2+total, id=12 score exact) sont IGNORÉS pour éviter fake arbs.
+function parseLive(markets, odds) {
+  for (const m of markets) {
+    const id = String(m.id || '');
+    switch (id) {
+      // Full time
+      case '1': put1x2(m, '', odds); break;                          // 1X2 (live: id=1, prematch: id=3)
+      case '2': putTotalMultiLine(m, 'match_', odds); break;         // Total match
+      case '6': putDnb(m, '', odds); break;                          // DNB (live: id=6, prematch: id=18)
+      case '9': putDC(m, '', odds); break;                           // DC (live: id=9, prematch: id=17)
+      case '15': putTeamTotalMultiLine(m, 'home', '', odds); break;  // Home total
+      case '16': putTeamTotalMultiLine(m, 'away', '', odds); break;  // Away total
+      case '17': putBtts(m, '', odds); break;                        // BTTS (live: id=17, prematch: id=7)
+      case '20': putOddEven(m, '', odds); break;                     // Odd/Even
+      case '21': putHighestScoringHalf(m, odds); break;              // Highest scoring half
+      // 1ère mi-temps
+      case '23': put1x2(m, 'ht_', odds); break;                      // 1MT 1X2 (live: id=23, prematch: id=6)
+      case '24': putTotalMultiLine(m, 'ht_', odds); break;           // 1MT Total
+      case '56': putDnb(m, 'ht_', odds); break;                      // 1MT DNB
+      case '147': putDC(m, 'ht_', odds); break;                      // 1MT DC (live: id=147, prematch: id=44)
+      case '724': putBtts(m, 'ht_', odds); break;                    // 1MT BTTS (live: id=724, prematch: id=155)
+      case '2509': putTeamTotalMultiLine(m, 'home', 'ht_', odds); break; // 1MT home total
+      case '2510': putTeamTotalMultiLine(m, 'away', 'ht_', odds); break; // 1MT away total
+      // 2ème mi-temps
+      case '33': put1x2(m, 'h2_', odds); break;                      // 2MT 1X2 (live: id=33, prematch: id=96)
+      case '34': putTotalMultiLine(m, 'h2_', odds); break;           // 2MT Total
+      case '611': putDnb(m, 'h2_', odds); break;                     // 2MT DNB
+      case '743': putDC(m, 'h2_', odds); break;                      // 2MT DC (live: id=743, prematch: id=45)
+      case '744': putBtts(m, 'h2_', odds); break;                    // 2MT BTTS
+      // Corners
+      case '109': putTotalMultiLine(m, 'cor_', odds); break;         // Corners total
+      case '115': putTeamTotalMultiLine(m, 'home', 'cor_', odds); break;
+      case '116': putTeamTotalMultiLine(m, 'away', 'cor_', odds); break;
+      case '93': putHcpMultiLine(m, 'cor_', odds); break;            // Corner handicap
+      // IGNORÉS explicitement (risque fake arbs) :
+      // 3 (Handicap avec score suffix [0:1] non-standard)
+      // 7 (Rest of match winner — pas comparable cross-book)
+      // 8, 27, 28 (Next goal — non 2-way pur)
+      // 12 (Score exact — 26+ outcomes)
+      // 18 (1X2 + Total combo)
+      // 88 (Corner matchbet — 3-way)
+      // 294, 725, 731, 720, 721, 743 (autres combos)
+      // 30, 125, 126, 127, 123, 611, 716, 747, 2509, 2510 déjà mappés
+      default: break;
+    }
+  }
+}
+
+export function premierbetFlatOdds(markets, { live = false } = {}) {
+  const odds = {};
+  if (live) parseLive(markets, odds);
+  else parsePrematch(markets, odds);
   return odds;
 }

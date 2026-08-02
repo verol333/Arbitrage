@@ -50,9 +50,13 @@ export async function sbFetchLive() {
 }
 
 // Refresh cotes fraîches d'un match — utilisé au confirm live + prématch noCache.
-export async function sbFetchEvent(matchId) {
+// productId=1 = LIVE, productId=3 = PREMATCH. Confondre les 2 renvoie 0 markets.
+// Découvert 2026-08-02 via probe-live-dump : SB live avec productId=3 = 0 markets
+// → confirm fallback silencieusement sur markets stale du listMatches (fake arbs).
+export async function sbFetchEvent(matchId, { live = false } = {}) {
   const ts = Date.now();
-  const url = `${BASE}/api/ng/factsCenter/event?eventId=${encodeURIComponent(matchId)}&productId=3&_t=${ts}`;
+  const productId = live ? 1 : 3;
+  const url = `${BASE}/api/ng/factsCenter/event?eventId=${encodeURIComponent(matchId)}&productId=${productId}&_t=${ts}`;
   return sbFetch(url, 15_000);
 }
 

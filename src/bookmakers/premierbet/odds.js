@@ -19,5 +19,5 @@ export async function getOdds(match, { live = false, noCache = false } = {}) {
   if (!event) return {};
   const evObj = event?.data || event;
   const markets = dedupeMarkets(evObj);
-  return premierbetFlatOdds(markets);
+  return premierbetFlatOdds(markets, { live });
 }

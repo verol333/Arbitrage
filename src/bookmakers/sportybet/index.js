@@ -14,7 +14,7 @@ export default {
   // Sinon → réutilise les markets capturés au listMatches (rapide, une seule requête).
   async getOdds(match, { live = false, noCache = false } = {}) {
     if (live || noCache) {
-      const evt = await sbFetchEvent(match.id);
+      const evt = await sbFetchEvent(match.id, { live });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
       if (markets.length) return sportybetFlatOdds(markets);
     }

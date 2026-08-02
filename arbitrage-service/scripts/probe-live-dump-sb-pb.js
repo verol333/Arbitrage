@@ -90,8 +90,8 @@ async function probeSBLive() {
   for (const ev of sample) {
     log(`── ${ev.homeTeamName} vs ${ev.awayTeamName} — id=${ev.eventId}`);
     log(`   score=${ev.setScore} status=${ev.matchStatus} time=${ev.playedSeconds}`);
-    // Refetch event details for fresh markets
-    const url = `https://www.sportybet.com/api/ng/factsCenter/event?eventId=${encodeURIComponent(ev.eventId)}&productId=3&_t=${Date.now()}`;
+    // Refetch event details for fresh markets — productId=1 = LIVE (3 = PREMATCH, retourne 0 markets pour live)
+    const url = `https://www.sportybet.com/api/ng/factsCenter/event?eventId=${encodeURIComponent(ev.eventId)}&productId=1&_t=${Date.now()}`;
     const res = await fetch(url, { headers: SB_HDR, signal: AbortSignal.timeout(20_000) });
     const j = await res.json();
     const evObj = j?.data || {};
