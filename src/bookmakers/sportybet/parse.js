@@ -29,12 +29,6 @@ export function sportybetFlatOdds(markets, { live = false } = {}) {
     const outcomes = Array.isArray(m?.outcomes) ? m.outcomes : [];
     if (!outcomes.length) continue;
 
-    // ⚠️ EN LIVE, handicap id=16 est "Rest of Match" (recalculé après score actuel),
-    // pas comparable aux handicaps "match complet" des autres books → fake arbs.
-    // User report 2026-08-02 : cotes handicap live incohérentes systématiquement.
-    // On skip id=16 en live comme on skip YB live entièrement.
-    if (live && id === '16') continue;
-
     switch (id) {
       // ─── 1X2 fulltime ─────────────────────────────────────────────
       case '1': {
