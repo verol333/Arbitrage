@@ -134,6 +134,11 @@ function putTotal(odds, m, pfx) {
 }
 
 // Handicap Asian : specifier "hcp=X.X" (signé). Home prend ligne l, Away prend -l.
+// BUG CRITIQUE FIX : les regex /home|\b1\b/ et /away|\b2\b/ matchaient le "1" ou
+// "2" dans les nombres du desc (ex: "Away (+1.5)" contient "1" → \b1\b match).
+// Résultat : cote Away ÉCRASAIT cote Home sur hcp_home_${line}, produisant des
+// fake arbs handicap systématiques (user report : Sagarejo +1.5 @ 5.40 = fake).
+// Fix : extraction du team key (mot avant parenthèse) et match exact.
 function putAsianHcp(odds, m, pfx) {
   const line = extractLine(m.specifier, 'hcp');
   if (line == null || !isHalfLine(Math.abs(line))) return;
@@ -141,8 +146,10 @@ function putAsianHcp(odds, m, pfx) {
     const v = Number(o?.odds);
     if (!Number.isFinite(v) || v <= 1) continue;
     const d = String(o?.desc || '').toLowerCase();
-    if (/home|\b1\b/.test(d)) odds[`${pfx}hcp_home_${line}`] = v;
-    else if (/away|\b2\b/.test(d)) odds[`${pfx}hcp_away_${-line}`] = v;
+    // Extraire uniquement la partie AVANT la parenthèse ou espace
+    const teamKey = d.split(/[\s(]/)[0].trim();
+    if (teamKey === 'home' || teamKey === '1') odds[`${pfx}hcp_home_${line}`] = v;
+    else if (teamKey === 'away' || teamKey === '2') odds[`${pfx}hcp_away_${-line}`] = v;
   }
 }
 
