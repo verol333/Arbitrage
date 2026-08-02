@@ -1,17 +1,24 @@
 // Parseur football SportyBet — mapping par MARKET ID (déterministe).
 // Structure : match.markets[].{id, name, specifier, outcomes[].desc/odds}
+// IDs vérifiés via F12 sur /api/ng/factsCenter/event?eventId=...&productId=3.
 import { isHalfLine } from '../../core/markets.js';
 
-// SportyBet market IDs (source doc /pcUpcomingEvents) :
-//   1     = 1X2                     (desc: Home / Draw / Away)
-//   18    = Total Over/Under        (specifier: "total=2.5", desc: "Over 2.5"/"Under 2.5")
-//   10    = Double Chance           (desc: "Home or Draw"/"Home or Away"/"Away or Draw")
-//   29    = Both Teams To Score     (desc: Yes/No)
-//   11    = Draw No Bet             (desc: Home/Away)
-//   26    = Odd/Even Total          (desc: Odd/Even)
-//   14    = Asian Handicap          (specifier: "hcp=-1.5", desc: "Home (-1.5)"/"Away (+1.5)")
-//   60100 = 1MT 1X2                 (desc: Home/Draw/Away)
-// Autres IDs découverts au fil du fetch /event?eventId=... sont ignorés.
+// SportyBet market IDs (FullTime) :
+//   1  = 1X2                     (desc: Home / Draw / Away)
+//   18 = Total Over/Under        (specifier: "total=X.X", desc: "Over X.X" / "Under X.X")
+//   10 = Double Chance           (desc: "Home or Draw" / "Home or Away" / "Away or Draw")
+//   29 = GG/NG                   (desc: Yes / No)
+//   11 = Draw No Bet             (desc: Home / Away)
+//   26 = Odd/Even Total          (desc: Odd / Even)
+//   16 = Asian Handicap          (specifier: "hcp=-0.5", desc: "Home (-0.5)" / "Away (+0.5)")
+//
+// 1st Half :
+//   60 = 1st Half - 1X2          (desc: Home / Draw / Away)
+//   68 = 1st Half - Over/Under   (specifier: "total=X.X")
+//
+// ⚠️ NE PAS mapper 60100, 60200, 60210 : variantes "2UP / 1UP / Never Down" (Early Payout)
+// dont les cotes divergent du 1X2 standard → produisent des fake arbs.
+// ⚠️ NE PAS mapper 14 : Handicap score-based (specifier "hcp=0:1"), pas un Asian HCP.
 
 export function sportybetFlatOdds(markets) {
   const odds = {};
@@ -88,11 +95,11 @@ export function sportybetFlatOdds(markets) {
         break;
       }
 
-      // ─── Asian Handicap (ligne dans specifier "hcp=X.X") ─────────
-      case '14': putAsianHcp(odds, m, ''); break;
+      // ─── Asian Handicap FT (specifier "hcp=X.X") ─────────────────
+      case '16': putAsianHcp(odds, m, ''); break;
 
-      // ─── 1MT 1X2 ──────────────────────────────────────────────────
-      case '60100': {
+      // ─── 1MT 1X2 (vrai ID = 60, pas 60100 qui est une variante 2UP) ──
+      case '60': {
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
@@ -104,7 +111,10 @@ export function sportybetFlatOdds(markets) {
         break;
       }
 
-      default: break;  // Autres marchés ignorés (combos, spécifiques, etc.)
+      // ─── 1MT Over/Under (specifier "total=X.X") ──────────────────
+      case '68': putTotal(odds, m, 'ht_'); break;
+
+      default: break;  // Autres marchés ignorés (combos, spécifiques, variantes Early Payout).
     }
   }
   return odds;
