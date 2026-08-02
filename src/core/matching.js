@@ -1,6 +1,16 @@
 // Appariement des matchs entre bookmakers avec garde d'orientation dom/ext.
 // Port fidèle de matchCore.ts (orientation, matchBook + logique adaptée à N books).
-import { teamSim } from './text.js';
+import { teamSim, norm } from './text.js';
+
+// Extrait la 1re lettre du 1er mot significatif du nom normalisé.
+// Utilisé pour bucket les matchs sans start (perf : évite scan O(n) sur chaque
+// appel candsIn). Ex : "FC Bayern Munich" → norm → "bayern munich" → "b".
+// Un match "Bayern" ne pourra matcher qu'un candidat dont le home commence
+// aussi par "b" (à 99% le cas, teamSim < 0.60 sinon = rejeté de toute façon).
+function firstChar(name) {
+  const n = norm(name || '');
+  return n.length ? n[0] : '';
+}
 
 // Renvoie "same" | "swapped" | "ambiguous" — un surebet ne doit être calculé QUE
 // sur des paires "same" (sinon les jambes sont croisées et le surebet est faux).
@@ -112,29 +122,37 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
   // Avec fenêtre ±30min : ~50 cands en moyenne → 4.8M → ~500k → ~30s.
   const HARD_DT = 30 * 60 * 1000;
   const sortedByStart = new Map(); // bookKey → matchs avec start, triés par start asc
-  const noStart = new Map();       // bookKey → matchs sans start (fallback linéaire)
+  const noStart = new Map();       // bookKey → matchs sans start (index par firstChar)
   for (const b of books) {
     const arr = catalogs.get(b);
     const withStart = [];
-    const without = [];
-    for (const m of arr) (m.start ? withStart : without).push(m);
+    const withoutByChar = new Map(); // firstChar → Match[]
+    for (const m of arr) {
+      if (m.start) { withStart.push(m); continue; }
+      const c = firstChar(m.home);
+      if (!withoutByChar.has(c)) withoutByChar.set(c, []);
+      withoutByChar.get(c).push(m);
+    }
     withStart.sort((a, z) => a.start - z.start);
     sortedByStart.set(b, withStart);
-    noStart.set(b, without);
+    noStart.set(b, withoutByChar);
   }
   // Retourne les candidats d'un book :
-  //  - refStart défini : fenêtre [ref-30min, ref+30min] via binary search ∪ sans-start
-  //  - refStart null (orphelin BetPawa etc.) : UNIQUEMENT les matchs sans start
-  //    du candidat book. Sinon on tombait sur "tout le catalog" → 573s d'O(n²)
-  //    sur 956 orphelins BetPawa × 1500 xbet × teamSim Jaro-Winkler.
-  const candsIn = (bookKey, refStart) => {
-    const without = noStart.get(bookKey);
-    if (!refStart) return without; // orphelin sans start → seuls les no-start pertinents
+  //  - refStart défini : fenêtre [ref-30min, ref+30min] via binary search
+  //    ∪ noStart bucket dont firstChar(home) = firstChar(refHome)
+  //  - refStart null (orphelin BetPawa) : seuls les no-start même bucket
+  //
+  // Le bucket par firstChar réduit ~973 matchs BP noStart à ~37/bucket (26 chars),
+  // soit -96% de comparaisons Jaro-Winkler. Preserves correctness : Jaro-Winkler
+  // sim < 0.60 quand noms commencent par lettres différentes = rejeté de toute
+  // façon par matchBook (minTeam=0.60).
+  const candsIn = (bookKey, refHome, refStart) => {
+    const bucket = noStart.get(bookKey)?.get(firstChar(refHome)) || [];
+    if (!refStart) return bucket;
     const arr = sortedByStart.get(bookKey);
-    // Binary search : lo = premier index tel que arr[lo].start >= refStart - 30min
     const lo = lowerBound(arr, refStart - HARD_DT);
     const hi = lowerBound(arr, refStart + HARD_DT + 1);
-    return arr.slice(lo, hi).concat(without);
+    return arr.slice(lo, hi).concat(bucket);
   };
   const used = new Map(); // bookKey → Set<id>
   for (const b of books) used.set(b, new Set());
@@ -145,7 +163,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
     used.get(base).add(m.id);
     for (const b of books) {
       if (b === base) continue;
-      const cand = matchBook(ref, candsIn(b, ref.start), used.get(b), { requireStart: !!horizonMs });
+      const cand = matchBook(ref, candsIn(b, ref.home, ref.start), used.get(b), { requireStart: !!horizonMs });
       if (cand) { matches[b] = cand; used.get(b).add(cand.id); }
     }
     entries.push({ ref, matches });
@@ -162,7 +180,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
       used.get(b).add(m.id);
       for (const other of books) {
         if (other === b) continue;
-        const cand = matchBook(ref, candsIn(other, ref.start), used.get(other), { requireStart: !!horizonMs });
+        const cand = matchBook(ref, candsIn(other, ref.home, ref.start), used.get(other), { requireStart: !!horizonMs });
         if (cand) { matches[other] = cand; used.get(other).add(cand.id); }
       }
       entries.push({ ref, matches });
