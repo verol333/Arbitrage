@@ -1,7 +1,13 @@
 import { mget, isVirtual, isOutright, splitTeams } from './api.js';
 
-const SPORT_ID = '1';
+// SportId guineegames : 1=Football, 2=Tennis (validé probe-tennis-3books)
+const SPORT_IDS = { football: '1', tennis: '2' };
+// Regex "non-foot" appliquée UNIQUEMENT en mode football (filtre les catégories
+// tennis/basket/etc. leakées dans le feed foot). En tennis on ne filtre pas.
 const NON_FOOT_RE = /tennis|baseball|basketball|volleyball|hockey|mma|boxing|cricket|\bnfl\b|\bnba\b|\bnhl\b|\bmlb\b|table tennis|snooker|darts|handball|rugby|badminton|golf|esports?|counter.?strike|dota|starcraft|league of legends/i;
+// Regex tennis-specific : exclut les leagues qui ne sont pas du vrai tennis
+// (esport tennis, cyber tennis, etc.). Utilisé UNIQUEMENT quand sport=tennis.
+const NON_TENNIS_RE = /\be-?tennis\b|cyber tennis|virtual tennis|simulated tennis/i;
 
 function extractEvents(result) {
   if (!result || !result.data) return [];
@@ -16,7 +22,9 @@ function extractEvents(result) {
   return out;
 }
 
-export async function listMatches({ live = false, horizonHours = 168, maxMatches = 600 } = {}) {
+export async function listMatches({ live = false, horizonHours = 168, maxMatches = 600, sport = 'football' } = {}) {
+  const SPORT_ID = SPORT_IDS[sport];
+  if (!SPORT_ID) return [];
   const nowMs = Date.now();
   const horizonMs = nowMs + horizonHours * 3600_000;
   const ids = new Map();
@@ -47,9 +55,12 @@ export async function listMatches({ live = false, horizonHours = 168, maxMatches
   for (const ev of ids.values()) {
     const teams = splitTeams(ev.eventNames);
     if (!teams) { filtered.noTeams++; continue; }
-    if (teams.home.includes(' / ') || teams.away.includes(' / ')) { filtered.nonFoot++; continue; }
+    // Doubles tennis (ex: "Nadal / Federer" vs "Djokovic / Murray") : autorise
+    // seulement en tennis. En foot on filtre.
+    if (sport === 'football' && (teams.home.includes(' / ') || teams.away.includes(' / '))) { filtered.nonFoot++; continue; }
     const cat = [ev.categoryName, ev.competitionName].filter(Boolean).join(' ');
-    if (NON_FOOT_RE.test(cat)) { filtered.nonFoot++; continue; }
+    if (sport === 'football' && NON_FOOT_RE.test(cat)) { filtered.nonFoot++; continue; }
+    if (sport === 'tennis' && NON_TENNIS_RE.test(cat)) { filtered.nonFoot++; continue; }
     const label = `${teams.home} ${teams.away} ${cat}`;
     if (isOutright(ev.eventNames?.join?.(' ') || '')) { filtered.outright++; continue; }
     if (isVirtual(label)) { filtered.virtual++; continue; }

@@ -6,8 +6,8 @@ export default {
   label: 'PremierBet',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (sport !== 'football') return [];
-    return listMatches({ live, horizonHours: horizonHours || 168 });
+    if (sport !== 'football' && sport !== 'tennis') return [];
+    return listMatches({ live, horizonHours: horizonHours || 168, sport });
   },
   async getOdds(match, { live = false, noCache = false } = {}) { return getOdds(match, { live, noCache }); },
 };

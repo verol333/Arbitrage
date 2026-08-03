@@ -63,11 +63,11 @@ function toMatch(ev, live) {
 }
 
 // pageSize borné à 100 : au-dessus l'API répond HTTP 422 Invalid (vérifié via probe).
-export async function listPrematch({ maxPages = 10, pageSize = 100 } = {}) {
+export async function listPrematch({ maxPages = 10, pageSize = 100, sport = 'football' } = {}) {
   const seen = new Set();
   const out = [];
   for (let p = 1; p <= maxPages; p++) {
-    const data = await sbFetchUpcoming({ pageNum: p, pageSize });
+    const data = await sbFetchUpcoming({ pageNum: p, pageSize, sport });
     const events = extractEvents(data);
     if (!events.length) break;
     let added = 0;
@@ -80,12 +80,12 @@ export async function listPrematch({ maxPages = 10, pageSize = 100 } = {}) {
     }
     if (added === 0) break;
   }
-  console.log(`[sportybet] UPCOMING : ${out.length} matchs foot listés`);
+  console.log(`[sportybet:${sport}] UPCOMING : ${out.length} matchs listés`);
   return out;
 }
 
-export async function listLive() {
-  const data = await sbFetchLive();
+export async function listLive({ sport = 'football' } = {}) {
+  const data = await sbFetchLive(sport);
   const events = extractEvents(data);
   const out = [];
   for (const ev of events) {
@@ -94,6 +94,6 @@ export async function listLive() {
     const m = toMatch(ev, true);
     if (m) out.push(m);
   }
-  console.log(`[sportybet] LIVE : ${out.length} matchs foot listés`);
+  console.log(`[sportybet:${sport}] LIVE : ${out.length} matchs listés`);
   return out;
 }

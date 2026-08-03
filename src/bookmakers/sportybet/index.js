@@ -7,8 +7,8 @@ export default {
   label: 'SportyBet',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (sport !== 'football') return [];
-    return live ? listLive() : listPrematch();
+    if (sport !== 'football' && sport !== 'tennis') return [];
+    return live ? listLive({ sport }) : listPrematch({ sport });
   },
   // LIVE : re-fetch fresh via /event?productId=1 OBLIGATOIRE. Le fallback sur
   // __raw.markets (issus de liveOrPrematchEvents) contient potentiellement des

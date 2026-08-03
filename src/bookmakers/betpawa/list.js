@@ -2,11 +2,13 @@
 // des match IDs. Le protobuf ne fournit pas le startTime → on l'enrichit via
 // /events/{id} en parallèle (batch 40). Sans start, alignCatalogs rejette le
 // candidat en mode prématch (évite les fake arbs sur matchs déjà live).
-import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams } from './api.js';
+import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams, CATEGORY_IDS } from './api.js';
 
 const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746']);
 
-export async function listMatches({ live = false } = {}) {
+export async function listMatches({ live = false, sport = 'football' } = {}) {
+  const category = CATEGORY_IDS[sport];
+  if (!category) return [];
   const eventType = live ? 'LIVE' : 'UPCOMING';
   const seen = new Set();
   const out = [];
@@ -14,7 +16,7 @@ export async function listMatches({ live = false } = {}) {
   const HARD_CAP = 2000;
 
   for (let skip = 0; skip < HARD_CAP; skip += PAGE) {
-    const url = buildEventsListUrl({ eventType, skip, take: PAGE });
+    const url = buildEventsListUrl({ eventType, categories: [category], skip, take: PAGE });
     const strings = await bpFetchList(url);
     if (!strings.length) break;
 
@@ -47,6 +49,6 @@ export async function listMatches({ live = false } = {}) {
   // pour l'obtenir est trop lent (1000+ requêtes, timeouts massifs même avec
   // batch réduit). À la place, matching.js accepte les candidats sans start
   // uniquement si teamSim > 0.90 — élimine les faux appariements sans coût.
-  console.log(`[betpawa] ${eventType} : ${out.length} matchs foot listés (sans startTime)`);
+  console.log(`[betpawa:${sport}] ${eventType} : ${out.length} matchs listés (sans startTime)`);
   return out;
 }

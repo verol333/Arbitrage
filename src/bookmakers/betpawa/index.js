@@ -7,8 +7,8 @@ export default {
   label: 'BetPawa',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (sport !== 'football') return [];
-    return listMatches({ live, horizonHours });
+    if (sport !== 'football' && sport !== 'tennis') return [];
+    return listMatches({ live, horizonHours, sport });
   },
   async getOdds(match, { live = false, noCache = false } = {}) {
     // En live ou confirm noCache → bypass cache pour cotes fraîches du moment.

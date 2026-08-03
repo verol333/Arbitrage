@@ -24,8 +24,12 @@ export const HDR_EVENT = {
   'Cookie': 'bp_country=CG',
 };
 
-export const CATEGORY_FOOTBALL = '2';
-export const MARKET_TYPES = ['3743', '28000810', '28000850'];
+// Category IDs BetPawa (base SportRadar) : 2=Football, 5=Tennis.
+export const CATEGORY_IDS = { football: '2', tennis: '5' };
+export const CATEGORY_FOOTBALL = CATEGORY_IDS.football;
+// Market types demandés (protobuf view) : 3743=1X2, 28000810/850=Total, 3744/45/46=variants.
+// Pour le tennis, on demande large — le protobuf filtre automatiquement.
+export const MARKET_TYPES = ['3743', '28000810', '28000850', '3744', '3745', '3746'];
 
 export function buildEventsListUrl({ eventType = 'UPCOMING', categories = [CATEGORY_FOOTBALL], marketTypes = MARKET_TYPES, skip = 0, take = 100 } = {}) {
   const q = {

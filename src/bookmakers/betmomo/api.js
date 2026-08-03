@@ -6,7 +6,7 @@ const ENDPOINT = 'wss://eu-swarm-newm.betconstruct.com/';
 export const BETMOMO_SITE_ID = 122;
 // Sport IDs BetMomo (via SWARM sport list) : 1=Football, 2=Ice Hockey,
 // 3=Basketball, 4=Tennis, 5=Volleyball.
-export const BETMOMO_SID = { football: 1 };
+export const BETMOMO_SID = { football: 1, tennis: 4 };
 
 export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
   return new Promise((resolve, reject) => {

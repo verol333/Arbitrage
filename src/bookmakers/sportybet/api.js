@@ -17,11 +17,14 @@ const HDR = {
   'platform': 'web',
 };
 
-// sr:sport:1 = football. Market IDs demandés (les plus utiles pour arbitrage) :
+// Sport IDs SportyBet (SportRadar) : sr:sport:1 = football, sr:sport:5 = tennis.
+// Market IDs demandés (utiles pour arbitrage) :
 // 1=1X2, 18=Over/Under, 10=DC, 29=BTTS, 11=DNB, 26=Odd/Even, 14=Handicap Asian,
-// 60100=1MT 1X2 (à vérifier), 36=? (à découvrir).
-const MARKET_IDS = '1,18,10,29,11,26,36,14,60100';
-const SPORT_ID_FOOTBALL = 'sr:sport:1';
+// 60100=1MT 1X2, 186=Match Winner (tennis - pas de X), 68=Total Sets, 89=Set 1 Winner.
+const MARKET_IDS_FOOTBALL = '1,18,10,29,11,26,36,14,60100';
+const MARKET_IDS_TENNIS = '186,68,89,166,187,189,190,340'; // Winner + Sets + Games + Handicap
+export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5' };
+export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS };
 
 async function sbFetch(url, timeoutMs = 20_000) {
   try {
@@ -37,15 +40,20 @@ async function sbFetch(url, timeoutMs = 20_000) {
 // pcUpcomingEvents attend option + sortOption + timeline entier. `todayGames`
 // et `timeline=8.4` (décimal) provoquent HTTP 422 en Nigeria. Params minimaux
 // validés : sportId + option=1 + timeline=24 + sortOption=SORT_BY_DEFAULT.
-export async function sbFetchUpcoming({ pageNum = 1, pageSize = 100 } = {}) {
+export async function sbFetchUpcoming({ pageNum = 1, pageSize = 100, sport = 'football' } = {}) {
   const ts = Date.now();
-  const url = `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${encodeURIComponent(SPORT_ID_FOOTBALL)}&marketId=${encodeURIComponent(MARKET_IDS)}&pageSize=${pageSize}&pageNum=${pageNum}&option=1&timeline=24&sortOption=SORT_BY_DEFAULT&_t=${ts}`;
+  const sid = SB_SPORT_IDS[sport];
+  const mids = SB_MARKET_IDS[sport];
+  if (!sid) return null;
+  const url = `${BASE}/api/ng/factsCenter/pcUpcomingEvents?sportId=${encodeURIComponent(sid)}&marketId=${encodeURIComponent(mids)}&pageSize=${pageSize}&pageNum=${pageNum}&option=1&timeline=24&sortOption=SORT_BY_DEFAULT&_t=${ts}`;
   return sbFetch(url);
 }
 
-export async function sbFetchLive() {
+export async function sbFetchLive(sport = 'football') {
   const ts = Date.now();
-  const url = `${BASE}/api/ng/factsCenter/liveOrPrematchEvents?sportId=${encodeURIComponent(SPORT_ID_FOOTBALL)}&_t=${ts}`;
+  const sid = SB_SPORT_IDS[sport];
+  if (!sid) return null;
+  const url = `${BASE}/api/ng/factsCenter/liveOrPrematchEvents?sportId=${encodeURIComponent(sid)}&_t=${ts}`;
   return sbFetch(url);
 }
 
