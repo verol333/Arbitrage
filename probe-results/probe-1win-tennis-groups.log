@@ -1,0 +1,311 @@
+▶▶▶ Dump groups tennis 1win (WS raw)
+
+271 matchs tennis listes
+
+Sample matchs :
+  id=38108318 "Matteo Berrettini" vs "Mariano Navone" league="atp" start=2026-08-03T15:00:00.000Z
+  id=38146939 "James Duckworth" vs "Christopher O'Connell" league="atp" start=2026-08-03T15:00:00.000Z
+
+WS retour : 2 entrees
+
+════════════════════════════════════════════════════════════════════════
+MATCH 38108318 : Matteo Berrettini vs Mariano Navone
+  25 groups
+
+  "2nd set. Correct score" (13 outcomes actifs)
+      {"name":"7:5","cf":13}
+      {"name":"7:6","cf":6.5}
+      {"name":"5:7","cf":19}
+      {"name":"6:1","cf":9.5}
+      {"name":"6:0","cf":41}
+      {"name":"6:3","cf":3.25}
+      {"name":"6:2","cf":13}
+      {"name":"6:4","cf":11}
+      {"name":"6:7","cf":8}
+      {"name":"3:6","cf":29}
+      {"name":"4:6","cf":6}
+      {"name":"1:6","cf":100}
+      … +1 outcomes
+
+  "2nd set. Correct score by any player" (7 outcomes actifs)
+      {"name":"6-3","cf":3}
+      {"name":"6-2","cf":9}
+      {"name":"6-1","cf":9}
+      {"name":"6-0","cf":41}
+      {"name":"6-4","cf":4}
+      {"name":"7-6","cf":4}
+      {"name":"7-5","cf":9}
+
+  "2nd set. Handicap" (2 outcomes actifs)
+      {"name":"Matteo Berrettini -1.5","outcome":"1","cf":1.74}
+      {"name":"Mariano Navone 1.5","outcome":"2","cf":2.02}
+
+  "2nd set. Race to" (8 outcomes actifs)
+      {"name":"Mariano Navone 4","outcome":"2","cf":4.31}
+      {"name":"Matteo Berrettini 4","outcome":"1","cf":1.19}
+      {"name":"Mariano Navone 5","outcome":"2","cf":3.99}
+      {"name":"Matteo Berrettini 5","outcome":"1","cf":1.22}
+      {"name":"Mariano Navone 2","outcome":"2","cf":7.84}
+      {"name":"Matteo Berrettini 2","outcome":"1","cf":1.06}
+      {"name":"Mariano Navone 3","outcome":"2","cf":5.43}
+      {"name":"Matteo Berrettini 3","outcome":"1","cf":1.13}
+
+  "2nd set. Total" (11 outcomes actifs)
+      {"name":"Under 9.5","outcome":"under","cf":1.93}
+      {"name":"Over 9.5","outcome":"over","cf":1.82}
+      {"name":"Under 10.5","outcome":"under","cf":1.41}
+      {"name":"Over 10.5","outcome":"over","cf":2.77}
+      {"name":"Under 12.5","outcome":"under","cf":1.22}
+      {"name":"Over 12.5","outcome":"over","cf":3.99}
+      {"name":"Under 6.5","outcome":"under","cf":39}
+      {"name":"Over 7.5","outcome":"over","cf":1.05}
+      {"name":"Under 7.5","outcome":"under","cf":8.79}
+      {"name":"Over 8.5","outcome":"over","cf":1.15}
+      {"name":"Under 8.5","outcome":"under","cf":4.94}
+
+  "2nd set. Winner" (2 outcomes actifs)
+      {"name":"Mariano Navone","outcome":"2","cf":2.8}
+      {"name":"Matteo Berrettini","outcome":"1","cf":1.42}
+
+  "3rd set. Correct score" (14 outcomes actifs)
+      {"name":"3:6","cf":8}
+      {"name":"1:6","cf":34}
+      {"name":"2:6","cf":26}
+      {"name":"7:5","cf":13}
+      {"name":"7:6","cf":6}
+      {"name":"0:6","cf":100}
+      {"name":"5:7","cf":21}
+      {"name":"6:4","cf":4}
+      {"name":"6:7","cf":8}
+      {"name":"6:1","cf":21}
+      {"name":"6:0","cf":41}
+      {"name":"6:3","cf":7}
+      … +2 outcomes
+
+  "3rd set. Correct score by any player" (7 outcomes actifs)
+      {"name":"6-1","cf":15}
+      {"name":"6-4","cf":3.25}
+      {"name":"7-5","cf":9}
+      {"name":"6-3","cf":4}
+      {"name":"7-6","cf":3.75}
+      {"name":"6-0","cf":41}
+      {"name":"6-2","cf":7}
+
+  "3rd set. Handicap" (2 outcomes actifs)
+      {"name":"Mariano Navone 1.5","outcome":"2","cf":1.93}
+      {"name":"Matteo Berrettini -1.5","outcome":"1","cf":1.82}
+
+  "3rd set. Race to" (8 outcomes actifs)
+      {"name":"Matteo Berrettini 5","outcome":"1","cf":1.68}
+      {"name":"Mariano Navone 5","outcome":"2","cf":2.11}
+      {"name":"Matteo Berrettini 4","outcome":"1","cf":1.74}
+      {"name":"Mariano Navone 4","outcome":"2","cf":2.02}
+      {"name":"Matteo Berrettini 3","outcome":"1","cf":1.87}
+      {"name":"Mariano Navone 3","outcome":"2","cf":1.87}
+      {"name":"Matteo Berrettini 2","outcome":"1","cf":2.02}
+      {"name":"Mariano Navone 2","outcome":"2","cf":1.74}
+
+  "3rd set. Total" (10 outcomes actifs)
+      {"name":"Over 7.5","outcome":"over","cf":1.04}
+      {"name":"Under 8.5","outcome":"under","cf":4.94}
+      {"name":"Over 8.5","outcome":"over","cf":1.15}
+      {"name":"Over 12.5","outcome":"over","cf":3.74}
+      {"name":"Under 12.5","outcome":"under","cf":1.25}
+      {"name":"Over 10.5","outcome":"over","cf":2.77}
+      {"name":"Under 10.5","outcome":"under","cf":1.41}
+      {"name":"Under 6.5","outcome":"under","cf":39}
+      {"name":"Over 9.5","outcome":"over","cf":1.59}
+      {"name":"Under 9.5","outcome":"under","cf":2.27}
+
+  "3rd set. Winner" (2 outcomes actifs)
+      {"name":"Mariano Navone","outcome":"2","cf":2.66}
+      {"name":"Matteo Berrettini","outcome":"1","cf":1.46}
+
+  "Correct score" (3 outcomes actifs)
+      {"name":"2:1","cf":2.1}
+      {"name":"1:2","cf":4}
+      {"name":"0:2","cf":2.75}
+
+  "Game to deuce" (4 outcomes actifs)
+      {"name":"Set 2, Game 3. Yes","outcome":"yes","cf":3.96}
+      {"name":"Set 2, Game 3. No","outcome":"no","cf":1.21}
+      {"name":"Set 2, Game 2. Yes","outcome":"yes","cf":2}
+      {"name":"Set 2, Game 2. No","outcome":"no","cf":1.73}
+
+  "Game winner" (4 outcomes actifs)
+      {"name":"Win Matteo Berrettini in Set 2, Game 3","outcome":"1","cf":1.08}
+      {"name":"Win Mariano Navone in Set 2, Game 3","outcome":"2","cf":5.76}
+      {"name":"Win Mariano Navone in Set 2, Game 2","outcome":"2","cf":1.24}
+      {"name":"Win Matteo Berrettini in Set 2, Game 2","outcome":"1","cf":3.38}
+
+  "Handicap" (2 outcomes actifs)
+      {"name":"Matteo Berrettini 1.5","outcome":"1","cf":1.89}
+      {"name":"Mariano Navone -1.5","outcome":"2","cf":1.89}
+
+  "Mariano Navone total" (2 outcomes actifs)
+      {"name":"Over 13.5","outcome":"over","cf":2.38}
+      {"name":"Under 13.5","outcome":"under","cf":1.54}
+
+  "Matteo Berrettini total" (2 outcomes actifs)
+      {"name":"Over 14.5","outcome":"over","cf":1.82}
+      {"name":"Under 14.5","outcome":"under","cf":1.93}
+
+  "Point Betting" (8 outcomes actifs)
+      {"name":"Mariano Navone in set 2, game 2, point 5","outcome":"2","cf":1.48}
+      {"name":"Matteo Berrettini in set 2, game 2, point 5","outcome":"1","cf":2.47}
+      {"name":"Mariano Navone in set 2, game 2, point 6","outcome":"2","cf":1.48}
+      {"name":"Matteo Berrettini in set 2, game 2, point 6","outcome":"1","cf":2.47}
+      {"name":"Mariano Navone in set 2, game 2, point 7","outcome":"2","cf":1.48}
+      {"name":"Matteo Berrettini in set 2, game 2, point 7","outcome":"1","cf":2.47}
+      {"name":"Mariano Navone in set 2, game 3, point 1","outcome":"2","cf":2.74}
+      {"name":"Matteo Berrettini in set 2, game 3, point 1","outcome":"1","cf":1.4}
+
+  "Tiebreaks total" (3 outcomes actifs)
+      {"name":"Under 0.5","outcome":"under","cf":1.45}
+      {"name":"Over 0.5","outcome":"over","cf":2.63}
+      {"name":"Over 1.5","outcome":"over","cf":18.3}
+
+  "Total" (2 outcomes actifs)
+      {"name":"Over 26.5","outcome":"over","cf":1.83}
+      {"name":"Under 26.5","outcome":"under","cf":1.94}
+
+  "Total. Odd/Even" (2 outcomes actifs)
+      {"name":"Odd","outcome":"odd","cf":1.87}
+      {"name":"Even","outcome":"even","cf":1.87}
+
+  "Winner" (2 outcomes actifs)
+      {"name":"Matteo Berrettini","outcome":"1","cf":2.1}
+      {"name":"Mariano Navone","outcome":"2","cf":1.73}
+
+  "Winner and exact game score" (12 outcomes actifs)
+      {"name":"Mariano Navone in set 2, game 2, score W to 40","outcome":"2","cf":2.6}
+      {"name":"Matteo Berrettini in set 2, game 2, score W to 40","outcome":"1","cf":7}
+      {"name":"Matteo Berrettini in set 2, game 3, score W to 0","outcome":"1","cf":4.33}
+      {"name":"Mariano Navone in set 2, game 3, score W to 0","outcome":"2","cf":41}
+      {"name":"Matteo Berrettini in set 2, game 3, score W to 30","outcome":"1","cf":4}
+      {"name":"Mariano Navone in set 2, game 3, score W to 30","outcome":"2","cf":13}
+      {"name":"Mariano Navone in set 2, game 3, score W to 15","outcome":"2","cf":21}
+      {"name":"Matteo Berrettini in set 2, game 3, score W to 15","outcome":"1","cf":3.25}
+      {"name":"Matteo Berrettini in set 2, game 2, score W to 30","outcome":"1","cf":6.5}
+      {"name":"Mariano Navone in set 2, game 2, score W to 30","outcome":"2","cf":2.25}
+      {"name":"Matteo Berrettini in set 2, game 3, score W to 40","outcome":"1","cf":4.75}
+      {"name":"Mariano Navone in set 2, game 3, score W to 40","outcome":"2","cf":17}
+
+  "Winner and total" (4 outcomes actifs)
+      {"name":"Mariano Navone And Under 21.5","cf":3.75}
+      {"name":"Mariano Navone And Over 21.5","cf":2.75}
+      {"name":"Matteo Berrettini And Under 28.5","cf":3.6}
+      {"name":"Matteo Berrettini And Over 28.5","cf":4.33}
+
+════════════════════════════════════════════════════════════════════════
+MATCH 38146939 : James Duckworth vs Christopher O'Connell
+  18 groups
+
+  "2nd set. Correct score" (11 outcomes actifs)
+      {"name":"2:6","cf":81}
+      {"name":"3:6","cf":19}
+      {"name":"6:4","cf":2.2}
+      {"name":"6:7","cf":9.5}
+      {"name":"6:1","cf":23}
+      {"name":"6:2","cf":4.33}
+      {"name":"6:3","cf":8.5}
+      {"name":"4:6","cf":23}
+      {"name":"7:5","cf":21}
+      {"name":"7:6","cf":9}
+      {"name":"5:7","cf":23}
+
+  "2nd set. Correct score by any player" (6 outcomes actifs)
+      {"name":"7-6","cf":5.5}
+      {"name":"7-5","cf":13}
+      {"name":"6-4","cf":2.1}
+      {"name":"6-2","cf":4.33}
+      {"name":"6-3","cf":6.5}
+      {"name":"6-1","cf":23}
+
+  "2nd set. Handicap" (2 outcomes actifs)
+      {"name":"James Duckworth -2.5","outcome":"1","cf":2.99}
+      {"name":"Christopher O'Connell 2.5","outcome":"2","cf":1.36}
+
+  "2nd set. Race to" (6 outcomes actifs)
+      {"name":"James Duckworth 4","outcome":"1","cf":1.15}
+      {"name":"Christopher O'Connell 4","outcome":"2","cf":4.94}
+      {"name":"James Duckworth 5","outcome":"1","cf":1.22}
+      {"name":"Christopher O'Connell 5","outcome":"2","cf":3.99}
+      {"name":"James Duckworth 3","outcome":"1","cf":1.06}
+      {"name":"Christopher O'Connell 3","outcome":"2","cf":7.84}
+
+  "2nd set. Total" (9 outcomes actifs)
+      {"name":"Under 7.5","outcome":"under","cf":22.2}
+      {"name":"Under 10.5","outcome":"under","cf":1.22}
+      {"name":"Over 10.5","outcome":"over","cf":3.99}
+      {"name":"Under 12.5","outcome":"under","cf":1.13}
+      {"name":"Over 12.5","outcome":"over","cf":5.43}
+      {"name":"Over 8.5","outcome":"over","cf":1.22}
+      {"name":"Under 8.5","outcome":"under","cf":3.99}
+      {"name":"Over 9.5","outcome":"over","cf":1.45}
+      {"name":"Under 9.5","outcome":"under","cf":2.63}
+
+  "2nd set. Winner" (2 outcomes actifs)
+      {"name":"Christopher O'Connell","outcome":"2","cf":4.99}
+      {"name":"James Duckworth","outcome":"1","cf":1.16}
+
+  "Christopher O'Connell total" (2 outcomes actifs)
+      {"name":"Over 6.5","outcome":"over","cf":1.36}
+      {"name":"Under 6.5","outcome":"under","cf":2.99}
+
+  "Correct score" (3 outcomes actifs)
+      {"name":"2:1","cf":10}
+      {"name":"2:0","cf":1.17}
+      {"name":"1:2","cf":8}
+
+  "Game to deuce" (2 outcomes actifs)
+      {"name":"Set 2, Game 4. Yes","outcome":"yes","cf":3.96}
+      {"name":"Set 2, Game 4. No","outcome":"no","cf":1.21}
+
+  "Game winner" (2 outcomes actifs)
+      {"name":"Win James Duckworth in Set 2, Game 4","outcome":"1","cf":1.06}
+      {"name":"Win Christopher O'Connell in Set 2, Game 4","outcome":"2","cf":6.23}
+
+  "Handicap" (2 outcomes actifs)
+      {"name":"Christopher O'Connell 5.5","outcome":"2","cf":1.37}
+      {"name":"James Duckworth -5.5","outcome":"1","cf":3.02}
+
+  "James Duckworth total" (2 outcomes actifs)
+      {"name":"Under 12.5","outcome":"under","cf":1.29}
+      {"name":"Over 12.5","outcome":"over","cf":3.38}
+
+  "Point Betting" (6 outcomes actifs)
+      {"name":"Christopher O'Connell in set 2, game 4, point 1","outcome":"2","cf":2.74}
+      {"name":"James Duckworth in set 2, game 4, point 1","outcome":"1","cf":1.4}
+      {"name":"Christopher O'Connell in set 2, game 4, point 2","outcome":"2","cf":2.74}
+      {"name":"James Duckworth in set 2, game 4, point 2","outcome":"1","cf":1.4}
+      {"name":"Christopher O'Connell in set 2, game 4, point 3","outcome":"2","cf":2.74}
+      {"name":"James Duckworth in set 2, game 4, point 3","outcome":"1","cf":1.4}
+
+  "Tiebreaks total" (2 outcomes actifs)
+      {"name":"Under 0.5","outcome":"under","cf":1.19}
+      {"name":"Over 0.5","outcome":"over","cf":4.31}
+
+  "Total" (2 outcomes actifs)
+      {"name":"Under 18.5","outcome":"under","cf":3.02}
+      {"name":"Over 18.5","outcome":"over","cf":1.37}
+
+  "Total. Odd/Even" (2 outcomes actifs)
+      {"name":"Even","outcome":"even","cf":3.21}
+      {"name":"Odd","outcome":"odd","cf":1.32}
+
+  "Winner" (2 outcomes actifs)
+      {"name":"Christopher O'Connell","outcome":"2","cf":7.95}
+      {"name":"James Duckworth","outcome":"1","cf":1.08}
+
+  "Winner and exact game score" (8 outcomes actifs)
+      {"name":"James Duckworth in set 2, game 4, score W to 0","outcome":"1","cf":4}
+      {"name":"Christopher O'Connell in set 2, game 4, score W to 0","outcome":"2","cf":51}
+      {"name":"James Duckworth in set 2, game 4, score W to 30","outcome":"1","cf":4}
+      {"name":"Christopher O'Connell in set 2, game 4, score W to 30","outcome":"2","cf":15}
+      {"name":"Christopher O'Connell in set 2, game 4, score W to 40","outcome":"2","cf":17}
+      {"name":"James Duckworth in set 2, game 4, score W to 40","outcome":"1","cf":4.75}
+      {"name":"James Duckworth in set 2, game 4, score W to 15","outcome":"1","cf":3.2}
+      {"name":"Christopher O'Connell in set 2, game 4, score W to 15","outcome":"2","cf":21}
+
+═══ FIN DUMP ═══
