@@ -11,8 +11,8 @@ log('▶▶▶ AUDIT FOOT 1XBET : scan + refetch + cross-check');
 const result = await runScan({
   live: false,
   sport: 'football',
-  minProfit: Number(process.env.MIN_PROFIT_PREMATCH || 0.5),
-  horizonHours: 24,
+  minProfit: 0.3, // seuil bas pour capter plus d'opps a auditer
+  horizonHours: 72,
 });
 
 const opps = result.opportunities || [];
@@ -23,20 +23,20 @@ log(`${opps1xbet.length} opps incluent 1xbet\n`);
 
 if (!opps1xbet.length) { log('Aucune opp 1xbet, rien a auditer'); process.exit(0); }
 
-// Grouper par match
+// Grouper par match (l'id est dans verify.leg_a_match.id)
 const byMatch = new Map();
 for (const o of opps1xbet) {
-  const mid = o.leg_a_book === '1xbet' ? o.leg_a_match?.id : o.leg_b_match?.id;
+  const mid = o.leg_a_book === '1xbet' ? o.verify?.leg_a_match?.id : o.verify?.leg_b_match?.id;
   const key = mid || o.match_label;
   if (!byMatch.has(key)) byMatch.set(key, { opps: [], matchId: mid, label: o.match_label });
   byMatch.get(key).opps.push(o);
 }
 log(`${byMatch.size} matchs distincts avec opps 1xbet\n`);
 
-// Prendre 3 matchs (les plus rentables)
+// Prendre top 5 matchs (les plus rentables)
 const top3 = [...byMatch.entries()]
   .sort((a, b) => Math.max(...b[1].opps.map(o => o.profit_pct)) - Math.max(...a[1].opps.map(o => o.profit_pct)))
-  .slice(0, 3);
+  .slice(0, 5);
 
 const xbet = bookmakersByKey['1xbet'];
 
@@ -45,10 +45,12 @@ for (const [matchKey, { opps, matchId, label }] of top3) {
   log(`MATCH: ${label} (id 1xbet=${matchId})`);
   log(`═══════════════════════════════════════════════════════════════════`);
 
+  if (!matchId) { log('  (pas d\'id 1xbet exploitable)'); continue; }
+
   // Re-fetch cotes 1xbet du match
   let freshOdds = {};
   try {
-    freshOdds = await xbet.getOdds({ id: matchId }, { live: false });
+    freshOdds = await xbet.getOdds({ id: matchId }, { live: false }) || {};
   } catch (e) {
     log(`  ERR re-fetch 1xbet: ${e.message}`);
     continue;
