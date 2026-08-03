@@ -1,12 +1,7 @@
 #!/usr/bin/env node
-// Dump complet des markets tennis (1-2 matchs par book) pour mapping manuel.
-// Cible : les 7 books qui n'ont pas retourne de cotes tennis (ou 0 matchs).
-//
-// Format sortie : Pour chaque book, on affiche
-//   - 1-2 matchs (equipes + league + start)
-//   - Full raw markets JSON pour ces matchs (market id + name + outcomes)
-
+// Dump complet des markets tennis v2 — bugs v1 corriges + probes plus larges
 import { fetchJson } from '../src/net/fetcher.js';
+import { stealthGetJson } from '../src/net/stealth.js';
 
 const dumpMatch = (label, m) => {
   console.log(`\n  ┌── ${label}`);
@@ -17,102 +12,62 @@ const dumpMatch = (label, m) => {
   console.log(`  │ id: ${m.id}`);
 };
 
-const dumpMarkets = (markets, maxShow = 20) => {
-  console.log(`  │ ${markets.length} markets bruts:`);
-  for (const mk of markets.slice(0, maxShow)) {
-    console.log(`  │   ${JSON.stringify(mk).slice(0, 400)}`);
-  }
-  if (markets.length > maxShow) console.log(`  │   ... (${markets.length - maxShow} de plus)`);
-  console.log('  └──');
-};
-
 // ═══════════════════════════════════════════════════════════════
-// 1) BETPAWA — probe categoryIds pour trouver tennis
+// 1) BETPAWA — probe categoryIds larges 4-100 par pas de 5 + regions .ke .ug
 // ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ BETPAWA — probe categoryIds tennis ════════════');
+console.log('\n════════════ BETPAWA — probe categoryIds tennis (Congo + Kenya) ════════════');
 try {
-  const { bpFetchList, buildEventsListUrl } = await import('../src/bookmakers/betpawa/api.js');
-  for (const catId of [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]) {
-    const url = buildEventsListUrl({ categories: [String(catId)], take: 5 });
-    const strings = await bpFetchList(url);
-    // Extract ID pairs (id + name)
+  const { bpFetchList } = await import('../src/bookmakers/betpawa/api.js');
+  // Test Congo (cg)
+  for (const catId of [3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50, 100]) {
+    const q = { queries: [{ query: { eventType: 'UPCOMING', categories: [String(catId)], zones: {}, hasOdds: true }, view: { marketTypes: ['3743'] }, skip: 0, take: 5 }] };
+    const url = `https://cg.betpawa.com/api/sportsbook/v4/events/lists/by-queries?q=${encodeURIComponent(JSON.stringify(q))}`;
+    const strs = await bpFetchList(url);
     const pairs = [];
-    for (let i = 0; i < strings.length - 1; i++) {
-      if (/^\d{7,10}$/.test(strings[i]) && strings[i + 1].includes(' - ')) {
-        pairs.push({ id: strings[i], name: strings[i + 1] });
-      }
+    for (let i = 0; i < strs.length - 1; i++) {
+      if (/^\d{7,10}$/.test(strs[i]) && strs[i + 1].includes(' - ')) pairs.push(strs[i + 1]);
     }
-    const uniqPairs = pairs.filter((p, i, arr) => arr.findIndex(q => q.id === p.id) === i).slice(0, 3);
-    console.log(`  categoryId=${catId}: ${uniqPairs.length} matchs — ${uniqPairs.map(p => p.name).join(' | ')}`);
+    console.log(`  .cg cat=${catId}: ${pairs.length} matchs — ${[...new Set(pairs)].slice(0, 2).join(' | ')}`);
   }
-  // Prendre category 5 par défaut + 2 matchs
-  console.log('\n  --- Fetching 2 matchs category=5 (defaut tennis) ---');
-  const url5 = buildEventsListUrl({ categories: ['5'], take: 5 });
-  const strs = await bpFetchList(url5);
-  const ids = [];
-  for (let i = 0; i < strs.length - 1; i++) {
-    if (/^\d{7,10}$/.test(strs[i]) && strs[i + 1].includes(' - ')) ids.push({ id: strs[i], name: strs[i + 1] });
-  }
-  const uniqIds = ids.filter((p, i, arr) => arr.findIndex(q => q.id === p.id) === i).slice(0, 2);
-  const { bpFetchEvent } = await import('../src/bookmakers/betpawa/api.js');
-  for (const { id, name } of uniqIds) {
-    const evt = await bpFetchEvent(id, 15_000, { fresh: true });
-    const markets = evt?.markets || [];
-    dumpMatch(`BETPAWA cat=5 : ${name}`, { home: name.split(' - ')[0], away: name.split(' - ')[1] || '?', league: '?', start: null, id });
-    dumpMarkets(markets);
-  }
-} catch (e) { console.log(`  ERR ${e.message}`); }
-
-// ═══════════════════════════════════════════════════════════════
-// 2) YELLOWBET — probe pourquoi 403 tennis
-// ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ YELLOWBET — probe 403 tennis ════════════');
-try {
-  // Try sport 35 (tennis) direct fetch to see error
-  const { fetchStealth } = await import('../src/net/fetcher.js');
-  for (const sid of [35, 36, 37, 40, 47]) {
-    const url = `https://yellowbet.cg/services/evapi/event/GetEvents?skip=0&take=5&sportId=${sid}&categoryTypeIds=all&langId=en`;
+  // Test Kenya (ke) — plus de sports peut-être exposés
+  const HDR_KE = {
+    'Accept': 'application/x-protobuf', 'Accept-Language': 'en',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36',
+    'x-pawa-brand': 'betpawa-kenya', 'x-pawa-language': 'en',
+    'Referer': 'https://ke.betpawa.com/events?categoryId=2&marketId=1X2',
+  };
+  for (const catId of [3, 4, 5, 6, 7]) {
     try {
-      const j = await fetchStealth(url, { timeoutMs: 12000 });
-      const events = j?.value?.events || j?.events || [];
-      console.log(`  sportId=${sid}: ${events.length} events`);
-      if (events.length > 0) {
-        console.log(`    sample: ${events[0]?.homeTeam?.name || '?'} vs ${events[0]?.awayTeam?.name || '?'}`);
-      }
-    } catch (e) { console.log(`  sportId=${sid}: ERR ${e.message}`); }
+      const q = { queries: [{ query: { eventType: 'UPCOMING', categories: [String(catId)], zones: {}, hasOdds: true }, view: { marketTypes: ['3743'] }, skip: 0, take: 5 }] };
+      const res = await fetch(`https://ke.betpawa.com/api/sportsbook/v4/events/lists/by-queries?q=${encodeURIComponent(JSON.stringify(q))}`, { headers: HDR_KE, signal: AbortSignal.timeout(15000) });
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const strs = []; let cur = '';
+      for (let i = 0; i < buf.length; i++) { const b = buf[i]; if (b >= 32 && b <= 126) cur += String.fromCharCode(b); else { if (cur.length > 2) strs.push(cur); cur = ''; } }
+      const pairs = [];
+      for (let i = 0; i < strs.length - 1; i++) if (/^\d{7,10}$/.test(strs[i]) && strs[i + 1].includes(' - ')) pairs.push(strs[i + 1]);
+      console.log(`  .ke cat=${catId}: status=${res.status} ${pairs.length} matchs — ${[...new Set(pairs)].slice(0, 2).join(' | ')}`);
+    } catch (e) { console.log(`  .ke cat=${catId}: ERR ${e.message}`); }
   }
 } catch (e) { console.log(`  ERR ${e.message}`); }
 
 // ═══════════════════════════════════════════════════════════════
-// 3) 1WIN — dump groups tennis d'un match
+// 2) YELLOWBET — fix stealth + probe sportIds tennis
 // ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ 1WIN — dump groups tennis (2 matchs) ════════════');
+console.log('\n════════════ YELLOWBET — probe sportIds tennis (stealth) ════════════');
 try {
-  const { listPrematch } = await import('../src/bookmakers/onewin/list.js');
-  const { fetchOddsWS } = await import('../src/bookmakers/onewin/ws.js');
-  const matches = await listPrematch('tennis');
-  console.log(`  ${matches.length} matchs listes`);
-  const sample = matches.slice(0, 2);
-  if (sample.length) {
-    const rawMap = await fetchOddsWS(sample.map(m => m.id));
-    for (const m of sample) {
-      const groups = rawMap.get(m.id) || rawMap.get(String(m.id));
-      dumpMatch(`1WIN : ${m.home} vs ${m.away}`, m);
-      if (!groups) { console.log(`  │ (aucune cote WS)`); console.log('  └──'); continue; }
-      console.log(`  │ ${Object.keys(groups).length} groupes:`);
-      for (const [gname, glist] of Object.entries(groups)) {
-        const outcomes = (glist || []).slice(0, 4).map(o => `${o.name || o.outcome || '?'}(${o.cf})`).join(', ');
-        console.log(`  │   "${gname}" (${(glist || []).length} outcomes) → ${outcomes}${glist.length > 4 ? '...' : ''}`);
-      }
-      console.log('  └──');
-    }
+  const HDR = { brandid: '122', channelid: '4', language: 'fr', terminal: 'yellowbet.cg' };
+  for (const sid of [32, 33, 34, 35, 36, 37, 40, 42, 45, 47, 50, 60]) {
+    const url = `https://yellowbet.cg/services/evapi/event/GetEvents?skip=0&take=5&sportId=${sid}&categoryTypeIds=all&langId=fr`;
+    const j = await stealthGetJson(url, { headers: HDR, timeoutMs: 12000 });
+    const events = j?.value?.events || j?.events || [];
+    console.log(`  sportId=${sid}: ${events.length} events${events.length > 0 ? ` — ex: ${events[0]?.h || '?'} vs ${events[0]?.a || '?'} (${events[0]?.ln || '?'})` : ''}`);
   }
 } catch (e) { console.log(`  ERR ${e.message}`); }
 
 // ═══════════════════════════════════════════════════════════════
-// 4) APOLLO — dump BetTypeKeys tennis
+// 3) APOLLO — dump corrigé (fields Odds[].Type / Name / Odd + Sbv)
 // ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ APOLLO — dump BetTypeKeys tennis (2 matchs) ════════════');
+console.log('\n════════════ APOLLO — dump BetTypeKeys tennis (v2 fix fields) ════════════');
 try {
   const { listMatches, fetchOffers } = await import('../src/bookmakers/apollo/list.js');
   const matches = await listMatches({ live: false, sport: 'tennis' });
@@ -124,104 +79,93 @@ try {
       const offers = map.get(m.id) || [];
       dumpMatch(`APOLLO : ${m.home} vs ${m.away}`, m);
       console.log(`  │ ${offers.length} offers`);
-      // Group by BetTypeKey
-      const byKey = {};
       for (const o of offers) {
-        const key = o.BetTypeKey ?? o.betTypeKey ?? o.MarketId ?? '?';
-        const name = o.BetTypeName ?? o.betTypeName ?? o.MarketName ?? '?';
-        if (!byKey[key]) byKey[key] = { name, samples: [] };
-        for (const oc of (o.Odds || o.odds || [])) {
-          byKey[key].samples.push(`${oc.OutcomeName || oc.outcomeName || '?'}=${oc.Value ?? oc.value}`);
-        }
-      }
-      for (const [k, v] of Object.entries(byKey)) {
-        console.log(`  │   BetTypeKey=${k} "${v.name}" → ${v.samples.slice(0, 4).join(', ')}`);
+        const key = o.BetTypeKey ?? '?';
+        const name = o.BetTypeName ?? o.betTypeName ?? '';
+        const sbv = o.Sbv ?? '';
+        const outcomes = (o.Odds || []).map(od => `${od.Type || ''}"${od.Name || ''}"=${od.Odd}`).join(' | ');
+        console.log(`  │   BetTypeKey=${key} ${name ? `"${name}" ` : ''}Sbv=${sbv} → ${outcomes}`);
       }
       console.log('  └──');
     }
   }
-} catch (e) { console.log(`  ERR ${e.message}`); }
-
-// ═══════════════════════════════════════════════════════════════
-// 5) BETMOMO — dump market types tennis
-// ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ BETMOMO — dump market types tennis (2 matchs) ════════════');
-try {
-  const { listMatches } = await import('../src/bookmakers/betmomo/list.js');
-  const matches = await listMatches({ live: false, horizonHours: 72, sport: 'tennis' });
-  console.log(`  ${matches.length} matchs listes`);
-  const sample = matches.slice(0, 2);
-  for (const m of sample) {
-    const markets = m.__raw?.markets || [];
-    dumpMatch(`BETMOMO : ${m.home} vs ${m.away}`, m);
-    console.log(`  │ ${markets.length} markets`);
-    // Group by market type
-    const byType = {};
-    for (const mk of markets) {
-      const type = mk.type || mk.marketType || mk.Type || '?';
-      const name = mk.name || mk.MarketName || '?';
-      if (!byType[type]) byType[type] = { name, count: 0, samples: [] };
-      byType[type].count++;
-      const events = mk.events || mk.selections || mk.outcomes || [];
-      for (const e of events.slice(0, 3)) {
-        byType[type].samples.push(`${e.type || e.name || '?'}=${e.price ?? e.odds ?? e.value ?? '?'}`);
-      }
-    }
-    for (const [t, v] of Object.entries(byType)) {
-      console.log(`  │   type="${t}" (${v.count}x) "${v.name}" → ${v.samples.slice(0, 5).join(', ')}`);
-    }
-    console.log('  └──');
-  }
-} catch (e) { console.log(`  ERR ${e.message}`); }
-
-// ═══════════════════════════════════════════════════════════════
-// 6) SPORTYBET — dump market IDs tennis
-// ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ SPORTYBET — dump market IDs tennis (2 matchs) ════════════');
-try {
-  const { listPrematch } = await import('../src/bookmakers/sportybet/list.js');
-  const matches = await listPrematch({ sport: 'tennis' });
-  console.log(`  ${matches.length} matchs listes`);
-  const sample = matches.slice(0, 2);
-  for (const m of sample) {
-    const markets = m.__raw?.markets || [];
-    dumpMatch(`SPORTYBET : ${m.home} vs ${m.away}`, m);
-    console.log(`  │ ${markets.length} markets`);
-    for (const mk of markets.slice(0, 20)) {
-      const outcomes = (mk.outcomes || []).slice(0, 4).map(o => `${o.desc || o.description || '?'}=${o.odds}`).join(', ');
-      console.log(`  │   id=${mk.id} "${mk.desc || mk.description || '?'}" specifier=${mk.specifier || ''} → ${outcomes}`);
-    }
-    console.log('  └──');
-  }
-} catch (e) { console.log(`  ERR ${e.message}`); }
-
-// ═══════════════════════════════════════════════════════════════
-// 7) PREMIERBET (via guineegames) — dump markets tennis
-// ═══════════════════════════════════════════════════════════════
-console.log('\n════════════ PREMIERBET (guineegames sportId=2) — dump markets tennis (2 matchs) ════════════');
-try {
-  const { listMatches } = await import('../src/bookmakers/premierbet/list.js');
-  const { getOdds } = await import('../src/bookmakers/premierbet/odds.js');
-  const matches = await listMatches({ live: false, horizonHours: 72, sport: 'tennis' });
-  console.log(`  ${matches.length} matchs listes`);
-  const sample = matches.slice(0, 2);
-  for (const m of sample) {
-    // Fetch full event JSON via same path as prod
-    const { mget } = await import('../src/bookmakers/premierbet/api.js');
-    const evt = await mget(`/events/${m.id}`, {});
-    const event = evt?.data || evt;
-    const marketGroups = event?.marketGroups || [];
-    dumpMatch(`PREMIERBET : ${m.home} vs ${m.away}`, m);
-    console.log(`  │ ${marketGroups.length} market groups:`);
-    for (const g of marketGroups) {
-      console.log(`  │   groupe "${g.name}" : ${(g.markets || []).length} markets`);
-      for (const mk of (g.markets || []).slice(0, 5)) {
-        const outcomes = (mk.outcomes || []).slice(0, 4).map(o => `${o.name}=${o.value}`).join(', ');
-        console.log(`  │     id=${mk.id} "${mk.name}" → ${outcomes}`);
-      }
-    }
-    console.log('  └──');
-  }
 } catch (e) { console.log(`  ERR ${e.message}`); console.error(e.stack); }
 
-console.log('\n═══════════════ FIN DUMP ═══════════════');
+// ═══════════════════════════════════════════════════════════════
+// 4) BETMOMO — investiger pourquoi markets vides + dump structure raw
+// ═══════════════════════════════════════════════════════════════
+console.log('\n════════════ BETMOMO — dump structure tennis (v2 raw SWARM) ════════════');
+try {
+  const { swarmSession } = await import('../src/bookmakers/betmomo/api.js');
+  await swarmSession(async (send) => {
+    // Test sport 4 (défaut tennis) — 3 matchs
+    const now = Math.floor(Date.now() / 1000);
+    const to = now + 72 * 3600;
+    const listData = await send(
+      { sport: ['id', 'name'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name', 'start_ts'] },
+      { sport: { id: 4 }, game: { start_ts: { '@gt': now, '@lt': to }, is_live: 0 } },
+    );
+    const games = [];
+    for (const s of Object.values(listData?.sport || {})) {
+      for (const r of Object.values(s.region || {})) for (const c of Object.values(r.competition || {}))
+        for (const g of Object.values(c.game || {})) games.push({ ...g, league: c.name });
+    }
+    console.log(`  ${games.length} matchs sport=4 (tennis?)`);
+    const sample = games.slice(0, 2);
+    if (sample.length) {
+      const ids = sample.map(g => g.id);
+      const oddsData = await send(
+        { game: ['id'], market: ['name', 'type', 'group_name', 'col_count'], event: ['name', 'price', 'base', 'type_1', 'type'] },
+        { game: { id: { '@in': ids } } },
+      );
+      for (const g of sample) {
+        dumpMatch(`BETMOMO : ${g.team1_name} vs ${g.team2_name}`, { id: g.id, home: g.team1_name, away: g.team2_name, league: g.league, start: g.start_ts * 1000 });
+        const withOdds = oddsData?.game?.[g.id];
+        const markets = withOdds ? Object.values(withOdds.market || {}) : [];
+        console.log(`  │ ${markets.length} markets`);
+        for (const mk of markets.slice(0, 15)) {
+          const evs = Object.values(mk.event || {}).slice(0, 4);
+          const outcomes = evs.map(e => `${e.type || e.type_1 || ''}"${e.name || ''}"base=${e.base ?? ''}@${e.price}`).join(' | ');
+          console.log(`  │   type="${mk.type}" name="${mk.name}" group="${mk.group_name}" → ${outcomes}`);
+        }
+        console.log('  └──');
+      }
+    }
+  });
+} catch (e) { console.log(`  ERR ${e.message}`); console.error(e.stack); }
+
+// ═══════════════════════════════════════════════════════════════
+// 5) PREMIERBET (guineegames) — probe sportIds pour trouver vrai tennis
+// ═══════════════════════════════════════════════════════════════
+console.log('\n════════════ PREMIERBET (guineegames) — probe sportIds pour tennis ════════════');
+try {
+  const HDR = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Referer': 'https://www.guineegames.com/',
+  };
+  const params = 'country=GN&group=g6&platform=desktop&locale=fr';
+  const date = new Date().toISOString().slice(0, 10);
+  for (const sid of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30]) {
+    try {
+      const url = `https://sports-api.guineegames.com/v1/events/upcoming?${params}&sportId=${sid}&timeOffset=-60&date=${date}`;
+      const j = await fetchJson(url, { headers: HDR, timeoutMs: 20000 });
+      let count = 0; let sample = '';
+      if (j?.data) {
+        const cats = j.data.categories || (Array.isArray(j.data) ? j.data : []);
+        for (const c of cats) for (const comp of (c.competitions || c.tournaments || [])) {
+          for (const e of (comp.events || [])) {
+            count++;
+            if (!sample) {
+              const names = e.competitors?.map(x => x.name) || e.teams?.map(x => x.name) || [];
+              sample = names.length >= 2 ? `${names[0]} vs ${names[1]} [${c.name || '?'} / ${comp.name || '?'}]` : (e.name || '?');
+            }
+          }
+        }
+      }
+      console.log(`  sportId=${sid}: ${count} events${sample ? ` — ex: ${sample}` : ''}`);
+    } catch (e) { console.log(`  sportId=${sid}: ERR ${e.message}`); }
+  }
+} catch (e) { console.log(`  ERR ${e.message}`); }
+
+console.log('\n═══════════════ FIN DUMP v2 ═══════════════');
