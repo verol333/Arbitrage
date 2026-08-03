@@ -44,11 +44,15 @@ jobs:
       - run: npm install --production
       - working-directory: .
         run: ln -sf arbitrage-service/node_modules node_modules
-      - name: Run apollo dict
+      - name: Run all dicts
         working-directory: .
         run: |
           mkdir -p probe-results
-          node scripts/dict-apollo-tennis.js 2>&1 | tee probe-results/dict-apollo-tennis.log || true
+          for script in scripts/dict-*.js; do
+            base=$(basename $script .js)
+            echo "════════════ $base ════════════" | tee -a probe-results/${base}.log
+            node $script 2>&1 | tee probe-results/${base}.log || true
+          done
         env:
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
