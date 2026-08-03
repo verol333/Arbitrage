@@ -1,0 +1,40 @@
+[17:36:17] ▶▶▶ AUDIT FOOT 1XBET : scan + refetch + cross-check
+[premierbet] upcoming[2026-08-03]=33 highlights=358 unique=379 kept=53 filtered=(outright:0 virtual:0 horizon:326 noTeams:0 nonFoot:0)
+[sportybet:football] UPCOMING : 89 matchs listés
+[xbet] listPrematch : 231 champs a fetcher (BATCH=40)
+[betpawa:football] UPCOMING : 989 matchs listés (sans startTime)
+[17:36:33]   ⏱️ football listMatches done: +15984ms
+[17:36:33] 📋 FOOTBALL PRÉMATCH — 1xbet:1482 | 1win:717 | congobet:412 | yellowbet:90 | apollo:484 | betmomo:91 | premierbet:53 | betpawa:989 | sportybet:89
+[17:36:43]   ⏱️ football alignCatalogs done: +9393ms (113 entrées)
+[17:36:43] 🔗 113/113 matchs exploitables (≥2 books)
+[premierbet/gg] /events/7303964 err=fetch failed
+[17:36:56]   ⏱️ football readOdds done: +38373ms
+[17:36:56] ⏱️ readOdds par book (trié par lenteur) — apollo:12990ms/47 | congobet:11841ms/80 | 1xbet:11305ms/91 | 1win:7482ms/59 | betpawa:2278ms/58 | premierbet:1611ms/51 | yellowbet:95ms/90 | betmomo:86ms/82 | sportybet:24ms/85
+[17:36:56] 💰 cotes lues — 1xbet:91 | 1win:59 | congobet:80 | yellowbet:90 | apollo:47 | betmomo:81 | premierbet:50 | betpawa:58 | sportybet:85
+[17:36:56] 🎯 1 opportunités candidates ≥ 0.5% | 38662ms
+[17:36:56] 📊 distribution candidates par book — 1xbet:1(scope:91) | 1win:0(scope:59) | congobet:1(scope:80) | yellowbet:0(scope:90) | apollo:0(scope:47) | betmomo:0(scope:81) | premierbet:0(scope:50) | betpawa:0(scope:58) | sportybet:0(scope:85)
+[17:36:56]   ⏱️ football confirm+freshLive done: +39103ms
+[17:36:56] ✅ 1/1 opportunités confirmées après re-fetch | 39104ms
+[17:36:56] 📊 distribution confirmed par book — 1xbet:1 | 1win:0 | congobet:1 | yellowbet:0 | apollo:0 | betmomo:0 | premierbet:0 | betpawa:0 | sportybet:0
+[17:36:56] 📤 Sample opps envoyees :
+[17:36:56]    4.76% "Ringsted vs Frem" [1X2 — 2 + 1X] congobet@2.11 vs 1xbet@2.09
+[17:36:56] 
+1 opps totales
+[17:36:56] 1 opps incluent 1xbet
+
+[17:36:56] 1 matchs distincts avec opps 1xbet
+
+[17:36:56] 
+═══════════════════════════════════════════════════════════════════
+[17:36:56] MATCH: Ringsted vs Frem (id 1xbet=undefined)
+[17:36:56] ═══════════════════════════════════════════════════════════════════
+file:///home/runner/work/Arbitrage/Arbitrage/scripts/audit-foot-1xbet.js:56
+  log(`\nCOTES 1XBET RE-FETCH (${Object.keys(freshOdds).length} cles):`);
+                                        ^
+
+TypeError: Cannot convert undefined or null to object
+    at Function.keys (<anonymous>)
+    at file:///home/runner/work/Arbitrage/Arbitrage/scripts/audit-foot-1xbet.js:56:41
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+Node.js v20.20.2
