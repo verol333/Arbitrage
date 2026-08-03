@@ -1,0 +1,85 @@
+[xbet] listPrematch : 232 champs a fetcher (BATCH=40)
+[premierbet] upcoming[2026-08-03]=33 upcoming[2026-08-04]=71 upcoming[2026-08-05]=37 highlights=358 unique=440 kept=179 filtered=(outright:0 virtual:0 horizon:261 noTeams:0 nonFoot:0)
+[sportybet:football] UPCOMING : 90 matchs listés
+[betpawa:football] UPCOMING : 993 matchs listés (sans startTime)
+[17:49:03]   ⏱️ football listMatches done: +13438ms
+[17:49:03] 📋 FOOTBALL PRÉMATCH — 1xbet:1480 | 1win:714 | congobet:412 | yellowbet:219 | apollo:484 | betmomo:212 | premierbet:179 | betpawa:993 | sportybet:90
+[17:49:27]   ⏱️ football alignCatalogs done: +23339ms (265 entrées)
+[17:49:27] 🔗 265/265 matchs exploitables (≥2 books)
+[17:49:47]   ⏱️ football readOdds done: +57070ms
+[17:49:47] ⏱️ readOdds par book (trié par lenteur) — 1win:20291ms/125 | apollo:17731ms/109 | congobet:16646ms/183 | 1xbet:15557ms/213 | betpawa:2328ms/158 | premierbet:1637ms/174 | yellowbet:249ms/215 | betmomo:223ms/190 | sportybet:27ms/86
+[17:49:47] 💰 cotes lues — 1xbet:213 | 1win:125 | congobet:183 | yellowbet:215 | apollo:109 | betmomo:186 | premierbet:174 | betpawa:158 | sportybet:86
+[17:49:48] 🎯 3 opportunités candidates ≥ 0.3% | 57862ms
+[17:49:48] 📊 distribution candidates par book — 1xbet:3(scope:213) | 1win:0(scope:125) | congobet:1(scope:183) | yellowbet:0(scope:215) | apollo:0(scope:109) | betmomo:2(scope:186) | premierbet:0(scope:174) | betpawa:0(scope:158) | sportybet:0(scope:86)
+[17:49:48]   ⏱️ football confirm+freshLive done: +58449ms
+[17:49:48] ✅ 3/3 opportunités confirmées après re-fetch | 58449ms
+[17:49:48] 📊 distribution confirmed par book — 1xbet:3 | 1win:0 | congobet:1 | yellowbet:0 | apollo:0 | betmomo:2 | premierbet:0 | betpawa:0 | sportybet:0
+[17:49:48] 📤 Sample opps envoyees :
+[17:49:48]    4.76% "Ringsted vs Frem" [1X2 — 2 + 1X] congobet@2.11 vs 1xbet@2.09
+[17:49:48]    1.23% "Harichovce vs Mfk Kezmarok" [1MT 1X2 — Extérieur] 1xbet@1.62 vs betmomo@2.7
+[17:49:48]    0.62% "Potters Bar Town vs St Albans City" [1MT 1X2 — Extérieur] 1xbet@4.85 vs betmomo@1.27
+[17:49:48] 
+3 opps envoyees
+
+[17:49:48] 
+════════════════════════════════════════════════════════════════
+[17:49:48] OPP 4.76% [1X2 — 2 + 1X]
+[17:49:48]   Label opp : "Ringsted vs Frem"
+[17:49:48]   Teams full : Ringsted vs Frem
+[17:49:48]   Kickoff : 2026-08-04T16:00:00.000Z
+[17:49:48] 
+[17:49:48]   ─── CONGOBET id=78648633 ───
+[17:49:51]     Home : Ringsted IF
+[17:49:51]     Away : BK Frem
+[17:49:51]     League : /101/25031/49904/49905/
+[17:49:51]     Start : 2026-08-04T16:00:00.000Z
+[17:49:51]     ✅ Correspondance OK
+[17:49:51]   ─── 1XBET id=741174350 ───
+[xbet] listPrematch : 232 champs a fetcher (BATCH=40)
+[17:50:02]     Home : Ringsted
+[17:50:02]     Away : Frem
+[17:50:02]     League : Denmark. Landspokal
+[17:50:02]     Start : 2026-08-04T16:00:00.000Z
+[17:50:02]     ✅ Correspondance OK
+[17:50:02] 
+════════════════════════════════════════════════════════════════
+[17:50:02] OPP 1.23% [1MT 1X2 — Extérieur]
+[17:50:02]   Label opp : "Harichovce vs Mfk Kezmarok"
+[17:50:02]   Teams full : Harichovce vs Mfk Kezmarok
+[17:50:02]   Kickoff : 2026-08-04T15:00:00.000Z
+[17:50:02] 
+[17:50:02]   ─── 1XBET id=741404089 ───
+[xbet] listPrematch : 232 champs a fetcher (BATCH=40)
+[17:50:12]     Home : Harichovce
+[17:50:12]     Away : Mfk Kezmarok
+[17:50:12]     League : Slovakia Cup
+[17:50:12]     Start : 2026-08-04T15:00:00.000Z
+[17:50:12]     ✅ Correspondance OK
+[17:50:12]   ─── BETMOMO id=30464955 ───
+[17:50:16]     Home : SK Harichovce
+[17:50:16]     Away : 1.MFK Kezmarok
+[17:50:16]     League : Slovak Cup
+[17:50:16]     Start : 2026-08-04T15:00:00.000Z
+[17:50:16]     ✅ Correspondance OK
+[17:50:16] 
+════════════════════════════════════════════════════════════════
+[17:50:16] OPP 0.62% [1MT 1X2 — Extérieur]
+[17:50:16]   Label opp : "Potters Bar Town vs St Albans City"
+[17:50:16]   Teams full : Potters Bar Town vs St Albans City
+[17:50:16]   Kickoff : 2026-08-03T18:30:00.000Z
+[17:50:16] 
+[17:50:16]   ─── 1XBET id=741186020 ───
+[xbet] listPrematch : 232 champs a fetcher (BATCH=40)
+[17:50:26]     Home : Potters Bar Town
+[17:50:26]     Away : St Albans City
+[17:50:26]     League : Club Friendlies
+[17:50:26]     Start : 2026-08-03T18:30:00.000Z
+[17:50:26]     ✅ Correspondance OK
+[17:50:26]   ─── BETMOMO id=30462660 ───
+[17:50:30]     Home : Potters Bar Town FC
+[17:50:30]     Away : St Albans City FC
+[17:50:30]     League : Club Friendlies
+[17:50:30]     Start : 2026-08-03T18:30:00.000Z
+[17:50:30]     ✅ Correspondance OK
+[17:50:30] 
+═══ FIN ═══
