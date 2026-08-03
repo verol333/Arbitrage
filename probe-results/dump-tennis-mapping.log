@@ -1,0 +1,259 @@
+
+════════════ BETPAWA — probe categoryIds tennis ════════════
+  categoryId=4: 0 matchs — 
+  categoryId=5: 0 matchs — 
+  categoryId=6: 0 matchs — 
+  categoryId=7: 0 matchs — 
+  categoryId=8: 0 matchs — 
+  categoryId=9: 0 matchs — 
+  categoryId=10: 0 matchs — 
+  categoryId=11: 0 matchs — 
+  categoryId=12: 0 matchs — 
+  categoryId=13: 0 matchs — 
+  categoryId=14: 0 matchs — 
+  categoryId=15: 0 matchs — 
+  categoryId=20: 0 matchs — 
+
+  --- Fetching 2 matchs category=5 (defaut tennis) ---
+
+════════════ YELLOWBET — probe 403 tennis ════════════
+  sportId=35: ERR fetchStealth is not a function
+  sportId=36: ERR fetchStealth is not a function
+  sportId=37: ERR fetchStealth is not a function
+  sportId=40: ERR fetchStealth is not a function
+  sportId=47: ERR fetchStealth is not a function
+
+════════════ 1WIN — dump groups tennis (2 matchs) ════════════
+  207 matchs listes
+
+  ┌── 1WIN : Volodymyr Melnykov vs Andrii Kurtenko
+  │ home: Volodymyr Melnykov
+  │ away: Andrii Kurtenko
+  │ league: world
+  │ start: 2026-08-03T11:20:00.000Z
+  │ id: 38179139
+  │ 10 groupes:
+  │   "Winner" (2 outcomes) → Volodymyr Melnykov(4.33), Andrii Kurtenko(1.2)
+  │   "Total" (2 outcomes) → Under 84.5(1.8), Over 84.5(1.91)
+  │   "4th set. Total" (2 outcomes) → Under 19.5(2), Over 19.5(1.73)
+  │   "4th set. Handicap" (2 outcomes) → Andrii Kurtenko -2.5(3.5), Volodymyr Melnykov 2.5(1.29)
+  │   "4th set. Winner" (2 outcomes) → Volodymyr Melnykov(2.1), Andrii Kurtenko(1.67)
+  │   "4th set. Odd/Even" (2 outcomes) → Odd(3), Even(1.36)
+  │   "4th set. Race to" (2 outcomes) → Volodymyr Melnykov 9(1.91), Andrii Kurtenko 9(1.8)
+  │   "Odd/Even" (2 outcomes) → Even(1.5), Odd(2.5)
+  │   "Point Betting" (6 outcomes) → Win Andrii Kurtenko in Set 4, Point 16(1.67), Win Volodymyr Melnykov in Set 4, Point 16(2.1), Win Volodymyr Melnykov in Set 4, Point 15(2.1), Win Andrii Kurtenko in Set 4, Point 15(1.67)...
+  │   "4th set. Winning Margin" (6 outcomes) → Andrii Kurtenko 3-4(4), Andrii Kurtenko 2(3), Volodymyr Melnykov 5+(23), Volodymyr Melnykov 3-4(4.75)...
+  └──
+
+  ┌── 1WIN : VsevolodKheresko vs Volodymyr Vasyliev
+  │ home: VsevolodKheresko
+  │ away: Volodymyr Vasyliev
+  │ league: world
+  │ start: 2026-08-03T11:25:00.000Z
+  │ id: 38170447
+  │ 10 groupes:
+  │   "Winner" (2 outcomes) → Volodymyr Vasyliev(15), VsevolodKheresko(1.01)
+  │   "Total" (2 outcomes) → Over 56.5(1.83), Under 56.5(1.83)
+  │   "3rd set. Total" (2 outcomes) → Over 17.5(1.83), Under 17.5(1.83)
+  │   "3rd set. Handicap" (2 outcomes) → Volodymyr Vasyliev 4.5(1.83), VsevolodKheresko -4.5(1.83)
+  │   "3rd set. Winner" (2 outcomes) → Volodymyr Vasyliev(6.5), VsevolodKheresko(1.1)
+  │   "3rd set. Odd/Even" (2 outcomes) → Odd(2.2), Even(1.62)
+  │   "3rd set. Race to" (4 outcomes) → Volodymyr Vasyliev 7(8.5), Volodymyr Vasyliev 9(7), VsevolodKheresko 7(1.05), VsevolodKheresko 9(1.08)
+  │   "Odd/Even" (2 outcomes) → Even(2), Odd(1.73)
+  │   "Point Betting" (6 outcomes) → Win Volodymyr Vasyliev in Set 3, Point 11(2.2), Win VsevolodKheresko in Set 3, Point 11(1.62), Win VsevolodKheresko in Set 3, Point 10(1.83), Win Volodymyr Vasyliev in Set 3, Point 10(1.83)...
+  │   "3rd set. Winning Margin" (6 outcomes) → Volodymyr Vasyliev 2(10), VsevolodKheresko 5+(1.83), VsevolodKheresko 3-4(3.6), Volodymyr Vasyliev 3-4(19)...
+  └──
+
+════════════ APOLLO — dump BetTypeKeys tennis (2 matchs) ════════════
+  100 matchs listes
+
+  ┌── APOLLO : Berrettini, Matteo vs Navone, Mariano
+  │ home: Berrettini, Matteo
+  │ away: Navone, Mariano
+  │ league: ATP / ATP Montreal, Canada Men Singles
+  │ start: 2026-08-03T15:00:00.000Z
+  │ id: 73325016
+  │ 26 offers
+  │   BetTypeKey=20 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=211 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=212 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=502 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=544 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=558 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=574 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=597 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=841 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=842 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=852 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=910 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=911 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=914 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=915 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=987 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=988 "?" → ?=undefined, ?=undefined
+  └──
+
+  ┌── APOLLO : Galarneau, Alexis vs Kopriva, Vit
+  │ home: Galarneau, Alexis
+  │ away: Kopriva, Vit
+  │ league: ATP / ATP Montreal, Canada Men Singles
+  │ start: 2026-08-03T15:00:00.000Z
+  │ id: 73325022
+  │ 26 offers
+  │   BetTypeKey=20 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=211 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=212 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=502 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=544 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=558 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=574 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=597 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=841 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=842 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=852 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=910 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=911 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=914 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=915 "?" → ?=undefined, ?=undefined
+  │   BetTypeKey=987 "?" → ?=undefined, ?=undefined, ?=undefined, ?=undefined
+  │   BetTypeKey=988 "?" → ?=undefined, ?=undefined
+  └──
+
+════════════ BETMOMO — dump market types tennis (2 matchs) ════════════
+  132 matchs listes
+
+  ┌── BETMOMO : Lucie Nguyen Tan vs Alba Rey Garcia
+  │ home: Lucie Nguyen Tan
+  │ away: Alba Rey Garcia
+  │ league: WTT Women - Koksijde - Clay
+  │ start: 2026-08-03T11:43:00.000Z
+  │ id: 30465537
+  │ 0 markets
+  └──
+
+  ┌── BETMOMO : Kaat Coppez vs Loes Ebeling Koning
+  │ home: Kaat Coppez
+  │ away: Loes Ebeling Koning
+  │ league: WTT Women - Koksijde - Clay
+  │ start: 2026-08-03T11:46:00.000Z
+  │ id: 30467357
+  │ 0 markets
+  └──
+
+════════════ SPORTYBET — dump market IDs tennis (2 matchs) ════════════
+[sportybet:tennis] UPCOMING : 177 matchs listés
+  177 matchs listes
+
+  ┌── SPORTYBET : Berrettini, Matteo vs Navone, Mariano
+  │ home: Berrettini, Matteo
+  │ away: Navone, Mariano
+  │ league: ATP Montreal, Canada Men Singles
+  │ start: 2026-08-03T15:00:00.000Z
+  │ id: sr:match:73325016
+  │ 20 markets
+  │   id=186 "Winner" specifier= → Home=1.51, Away=2.65
+  │   id=187 "Game handicap -5.5" specifier=hcp=-5.5 → Home (-5.5)=5.10, Away (+5.5)=1.17
+  │   id=187 "Game handicap -4.5" specifier=hcp=-4.5 → Home (-4.5)=3.40, Away (+4.5)=1.32
+  │   id=187 "Game handicap -3.5" specifier=hcp=-3.5 → Home (-3.5)=2.30, Away (+3.5)=1.62
+  │   id=187 "Game handicap -2.5" specifier=hcp=-2.5 → Home (-2.5)=1.88, Away (+2.5)=1.93
+  │   id=187 "Game handicap -1.5" specifier=hcp=-1.5 → Home (-1.5)=1.66, Away (+1.5)=2.25
+  │   id=187 "Game handicap -0.5" specifier=hcp=-0.5 → Home (-0.5)=1.56, Away (+0.5)=2.45
+  │   id=187 "Game handicap 0.5" specifier=hcp=0.5 → Home (+0.5)=1.47, Away (-0.5)=2.70
+  │   id=189 "Total games 19.5" specifier=total=19.5 → Over 19.5=1.32, Under 19.5=3.45
+  │   id=189 "Total games 20.5" specifier=total=20.5 → Over 20.5=1.48, Under 20.5=2.70
+  │   id=189 "Total games 21.5" specifier=total=21.5 → Over 21.5=1.61, Under 21.5=2.35
+  │   id=189 "Total games 22.5" specifier=total=22.5 → Over 22.5=1.87, Under 22.5=1.94
+  │   id=189 "Total games 23.5" specifier=total=23.5 → Over 23.5=2.15, Under 23.5=1.73
+  │   id=189 "Total games 24.5" specifier=total=24.5 → Over 24.5=2.20, Under 24.5=1.69
+  │   id=189 "Total games 25.5" specifier=total=25.5 → Over 25.5=2.35, Under 25.5=1.59
+  │   id=189 "Total games 26.5" specifier=total=26.5 → Over 26.5=2.50, Under 26.5=1.54
+  │   id=190 "Berrettini, Matteo total games" specifier=total=11.5 → Over 11.5=1.21, Under 11.5=4.15
+  │   id=190 "Berrettini, Matteo total games" specifier=total=12.5 → Over 12.5=1.66, Under 12.5=2.15
+  │   id=190 "Berrettini, Matteo total games" specifier=total=13.5 → Over 13.5=2.45, Under 13.5=1.51
+  │   id=190 "Berrettini, Matteo total games" specifier=total=14.5 → Over 14.5=2.75, Under 14.5=1.41
+  └──
+
+  ┌── SPORTYBET : Galarneau, Alexis vs Kopriva, Vit
+  │ home: Galarneau, Alexis
+  │ away: Kopriva, Vit
+  │ league: ATP Montreal, Canada Men Singles
+  │ start: 2026-08-03T15:00:00.000Z
+  │ id: sr:match:73325022
+  │ 18 markets
+  │   id=186 "Winner" specifier= → Home=1.84, Away=2.00
+  │   id=187 "Game handicap -3.5" specifier=hcp=-3.5 → Home (-3.5)=2.65, Away (+3.5)=1.49
+  │   id=187 "Game handicap -2.5" specifier=hcp=-2.5 → Home (-2.5)=2.20, Away (+2.5)=1.67
+  │   id=187 "Game handicap -1.5" specifier=hcp=-1.5 → Home (-1.5)=2.00, Away (+1.5)=1.81
+  │   id=187 "Game handicap -0.5" specifier=hcp=-0.5 → Home (-0.5)=1.88, Away (+0.5)=1.93
+  │   id=187 "Game handicap 0.5" specifier=hcp=0.5 → Home (+0.5)=1.76, Away (-0.5)=2.05
+  │   id=187 "Game handicap 1.5" specifier=hcp=1.5 → Home (+1.5)=1.67, Away (-1.5)=2.20
+  │   id=187 "Game handicap 2.5" specifier=hcp=2.5 → Home (+2.5)=1.54, Away (-2.5)=2.50
+  │   id=189 "Total games 19.5" specifier=total=19.5 → Over 19.5=1.33, Under 19.5=3.35
+  │   id=189 "Total games 20.5" specifier=total=20.5 → Over 20.5=1.49, Under 20.5=2.65
+  │   id=189 "Total games 21.5" specifier=total=21.5 → Over 21.5=1.62, Under 21.5=2.30
+  │   id=189 "Total games 22.5" specifier=total=22.5 → Over 22.5=1.87, Under 22.5=1.94
+  │   id=189 "Total games 23.5" specifier=total=23.5 → Over 23.5=2.10, Under 23.5=1.74
+  │   id=189 "Total games 24.5" specifier=total=24.5 → Over 24.5=2.15, Under 24.5=1.70
+  │   id=189 "Total games 25.5" specifier=total=25.5 → Over 25.5=2.35, Under 25.5=1.60
+  │   id=190 "Galarneau, Alexis total games" specifier=total=11.5 → Over 11.5=1.39, Under 11.5=2.85
+  │   id=190 "Galarneau, Alexis total games" specifier=total=12.5 → Over 12.5=1.98, Under 12.5=1.77
+  │   id=190 "Galarneau, Alexis total games" specifier=total=13.5 → Over 13.5=2.90, Under 13.5=1.38
+  └──
+
+════════════ PREMIERBET (guineegames sportId=2) — dump markets tennis (2 matchs) ════════════
+[premierbet] upcoming=3 highlights=13 unique=16 kept=7 filtered=(outright:0 virtual:0 horizon:9 noTeams:0 nonFoot:0)
+  7 matchs listes
+
+  ┌── PREMIERBET : Jamaica U20 vs Guatemala U20
+  │ home: Jamaica U20
+  │ away: Guatemala U20
+  │ league: ?
+  │ start: 2026-08-03T16:30:00.000Z
+  │ id: 7320076
+  │ 4 market groups:
+  │   groupe "Principal" : 3 markets
+  │     id=4 "Gagnant Du Match (Prolongations Incl.)" → 1=6.00, 2=1.06
+  │     id=23 "Handicap (Prolongations Incl.)" → 1=1.76, 2=1.84, 1=1.87, 1=1.67
+  │     id=24 "Total Des Points (Prolongations Incl.)" → plus de=1.80, moins de=1.80, plus de=1.72, moins de=1.89
+  │   groupe "Totals" : 4 markets
+  │     id=24 "Total Des Points (Prolongations Incl.)" → plus de=1.80, moins de=1.80, plus de=1.72, moins de=1.89
+  │     id=353 "Équipe À Domicile – Total Des Points" → plus de=1.79, moins de=1.81
+  │     id=352 "Équipe À L’Extérieur – Total Des Points" → moins de=1.87, plus de=1.74
+  │     id=26 "1ère Mi-Temps - Total Des Points" → plus de=1.82, moins de=1.78, plus de=1.70, moins de=1.92
+  │   groupe "Période" : 1 markets
+  │     id=26 "1ère Mi-Temps - Total Des Points" → plus de=1.82, moins de=1.78, plus de=1.70, moins de=1.92
+  │   groupe "Tout" : 6 markets
+  │     id=4 "Gagnant Du Match (Prolongations Incl.)" → 1=6.00, 2=1.06
+  │     id=23 "Handicap (Prolongations Incl.)" → 1=1.76, 2=1.84, 1=1.87, 1=1.67
+  │     id=24 "Total Des Points (Prolongations Incl.)" → plus de=1.80, moins de=1.80, plus de=1.72, moins de=1.89
+  │     id=353 "Équipe À Domicile – Total Des Points" → plus de=1.79, moins de=1.81
+  │     id=352 "Équipe À L’Extérieur – Total Des Points" → moins de=1.87, plus de=1.74
+  └──
+
+  ┌── PREMIERBET : Nicaragua U20 vs Panama U20
+  │ home: Nicaragua U20
+  │ away: Panama U20
+  │ league: ?
+  │ start: 2026-08-03T19:00:00.000Z
+  │ id: 7320077
+  │ 4 market groups:
+  │   groupe "Principal" : 3 markets
+  │     id=4 "Gagnant Du Match (Prolongations Incl.)" → 1=2.15, 2=1.55
+  │     id=23 "Handicap (Prolongations Incl.)" → 1=1.78, 2=1.83, 1=1.89, 2=1.72
+  │     id=24 "Total Des Points (Prolongations Incl.)" → plus de=1.80, moins de=1.80, plus de=1.72, moins de=1.89
+  │   groupe "Totals" : 4 markets
+  │     id=24 "Total Des Points (Prolongations Incl.)" → plus de=1.80, moins de=1.80, plus de=1.72, moins de=1.89
+  │     id=353 "Équipe À Domicile – Total Des Points" → plus de=1.88, moins de=1.73
+  │     id=352 "Équipe À L’Extérieur – Total Des Points" → plus de=1.79, moins de=1.81
+  │     id=26 "1ère Mi-Temps - Total Des Points" → plus de=1.86, moins de=1.75, plus de=1.73, moins de=1.88
+  │   groupe "Période" : 1 markets
+  │     id=26 "1ère Mi-Temps - Total Des Points" → plus de=1.86, moins de=1.75, plus de=1.73, moins de=1.88
+  │   groupe "Tout" : 6 markets
+  │     id=4 "Gagnant Du Match (Prolongations Incl.)" → 1=2.15, 2=1.55
+  │     id=23 "Handicap (Prolongations Incl.)" → 1=1.78, 2=1.83, 1=1.89, 2=1.72
+  │     id=24 "Total Des Points (Prolongations Incl.)" → plus de=1.80, moins de=1.80, plus de=1.72, moins de=1.89
+  │     id=353 "Équipe À Domicile – Total Des Points" → plus de=1.88, moins de=1.73
+  │     id=352 "Équipe À L’Extérieur – Total Des Points" → plus de=1.79, moins de=1.81
+  └──
+
+═══════════════ FIN DUMP ═══════════════
