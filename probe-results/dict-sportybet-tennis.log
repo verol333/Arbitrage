@@ -1,0 +1,221 @@
+═══ SPORTYBET tennis dictionnaire complet ═══
+
+Fetch sport=sr:sport:5 SANS filter marketId...
+
+  Avec filter (8 marketIds foot) : 20 events
+  Sans filter (tous) : 0 events
+
+5 matchs sample :
+  - Fritz, Taylor vs Jodar, Rafael (ATP Washington, USA Men Singles)
+  - Gibson, Talia vs Cocciaretto, Elisabetta (WTA Toronto, Canada Women Singles)
+  - Ruse, Elena-Gabriela vs Stearns, Peyton (WTA Toronto, Canada Women Singles)
+  - Putintseva, Yulia vs Zhang, Shuai (WTA Toronto, Canada Women Singles)
+  - Carou I / Gomez F A vs Latinovic S / Zeballos F (ATP Challenger Hagen, Germany Men Doubles)
+
+═══ Fetch detail event pour recuperer TOUS les markets ═══
+
+  Match "Fritz, Taylor vs Jodar, Rafael" : 50 markets
+
+  Match "Gibson, Talia vs Cocciaretto, Elisabetta" : 50 markets
+
+  Match "Ruse, Elena-Gabriela vs Stearns, Peyton" : 50 markets
+
+  Match "Putintseva, Yulia vs Zhang, Shuai" : 50 markets
+
+  Match "Carou I / Gomez F A vs Latinovic S / Zeballos F" : 9 markets
+
+
+═══ DICTIONNAIRE COMPLET : 24 marketIds ═══
+
+
+━━ marketId=186 ━━
+  Descriptions : Winner
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Home(id=4)=1.57 | Away(id=5)=2.50
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Home(id=4)=2.30 | Away(id=5)=1.64
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Home(id=4)=2.10 | Away(id=5)=1.76
+
+━━ marketId=187 ━━
+  Descriptions : Game handicap -5.5 | Game handicap -4.5 | Game handicap -3.5 | Game handicap -2.5 | Game handicap -1.5 | Game handicap -0.5 | Game handicap 0.5 | Game handicap 1.5 | Game handicap 2.5 | Game handicap 3.5 | Game handicap 4.5 | Game handicap 5.5 | Game handicap -6.5
+  Specifiers observes (13) : hcp=-5.5, hcp=-4.5, hcp=-3.5, hcp=-2.5, hcp=-1.5, hcp=-0.5, hcp=0.5, hcp=1.5, hcp=2.5, hcp=3.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=hcp=-5.5 → Home (-5.5)(id=1714)=5.75 | Away (+5.5)(id=1715)=1.14
+    [Fritz, Taylor vs Jodar, Rafael] spec=hcp=-4.5 → Home (-4.5)(id=1714)=3.60 | Away (+4.5)(id=1715)=1.30
+    [Fritz, Taylor vs Jodar, Rafael] spec=hcp=-3.5 → Home (-3.5)(id=1714)=2.45 | Away (+3.5)(id=1715)=1.55
+
+━━ marketId=188 ━━
+  Descriptions : Set handicap -1.5 | Set handicap 1.5
+  Specifiers observes (2) : hcp=-1.5, hcp=1.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=hcp=-1.5 → Home (-1.5)(id=1714)=2.40 | Away (+1.5)(id=1715)=1.53
+    [Fritz, Taylor vs Jodar, Rafael] spec=hcp=1.5 → Home (+1.5)(id=1714)=1.21 | Away (-1.5)(id=1715)=4.05
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=hcp=-1.5 → Home (-1.5)(id=1714)=3.60 | Away (+1.5)(id=1715)=1.26
+
+━━ marketId=189 ━━
+  Descriptions : Total games 20.5 | Total games 21.5 | Total games 22.5 | Total games 23.5 | Total games 24.5 | Total games 25.5 | Total games 26.5 | Total games 18.5 | Total games 19.5 | Total games 17.5
+  Specifiers observes (10) : total=20.5, total=21.5, total=22.5, total=23.5, total=24.5, total=25.5, total=26.5, total=18.5, total=19.5, total=17.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=20.5 → Over 20.5(id=12)=1.35 | Under 20.5(id=13)=3.20
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=21.5 → Over 21.5(id=12)=1.46 | Under 21.5(id=13)=2.75
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=22.5 → Over 22.5(id=12)=1.70 | Under 22.5(id=13)=2.15
+
+━━ marketId=190 ━━
+  Descriptions : Fritz, Taylor total games | Gibson, Talia total games | Ruse, Elena-Gabriela total games | Putintseva, Yulia total games
+  Specifiers observes (4) : total=11.5, total=12.5, total=13.5, total=10.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=11.5 → Over 11.5(id=12)=1.22 | Under 11.5(id=13)=4.05
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=12.5 → Over 12.5(id=12)=1.63 | Under 12.5(id=13)=2.20
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=13.5 → Over 13.5(id=12)=2.40 | Under 13.5(id=13)=1.54
+
+━━ marketId=191 ━━
+  Descriptions : Jodar, Rafael total games | Cocciaretto, Elisabetta total games | Stearns, Peyton total games | Zhang, Shuai total games
+  Specifiers observes (5) : total=11.5, total=12.5, total=13.5, total=9.5, total=10.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=11.5 → Over 11.5(id=12)=1.56 | Under 11.5(id=13)=2.35
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=12.5 → Over 12.5(id=12)=1.96 | Under 12.5(id=13)=1.78
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=13.5 → Over 13.5(id=12)=2.70 | Under 13.5(id=13)=1.43
+
+━━ marketId=192 ━━
+  Descriptions : Fritz, Taylor to win a set | Gibson, Talia to win a set | Ruse, Elena-Gabriela to win a set | Putintseva, Yulia to win a set | Carou I / Gomez F A to win a set
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=1.21 | No(id=76)=4.05
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Yes(id=74)=1.53 | No(id=76)=2.40
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Yes(id=74)=1.47 | No(id=76)=2.60
+
+━━ marketId=193 ━━
+  Descriptions : Jodar, Rafael to win a set | Cocciaretto, Elisabetta to win a set | Stearns, Peyton to win a set | Zhang, Shuai to win a set | Latinovic S / Zeballos F to win a set
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=1.53 | No(id=76)=2.40
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Yes(id=74)=1.26 | No(id=76)=3.60
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Yes(id=74)=1.32 | No(id=76)=3.20
+
+━━ marketId=194 ━━
+  Descriptions : Any set to nil
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=13.00 | No(id=76)=1.01
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Yes(id=74)=9.60 | No(id=76)=1.04
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Yes(id=74)=7.40 | No(id=76)=1.07
+
+━━ marketId=196 ━━
+  Descriptions : Exact sets
+  Specifiers observes (1) : variant=sr:exact_sets:bestof:3
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=variant=sr:exact_sets:bestof:3 → 2(id=sr:exact_sets:bestof:3:32)=1.60 | 3(id=sr:exact_sets:bestof:3:33)=2.25
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=variant=sr:exact_sets:bestof:3 → 2(id=sr:exact_sets:bestof:3:32)=1.53 | 3(id=sr:exact_sets:bestof:3:33)=2.40
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=variant=sr:exact_sets:bestof:3 → 2(id=sr:exact_sets:bestof:3:32)=1.51 | 3(id=sr:exact_sets:bestof:3:33)=2.45
+
+━━ marketId=198 ━━
+  Descriptions : Odd/even games
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Odd(id=70)=1.87 | Even(id=72)=1.87
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Odd(id=70)=1.89 | Even(id=72)=1.85
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Odd(id=70)=1.88 | Even(id=72)=1.86
+
+━━ marketId=199 ━━
+  Descriptions : Correct Score
+  Specifiers observes (1) : variant=sr:correct_score:bestof:3
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=variant=sr:correct_score:bestof:3 → 2:0(id=sr:correct_score:bestof:3:4)=2.35 | 2:1(id=sr:correct_score:bestof:3:5)=3.65 | 1:2(id=sr:correct_score:bestof:3:6)=5.10 | 0:2(id=sr:correct_score:bestof:3:7)=4.15
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=variant=sr:correct_score:bestof:3 → 2:0(id=sr:correct_score:bestof:3:4)=3.60 | 2:1(id=sr:correct_score:bestof:3:5)=5.10 | 1:2(id=sr:correct_score:bestof:3:6)=4.10 | 0:2(id=sr:correct_score:bestof:3:7)=2.35
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=variant=sr:correct_score:bestof:3 → 2:0(id=sr:correct_score:bestof:3:4)=3.20 | 2:1(id=sr:correct_score:bestof:3:5)=4.95 | 1:2(id=sr:correct_score:bestof:3:6)=4.40 | 0:2(id=sr:correct_score:bestof:3:7)=2.55
+
+━━ marketId=201 ━━
+  Descriptions : Double result (1st set/match)
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Home/Home(id=861)=1.85 | Away/Home(id=862)=7.10 | Home/Away(id=863)=9.80 | Away/Away(id=864)=3.05
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Home/Home(id=861)=2.80 | Away/Home(id=862)=9.70 | Home/Away(id=863)=7.80 | Away/Away(id=864)=1.92
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Home/Home(id=861)=2.50 | Away/Home(id=862)=9.30 | Home/Away(id=863)=8.25 | Away/Away(id=864)=2.05
+
+━━ marketId=202 ━━
+  Descriptions : 1st set - winner | 2nd set - winner
+  Specifiers observes (2) : setnr=1, setnr=2
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1 → Home(id=4)=1.63 | Away(id=5)=2.30
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=2 → Home(id=4)=1.64 | Away(id=5)=2.25
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=setnr=1 → Home(id=4)=2.20 | Away(id=5)=1.69
+
+━━ marketId=203 ━━
+  Descriptions : 1st set - game handicap -2.5 | 1st set - game handicap -1.5 | 1st set - game handicap 1.5 | 1st set - game handicap 2.5
+  Specifiers observes (4) : setnr=1|hcp=-2.5, setnr=1|hcp=-1.5, setnr=1|hcp=1.5, setnr=1|hcp=2.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|hcp=-2.5 → Home (-2.5)(id=1714)=3.60 | Away (+2.5)(id=1715)=1.26
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|hcp=-1.5 → Home (-1.5)(id=1714)=2.10 | Away (+1.5)(id=1715)=1.70
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|hcp=1.5 → Home (+1.5)(id=1714)=1.35 | Away (-1.5)(id=1715)=3.00
+
+━━ marketId=204 ━━
+  Descriptions : 1st set - total games
+  Specifiers observes (6) : setnr=1|total=6.5, setnr=1|total=7.5, setnr=1|total=8.5, setnr=1|total=9.5, setnr=1|total=10.5, setnr=1|total=12.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|total=6.5 → Over 6.5(id=12)=1.01 | Under 6.5(id=13)=14.00
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|total=7.5 → Over 7.5(id=12)=1.03 | Under 7.5(id=13)=9.90
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|total=8.5 → Over 8.5(id=12)=1.14 | Under 8.5(id=13)=5.20
+
+━━ marketId=207 ━━
+  Descriptions : 1st set - correct score
+  Specifiers observes (1) : setnr=1
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1 → 6:0(id=865)=155.00 | 6:1(id=866)=27.00 | 6:2(id=867)=14.00 | 6:3(id=868)=6.40
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=setnr=1 → 6:0(id=865)=105.00 | 6:1(id=866)=24.00 | 6:2(id=867)=15.00 | 6:3(id=868)=8.00
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=setnr=1 → 6:0(id=865)=55.00 | 6:1(id=866)=18.50 | 6:2(id=867)=11.50 | 6:3(id=868)=8.60
+
+━━ marketId=314 ━━
+  Descriptions : Total sets
+  Specifiers observes (1) : total=2.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=2.5 → Over 2.5(id=12)=2.25 | Under 2.5(id=13)=1.58
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=total=2.5 → Over 2.5(id=12)=2.40 | Under 2.5(id=13)=1.51
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=total=2.5 → Over 2.5(id=12)=2.40 | Under 2.5(id=13)=1.50
+
+━━ marketId=850 ━━
+  Descriptions : Fritz, Taylor to win exactly 1 set | Gibson, Talia to win exactly 1 set | Ruse, Elena-Gabriela to win exactly 1 set | Putintseva, Yulia to win exactly 1 set
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=4.85 | No(id=76)=1.16
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Yes(id=74)=4.05 | No(id=76)=1.22
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Yes(id=74)=4.25 | No(id=76)=1.20
+
+━━ marketId=851 ━━
+  Descriptions : Jodar, Rafael to win exactly 1 set | Cocciaretto, Elisabetta to win exactly 1 set | Stearns, Peyton to win exactly 1 set | Zhang, Shuai to win exactly 1 set
+  Specifiers observes (0) : 
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=3.60 | No(id=76)=1.26
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec= → Yes(id=74)=4.85 | No(id=76)=1.16
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Yes(id=74)=4.70 | No(id=76)=1.17
+
+━━ marketId=1055 ━━
+  Descriptions : Winner & total
+  Specifiers observes (3) : total=23.5, total=21.5, total=20.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=total=23.5 → Home & over 23.5(id=973)=3.20 | Away & over 23.5(id=974)=4.45 | Home & under 23.5(id=975)=2.70 | Away & under 23.5(id=976)=4.90
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=total=21.5 → Home & over 21.5(id=973)=3.80 | Away & over 21.5(id=974)=3.00 | Home & under 21.5(id=975)=5.00 | Away & under 21.5(id=976)=3.15
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=total=21.5 → Home & over 21.5(id=973)=3.85 | Away & over 21.5(id=974)=3.45 | Home & under 21.5(id=975)=4.10 | Away & under 21.5(id=976)=3.15
+
+━━ marketId=1056 ━━
+  Descriptions : 1st set - winner & total
+  Specifiers observes (1) : setnr=1|total=9.5
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1|total=9.5 → Home & over 9.5(id=973)=2.55 | Away & over 9.5(id=974)=3.25 | Home & under 9.5(id=975)=3.60 | Away & under 9.5(id=976)=5.80
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=setnr=1|total=9.5 → Home & over 9.5(id=973)=3.95 | Away & over 9.5(id=974)=3.10 | Home & under 9.5(id=975)=4.00 | Away & under 9.5(id=976)=3.10
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=setnr=1|total=9.5 → Home & over 9.5(id=973)=3.95 | Away & over 9.5(id=974)=3.60 | Home & under 9.5(id=975)=3.55 | Away & under 9.5(id=976)=2.95
+
+━━ marketId=1209 ━━
+  Descriptions : 1st set - exact score group
+  Specifiers observes (1) : setnr=1
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=setnr=1 → Fritz, Taylor 6-0, 6-1, 6-2(id=2039)=7.90 | Fritz, Taylor 6-3, 6-4(id=2040)=2.90 | Fritz, Taylor 7-5, 7-6(id=2041)=4.30 | Jodar, Rafael 6-0, 6-1, 6-2(id=2042)=15.50
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=setnr=1 → Gibson, Talia 6-0, 6-1, 6-2(id=2039)=7.90 | Gibson, Talia 6-3, 6-4(id=2040)=3.90 | Gibson, Talia 7-5, 7-6(id=2041)=7.10 | Cocciaretto, Elisabetta 6-0, 6-1, 6-2(id=2042)=5.10
+    [Ruse, Elena-Gabriela vs Stearns, Peyton] spec=setnr=1 → Ruse, Elena-Gabriela 6-0, 6-1, 6-2(id=2039)=5.80 | Ruse, Elena-Gabriela 6-3, 6-4(id=2040)=3.90 | Ruse, Elena-Gabriela 7-5, 7-6(id=2041)=7.70 | Stearns, Peyton 6-0, 6-1, 6-2(id=2042)=4.65
+
+━━ marketId=1211 ━━
+  Descriptions : Match to end 0:2 | Match to end 2:0
+  Specifiers observes (2) : score=0:2, score=2:0
+  Exemples :
+    [Fritz, Taylor vs Jodar, Rafael] spec=score=0:2 → Yes(id=74)=3.95 | No(id=76)=1.21
+    [Fritz, Taylor vs Jodar, Rafael] spec=score=2:0 → Yes(id=74)=2.35 | No(id=76)=1.52
+    [Gibson, Talia vs Cocciaretto, Elisabetta] spec=score=0:2 → Yes(id=74)=2.40 | No(id=76)=1.51
