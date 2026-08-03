@@ -1,0 +1,209 @@
+═══ PHASE 1 : chercher dictionnaire BetTypes ═══
+
+  ✗ /sport/offer/v3/bettypes
+  ✗ /sport/offer/v3/bet-types
+  ✗ /sport/offer/v3/BetTypes
+  ✗ /sport/offer/v3/bettypesgroups
+  ✗ /sport/offer/v3/dict/bettypes
+  ✗ /sport/offer/v3/markets
+  ✗ /sport/offer/v3/sport/bettypes?SportId=389
+  ✗ /sport/offer/v3/bettypes/389
+  ✗ /sport/offer/v3/BetTypeGroups?SportId=389
+  ✗ /sport/offer/v3/sport/389/bettypes
+
+
+═══ PHASE 2 : sample large + analyse patterns ═══
+
+  100 matchs tennis dispos
+  8/8 matchs avec offers
+
+  17 BetTypeKeys distincts observés :
+
+
+  ━━ BetTypeKey=20 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1"1"=1.46 | 2"2"=2.5
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1"1"=1.77 | 2"2"=1.94
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1"1"=1.78 | 2"2"=1.92
+
+  ━━ BetTypeKey=211 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1, 2
+    Outcome Names : No | Yes
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1"Yes"=1.19 | 2"No"=4
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1"Yes"=1.32 | 2"No"=3
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1"Yes"=1.32 | 2"No"=3
+
+  ━━ BetTypeKey=212 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1, 2
+    Outcome Names : No | Yes
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1"Yes"=1.55 | 2"No"=2.26
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1"Yes"=1.38 | 2"No"=2.75
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1"Yes"=1.36 | 2"No"=2.8
+
+  ━━ BetTypeKey=502 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1"1"=1.55 | 2"2"=2.24
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1"1"=1.78 | 2"2"=1.89
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1"1"=1.79 | 2"2"=1.88
+
+  ━━ BetTypeKey=544 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 0:2, 1:2, 2:0, 2:1
+    Outcome Names : 0:2 | 1:2 | 2:0 | 2:1
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 0:2"0:2"=4.1 | 1:2"1:2"=5 | 2:0"2:0"=2.28 | 2:1"2:1"=3.45
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 0:2"0:2"=3.05 | 1:2"1:2"=4.2 | 2:0"2:0"=2.8 | 2:1"2:1"=4
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 0:2"0:2"=3.1 | 1:2"1:2"=4.2 | 2:0"2:0"=2.85 | 2:1"2:1"=3.95
+
+  ━━ BetTypeKey=558 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1"1"=1.56 | 2"2"=2.23
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1"1"=1.78 | 2"2"=1.89
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1"1"=1.79 | 2"2"=1.88
+
+  ━━ BetTypeKey=574 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1/1, 1/2, 2/1, 2/2
+    Outcome Names : 1/1 | 1/2 | 2/1 | 2/2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1/1"1/1"=1.74 | 1/2"1/2"=9.6 | 2/2"2/2"=3.05 | 2/1"2/1"=6.6
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1/1"1/1"=2.11 | 1/2"1/2"=8.2 | 2/2"2/2"=2.31 | 2/1"2/1"=7.6
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1/1"1/1"=2.13 | 1/2"1/2"=8 | 2/2"2/2"=2.3 | 2/1"2/1"=7.6
+
+  ━━ BetTypeKey=597 ━━
+    Instances : 40
+    Sbvs distincts (5) : 10.5, 6.5, 7.5, 8.5, 9.5
+    Outcome Types : 1, 2
+    Outcome Names : Over | Under
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=9.5 → 1"Under"=2.26 | 2"Over"=1.57
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=10.5 → 1"Under"=1.41 | 2"Over"=2.7
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=8.5 → 1"Under"=4.7 | 2"Over"=1.16
+
+  ━━ BetTypeKey=841 ━━
+    Instances : 8
+    Sbvs distincts (1) : 12.5
+    Outcome Types : 1, 2
+    Outcome Names : Over | Under
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=12.5 → 1"Under"=2.11 | 2"Over"=1.65
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv=12.5 → 1"Under"=1.75 | 2"Over"=1.96
+      [Van Assche, Luca vs Droguet, Titouan] Sbv=12.5 → 1"Under"=1.82 | 2"Over"=1.88
+
+  ━━ BetTypeKey=842 ━━
+    Instances : 8
+    Sbvs distincts (1) : 12.5
+    Outcome Types : 1, 2
+    Outcome Names : Over | Under
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=12.5 → 1"Under"=1.7 | 2"Over"=2.03
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv=12.5 → 1"Under"=1.69 | 2"Over"=2.04
+      [Van Assche, Luca vs Droguet, Titouan] Sbv=12.5 → 1"Under"=1.78 | 2"Over"=1.93
+
+  ━━ BetTypeKey=852 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 1, 2
+    Outcome Names : no | yes
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 1"yes"=10 | 2"no"=1.01
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 1"yes"=8.8 | 2"no"=1.02
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 1"yes"=9.6 | 2"no"=1.01
+
+  ━━ BetTypeKey=910 ━━
+    Instances : 24
+    Sbvs distincts (7) : -0.5, -1.5, -2.5, -3.5, 0.5, 1.5, 2.5
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=-3.5 → 1"1"=2.23 | 2"2"=1.58
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=-2.5 → 1"1"=1.83 | 2"2"=1.87
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=-1.5 → 1"1"=1.62 | 2"2"=2.16
+
+  ━━ BetTypeKey=911 ━━
+    Instances : 24
+    Sbvs distincts (4) : 21.5, 22.5, 23.5, 24.5
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=22.5 → 1"1"=1.89 | 2"2"=1.82
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=23.5 → 1"1"=1.68 | 2"2"=2.06
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=21.5 → 1"1"=2.25 | 2"2"=1.57
+
+  ━━ BetTypeKey=914 ━━
+    Instances : 16
+    Sbvs distincts (2) : -1.5, 1.5
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=1.5 → 1"1"=1.2 | 2"2"=4.1
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=-1.5 → 1"1"=2.28 | 2"2"=1.56
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv=1.5 → 1"1"=1.33 | 2"2"=3.05
+
+  ━━ BetTypeKey=915 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 2, 3
+    Outcome Names : 2 | 3
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 2"2"=1.56 | 3"3"=2.23
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 2"2"=1.55 | 3"3"=2.25
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 2"2"=1.57 | 3"3"=2.21
+
+  ━━ BetTypeKey=987 ━━
+    Instances : 8
+    Sbvs distincts (0) : 
+    Outcome Types : 0:6, 1:6, 2:6, 3:6, 4:6, 5:7, 6:0, 6:1, 6:2, 6:3
+    Outcome Names : 0:6 | 1:6 | 2:6 | 3:6 | 4:6 | 5:7 | 6:0 | 6:1 | 6:2 | 6:3
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv= → 6:0"6:0"=90 | 6:1"6:1"=19 | 6:2"6:2"=8.6 | 6:3"6:3"=5.4 | 6:4"6:4"=4 | 7:5"7:5"=12 | 7:6"7:6"=5.2 | 6:7"6:7"=6.2 | 5:7"5:7"=17 | 4:6"4:6"=6.8 | 3:6"3:6"=6.4 | 2:6"2:6"=19 | 1:6"1:6"=35 | 0:6"0:6"=101
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv= → 6:0"6:0"=60 | 6:1"6:1"=13 | 6:2"6:2"=9.4 | 6:3"6:3"=4.9 | 6:4"6:4"=6 | 7:5"7:5"=13 | 7:6"7:6"=7.6 | 6:7"6:7"=8 | 5:7"5:7"=14 | 4:6"4:6"=4.9 | 3:6"3:6"=7 | 2:6"2:6"=8.8 | 1:6"1:6"=19 | 0:6"0:6"=70
+      [Van Assche, Luca vs Droguet, Titouan] Sbv= → 6:0"6:0"=80 | 6:1"6:1"=20 | 6:2"6:2"=9.2 | 6:3"6:3"=6.2 | 6:4"6:4"=4.7 | 7:5"7:5"=13 | 7:6"7:6"=6.6 | 6:7"6:7"=6.8 | 5:7"5:7"=14 | 4:6"4:6"=6 | 3:6"3:6"=5.4 | 2:6"2:6"=11 | 1:6"1:6"=18 | 0:6"0:6"=90
+
+  ━━ BetTypeKey=988 ━━
+    Instances : 8
+    Sbvs distincts (2) : -0.5, -1.5
+    Outcome Types : 1, 2
+    Outcome Names : 1 | 2
+    Exemples :
+      [Berrettini, Matteo vs Navone, Mariano] Sbv=-1.5 → 1"1"=1.97 | 2"2"=1.75
+      [Galarneau, Alexis vs Kopriva, Vit] Sbv=-0.5 → 1"1"=1.8 | 2"2"=1.91
+      [Van Assche, Luca vs Droguet, Titouan] Sbv=-0.5 → 1"1"=1.81 | 2"2"=1.9
+
+
+═══ PHASE 3 : chercher endpoint avec noms de markets ═══
+
+  ✗ /sport/offer/v3/match?MatchId=73325016
+  ✗ /sport/offer/v3/match/73325016
+  ✗ /sport/offer/v3/match/73325016/offers
+  ✗ /sport/offer/v3/matches/73325016
+  ✗ /sport/offer/v3/match/full-offer?MatchId=73325016
+  ✗ /sport/offer/v3/match/detail?MatchId=73325016
+  ✓ /sport/offer/v3/match/offers?MatchId=73325016&IncludeBetTypeNames=true → 29596b
+    {"Id":73325016,"EventCode":"9178","BetV6Code":"9178","Description":"Berrettini, Matteo-Navone, Mariano","TeamHome":"Berrettini, Matteo","TeamAway":"Navone, Mariano","OriginalTeamHome":"Berrettini, Matteo","OriginalTeamAway":"Navone, Mariano","TeamHomeId":215400,"TeamAwayId":10328521,"MatchStartTime":"2026-08-03T15:00:00Z","IgnoreTimeFilter":false,"AdditionalMatchData":"Tennis / ATP / ATP Montreal,
+  ✓ /sport/offer/v3/match/offers?MatchId=73325016&Detailed=true → 29596b
+    {"Id":73325016,"EventCode":"9178","BetV6Code":"9178","Description":"Berrettini, Matteo-Navone, Mariano","TeamHome":"Berrettini, Matteo","TeamAway":"Navone, Mariano","OriginalTeamHome":"Berrettini, Matteo","OriginalTeamAway":"Navone, Mariano","TeamHomeId":215400,"TeamAwayId":10328521,"MatchStartTime":"2026-08-03T15:00:00Z","IgnoreTimeFilter":false,"AdditionalMatchData":"Tennis / ATP / ATP Montreal,
+  ✗ /sport/offer/v3/BetTypeInfo?BetTypeKey=20
+  ✗ /sport/offer/v3/BetTypesForSport?SportId=389
+
+═══ FIN DICTIONNAIRE APOLLO ═══
