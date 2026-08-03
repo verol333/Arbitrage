@@ -40,9 +40,16 @@ function toMatch(m) {
   };
 }
 
+// Cybertennis 1win : les avatars pro sont notes "Rafael Nadal (Bug)",
+// "Jannik Sinner (1nter1um)", "Andy Murray (Abbat)". Le "(pseudo)" apres le
+// nom = joueur de simulation, PAS le vrai pro. Sport 33 melange vrai tennis
+// ATP/WTA + cybertennis → filtrer par presence de parenthese avec pseudo.
+const isCyberTennisAvatar = (name) => /\s\([A-Za-z0-9_]{3,}\)$/.test(String(name || '').trim());
+
 const isReal = (m) => m.id && m.home && m.away
   && !/\(v\)/i.test(m.home) && !/\(v\)/i.test(m.away)
   && !/replay/i.test(m.home) && !/replay/i.test(m.away)
+  && !isCyberTennisAvatar(m.home) && !isCyberTennisAvatar(m.away)
   && !/\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b|\bpes\b|\be-?/i.test(`${m.home} ${m.away} ${m.league || ''}`);
 
 function sportIdsFor(sport) {

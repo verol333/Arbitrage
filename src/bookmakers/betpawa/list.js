@@ -2,13 +2,14 @@
 // des match IDs. Le protobuf ne fournit pas le startTime → on l'enrichit via
 // /events/{id} en parallèle (batch 40). Sans start, alignCatalogs rejette le
 // candidat en mode prématch (évite les fake arbs sur matchs déjà live).
-import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams, CATEGORY_IDS } from './api.js';
+import { bpFetchList, buildEventsListUrl, isVirtual, splitTeams, CATEGORY_IDS, MARKET_TYPES_BY_SPORT } from './api.js';
 
-const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746']);
+const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746', '2043818']);
 
 export async function listMatches({ live = false, sport = 'football' } = {}) {
   const category = CATEGORY_IDS[sport];
   if (!category) return [];
+  const marketTypes = MARKET_TYPES_BY_SPORT[sport] || MARKET_TYPES_BY_SPORT.football;
   const eventType = live ? 'LIVE' : 'UPCOMING';
   const seen = new Set();
   const out = [];
@@ -16,7 +17,7 @@ export async function listMatches({ live = false, sport = 'football' } = {}) {
   const HARD_CAP = 2000;
 
   for (let skip = 0; skip < HARD_CAP; skip += PAGE) {
-    const url = buildEventsListUrl({ eventType, categories: [category], skip, take: PAGE });
+    const url = buildEventsListUrl({ eventType, categories: [category], marketTypes, skip, take: PAGE });
     const strings = await bpFetchList(url);
     if (!strings.length) break;
 
