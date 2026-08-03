@@ -1,0 +1,279 @@
+
+════════════════════ APOLLO — verification mapping (Berrettini vs Navone) ════════════════════
+
+  Match : Berrettini, Matteo vs Navone, Mariano [ATP / ATP Montreal, Canada Men Singles]
+  Cles extraites (18) :
+    hcp_away_1.5                   = 2.16
+    hcp_away_2.5                   = 1.87
+    hcp_away_3.5                   = 1.58
+    hcp_home_-1.5                  = 1.62
+    hcp_home_-2.5                  = 1.83
+    hcp_home_-3.5                  = 2.23
+    match_1                        = 1.46
+    match_2                        = 2.5
+    match_over_21.5                = 2.25
+    match_over_22.5                = 1.89
+    match_over_23.5                = 1.68
+    match_under_21.5               = 1.57
+    match_under_22.5               = 1.82
+    match_under_23.5               = 2.06
+    tt_away_over_12.5              = 2.03
+    tt_away_under_12.5             = 1.7
+    tt_home_over_12.5              = 1.65
+    tt_home_under_12.5             = 2.11
+
+  Match : Galarneau, Alexis vs Kopriva, Vit [ATP / ATP Montreal, Canada Men Singles]
+  Cles extraites (18) :
+    hcp_away_-0.5                  = 2.01
+    hcp_away_0.5                   = 1.88
+    hcp_away_1.5                   = 1.76
+    hcp_home_-0.5                  = 1.82
+    hcp_home_-1.5                  = 1.95
+    hcp_home_0.5                   = 1.72
+    match_1                        = 1.77
+    match_2                        = 1.94
+    match_over_21.5                = 2.23
+    match_over_22.5                = 1.89
+    match_over_23.5                = 1.69
+    match_under_21.5               = 1.58
+    match_under_22.5               = 1.82
+    match_under_23.5               = 2.04
+    tt_away_over_12.5              = 2.04
+    tt_away_under_12.5             = 1.69
+    tt_home_over_12.5              = 1.96
+    tt_home_under_12.5             = 1.75
+
+════════════════════ 1WIN — verification mapping ════════════════════
+
+  Match : Dmitry Kuzmenko vs Oleksandr Ziakun [world]
+  Cles extraites (16) :
+    even                           = 1.53
+    match_1                        = 1.67
+    match_2                        = 2.1
+    match_over_109.5               = 2.1
+    match_under_109.5              = 1.67
+    odd                            = 2.38
+    s4_match_1                     = 8
+    s4_match_2                     = 1.06
+    s5_even                        = 1.5
+    s5_hcp_away_2.5                = 1.44
+    s5_hcp_home_-2.5               = 2.63
+    s5_match_1                     = 1.73
+    s5_match_2                     = 2
+    s5_odd                         = 2.5
+    s5_over_18.5                   = 1.8
+    s5_under_18.5                  = 1.91
+
+  Match : Milan Vydra vs David Sabuka [world]
+  Cles extraites (14) :
+    even                           = 1.62
+    match_1                        = 1.44
+    match_2                        = 2.63
+    match_over_90.5                = 1.83
+    match_under_90.5               = 1.83
+    odd                            = 2.2
+    s4_even                        = 1.5
+    s4_hcp_away_-2.5               = 1.83
+    s4_hcp_home_2.5                = 1.83
+    s4_match_1                     = 2.75
+    s4_match_2                     = 1.4
+    s4_odd                         = 2.5
+    s4_over_18.5                   = 1.8
+    s4_under_18.5                  = 1.91
+
+════════════════════ SPORTYBET — verification mapping ════════════════════
+[sportybet:tennis] UPCOMING : 175 matchs listés
+
+  Match : Berrettini, Matteo vs Navone, Mariano [ATP Montreal, Canada Men Singles]
+  Cles extraites (40) :
+    hcp_away_-0.5                  = 2.7
+    hcp_away_0.5                   = 2.45
+    hcp_away_1.5                   = 2.25
+    hcp_away_2.5                   = 1.93
+    hcp_away_3.5                   = 1.62
+    hcp_away_4.5                   = 1.32
+    hcp_away_5.5                   = 1.17
+    hcp_home_-0.5                  = 1.56
+    hcp_home_-1.5                  = 1.66
+    hcp_home_-2.5                  = 1.88
+    hcp_home_-3.5                  = 2.3
+    hcp_home_-4.5                  = 3.4
+    hcp_home_-5.5                  = 5.1
+    hcp_home_0.5                   = 1.47
+    match_1                        = 1.51
+    match_2                        = 2.65
+    match_over_19.5                = 1.32
+    match_over_20.5                = 1.48
+    match_over_21.5                = 1.61
+    match_over_22.5                = 1.87
+    match_over_23.5                = 2.15
+    match_over_24.5                = 2.2
+    match_over_25.5                = 2.35
+    match_over_26.5                = 2.5
+    match_under_19.5               = 3.45
+    match_under_20.5               = 2.7
+    match_under_21.5               = 2.35
+    match_under_22.5               = 1.94
+    match_under_23.5               = 1.73
+    match_under_24.5               = 1.69
+    match_under_25.5               = 1.59
+    match_under_26.5               = 1.54
+    tt_home_over_11.5              = 1.21
+    tt_home_over_12.5              = 1.66
+    tt_home_over_13.5              = 2.45
+    tt_home_over_14.5              = 2.75
+    tt_home_under_11.5             = 4.15
+    tt_home_under_12.5             = 2.15
+    tt_home_under_13.5             = 1.51
+    tt_home_under_14.5             = 1.41
+
+  Match : Galarneau, Alexis vs Kopriva, Vit [ATP Montreal, Canada Men Singles]
+  Cles extraites (36) :
+    hcp_away_-0.5                  = 2.05
+    hcp_away_-1.5                  = 2.2
+    hcp_away_-2.5                  = 2.5
+    hcp_away_0.5                   = 1.93
+    hcp_away_1.5                   = 1.81
+    hcp_away_2.5                   = 1.67
+    hcp_away_3.5                   = 1.49
+    hcp_home_-0.5                  = 1.88
+    hcp_home_-1.5                  = 2
+    hcp_home_-2.5                  = 2.2
+    hcp_home_-3.5                  = 2.65
+    hcp_home_0.5                   = 1.76
+    hcp_home_1.5                   = 1.67
+    hcp_home_2.5                   = 1.54
+    match_1                        = 1.84
+    match_2                        = 2
+    match_over_19.5                = 1.33
+    match_over_20.5                = 1.49
+    match_over_21.5                = 1.62
+    match_over_22.5                = 1.87
+    match_over_23.5                = 2.1
+    match_over_24.5                = 2.15
+    match_over_25.5                = 2.35
+    match_under_19.5               = 3.35
+    match_under_20.5               = 2.65
+    match_under_21.5               = 2.3
+    match_under_22.5               = 1.94
+    match_under_23.5               = 1.74
+    match_under_24.5               = 1.7
+    match_under_25.5               = 1.6
+    tt_home_over_11.5              = 1.39
+    tt_home_over_12.5              = 1.98
+    tt_home_over_13.5              = 2.9
+    tt_home_under_11.5             = 2.85
+    tt_home_under_12.5             = 1.77
+    tt_home_under_13.5             = 1.38
+
+════════════════════ BETMOMO — verification mapping ════════════════════
+
+  Match : Lorenzo Angelini vs Petr Nesterov [ATP Challenger Plovdiv - Clay]
+  Cles extraites (38) :
+    hcp_away_-2.5                  = 1.55
+    hcp_away_-3                    = 1.62
+    hcp_away_-3.5                  = 1.72
+    hcp_away_-4                    = 1.86
+    hcp_away_-4.5                  = 2.05
+    hcp_home_2.5                   = 2.2
+    hcp_home_3                     = 2.08
+    hcp_home_3.5                   = 1.96
+    hcp_home_4                     = 1.8
+    hcp_home_4.5                   = 1.65
+    match_1                        = 2.58
+    match_2                        = 1.38
+    match_over_19.5                = 1.65
+    match_over_20                  = 1.75
+    match_over_20.5                = 1.86
+    match_over_21                  = 1.98
+    match_over_21.5                = 2.07
+    match_over_22                  = 2.23
+    match_under_19.5               = 2.05
+    match_under_20                 = 1.92
+    match_under_20.5               = 1.8
+    match_under_21                 = 1.7
+    match_under_21.5               = 1.63
+    match_under_22                 = 1.53
+    tt_away_over_12                = 1.45
+    tt_away_over_12.5              = 2.11
+    tt_away_under_12               = 2.4
+    tt_away_under_12.5             = 1.6
+    tt_home_over_10                = 1.75
+    tt_home_over_10.5              = 1.8
+    tt_home_over_11                = 1.87
+    tt_home_over_11.5              = 1.92
+    tt_home_over_9.5               = 1.7
+    tt_home_under_10               = 1.92
+    tt_home_under_10.5             = 1.86
+    tt_home_under_11               = 1.79
+    tt_home_under_11.5             = 1.75
+    tt_home_under_9.5              = 1.98
+
+  Match : Gabriele Piraino vs Carlo Alberto Caniato [ATP Challenger Plovdiv - Clay]
+  Cles extraites (40) :
+    hcp_away_-1.5                  = 1.55
+    hcp_away_-2                    = 1.6
+    hcp_away_-2.5                  = 1.67
+    hcp_away_-3                    = 1.77
+    hcp_away_-3.5                  = 1.89
+    hcp_away_-4                    = 2.14
+    hcp_home_1.5                   = 2.2
+    hcp_home_2                     = 2.11
+    hcp_home_2.5                   = 2.02
+    hcp_home_3                     = 1.89
+    hcp_home_3.5                   = 1.77
+    hcp_home_4                     = 1.58
+    match_1                        = 2.47
+    match_2                        = 1.42
+    match_over_20.5                = 1.65
+    match_over_21                  = 1.72
+    match_over_21.5                = 1.8
+    match_over_22                  = 1.92
+    match_over_22.5                = 2.07
+    match_over_23                  = 2.2
+    match_under_20.5               = 2.05
+    match_under_21                 = 1.96
+    match_under_21.5               = 1.86
+    match_under_22                 = 1.75
+    match_under_22.5               = 1.63
+    match_under_23                 = 1.55
+    tt_away_over_12.5              = 1.92
+    tt_away_over_13                = 2.35
+    tt_away_under_12.5             = 1.75
+    tt_away_under_13               = 1.47
+    tt_home_over_10                = 1.58
+    tt_home_over_10.5              = 1.65
+    tt_home_over_11                = 1.7
+    tt_home_over_11.5              = 1.75
+    tt_home_over_12                = 2.05
+    tt_home_under_10               = 2.14
+    tt_home_under_10.5             = 2.05
+    tt_home_under_11               = 1.98
+    tt_home_under_11.5             = 1.92
+    tt_home_under_12               = 1.65
+
+════════════════════ PREMIERBET (guineegames sportId=5) — verification mapping ════════════════════
+
+  Match : Shumilov, Eyal vs Neumeister, Felix [UTR Men / UTR PTT Hamburg Men 01]
+  Cles extraites (8) :
+    hcp_away_4.5                   = 1.7
+    hcp_home_-4.5                  = 1.78
+    match_1                        = 1.3
+    match_2                        = 2.8
+    match_over_20.5                = 1.87
+    match_under_20.5               = 1.68
+    s1_match_1                     = 1.36
+    s1_match_2                     = 2.5
+
+  Match : Coats, Theo vs Wassermann, Miko [UTR Men / UTR PTT Hamburg Men 01]
+  Cles extraites (8) :
+    hcp_away_4.5                   = 1.67
+    hcp_home_-4.5                  = 1.82
+    match_1                        = 1.32
+    match_2                        = 2.7
+    match_over_20.5                = 1.84
+    match_under_20.5               = 1.7
+    s1_match_1                     = 1.38
+    s1_match_2                     = 2.46
+
+═══════════════ FIN VERIFICATION ═══════════════
