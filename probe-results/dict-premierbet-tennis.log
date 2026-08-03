@@ -1,0 +1,100 @@
+74 events tennis dispos
+
+5 matchs avec >5 markets :
+
+  - Zakaria, Faris vs Glinka, Daniil [Challenger / ATP Challenger Grodzisk Mazowiecki, Poland Men Singles] (marketCount=7)
+  - Ribecai, Michele vs Radulov, Iliyan [Challenger / ATP Challenger Grodzisk Mazowiecki, Poland Men Singles] (marketCount=7)
+  - Berkieta, Tomasz vs Mena, Facundo [Challenger / ATP Challenger Grodzisk Mazowiecki, Poland Men Singles] (marketCount=6)
+  - Dodig, Matej vs Krutykh, Oleksii [Challenger / ATP Challenger Hagen, Germany Men Singles] (marketCount=7)
+  - Barrena, Alex vs Skatov, Timofey [Challenger / ATP Challenger Hagen, Germany Men Singles] (marketCount=7)
+
+═══ DICTIONNAIRE : 7 marketIds distincts ═══
+
+
+━━ id=4 ━━
+  Description(s) : Gagnant Du Match
+  Group(s) : Principal
+  Instances : 5 matchs
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "1"h==5.60 | "2"h==1.08
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "1"h==1.83 | "2"h==1.81
+    [Berkieta, Tomasz vs Mena, Facundo]
+      "1"h==1.61 | "2"h==2.09
+
+━━ id=23 ━━
+  Description(s) : Jeux Handicap
+  Group(s) : Principal
+  Instances : 5 matchs
+  Handicaps distincts : -5.5, -3.5, -1.5, -0.5, +0.5, +1.5, +3.5, +5.5
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "2"h=-5.5=1.80 | "1"h=+5.5=1.77
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "2"h=-0.5=1.82 | "1"h=+0.5=1.75
+    [Berkieta, Tomasz vs Mena, Facundo]
+      "1"h=-1.5=1.72 | "2"h=+1.5=1.85
+
+━━ id=33 ━━
+  Description(s) : Gagnant 1er Set
+  Group(s) : Principal
+  Instances : 5 matchs
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "1"h==4.10 | "2"h==1.17
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "1"h==1.83 | "2"h==1.81
+    [Berkieta, Tomasz vs Mena, Facundo]
+      "1"h==1.66 | "2"h==2.01
+
+━━ id=64 ━━
+  Description(s) : Plus De/Moins De
+  Group(s) : Principal
+  Instances : 5 matchs
+  Handicaps distincts : 19.5, 21.5, 22.5
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "plus de"h=19.5=1.83 | "moins de"h=19.5=1.81
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "plus de"h=21.5=1.77 | "moins de"h=21.5=1.87
+    [Berkieta, Tomasz vs Mena, Facundo]
+      "plus de"h=22.5=1.91 | "moins de"h=22.5=1.73
+
+━━ id=219 ━━
+  Description(s) : 1er Set - Score Exact
+  Group(s) : Set
+  Instances : 5 matchs
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "6:0"h==100.00 | "0:6"h==19.00 | "6:1"h==82.00 | "1:6"h==6.60 | "6:2"h==39.00 | "2:6"h==4.80
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "6:0"h==57.00 | "0:6"h==56.00 | "6:1"h==16.00 | "1:6"h==16.00 | "6:2"h==9.80 | "2:6"h==9.60
+    [Berkieta, Tomasz vs Mena, Facundo]
+      "6:0"h==65.00 | "0:6"h==100.00 | "6:1"h==16.00 | "1:6"h==23.00 | "6:2"h==9.40 | "2:6"h==13.00
+
+━━ id=339 ━━
+  Description(s) : Handicap 1er Set
+  Group(s) : Tout
+  Instances : 5 matchs
+  Handicaps distincts : -2.5, -1.5, -0.5, +0.5, +1.5, +2.5
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "1"h=+2.5=1.78 | "2"h=-2.5=1.79
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "1"h=-0.5=1.79 | "2"h=+0.5=1.78
+    [Berkieta, Tomasz vs Mena, Facundo]
+      "1"h=-1.5=1.93 | "2"h=+1.5=1.66
+
+━━ id=340 ━━
+  Description(s) : Total 1er Set
+  Group(s) : Totals
+  Instances : 4 matchs
+  Handicaps distincts : 9.5
+  Exemples :
+    [Zakaria, Faris vs Glinka, Daniil]
+      "plus de"h=9.5=2.09 | "moins de"h=9.5=1.61
+    [Ribecai, Michele vs Radulov, Iliyan]
+      "plus de"h=9.5=1.84 | "moins de"h=9.5=1.80
+    [Dodig, Matej vs Krutykh, Oleksii]
+      "plus de"h=9.5=1.78 | "moins de"h=9.5=1.86

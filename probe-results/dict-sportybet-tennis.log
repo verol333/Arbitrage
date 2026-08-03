@@ -10,7 +10,7 @@ Fetch sport=sr:sport:5 SANS filter marketId...
   - Gibson, Talia vs Cocciaretto, Elisabetta (WTA Toronto, Canada Women Singles)
   - Ruse, Elena-Gabriela vs Stearns, Peyton (WTA Toronto, Canada Women Singles)
   - Putintseva, Yulia vs Zhang, Shuai (WTA Toronto, Canada Women Singles)
-  - Carou I / Gomez F A vs Latinovic S / Zeballos F (ATP Challenger Hagen, Germany Men Doubles)
+  - Bass F / Jans J vs Martos Gornes S / Walkow S (ATP Challenger Hagen, Germany Men Doubles)
 
 ═══ Fetch detail event pour recuperer TOUS les markets ═══
 
@@ -22,7 +22,7 @@ Fetch sport=sr:sport:5 SANS filter marketId...
 
   Match "Putintseva, Yulia vs Zhang, Shuai" : 50 markets
 
-  Match "Carou I / Gomez F A vs Latinovic S / Zeballos F" : 9 markets
+  Match "Bass F / Jans J vs Martos Gornes S / Walkow S" : 9 markets
 
 
 ═══ DICTIONNAIRE COMPLET : 24 marketIds ═══
@@ -77,7 +77,7 @@ Fetch sport=sr:sport:5 SANS filter marketId...
     [Fritz, Taylor vs Jodar, Rafael] spec=total=13.5 → Over 13.5(id=12)=2.70 | Under 13.5(id=13)=1.43
 
 ━━ marketId=192 ━━
-  Descriptions : Fritz, Taylor to win a set | Gibson, Talia to win a set | Ruse, Elena-Gabriela to win a set | Putintseva, Yulia to win a set | Carou I / Gomez F A to win a set
+  Descriptions : Fritz, Taylor to win a set | Gibson, Talia to win a set | Ruse, Elena-Gabriela to win a set | Putintseva, Yulia to win a set | Bass F / Jans J to win a set
   Specifiers observes (0) : 
   Exemples :
     [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=1.21 | No(id=76)=4.05
@@ -85,7 +85,7 @@ Fetch sport=sr:sport:5 SANS filter marketId...
     [Ruse, Elena-Gabriela vs Stearns, Peyton] spec= → Yes(id=74)=1.47 | No(id=76)=2.60
 
 ━━ marketId=193 ━━
-  Descriptions : Jodar, Rafael to win a set | Cocciaretto, Elisabetta to win a set | Stearns, Peyton to win a set | Zhang, Shuai to win a set | Latinovic S / Zeballos F to win a set
+  Descriptions : Jodar, Rafael to win a set | Cocciaretto, Elisabetta to win a set | Stearns, Peyton to win a set | Zhang, Shuai to win a set | Martos Gornes S / Walkow S to win a set
   Specifiers observes (0) : 
   Exemples :
     [Fritz, Taylor vs Jodar, Rafael] spec= → Yes(id=74)=1.53 | No(id=76)=2.40
