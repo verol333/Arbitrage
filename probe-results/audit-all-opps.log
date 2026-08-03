@@ -1,0 +1,51 @@
+[18:42:38] ▶▶▶ AUDIT COMPLET DE TOUTES LES OPPS FOOT ENVOYEES
+[premierbet] upcoming[2026-08-03]=24 upcoming[2026-08-04]=72 upcoming[2026-08-05]=38 highlights=363 unique=442 kept=180 filtered=(outright:0 virtual:0 horizon:262 noTeams:0 nonFoot:0)
+[xbet] listPrematch : 233 champs a fetcher (BATCH=40)
+[sportybet:football] UPCOMING : 101 matchs listés
+[betpawa:football] UPCOMING : 985 matchs listés (sans startTime)
+[18:42:52]   ⏱️ football listMatches done: +14293ms
+[18:42:52] 📋 FOOTBALL PRÉMATCH — 1xbet:1485 | 1win:698 | congobet:412 | yellowbet:218 | apollo:487 | betmomo:223 | premierbet:180 | betpawa:985 | sportybet:101
+[18:43:19]   ⏱️ football alignCatalogs done: +27027ms (262 entrées)
+[18:43:19] 🔗 262/262 matchs exploitables (≥2 books)
+[18:43:36]   ⏱️ football readOdds done: +58287ms
+[18:43:36] ⏱️ readOdds par book (trié par lenteur) — apollo:16958ms/127 | congobet:15889ms/180 | 1xbet:14995ms/213 | 1win:13633ms/118 | betpawa:2529ms/162 | premierbet:1686ms/175 | yellowbet:257ms/216 | betmomo:228ms/194 | sportybet:32ms/96
+[18:43:36] 💰 cotes lues — 1xbet:213 | 1win:118 | congobet:180 | yellowbet:216 | apollo:127 | betmomo:189 | premierbet:175 | betpawa:162 | sportybet:96
+[18:43:37] 🎯 1 opportunités candidates ≥ 0.3% | 59179ms
+[18:43:37] 📊 distribution candidates par book — 1xbet:1(scope:213) | 1win:0(scope:118) | congobet:1(scope:180) | yellowbet:0(scope:216) | apollo:0(scope:127) | betmomo:0(scope:189) | premierbet:0(scope:175) | betpawa:0(scope:162) | sportybet:0(scope:96)
+[18:43:38]   📈 drift candidate→fresh par book : congobet:max=0.00/avg=0.000(n=1) | 1xbet:max=0.00/avg=0.000(n=1)
+[18:43:38]   ⏱️ football confirm+freshLive done: +59472ms
+[18:43:38] ✅ 1/1 opportunités confirmées après re-fetch | 59472ms
+[18:43:38] 📊 distribution confirmed par book — 1xbet:1 | 1win:0 | congobet:1 | yellowbet:0 | apollo:0 | betmomo:0 | premierbet:0 | betpawa:0 | sportybet:0
+[18:43:38] 📤 Sample opps envoyees :
+[18:43:38]    4.76% "Ringsted vs Frem" [1X2 — 2 + 1X] congobet@2.11 vs 1xbet@2.09
+[18:43:38] 
+1 opps envoyees a l'app
+
+[18:43:38] 
+[1/1] 4.76% [1X2 — 2 + 1X]
+[18:43:38]   Ringsted vs Frem
+[18:43:38]   A: congobet "Extérieur" = 2.11
+[18:43:38]   B: 1xbet "Domicile ou Nul" = 2.09
+[18:43:38]       ✅ a congobet: match_2 opp=2.11 refetch=2.11
+[18:43:38]       ✅ b 1xbet: dc_1X opp=2.09 refetch=2.09
+[18:43:38] 
+
+════════════════════ SYNTHESE GLOBALE ════════════════════
+[18:43:38] Opps totales : 1
+[18:43:38] Legs OK      : 2
+[18:43:38] Legs drift <0.10 : 0
+[18:43:38] Legs drift >0.10 (fake/stale) : 0
+[18:43:38] Legs cle absente refetch : 0
+[18:43:38] Legs label non mappable : 0
+[18:43:38] Legs erreur refetch : 0
+[18:43:38] Legs sans id : 0
+[18:43:38] 
+Opps SUSPECTES (fake/stale) : 0/1
+[18:43:38] 
+── Detail par bookmaker ──
+[18:43:38]   1xbet        total=1 ok=1(100%) drift_s=0 drift_BIG=0 missing=0 err=0 noid=0 mapfail=0
+[18:43:38]   congobet     total=1 ok=1(100%) drift_s=0 drift_BIG=0 missing=0 err=0 noid=0 mapfail=0
+[18:43:38] 
+── Opps a examiner ──
+[18:43:38] 
+═══ FIN AUDIT ═══
