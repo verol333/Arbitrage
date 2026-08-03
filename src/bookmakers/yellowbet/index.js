@@ -7,7 +7,11 @@ export default {
   label: 'YellowBet',
   supports: { prematch: true, live: false }, // live désactivé (mapping 'rest_*' non fiable en cross-book, produit fake arbs)
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (sport !== 'football' && sport !== 'tennis') return [];
+    // Tennis DESACTIVE : parseur foot YB mappe handicap SETS sur cles hcp_home/away
+    // (destinees a handicap games). Resultat : fake arbs massifs (274 opps sur 350
+    // au 1er scan tennis, cotes -2.5 @ 3.55 vs autres a 1.75). Reactive apres fix
+    // parseur dedie tennis distinguant games vs sets.
+    if (sport !== 'football') return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
   // En LIVE (ou confirm noCache) → re-fetch fresh via GetEventDetails.
