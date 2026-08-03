@@ -1,0 +1,284 @@
+200 matchs 1win sport=24 tennis
+
+Fetch WS pour 10 matchs...
+
+10/10 matchs avec cotes
+
+═══ 45 groupes distincts observes ═══
+
+
+━━ "Winner" (10/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Adam Dvoracek(1.83) | Filip Taller(1.83)
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Dmytro Ponomarenko(1.1) | Maxim Stetsenko(6.5)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Denys Scherbak(8.5) | Dmitry Zenyuk(1.05)
+
+━━ "Total" (9/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Under 85.5(1.91) | Over 85.5(1.8)
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Over 63.5(1.83) | Under 63.5(1.83)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Over 53.5(1.91) | Under 53.5(1.8)
+
+━━ "Odd/Even" (6/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Odd(1.73) | Even(2)
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Even(2.2) | Odd(1.62)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Even(2.2) | Odd(1.62)
+
+━━ "Point Betting" (6/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Win Filip Taller in Set 4, Point 15(1.91) | Win Adam Dvoracek in Set 4, Point 15(1.8) | Win Adam Dvoracek in Set 4, Point 14(2) | Win Filip Taller in Set 4, Point 14(1.73) | Win Filip Taller in Set 4, Point 13(1.73) | Win Adam Dvoracek in Set 4, Point 13(2)
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Win Maxim Stetsenko in Set 3, Point 3(1.8) | Win Dmytro Ponomarenko in Set 3, Point 3(1.91) | Win Maxim Stetsenko in Set 3, Point 2(2) | Win Dmytro Ponomarenko in Set 3, Point 2(1.73) | Win Maxim Stetsenko in Set 3, Point 4(1.8) | Win Dmytro Ponomarenko in Set 3, Point 4(1.91)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Win Dmitry Zenyuk in Set 3, Point 3(1.67) | Win Denys Scherbak in Set 3, Point 3(2.1) | Win Dmitry Zenyuk in Set 3, Point 2(1.83) | Win Denys Scherbak in Set 3, Point 2(1.83) | Win Dmitry Zenyuk in Set 3, Point 4(1.67) | Win Denys Scherbak in Set 3, Point 4(2.1)
+
+━━ "Correct score" (5/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    1:3(3.5) | 3:1(7.5) | 3:0(11) | 0:3(4.33) | 3:2(6) | 2:3(4)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    0:3(21) | 3:0(2.63) | 1:3(13) | 2:3(10) | 3:2(5) | 3:1(3)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    3:1(2.95) | 2:3(3.75) | 3:2(3.15) | 1:3(4)
+
+━━ "4th set. Total" (4/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Under 16.5(1.83) | Over 16.5(1.83)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    Over 16.5(1.2) | Under 16.5(3.9) | Over 18.5(1.79) | Under 18.5(1.89) | Over 19.5(2.53) | Under 19.5(1.44)
+  [Vladimir Nemashkalo vs Yuri Khapersky [russia]]
+    Under 18.5(1.76) | Over 18.5(1.92) | Under 18.0(2.05) | Over 18.0(1.66) | Under 16.5(3.41) | Over 16.5(1.26)
+
+━━ "4th set. Handicap" (4/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Filip Taller -5.5(1.83) | Adam Dvoracek 5.5(1.83)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    Aleksei Mikhailov 3.5(1.21) | Mikhail Gusev -3.5(3.82) | Mikhail Gusev 2.5(1.46) | Aleksei Mikhailov -2.5(2.48) | Mikhail Gusev -2.5(2.99) | Aleksei Mikhailov 2.5(1.32)
+  [Vladimir Nemashkalo vs Yuri Khapersky [russia]]
+    Yuri Khapersky 2.5(2.09) | Vladimir Nemashkalo -2.5(1.64) | Yuri Khapersky 3(1.83) | Vladimir Nemashkalo -3(1.83) | Yuri Khapersky 3.5(1.67) | Vladimir Nemashkalo -3.5(2.04)
+
+━━ "4th set. Winner" (4/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Filip Taller(1.04) | Adam Dvoracek(9)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    Aleksei Mikhailov(1.71) | Mikhail Gusev(2.03)
+  [Vladimir Nemashkalo vs Yuri Khapersky [russia]]
+    Vladimir Nemashkalo(1.25) | Yuri Khapersky(3.56)
+
+━━ "1st set. Handicap" (4/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Artur Akopyan 2.5(1.5) | Lukas Krutina -2.5(2.5)
+  [Oleksandr Kolos vs Maksym Bukata [world]]
+    Maksym Bukata 3.5(1.83) | Oleksandr Kolos -3.5(1.83)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Serhey Kylo 2.5(1.83) | Serhii Balabei -2.5(1.83)
+
+━━ "1st set. Winner" (4/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Lukas Krutina(1.62) | Artur Akopyan(2.2)
+  [Oleksandr Kolos vs Maksym Bukata [world]]
+    Maksym Bukata(4) | Oleksandr Kolos(1.22)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Serhii Balabei(1.36) | Serhey Kylo(3)
+
+━━ "3rd set. Total" (3/10 matchs) ━━
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Under 18.5(1.83) | Over 18.5(1.83)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Under 18.5(1.83) | Over 18.5(1.83)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    Over 18.5(1.69) | Under 18.5(2.01) | Over 17.5(1.34) | Under 17.5(2.89) | Over 20.5(4.32) | Under 20.5(1.16)
+
+━━ "3rd set. Handicap" (3/10 matchs) ━━
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Maxim Stetsenko 2.5(1.44) | Dmytro Ponomarenko -2.5(2.63)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Denys Scherbak 2.5(1.62) | Dmitry Zenyuk -2.5(2.2)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    Mikhail Gusev 2.5(1.43) | Aleksei Mikhailov -2.5(2.56) | Aleksei Mikhailov 2.5(1.31) | Mikhail Gusev -2.5(3.07) | Aleksei Mikhailov 3.5(1.18) | Mikhail Gusev -3.5(4.11)
+
+━━ "3rd set. Winner" (3/10 matchs) ━━
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Dmytro Ponomarenko(1.73) | Maxim Stetsenko(2)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Dmitry Zenyuk(1.53) | Denys Scherbak(2.38)
+  [Aleksei Mikhailov vs Mikhail Gusev [russia]]
+    Mikhail Gusev(1.96) | Aleksei Mikhailov(1.76)
+
+━━ "1st set. Total" (3/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Under 18.5(2.1) | Over 18.5(1.67)
+  [Oleksandr Kolos vs Maksym Bukata [world]]
+    Under 17.5(2) | Over 17.5(1.73)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Over 18.5(2) | Under 18.5(1.73)
+
+━━ "1st set. Odd/Even" (3/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Odd(2.63) | Even(1.44)
+  [Oleksandr Kolos vs Maksym Bukata [world]]
+    Odd(2.25) | Even(1.57)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Odd(2.38) | Even(1.53)
+
+━━ "1st set. Race to" (3/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Lukas Krutina 9(1.62) | Artur Akopyan 9(2.2) | Lukas Krutina 7(1.62) | Artur Akopyan 7(2.2) | Lukas Krutina 5(1.67) | Artur Akopyan 5(2.1)
+  [Oleksandr Kolos vs Maksym Bukata [world]]
+    Maksym Bukata 9(3.75) | Oleksandr Kolos 9(1.25) | Maksym Bukata 3(2.63) | Oleksandr Kolos 3(1.44) | Maksym Bukata 5(3) | Oleksandr Kolos 5(1.36)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Serhii Balabei 7(1.44) | Serhey Kylo 7(2.63) | Serhii Balabei 5(1.5) | Serhey Kylo 5(2.5) | Serhii Balabei 3(1.57) | Serhey Kylo 3(2.25)
+
+━━ "3rd set. Odd/Even" (2/10 matchs) ━━
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Odd(2.5) | Even(1.5)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Even(1.5) | Odd(2.5)
+
+━━ "3rd set. Race to" (2/10 matchs) ━━
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Maxim Stetsenko 9(2) | Dmytro Ponomarenko 9(1.73) | Maxim Stetsenko 5(1.91) | Dmytro Ponomarenko 5(1.8) | Maxim Stetsenko 7(1.91) | Dmytro Ponomarenko 7(1.8)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Denys Scherbak 9(2.25) | Dmitry Zenyuk 9(1.57) | Denys Scherbak 5(2.1) | Dmitry Zenyuk 5(1.67) | Denys Scherbak 7(2.2) | Dmitry Zenyuk 7(1.62)
+
+━━ "3rd set. Winning Margin" (2/10 matchs) ━━
+  [Maxim Stetsenko vs Dmytro Ponomarenko [world]]
+    Dmytro Ponomarenko 3-4(5) | Maxim Stetsenko 3-4(6) | Maxim Stetsenko 5+(5.5) | Maxim Stetsenko 2(5) | Dmytro Ponomarenko 5+(4.5) | Dmytro Ponomarenko 2(5)
+  [Dmitry Zenyuk vs Denys Scherbak [world]]
+    Denys Scherbak 5+(7) | Denys Scherbak 3-4(7) | Dmitry Zenyuk 5+(3.75) | Dmitry Zenyuk 3-4(4.75) | Dmitry Zenyuk 2(4.5) | Denys Scherbak 2(6)
+
+━━ "1st set. Winning Margin" (2/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Lukas Krutina 3-4(4.33) | Artur Akopyan 3-4(6.5) | Artur Akopyan 5+(8.5) | Lukas Krutina 5+(4.75) | Artur Akopyan 2(4.75) | Lukas Krutina 2(4)
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Serhey Kylo 3-4(8.5) | Serhii Balabei 5+(2.88) | Serhey Kylo 2(7) | Serhii Balabei 2(4.5) | Serhii Balabei 3-4(4.33) | Serhey Kylo 5+(9.5)
+
+━━ "4th set. Odd/Even" (1/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Odd(2.2) | Even(1.62)
+
+━━ "4th set. Winning Margin" (1/10 matchs) ━━
+  [Filip Taller vs Adam Dvoracek [world]]
+    Filip Taller 5+(1.4) | Filip Taller 3-4(4.33) | Filip Taller 2(9) | Adam Dvoracek 2(13) | Adam Dvoracek 3-4(50)
+
+━━ "Artur Akopyan. Total" (1/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Over 37.5(1.83) | Under 37.5(1.83)
+
+━━ "Lukas Krutina. Total " (1/10 matchs) ━━
+  [Artur Akopyan vs Lukas Krutina [world]]
+    Over 41.5(1.91) | Under 41.5(1.8)
+
+━━ "Serhii Balabei. Total" (1/10 matchs) ━━
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Under 38.5(1.91) | Over 38.5(1.8)
+
+━━ "Serhey Kylo. Total " (1/10 matchs) ━━
+  [Serhii Balabei vs Serhey Kylo [world]]
+    Under 31.5(1.83) | Over 31.5(1.83)
+
+━━ "2nd set. Total" (1/10 matchs) ━━
+  [maksim mameka vs Vyacheslav Surikov [russia]]
+    Under 17.5(2.63) | Over 17.5(1.41) | Under 16.5(3.9) | Under 19.0(1.58) | Over 19.0(2.18) | Over 16.5(1.2)
+
+━━ "2nd set. Handicap" (1/10 matchs) ━━
+  [maksim mameka vs Vyacheslav Surikov [russia]]
+    Vyacheslav Surikov -2.5(3.07) | maksim mameka 2.5(1.31) | Vyacheslav Surikov -3.5(4.07) | maksim mameka 3.5(1.18) | Vyacheslav Surikov 3.5(1.31) | maksim mameka -3.5(3.07)
+
+━━ "2nd set. Winner" (1/10 matchs) ━━
+  [maksim mameka vs Vyacheslav Surikov [russia]]
+    Vyacheslav Surikov(2.03) | maksim mameka(1.71)
+
+━━ "Handicap" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Woojin Jang -7.5(2.89) | Kirill Skachkov 7.5(1.34) | Woojin Jang -6.5(2.27) | Kirill Skachkov 6.5(1.54) | Woojin Jang -5.5(1.8) | Kirill Skachkov 5.5(1.87)
+
+━━ "5th set. Total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 16.5(1.22) | Under 16.5(3.42) | Over 17.5(1.48) | Under 17.5(2.29) | Over 18.5(1.93) | Under 18.5(1.69)
+
+━━ "5th set. Handicap" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Woojin Jang -4.5(2.96) | Kirill Skachkov 4.5(1.34) | Woojin Jang -3.5(2.23) | Kirill Skachkov 3.5(1.58) | Woojin Jang -2.5(1.81) | Kirill Skachkov 2.5(1.89)
+
+━━ "Woojin Jang. Total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 57.5(1.38) | Under 57.5(2.78) | Over 58.5(1.61) | Under 58.5(2.18) | Over 59.5(1.88) | Under 59.5(1.82)
+
+━━ "4th set. Woojin Jang total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 6.5(1.17) | Under 6.5(3.91) | Over 7.5(1.56) | Under 7.5(2.28) | Over 8.5(2.07) | Under 8.5(1.68)
+
+━━ "5th set. Woojin Jang total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 10.5(1.25) | Under 10.5(3.46)
+
+━━ "Kirill Skachkov. Total " (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 50.5(1.32) | Under 50.5(3.02) | Over 52.5(1.51) | Under 52.5(2.34) | Over 55.5(1.91) | Under 55.5(1.79)
+
+━━ "4th set. Kirill Skachkov total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 10.5(1.09) | Under 10.5(5.21)
+
+━━ "5th set. Kirill Skachkov total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Over 6.5(1.34) | Under 6.5(2.96) | Over 7.5(1.58) | Under 7.5(2.23) | Over 8.5(1.89) | Under 8.5(1.81)
+
+━━ "5th set. Winner" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Woojin Jang(1.3) | Kirill Skachkov(3)
+
+━━ "4th set. Correct score" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    11-8(28.71) | 5-11(9.9) | 11-9(10.89) | 6-11(6.29) | 1 Wins After 11(6.41) | 7-11(5.09)
+
+━━ "5th set. Correct score" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    2 Will Score 2 Or Fewer(25.74) | 1 Will Score 2 Or Fewer(49.5) | 11-3(20.79) | 3-11(49.5) | 11-4(14.85) | 4-11(49.5)
+
+━━ "4th set. Woojin Jang. Winner and total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Woojin Jang and total over 19.5 - Yes(4.15) | Woojin Jang and total over 19.5 - No(1.15)
+
+━━ "5th set. Woojin Jang. Winner and total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Woojin Jang and total under 17.5 - Yes(2.9) | Woojin Jang and total under 17.5 - No(1.32) | Woojin Jang and total over 17.5 - Yes(2.33) | Woojin Jang and total over 17.5 - No(1.49)
+
+━━ "4th set. Kirill Skachkov. Winner and total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Kirill Skachkov And Total Under 18.5 - Yes(2.23) | Kirill Skachkov And TU 18.5 - No(1.53) | Kirill Skachkov And Total Over 18.5 - Yes(2.59) | Kirill Skachkov And TO 18.5 - No(1.4)
+
+━━ "5th set. Kirill Skachkov. Winner and total" (1/10 matchs) ━━
+  [Woojin Jang vs Kirill Skachkov [world]]
+    Kirill Skachkov And Total Under 19.5 - Yes(5.24) | Kirill Skachkov And TU 19.5 - No(1.09) | Kirill Skachkov And Total Over 19.5 - Yes(7) | Kirill Skachkov And TO 19.5 - No(1.03)
+
+
+═══ ANALYSE "Total" : games ou points ? ═══
+  44 valeurs Total observees
+  Range : min=53.5 max=124.5
+  Distribution :
+    <25 (games) : 0
+    25-50 : 0
+    50-100 (points ATP) : 34
+    100-200 (points) : 10
+    >200 : 0
+  Exemples extremes :
+    min val = 53.5 pour Dmitry Zenyuk vs Denys Scherbak
+    max val = 124.5 pour Woojin Jang vs Kirill Skachkov
+
+
+═══ ANALYSE "Nth set" : quelle numeration ? ═══
+  set N=1: 19 occurrences totales
+  set N=2: 3 occurrences totales
+  set N=3: 15 occurrences totales
+  set N=4: 19 occurrences totales
+  set N=5: 8 occurrences totales
+  Hypothese : si N va au-dela de 3 → best-of-5 (Grand Slam) ou tennis de table (best-of-5/7)
+  Si N va au-dela de 5 → probablement table tennis mal categorise
