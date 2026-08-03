@@ -1,0 +1,59 @@
+name: Audit FOOT multi-books
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/audit-foot-multibooks.js'
+      - '.github/workflows/audit-foot-multibooks.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run audit multi
+        working-directory: .
+        run: |
+          mkdir -p probe-results
+          node scripts/audit-foot-multibooks.js 2>&1 | tee probe-results/audit-foot-multibooks.log || true
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+      - name: Commit log
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f probe-results/audit-foot-multibooks.log ]; then
+            tail -n 2000 probe-results/audit-foot-multibooks.log > probe-results/audit-foot-multibooks.tail.log
+            mv probe-results/audit-foot-multibooks.tail.log probe-results/audit-foot-multibooks.log
+            git add probe-results/audit-foot-multibooks.log
+            git commit -m "AUDIT foot multi-books ${{ github.run_id }}" || echo "nothing"
+            git push || true
+          fi
