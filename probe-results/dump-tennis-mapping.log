@@ -1,126 +1,174 @@
 
-════════════ BETPAWA — probe categoryIds tennis (Congo + Kenya) ════════════
-  .cg cat=3: 5 matchs — ,New York Liberty Women - Seattle Storm Women | *Atlanta Dream Women - Las Vegas Aces Women
-  .cg cat=4: 0 matchs — 
-  .cg cat=5: 0 matchs — 
-  .cg cat=6: 0 matchs — 
-  .cg cat=7: 0 matchs — 
-  .cg cat=8: 0 matchs — 
-  .cg cat=9: 0 matchs — 
-  .cg cat=10: 0 matchs — 
-  .cg cat=15: 0 matchs — 
-  .cg cat=20: 0 matchs — 
-  .cg cat=25: 0 matchs — 
-  .cg cat=30: 0 matchs — 
-  .cg cat=40: 0 matchs — 
-  .cg cat=50: 0 matchs — 
-  .cg cat=100: 0 matchs — 
-  .ke cat=3: status=403 0 matchs — 
-  .ke cat=4: status=403 0 matchs — 
-  .ke cat=5: status=403 0 matchs — 
-  .ke cat=6: status=403 0 matchs — 
-  .ke cat=7: status=403 0 matchs — 
+════════════ PREMIERBET (guineegames) sportId=5 (tennis?) — dump avec noms ════════════
+  status=OK keys=data,pagination
+  11 categories
+    category "Challenger" competitions=1
+      ATP Challenger Istanbul 2, Turkiye Men Singles : 5 events
+        ev.id=7320436 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Matsuda, Koki vs Ostapenkov, Daniil"
+        ev.id=7320388 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Heck, Hunter vs Miyoshi, Kenta (2004)"
+    category "UTR Men" competitions=1
+      UTR PTT Hamburg Men 01 : 2 events
+        ev.id=7323209 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Shumilov, Eyal vs Neumeister, Felix"
+        ev.id=7321595 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Coats, Theo vs Wassermann, Miko"
+    category "Challenger" competitions=1
+      ATP Challenger Hagen, Germany Men Singles : 4 events
+        ev.id=7319907 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Mrva, Maxim vs Kicker, Nicolas"
+        ev.id=7320193 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Dodig, Matej vs Krutykh, Oleksii"
+    category "Challenger" competitions=1
+      ATP Challenger Plovdiv 2, Bulgaria Men Singles : 10 events
+        ev.id=7319868 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Castagnola, Luca vs Georgiev, Georgi"
+        ev.id=7320207 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Lazarov, George vs Kellovsky, Dominik"
+    category "Challenger" competitions=1
+      ATP Challenger Grodzisk Mazowiecki, Poland Men Singles : 4 events
+        ev.id=7315413 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Zakaria, Faris vs Glinka, Daniil"
+        ev.id=7320209 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Donski, Alexander vs Sinha, Nitin Kumar"
+    category "WTA 125K" competitions=1
+      Varsovie, Pologne, Simple Dames : 3 events
+        ev.id=7319662 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Smith, Alana vs Yuan, Yue"
+        ev.id=7314772 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Kawa, Katarzyna vs Fruhvirtova, Linda"
+    category "UTR Women" competitions=1
+      UTR PTT Hamburg Women 01 : 2 events
+        ev.id=7308247 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Novakova, Erika vs Frosch, Laima"
+        ev.id=7308201 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Fetecau, Irina vs Steveker, Fenna"
+    category "Challenger" competitions=1
+      Lexington, USA, Simple Messieurs : 11 events
+        ev.id=7319974 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Colby, Ryan vs Johnson, Spencer"
+        ev.id=7320324 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Kwon, Soon Woo vs Kim, Aidan"
+    category "WTA" competitions=1
+      Toronto, Canada, Simple Dames : 19 events
+        ev.id=7309849 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Kalinina, Anhelina vs Bondar, Anna"
+        ev.id=7309851 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Oliynykova, Oleksandra vs Pliskova, Karolina"
+    category "ATP" competitions=1
+      Montréal, Canada, Simple Messieurs : 20 events
+        ev.id=7309713 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Berrettini, Matteo vs Navone, Mariano"
+        ev.id=7309716 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Galarneau, Alexis vs Kopriva, Vit"
+    category "ATP" competitions=1
+      Washington, USA, Simple Messieurs : 1 events
+        ev.id=7262550 keys=[id,providerId,providerName,eventNames,startTime,marketCount,markets,isCashoutAvailable] names="Fritz, Taylor vs Jodar, Rafael"
 
-════════════ YELLOWBET — probe sportIds tennis (stealth) ════════════
-  sportId=32: 0 events
-  sportId=33: 0 events
-  sportId=34: 0 events
-  sportId=35: 0 events
-  sportId=36: 0 events
-  sportId=37: 0 events
-  sportId=40: 0 events
-  sportId=42: 0 events
-  sportId=45: 0 events
-  sportId=47: 0 events
-  sportId=50: 0 events
-  sportId=60: 0 events
+  --- Fetch /events/7320436 pour dump markets ---
+  event keys : id,providerId,providerName,eventNames,startTime,sportId,sportName,categoryId,categoryName,competitionId,competitionName,state,marketGroups,isCashoutAvailable
+  5 market groups :
+    groupe "Principal" : 4 markets
+      id=4 "Gagnant Du Match" → 1=2.04 | 2=1.64
+      id=33 "Gagnant 1er Set" → 1=1.98 | 2=1.68
+      id=64 "Plus De/Moins De" → plus de=1.94 | moins de=1.71
+      id=23 "Jeux Handicap" → 2=1.75 | 1=1.82
+    groupe "Totals" : 2 markets
+      id=64 "Plus De/Moins De" → plus de=1.94 | moins de=1.71
+      id=340 "Total 1er Set" → plus de=1.75 | moins de=1.89
+    groupe "Set" : 3 markets
+      id=33 "Gagnant 1er Set" → 1=1.98 | 2=1.68
+      id=340 "Total 1er Set" → plus de=1.75 | moins de=1.89
+      id=219 "1er Set - Score Exact" → 6:0=92.00 | 0:6=61.00 | 6:1=21.00 | 1:6=16.00 | 6:2=12.00 | 2:6=9.20
+    groupe "Tout" : 7 markets
+      id=4 "Gagnant Du Match" → 1=2.04 | 2=1.64
+      id=33 "Gagnant 1er Set" → 1=1.98 | 2=1.68
+      id=23 "Jeux Handicap" → 2=1.75 | 1=1.82
+      id=64 "Plus De/Moins De" → plus de=1.94 | moins de=1.71
+      id=340 "Total 1er Set" → plus de=1.75 | moins de=1.89
+    groupe "Créateur de pari" : 6 markets
+      id=4 "Gagnant Du Match" → 1=2.04 | 2=1.64
+      id=33 "Gagnant 1er Set" → 1=1.98 | 2=1.68
+      id=64 "Plus De/Moins De" → plus de=1.94 | moins de=1.71
+      id=23 "Jeux Handicap" → 2=1.75 | 1=1.82
+      id=340 "Total 1er Set" → plus de=1.75 | moins de=1.89
 
-════════════ APOLLO — dump BetTypeKeys tennis (v2 fix fields) ════════════
-  100 matchs listes
+════════════ BETMOMO — probe sports 1-15 (chercher tennis ATP/WTA) ════════════
+  88 sports exposes :
+    id=1 "Football" order=3
+    id=2 "Ice Hockey" order=7
+    id=3 "Basketball" order=4
+    id=4 "Tennis" order=5
+    id=5 "Volleyball" order=6
+    id=6 "American Football" order=92
+    id=7 "Athletics" order=101
+    id=8 "Aussie Rules" order=96
+    id=9 "Badminton" order=142
+    id=11 "Baseball" order=9
+    id=12 "Beach Football" order=143
+    id=14 "Beach Volleyball" order=146
+    id=15 "Biathlon" order=134
+    id=17 "Boxing" order=135
+    id=18 "Chess" order=157
+    id=19 "Cricket" order=154
+    id=21 "Cycling" order=159
+    id=22 "Darts" order=166
+    id=25 "Formula 1" order=168
+    id=26 "Futsal" order=11
+    id=27 "Golf" order=181
+    id=29 "Handball" order=8
+    id=30 "Field Hockey" order=171
+    id=31 "Horse Racing" order=197
+    id=32 "Motorbike" order=198
+    id=33 "NASCAR" order=204
+    id=34 "Pool" order=403
+    id=35 "Rally" order=215
+    id=36 "Rugby League" order=216
+    id=37 "Rugby Union" order=218
+    id=38 "Shooting" order=227
+    id=39 "Snooker" order=222
+    id=40 "Swimming" order=245
+    id=41 "Table Tennis" order=10
+    id=42 "Water Polo" order=247
+    id=44 "MMA" order=39
+    id=54 "Virtual Horse Racing" order=473
+    id=55 "Virtual Greyhounds" order=475
+    id=69 "Gaelic football" order=188
+    id=70 "Hurling" order=189
+    id=71 "E-Football" order=536
+    id=72 "Surfing" order=242
+    id=73 "E-Basketball" order=535
+    id=74 "Call of Duty" order=531
+    id=75 "Counter-Strike 2" order=518
+    id=76 "Dota 2" order=520
+    id=77 "League of Legends" order=522
+    id=80 "Overwatch 2" order=548
+    id=83 "StarCraft 2" order=556
+    id=86 "Sumo" order=241
+    id=87 "Speedway" order=224
+    id=88 "Squash" order=243
+    id=89 "Politics" order=213
+    id=90 "Special Bets" order=642
+    id=95 "Rugby Sevens" order=217
+    id=96 "Cross-Country Skiing" order=163
+    id=101 "Auto Racing" order=97
+    id=102 "Alpine Skiing" order=99
+    id=106 "Ski Jumping" order=231
+    id=110 "Lacrosse" order=380
+    id=112 "Sailing" order=221
+    id=118 "Virtual Marble Racing" order=472
+    id=124 "Archery" order=1
+    id=127 "Equestrian" order=338
+    id=140 "CrossFire" order=533
+    id=147 "TV Shows and Movies" order=246
+    id=150 "Virtual Cycling" order=478
+    id=158 "King of Glory" order=544
+    id=164 "PUBG" order=549
+    id=167 "Street Fighter" order=557
+    id=173 "Virtual Football Pro" order=466
+    id=174 "The Penalty Kicks" order=467
+    id=180 "Future Horse Racing" order=180
+    id=184 "Greyhounds" order=361
+    id=185 "Rainbow Six" order=552
+    id=188 "Virtual Football League" order=469
+    id=190 "3x3 Basketball" order=137
+    id=193 "Teamfight Tactics" order=559
+    id=208 "Valorant" order=524
+    id=209 "Virtual Drag Racing" order=481
+    id=215 "Mobile Legends" order=525
+    id=219 "Pistol Shooting" order=36
+    id=239 "Free Fire" order=539
+    id=271 "Slap" order=232
+    id=280 "Pickleball" order=244
+    id=282 "Armwrestling" order=40
+    id=285 "Russian Pyramid" order=404
+    id=286 "Marvel Rivals" order=545
+  2 candidates tennis-like: 4:Tennis | 41:Table Tennis
 
-  ┌── APOLLO : Berrettini, Matteo vs Navone, Mariano
-  │ home: Berrettini, Matteo
-  │ away: Navone, Mariano
-  │ league: ATP / ATP Montreal, Canada Men Singles
-  │ start: 2026-08-03T15:00:00.000Z
-  │ id: 73325016
-  │ 26 offers
-  │   BetTypeKey=20 Sbv= → 1"1"=1.46 | 2"2"=2.5
-  │   BetTypeKey=502 Sbv= → 1"1"=1.55 | 2"2"=2.24
-  │   BetTypeKey=558 Sbv= → 1"1"=1.56 | 2"2"=2.23
-  │   BetTypeKey=544 Sbv= → 0:2"0:2"=4.1 | 1:2"1:2"=5 | 2:0"2:0"=2.28 | 2:1"2:1"=3.45
-  │   BetTypeKey=910 Sbv=-3.5 → 1"1"=2.23 | 2"2"=1.58
-  │   BetTypeKey=910 Sbv=-2.5 → 1"1"=1.83 | 2"2"=1.87
-  │   BetTypeKey=910 Sbv=-1.5 → 1"1"=1.62 | 2"2"=2.16
-  │   BetTypeKey=911 Sbv=22.5 → 1"1"=1.89 | 2"2"=1.82
-  │   BetTypeKey=911 Sbv=23.5 → 1"1"=1.68 | 2"2"=2.06
-  │   BetTypeKey=911 Sbv=21.5 → 1"1"=2.25 | 2"2"=1.57
-  │   BetTypeKey=841 Sbv=12.5 → 1"Under"=2.11 | 2"Over"=1.65
-  │   BetTypeKey=842 Sbv=12.5 → 1"Under"=1.7 | 2"Over"=2.03
-  │   BetTypeKey=211 Sbv= → 1"Yes"=1.19 | 2"No"=4
-  │   BetTypeKey=212 Sbv= → 1"Yes"=1.55 | 2"No"=2.26
-  │   BetTypeKey=574 Sbv= → 1/1"1/1"=1.74 | 1/2"1/2"=9.6 | 2/2"2/2"=3.05 | 2/1"2/1"=6.6
-  │   BetTypeKey=915 Sbv= → 2"2"=1.56 | 3"3"=2.23
-  │   BetTypeKey=914 Sbv=1.5 → 1"1"=1.2 | 2"2"=4.1
-  │   BetTypeKey=914 Sbv=-1.5 → 1"1"=2.28 | 2"2"=1.56
-  │   BetTypeKey=852 Sbv= → 1"yes"=10 | 2"no"=1.01
-  │   BetTypeKey=988 Sbv=-1.5 → 1"1"=1.97 | 2"2"=1.75
-  │   BetTypeKey=597 Sbv=9.5 → 1"Under"=2.26 | 2"Over"=1.57
-  │   BetTypeKey=597 Sbv=10.5 → 1"Under"=1.41 | 2"Over"=2.7
-  │   BetTypeKey=597 Sbv=8.5 → 1"Under"=4.7 | 2"Over"=1.16
-  │   BetTypeKey=597 Sbv=6.5 → 1"Under"=12 | 2"Over"=1
-  │   BetTypeKey=597 Sbv=7.5 → 1"Under"=8.8 | 2"Over"=1.03
-  │   BetTypeKey=987 Sbv= → 6:0"6:0"=90 | 6:1"6:1"=19 | 6:2"6:2"=8.6 | 6:3"6:3"=5.4 | 6:4"6:4"=4 | 7:5"7:5"=12 | 7:6"7:6"=5.2 | 6:7"6:7"=6.2 | 5:7"5:7"=17 | 4:6"4:6"=6.8 | 3:6"3:6"=6.4 | 2:6"2:6"=19 | 1:6"1:6"=35 | 0:6"0:6"=101
-  └──
+  --- sport 4 "Tennis" : 128 matchs ---
 
-  ┌── APOLLO : Galarneau, Alexis vs Kopriva, Vit
-  │ home: Galarneau, Alexis
-  │ away: Kopriva, Vit
-  │ league: ATP / ATP Montreal, Canada Men Singles
-  │ start: 2026-08-03T15:00:00.000Z
-  │ id: 73325022
-  │ 26 offers
-  │   BetTypeKey=20 Sbv= → 1"1"=1.77 | 2"2"=1.94
-  │   BetTypeKey=502 Sbv= → 1"1"=1.78 | 2"2"=1.89
-  │   BetTypeKey=558 Sbv= → 1"1"=1.78 | 2"2"=1.89
-  │   BetTypeKey=544 Sbv= → 0:2"0:2"=3.05 | 1:2"1:2"=4.2 | 2:0"2:0"=2.8 | 2:1"2:1"=4
-  │   BetTypeKey=910 Sbv=0.5 → 1"1"=1.72 | 2"2"=2.01
-  │   BetTypeKey=910 Sbv=-0.5 → 1"1"=1.82 | 2"2"=1.88
-  │   BetTypeKey=910 Sbv=-1.5 → 1"1"=1.95 | 2"2"=1.76
-  │   BetTypeKey=911 Sbv=22.5 → 1"1"=1.89 | 2"2"=1.82
-  │   BetTypeKey=911 Sbv=21.5 → 1"1"=2.23 | 2"2"=1.58
-  │   BetTypeKey=911 Sbv=23.5 → 1"1"=1.69 | 2"2"=2.04
-  │   BetTypeKey=841 Sbv=12.5 → 1"Under"=1.75 | 2"Over"=1.96
-  │   BetTypeKey=842 Sbv=12.5 → 1"Under"=1.69 | 2"Over"=2.04
-  │   BetTypeKey=211 Sbv= → 1"Yes"=1.32 | 2"No"=3
-  │   BetTypeKey=212 Sbv= → 1"Yes"=1.38 | 2"No"=2.75
-  │   BetTypeKey=574 Sbv= → 1/1"1/1"=2.11 | 1/2"1/2"=8.2 | 2/2"2/2"=2.31 | 2/1"2/1"=7.6
-  │   BetTypeKey=915 Sbv= → 2"2"=1.55 | 3"3"=2.25
-  │   BetTypeKey=914 Sbv=1.5 → 1"1"=1.33 | 2"2"=3.05
-  │   BetTypeKey=914 Sbv=-1.5 → 1"1"=2.8 | 2"2"=1.39
-  │   BetTypeKey=852 Sbv= → 1"yes"=8.8 | 2"no"=1.02
-  │   BetTypeKey=988 Sbv=-0.5 → 1"1"=1.8 | 2"2"=1.91
-  │   BetTypeKey=597 Sbv=9.5 → 1"Under"=1.92 | 2"Over"=1.79
-  │   BetTypeKey=597 Sbv=10.5 → 1"Under"=1.3 | 2"Over"=3.2
-  │   BetTypeKey=597 Sbv=8.5 → 1"Under"=3.45 | 2"Over"=1.27
-  │   BetTypeKey=597 Sbv=6.5 → 1"Under"=12 | 2"Over"=1
-  │   BetTypeKey=597 Sbv=7.5 → 1"Under"=6.6 | 2"Over"=1.08
-  │   BetTypeKey=987 Sbv= → 6:0"6:0"=60 | 6:1"6:1"=13 | 6:2"6:2"=9.4 | 6:3"6:3"=4.9 | 6:4"6:4"=6 | 7:5"7:5"=13 | 7:6"7:6"=7.6 | 6:7"6:7"=8 | 5:7"5:7"=14 | 4:6"4:6"=4.9 | 3:6"3:6"=7 | 2:6"2:6"=8.8 | 1:6"1:6"=19 | 0:6"0:6"=70
-  └──
-
-════════════ BETMOMO — dump structure tennis (v2 raw SWARM) ════════════
-  125 matchs sport=4 (tennis?)
-
-  ┌── BETMOMO : Lucie Nguyen Tan vs Alba Rey Garcia
-  │ home: Lucie Nguyen Tan
-  │ away: Alba Rey Garcia
-  │ league: WTT Women - Koksijde - Clay
-  │ start: 2026-08-03T11:43:00.000Z
-  │ id: 30465537
-  │ 0 markets
-  └──
-
-  ┌── BETMOMO : Jenny Lim vs Valentina Ivanov
+  ┌── BETMOMO sport=4 : Jenny Lim vs Valentina Ivanov
   │ home: Jenny Lim
   │ away: Valentina Ivanov
   │ league: WTT Women - Koksijde - Clay
@@ -129,18 +177,49 @@
   │ 0 markets
   └──
 
-════════════ PREMIERBET (guineegames) — probe sportIds pour tennis ════════════
-  sportId=1: 92 events — ex: ?
-  sportId=2: 3 events — ex: ?
-  sportId=3: 1 events — ex: ?
-  sportId=4: 3 events — ex: ?
-  sportId=5: 79 events — ex: ?
-  sportId=6: 2 events — ex: ?
-  sportId=7: 0 events
-  sportId=8: 0 events
-  sportId=9: 0 events
-  sportId=10: 0 events
-  sportId=20: 0 events
-  sportId=30: 0 events
+  ┌── BETMOMO sport=4 : Lorenzo Angelini vs Petr Nesterov
+  │ home: Lorenzo Angelini
+  │ away: Petr Nesterov
+  │ league: ATP Challenger Plovdiv - Clay
+  │ start: 2026-08-04T08:00:00.000Z
+  │ id: 30460712
+  │ 33 markets
+  │   type="P1P2" name="Match Winner" group="Match" → P2"W2"base=@1.38 | P1"W1"base=@2.58
+  │   type="Handicap" name="Games Handicap" group="Match" → Away"Petr Nesterov "base=-3.5@1.72 | Home"Lorenzo Angelini "base=3.5@1.96
+  │   type="TotalGamesOver/Under" name="Total Games" group="Match" → Under"Under "base=21.5@1.63 | Over"Over "base=21.5@2.07
+  │   type="Handicap" name="Games Handicap" group="Match" → Away"Petr Nesterov "base=-4@1.86 | Home"Lorenzo Angelini "base=4@1.8
+  │   type="Handicap" name="Games Handicap" group="Match" → Away"Petr Nesterov "base=-2.5@1.55 | Home"Lorenzo Angelini "base=2.5@2.2
+  │   type="Handicap" name="Games Handicap" group="Match" → Home"Lorenzo Angelini "base=3@2.08 | Away"Petr Nesterov "base=-3@1.62
+  │   type="TotalGamesOver/Under" name="Total Games" group="Match" → Under"Under "base=20.5@1.8 | Over"Over "base=20.5@1.86
+  │   type="Handicap" name="Games Handicap" group="Match" → Away"Petr Nesterov "base=-4.5@2.05 | Home"Lorenzo Angelini "base=4.5@1.65
+  │   type="TotalGamesOver/Under" name="Total Games" group="Match" → Over"Over "base=21@1.98 | Under"Under "base=21@1.7
+  │   type="TotalGamesOver/Under" name="Total Games" group="Match" → Under"Under "base=22@1.53 | Over"Over "base=22@2.23
+  │   type="Player1:Player'sTotalofWonGames" name="Player 1 Total Games" group="Match" → Under"Under "base=9.5@1.98 | Over"Over "base=9.5@1.7
+  │   type="Player1:Player'sTotalofWonGames" name="Player 1 Total Games" group="Match" → Under"Under "base=10@1.92 | Over"Over "base=10@1.75
+  └──
 
-═══════════════ FIN DUMP v2 ═══════════════
+  --- sport 41 "Table Tennis" : 454 matchs ---
+
+  ┌── BETMOMO sport=41 : Johannes Willeke vs Makoto Nogami
+  │ home: Johannes Willeke
+  │ away: Makoto Nogami
+  │ league: Challenger Series
+  │ start: 2026-08-03T12:30:00.000Z
+  │ id: 30464931
+  │ 3 markets
+  │   type="P1P2" name="Match Winner" group="Match" → P1"W1"base=@2.9 | P2"W2"base=@1.3
+  │   type="MatchPointHandicap" name="Points Handicap" group="Match" → Away"Makoto Nogami "base=-6.5@1.75 | Home"Johannes Willeke "base=6.5@1.85
+  │   type="MatchEvenOdd" name="Total Points Odd/Even" group="Match" → Odd"Odd"base=@1.8 | Even"Even"base=@1.8
+  └──
+
+  ┌── BETMOMO sport=41 : Alberto Mino vs Marcel Neumaier
+  │ home: Alberto Mino
+  │ away: Marcel Neumaier
+  │ league: Challenger Series
+  │ start: 2026-08-03T13:00:00.000Z
+  │ id: 30464939
+  │ 1 markets
+  │   type="P1P2" name="Match Winner" group="Match" → P1"W1"base=@1.17 | P2"W2"base=@4.42
+  └──
+
+═══════════════ FIN DUMP v3 ═══════════════
