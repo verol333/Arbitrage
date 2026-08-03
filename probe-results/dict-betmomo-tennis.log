@@ -1,0 +1,149 @@
+121 matchs tennis dispos
+
+5 matchs avec >5 markets
+
+═══ DICTIONNAIRE : 15 (type, name) uniques ═══
+
+
+━━ type="Handicap" name="Games Handicap" ━━
+  group_name : "Match"
+  instances : 36
+  distinct bases : -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, -0.5, 0.5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Away"Petr Nesterov "base=-3.5@1.72 | Home"Lorenzo Angelini "base=3.5@1.96
+    [Lorenzo Angelini vs Petr Nesterov]
+      Away"Petr Nesterov "base=-4@1.86 | Home"Lorenzo Angelini "base=4@1.8
+
+━━ type="TotalGamesOver/Under" name="Total Games" ━━
+  group_name : "Match"
+  instances : 32
+  distinct bases : 19.5, 20, 20.5, 21, 21.5, 22, 22.5, 23
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Under"Under "base=21.5@1.63 | Over"Over "base=21.5@2.07
+    [Lorenzo Angelini vs Petr Nesterov]
+      Under"Under "base=20.5@1.8 | Over"Over "base=20.5@1.86
+
+━━ type="Player1:Player'sTotalofWonGames" name="Player 1 Total Games" ━━
+  group_name : "Match"
+  instances : 23
+  distinct bases : 9.5, 10, 10.5, 11, 11.5, 12, 12.5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Under"Under "base=9.5@1.98 | Over"Over "base=9.5@1.7
+    [Lorenzo Angelini vs Petr Nesterov]
+      Under"Under "base=10@1.92 | Over"Over "base=10@1.75
+
+━━ type="SetHandicap" name="1st Set Games Handicap" ━━
+  group_name : "Sets"
+  instances : 15
+  distinct bases : -3.5, -1.5, 1.5, 3.5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Home"Lorenzo Angelini "base=3.5@1.24 | Away"Petr Nesterov "base=-3.5@3.35
+    [Lorenzo Angelini vs Petr Nesterov]
+      Home"Lorenzo Angelini "base=1.5@2.07 | Away"Petr Nesterov "base=-1.5@1.63
+
+━━ type="Player2:Player'sTotalofWonGames" name="Player 2 Total Games" ━━
+  group_name : "Match"
+  instances : 13
+  distinct bases : 10.5, 11, 11.5, 12, 12.5, 13
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Under"Under "base=12@2.4 | Over"Over "base=12@1.45
+    [Lorenzo Angelini vs Petr Nesterov]
+      Under"Under "base=12.5@1.6 | Over"Over "base=12.5@2.11
+
+━━ type="SetOverUnder" name="1st Set Total Games" ━━
+  group_name : "Sets"
+  instances : 11
+  distinct bases : 8.5, 10.5, 12.5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Over"Over "base=8.5@1.43 | Under"Under "base=8.5@2.43
+    [Lorenzo Angelini vs Petr Nesterov]
+      Over"Over "base=10.5@3.95 | Under"Under "base=10.5@1.18
+
+━━ type="Sets Handicap" name="Sets Handicap" ━━
+  group_name : "Match"
+  instances : 10
+  distinct bases : -1.5, 1.5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Home"Lorenzo Angelini "base=-1.5@3.95 | Away"Petr Nesterov "base=1.5@1.18
+    [Lorenzo Angelini vs Petr Nesterov]
+      Home"Lorenzo Angelini "base=1.5@1.72 | Away"Petr Nesterov "base=-1.5@1.96
+
+━━ type="P1P2" name="Match Winner" ━━
+  group_name : "Match"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      P2"W2"base=@1.38 | P1"W1"base=@2.58
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      P1"W1"base=@2.47 | P2"W2"base=@1.42
+
+━━ type="InMatchW1W2orW2W1" name="Player Will Lose 1st Set and Win Match" ━━
+  group_name : "Match"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      No"No"base=@1.15 | Yes"Yes"base=@4.75
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      Yes"Yes"base=@4.57 | No"No"base=@1.16
+
+━━ type="1stSet-Match" name="1st Set/Match" ━━
+  group_name : "Match"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      W1/W2"W1/W2"base=@7.6 | W1/W1"W1/W1"base=@3.19 | W2/W2"W2/W2"base=@1.66 | W2/W1"W2/W1"base=@14
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      W1/W1"W1/W1"base=@3.11 | W2/W1"W2/W1"base=@12 | W1/W2"W1/W2"base=@7.2 | W2/W2"W2/W2"base=@1.73
+
+━━ type="TotalGamesOddorEven" name="Total Games Odd/Even" ━━
+  group_name : "Match"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Odd"Odd"base=@1.82 | Even"Even"base=@1.84
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      Even"Even"base=@1.84 | Odd"Odd"base=@1.82
+
+━━ type="Player2:WillWinAtLeastOneSet" name="Player 2: Will Win at Least One Set" ━━
+  group_name : "Match"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      No"No"base=@4 | Yes"Yes"base=@1.17
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      Yes"Yes"base=@1.16 | No"No"base=@4.12
+
+━━ type="Player1:WillWinAtLeastOneSet" name="Player 1: Will Win at Least One Set" ━━
+  group_name : "Match"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      No"No"base=@1.82 | Yes"Yes"base=@1.8
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      Yes"Yes"base=@1.73 | No"No"base=@1.93
+
+━━ type="SetWinner" name="1st Set Winner" ━━
+  group_name : "Sets"
+  instances : 5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Away"W2"base=@1.47 | Home"W1"base=@2.35
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      Home"W1"base=@2.28 | Away"W2"base=@1.5
+
+━━ type="TotalofSets" name="Total Sets" ━━
+  group_name : "Match"
+  instances : 5
+  distinct bases : 2.5
+  Exemples :
+    [Lorenzo Angelini vs Petr Nesterov]
+      Over"Over "base=2.5@2.53 | Under"Under "base=2.5@1.4
+    [Gabriele Piraino vs Carlo Alberto Caniato]
+      Over"Over "base=2.5@2.43 | Under"Under "base=2.5@1.43

@@ -8,26 +8,26 @@
     ex: Western Bulldogs vs North Melbourne | Brisbane Lions vs Hawthorn Hawks | Melbourne Demons vs Fremantle Dockers
   sport=21:  92 matchs | ATP:0 WTA:0
     ex: Arizona Cardinals vs Carolina Panthers | Seattle Seahawks vs New England Patriots | Los Angeles Rams vs San Francisco 49ers
-  sport=23:  70 matchs | ATP:0 WTA:0
+  sport=23:  69 matchs | ATP:0 WTA:0
     ex: Latvia U-18 (w) vs Poland U-18 (w) | Italy U-18 (w) vs Belgium U-18 (w) | Dinamo NS vs NS Bulls
   sport=24: 100 matchs | ATP:0 WTA:0
     ex: Filip Taller vs Adam Dvoracek | Maxim Stetsenko vs Dmytro Ponomarenko | Dmitry Zenyuk vs Denys Scherbak
   sport=25: 100 matchs | ATP:0 WTA:0
     ex: West Indies vs Pakistan | University Sports South Africa XI vs Bangladesh Emerging Team | South Africa Emerging (w) vs Bangladesh Emerging (w)
-  sport=26:   3 matchs | ATP:0 WTA:0
-    ex: Dean Gallagher vs Patrick Williams  | Darren Beveridge vs Joe Croft | Jonny Barnes vs Neven Resetar
+  sport=26:   2 matchs | ATP:0 WTA:0
+    ex: Darren Beveridge vs Joe Croft | Jonny Barnes vs Neven Resetar
   sport=27:  12 matchs | ATP:0 WTA:0
     ex: Japan vs Argentina | Imperia-Pro vs Energy-Pro | Colombia (w) vs Trinidad and Tobago (w)
   sport=28:   3 matchs | ATP:0 WTA:0
     ex: Russia vs New Zealand | Club de Gimnasia y Esgrima La Plata vs Arsenal FC | ADC Intelli Orlandia vs Praia Grande
   sport=29:  10 matchs | ATP:0 WTA:0
     ex: Orix Buffaloes vs Rakuten Golden Eagles | Philadelphia Phillies vs Washington Nationals | New York Yankees vs St. Louis Cardinals
-  sport=33: 100 matchs | ATP:3 WTA:2 ★★★ VRAI TENNIS ★★★
-    ex: Nick Kyrgios (leslay) vs Rafael Nadal (Bug) | Jannik Sinner (1nter1um) vs Alexander Zverev (Kravinho) | Lois Boisson vs Antonia Ruzic
+  sport=33: 100 matchs | ATP:2 WTA:2 ★★★ VRAI TENNIS ★★★
+    ex: Jannik Sinner (1nter1um) vs Alexander Zverev (Kravinho) | Lois Boisson vs Antonia Ruzic | Emerson Jones vs Lanlana Tararudee
   sport=34:   5 matchs | ATP:0 WTA:0
     ex: Rhein-Neckar Lowen vs Ademar Leon | Nantes vs Barcelona | Costa Rica vs Guatemala
   sport=35:  63 matchs | ATP:0 WTA:0
-    ex: Omskiye Yastreby vs Belye Medvedi Chelyabinsk | Carolina Hurricanes (replays) vs New York Rangers (replays) | Columbus Blue Jackets (replays) vs Pittsburgh Penguins (replays)
+    ex: Omskiye Yastreby vs Belye Medvedi Chelyabinsk | Columbus Blue Jackets (replays) vs Pittsburgh Penguins (replays) | Bad Company vs Icebreakers
   sport=37:  86 matchs | ATP:0 WTA:0
     ex: SOOPers Challengers vs Dplus Challengers | BRION vs Nongshim RedForce | Hanwha Life vs Gen.G
   sport=40:   6 matchs | ATP:0 WTA:0
@@ -36,4 +36,4 @@
     ex: CAG by VARREL vs Fnatic | MIBR.LOS vs KINGZERO | Shopify Rebellion vs Al-Ula
 
 ═══ RESUME : 1 sportIds identifies comme TENNIS ATP/WTA ═══
-  sport=33: 100 matchs (3 ATP + 2 WTA reconnus)
+  sport=33: 100 matchs (2 ATP + 2 WTA reconnus)
