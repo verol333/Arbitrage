@@ -1,7 +1,121 @@
-// Parseur football 1win (groupes REST → cotes plates standard).
+// Parseur football + tennis 1win (groupes REST → cotes plates standard).
 // Port fidèle de matchCore.ts winFlatOdds().
 import { isHalfLine } from '../../core/markets.js';
 import { tokenOverlap } from '../../core/text.js';
+
+// Convertit les groupes tennis 1win → cotes plates canoniques.
+// Prefixes set : "1st set."/"2nd set."/"3rd set." → sN_.
+// Marches : Winner, Handicap, Total, <Player> total, Total. Odd/Even.
+export function winTennisFlatOdds(groups, names) {
+  const odds = {};
+  if (!groups) return odds;
+  const isHome = (n) => tokenOverlap(n, names.home) >= 0.5;
+  const isAway = (n) => tokenOverlap(n, names.away) >= 0.5;
+  const active = (list) => (list || []).filter((o) => o?.status === 1 && Number(o.cf) > 1);
+
+  for (const [rawName, rawList] of Object.entries(groups)) {
+    const low = rawName.toLowerCase().trim();
+    const list = active(rawList);
+    if (!list.length) continue;
+
+    // Prefixe set : "1st set. Winner" → s1_ + "Winner"
+    let pfx = '';
+    let base = low;
+    const setMatch = low.match(/^(1st|2nd|3rd|4th|5th)\s+set\.\s+(.+)$/);
+    if (setMatch) {
+      const n = setMatch[1] === '1st' ? '1' : setMatch[1] === '2nd' ? '2' : setMatch[1] === '3rd' ? '3' : setMatch[1] === '4th' ? '4' : '5';
+      pfx = `s${n}_`;
+      base = setMatch[2];
+    }
+
+    // Winner : outcome 1/2 → home/away
+    if (base === 'winner') {
+      for (const o of list) {
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const n = String(o.name || '').toLowerCase();
+        // sN_ prefix : cle sN_match_1 / sN_match_2. Base : match_1 / match_2.
+        if (oc === '1') odds[`${pfx}match_1`] = Number(o.cf);
+        else if (oc === '2') odds[`${pfx}match_2`] = Number(o.cf);
+        else if (isHome(n) && !isAway(n)) odds[`${pfx}match_1`] = Number(o.cf);
+        else if (isAway(n) && !isHome(n)) odds[`${pfx}match_2`] = Number(o.cf);
+      }
+    }
+    // Handicap : "Matteo Berrettini 1.5" ou "Mariano Navone -1.5"
+    // Le signe est conserve. hcp_home_X pour joueur home, hcp_away_X pour away.
+    else if (base === 'handicap') {
+      for (const o of list) {
+        const n = String(o.name || '');
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const mLine = n.match(/(-?\d+(?:\.\d+)?)/);
+        if (!mLine) continue;
+        const line = parseFloat(mLine[1]);
+        if (!isHalfLine(line)) continue;
+        const teamPart = n.replace(/-?\d+(?:\.\d+)?/g, '').trim();
+        // Priorite : outcome 1/2 si dispo, sinon token match
+        let side = null;
+        if (oc === '1') side = 'home';
+        else if (oc === '2') side = 'away';
+        else {
+          const sH = tokenOverlap(teamPart, names.home), sA = tokenOverlap(teamPart, names.away);
+          side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+        }
+        if (side === null) continue;
+        odds[`${pfx}hcp_${side}_${line}`] = Number(o.cf);
+      }
+    }
+    // Total : "Over 26.5" / "Under 26.5" → match_over_26.5 / match_under_26.5
+    // sN_ prefix : sN_over_X / sN_under_X.
+    else if (base === 'total') {
+      for (const o of list) {
+        const n = String(o.name || '');
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const m = n.match(/(-?\d+(?:\.\d+)?)/);
+        if (!m || !isHalfLine(m[1])) continue;
+        const line = parseFloat(m[1]);
+        const isOver = oc === 'over' || /over/i.test(n);
+        const isUnder = oc === 'under' || /under/i.test(n);
+        if (!isOver && !isUnder) continue;
+        if (pfx) {
+          // Par set : sN_over_X / sN_under_X
+          if (isOver) odds[`${pfx}over_${line}`] = Number(o.cf);
+          else odds[`${pfx}under_${line}`] = Number(o.cf);
+        } else {
+          // Match : match_over_X / match_under_X
+          if (isOver) odds[`match_over_${line}`] = Number(o.cf);
+          else odds[`match_under_${line}`] = Number(o.cf);
+        }
+      }
+    }
+    // Total. Odd/Even
+    else if (base === 'total. odd/even' || base === 'odd/even') {
+      for (const o of list) {
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const n = String(o.name || '').toLowerCase();
+        if (oc === 'odd' || /odd/i.test(n)) odds[`${pfx}odd`] = Number(o.cf);
+        else if (oc === 'even' || /even/i.test(n)) odds[`${pfx}even`] = Number(o.cf);
+      }
+    }
+    // "<Player name> total" → tt_home_over/under_X ou tt_away_over/under_X
+    else if (!pfx && /^.+\s+total$/i.test(low) && low !== 'total') {
+      const teamPart = rawName.replace(/\s+total$/i, '').trim();
+      const sH = tokenOverlap(teamPart, names.home), sA = tokenOverlap(teamPart, names.away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side === null) continue;
+      for (const o of list) {
+        const n = String(o.name || '');
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const m = n.match(/(-?\d+(?:\.\d+)?)/);
+        if (!m || !isHalfLine(m[1])) continue;
+        const line = parseFloat(m[1]);
+        const isOver = oc === 'over' || /over/i.test(n);
+        const isUnder = oc === 'under' || /under/i.test(n);
+        if (isOver) odds[`tt_${side}_over_${line}`] = Number(o.cf);
+        else if (isUnder) odds[`tt_${side}_under_${line}`] = Number(o.cf);
+      }
+    }
+  }
+  return odds;
+}
 
 export function winFlatOdds(groups, names) {
   const odds = {};

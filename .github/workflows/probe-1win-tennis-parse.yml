@@ -1,0 +1,58 @@
+name: Probe 1win tennis parse (verify parser)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/probe-1win-tennis-parse.js'
+      - '.github/workflows/probe-1win-tennis-parse.yml'
+      - 'src/bookmakers/onewin/parse.js'
+      - 'src/bookmakers/onewin/index.js'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run probe
+        working-directory: .
+        run: |
+          mkdir -p probe-results
+          node scripts/probe-1win-tennis-parse.js 2>&1 | tee probe-results/probe-1win-tennis-parse.log || true
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+      - name: Commit log
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f probe-results/probe-1win-tennis-parse.log ]; then
+            git add probe-results/probe-1win-tennis-parse.log
+            git commit -m "PROBE 1win tennis parse ${{ github.run_id }}" || echo "nothing"
+            git pull --rebase origin claude/nice-dijkstra-rgrpst || true
+            git push || true
+          fi
