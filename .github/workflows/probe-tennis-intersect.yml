@@ -1,0 +1,57 @@
+name: Probe tennis intersect (5 books)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/probe-tennis-intersect.js'
+      - '.github/workflows/probe-tennis-intersect.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run probe
+        working-directory: .
+        run: |
+          mkdir -p probe-results
+          node scripts/probe-tennis-intersect.js 2>&1 | tee probe-results/probe-tennis-intersect.log || true
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+      - name: Commit log
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f probe-results/probe-tennis-intersect.log ]; then
+            git add probe-results/probe-tennis-intersect.log
+            git commit -m "PROBE tennis intersect ${{ github.run_id }}" || echo "nothing"
+            git pull --rebase origin claude/nice-dijkstra-rgrpst || true
+            git push || true
+          fi
