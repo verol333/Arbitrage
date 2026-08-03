@@ -1,92 +1,55 @@
 #!/usr/bin/env node
-// Dictionnaire complet 1WIN tennis :
-// - Comprendre "Total" (games ou points?) via valeur des lignes
-// - Comprendre "Nth set" (contextuel? mal cate?)
-// - Distinguer tennis vs table tennis
-// - Trouver tous les groups possibles sur 10 matchs
+// Trouve le VRAI sportId tennis chez 1win (sport=24 est table tennis!)
+// Enumere sports 1-60, pour chaque check noms de matchs = ATP/WTA players
+import { API_BASE, ORIGIN, UA, PLATFORM } from '../src/bookmakers/onewin/api.js';
 
-import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
-import { listPrematch } from '../src/bookmakers/onewin/list.js';
+async function getMany(sportId) {
+  const now = Math.floor(Date.now() / 1000);
+  const body = { sportId, startAtFrom: now - 3600, startAtTo: now + 3 * 86400, limit: 100, offset: 0, l: 'en-001', p: PLATFORM };
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 10_000);
+  try {
+    const res = await fetch(`${API_BASE}/matches/get-many`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: ORIGIN, Referer: `${ORIGIN}/`, 'User-Agent': UA },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+    const data = res.ok ? await res.json() : null;
+    return data?.result?.items || [];
+  } catch { return []; }
+  finally { clearTimeout(t); }
+}
 
-const matches = await listPrematch('tennis');
-console.log(`${matches.length} matchs 1win sport=24 tennis\n`);
+// Joueurs ATP/WTA reference (top 100 approx) pour identifier tennis
+const ATP_KEYWORDS = /(djokovic|sinner|alcaraz|zverev|medvedev|rublev|hurkacz|dimitrov|ruud|tsitsipas|fritz|shelton|de minaur|paul|khachanov|humbert|rune|berrettini|griekspoor|jarry|struff|kecmanovic|bublik|monfils|tiafoe|nishikori|nakashima|coric|davidovich|arnaldi|van de zandschulp|djere|thompson|munar|carballes|shapovalov|lehecka|djokovic|nadal|federer|murray)/i;
+const WTA_KEYWORDS = /(swiatek|sabalenka|gauff|rybakina|jabeur|pegula|paolini|zheng|krejcikova|vondrousova|kasatkina|ostapenko|linette|azarenka|kudermetova|samsonova|garcia|kalinina|kostyuk|pliskova|halep|wozniacki|kerber|kalinina|bondar)/i;
 
-// Fetch WS pour 10 matchs
-const sample = matches.slice(0, 10);
-console.log(`Fetch WS pour ${sample.length} matchs...\n`);
-const map = await fetchOddsWS(sample.map(m => m.id));
-console.log(`${map.size}/${sample.length} matchs avec cotes\n`);
-
-// Statistiques par nom de group
-const groupStats = {}; // gname → { count, sampleValues, sampleOutcomes }
-
-for (const m of sample) {
-  const groups = map.get(m.id) || map.get(String(m.id));
-  if (!groups) continue;
-  for (const [gname, glist] of Object.entries(groups)) {
-    if (!groupStats[gname]) groupStats[gname] = { count: 0, samples: [] };
-    groupStats[gname].count++;
-    if (groupStats[gname].samples.length < 3) {
-      const outs = (glist || []).slice(0, 6).map(o => `${o.name || o.outcome || '?'}(${o.cf})`);
-      groupStats[gname].samples.push({
-        matchLabel: `${m.home} vs ${m.away} [${m.league}]`,
-        outcomes: outs,
-      });
-    }
+console.log('═══ Scan sport IDs 1-60 pour trouver VRAI tennis (ATP/WTA) ═══\n');
+const results = [];
+for (const sid of [4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 45, 50, 55, 60]) {
+  const items = await getMany(sid);
+  if (items.length === 0) continue;
+  // Analyse noms
+  let atpCount = 0, wtaCount = 0;
+  const samples = [];
+  for (const it of items.slice(0, 20)) {
+    const home = it.homeTeam?.name || it.team1?.name || '';
+    const away = it.awayTeam?.name || it.team2?.name || '';
+    const combined = `${home} ${away}`;
+    if (ATP_KEYWORDS.test(combined)) atpCount++;
+    if (WTA_KEYWORDS.test(combined)) wtaCount++;
+    if (samples.length < 3) samples.push(`${home} vs ${away}`);
   }
+  const isTennis = atpCount > 0 || wtaCount > 0;
+  const marker = isTennis ? ' ★★★ VRAI TENNIS ★★★' : '';
+  console.log(`  sport=${sid.toString().padStart(2)}: ${items.length.toString().padStart(3)} matchs | ATP:${atpCount} WTA:${wtaCount}${marker}`);
+  console.log(`    ex: ${samples.join(' | ')}`);
+  results.push({ sid, count: items.length, atpCount, wtaCount, samples });
 }
 
-console.log(`═══ ${Object.keys(groupStats).length} groupes distincts observes ═══\n`);
-const sorted = Object.entries(groupStats).sort((a, b) => b[1].count - a[1].count);
-for (const [gname, s] of sorted) {
-  console.log(`\n━━ "${gname}" (${s.count}/${sample.length} matchs) ━━`);
-  for (const sm of s.samples) {
-    console.log(`  [${sm.matchLabel}]`);
-    console.log(`    ${sm.outcomes.join(' | ')}`);
-  }
+const tennisCandidates = results.filter(r => r.atpCount > 0 || r.wtaCount > 0);
+console.log(`\n═══ RESUME : ${tennisCandidates.length} sportIds identifies comme TENNIS ATP/WTA ═══`);
+for (const r of tennisCandidates) {
+  console.log(`  sport=${r.sid}: ${r.count} matchs (${r.atpCount} ATP + ${r.wtaCount} WTA reconnus)`);
 }
-
-// Analyse specifique : les valeurs "Total" sont-elles games ou points ?
-console.log('\n\n═══ ANALYSE "Total" : games ou points ? ═══');
-const totalValues = [];
-for (const m of sample) {
-  const groups = map.get(m.id);
-  if (!groups?.['Total']) continue;
-  for (const o of groups.Total) {
-    const mm = (o.name || '').match(/(?:over|under)\s+([\d.]+)/i);
-    if (mm) totalValues.push({ match: `${m.home} vs ${m.away}`, val: parseFloat(mm[1]) });
-  }
-}
-totalValues.sort((a, b) => a.val - b.val);
-console.log(`  ${totalValues.length} valeurs Total observees`);
-console.log(`  Range : min=${totalValues[0]?.val} max=${totalValues[totalValues.length - 1]?.val}`);
-console.log(`  Distribution :`);
-const buckets = { '<25 (games)': 0, '25-50': 0, '50-100 (points ATP)': 0, '100-200 (points)': 0, '>200': 0 };
-for (const t of totalValues) {
-  if (t.val < 25) buckets['<25 (games)']++;
-  else if (t.val < 50) buckets['25-50']++;
-  else if (t.val < 100) buckets['50-100 (points ATP)']++;
-  else if (t.val < 200) buckets['100-200 (points)']++;
-  else buckets['>200']++;
-}
-for (const [k, v] of Object.entries(buckets)) console.log(`    ${k} : ${v}`);
-console.log('  Exemples extremes :');
-console.log(`    min val = ${totalValues[0]?.val} pour ${totalValues[0]?.match}`);
-console.log(`    max val = ${totalValues[totalValues.length - 1]?.val} pour ${totalValues[totalValues.length - 1]?.match}`);
-
-console.log('\n\n═══ ANALYSE "Nth set" : quelle numeration ? ═══');
-// Extraire les "Xth set" et voir pattern
-const setCounts = {};
-for (const gname of Object.keys(groupStats)) {
-  const m = gname.match(/^(\d)(st|nd|rd|th) set\./);
-  if (m) {
-    const n = m[1];
-    if (!setCounts[n]) setCounts[n] = 0;
-    setCounts[n] += groupStats[gname].count;
-  }
-}
-for (const [n, c] of Object.entries(setCounts).sort()) {
-  console.log(`  set N=${n}: ${c} occurrences totales`);
-}
-console.log('  Hypothese : si N va au-dela de 3 → best-of-5 (Grand Slam) ou tennis de table (best-of-5/7)');
-console.log('  Si N va au-dela de 5 → probablement table tennis mal categorise');
