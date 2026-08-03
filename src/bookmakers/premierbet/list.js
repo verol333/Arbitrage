@@ -29,10 +29,25 @@ export async function listMatches({ live = false, horizonHours = 168, maxMatches
   const horizonMs = nowMs + horizonHours * 3600_000;
   const ids = new Map();
 
+  // Pour upcoming, iterer sur plusieurs dates (couvre horizon complet).
+  // Foot : 4 jours ; tennis : idem car ATP/WTA sur plusieurs jours.
+  // Sans multi-date : listing sous-echantillonne (ex: PB tennis passait de
+  // 200 → 7 events car seulement date=today).
+  const upcomingDates = [];
+  if (!live) {
+    const daysAhead = Math.min(Math.ceil(horizonHours / 24), 4);
+    for (let d = 0; d < daysAhead; d++) {
+      const date = new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+      upcomingDates.push(date);
+    }
+  }
   const endpoints = live
     ? [{ path: '/events/live', extra: { sportId: SPORT_ID, zoomSportId: '61' } }]
     : [
-        { path: '/events/upcoming', extra: { sportId: SPORT_ID, timeOffset: '-60', date: new Date().toISOString().slice(0, 10) } },
+        ...upcomingDates.map((date) => ({
+          path: '/events/upcoming',
+          extra: { sportId: SPORT_ID, timeOffset: '-60', date },
+        })),
         { path: '/events/highlights', extra: { sportId: SPORT_ID } },
       ];
 
@@ -40,9 +55,11 @@ export async function listMatches({ live = false, horizonHours = 168, maxMatches
   const counts = {};
 
   for (let i = 0; i < results.length; i++) {
-    const name = endpoints[i].path.split('/').pop();
+    const path = endpoints[i].path;
+    const date = endpoints[i].extra?.date;
+    const key = path === '/events/upcoming' && date ? `upcoming[${date}]` : path.split('/').pop();
     const events = extractEvents(results[i]);
-    counts[name] = events.length;
+    counts[key] = events.length;
     for (const ev of events) {
       if (!ev.id || ids.has(ev.id)) continue;
       ids.set(ev.id, ev);

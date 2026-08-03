@@ -26,15 +26,43 @@ const MARKET_IDS_TENNIS = '186,68,89,166,187,189,190,340'; // Winner + Sets + Ga
 export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5' };
 export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS };
 
+// Rotation d'user-agents pour eviter les 403 Cloudflare rate-limit.
+// Diag 5books tennis a montre : Chrome 151 marche, autres UAs parfois bloques.
+const UAS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+];
+let uaCursor = 0;
+
 async function sbFetch(url, timeoutMs = 20_000) {
-  try {
-    const res = await fetch(url, { headers: HDR, signal: AbortSignal.timeout(timeoutMs) });
-    if (!res.ok) { console.log(`[sportybet] ${url.split('?')[0].split('/').pop()} status=${res.status}`); return null; }
-    return res.json();
-  } catch (e) {
-    console.log(`[sportybet] ${url.split('?')[0].split('/').pop()} err=${e.message}`);
-    return null;
+  // 3 tentatives avec UAs differents pour bypass rate-limit transitoire.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ua = UAS[(uaCursor + attempt) % UAS.length];
+    try {
+      const res = await fetch(url, {
+        headers: { ...HDR, 'User-Agent': ua },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.ok) {
+        uaCursor = (uaCursor + attempt) % UAS.length;
+        return res.json();
+      }
+      if (res.status === 403 && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        continue; // retry avec autre UA
+      }
+      console.log(`[sportybet] ${url.split('?')[0].split('/').pop()} status=${res.status} (attempt ${attempt + 1})`);
+      return null;
+    } catch (e) {
+      if (attempt >= 2) {
+        console.log(`[sportybet] ${url.split('?')[0].split('/').pop()} err=${e.message}`);
+        return null;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
+  return null;
 }
 
 // pcUpcomingEvents attend option + sortOption + timeline entier. `todayGames`
