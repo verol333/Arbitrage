@@ -312,7 +312,13 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
   }));
   const confirmedAt = new Date().toISOString();
   const confirmedAtMs = Date.now();
-  const rejectReasons = { noKey: 0, noOddsA: 0, noOddsB: 0, missingFresh: 0, badRange: 0, noArb: 0, lowProfit: 0, capMax: 0 };
+  const rejectReasons = { noKey: 0, noOddsA: 0, noOddsB: 0, missingFresh: 0, badRange: 0, noArb: 0, lowProfit: 0, capMax: 0, unstableDrift: 0 };
+  // Seuil de drift entre cote candidate (readOdds cache) et cote fresh (confirm noCache).
+  // Si une cote a bougé de plus de ce seuil, l'opp est instable → rejet.
+  // Detecte : parseurs qui retournent des spikes, caches proxies qui donnent des
+  // reponses obsoletes, marches qui bougent trop vite (arb ephemere non exploitable).
+  const DRIFT_MAX = 0.10;
+  const driftSamples = [];
   const rejectByBook = {};
   const trackReject = (o, reason) => {
     rejectReasons[reason] = (rejectReasons[reason] || 0) + 1;
@@ -335,6 +341,15 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     const freshB = oddsB[key.b];
     if (freshA == null || freshB == null) { trackReject(o, 'missingFresh'); continue; }
     if (freshA <= 1 || freshB <= 1 || freshA > 80 || freshB > 80) { trackReject(o, 'badRange'); continue; }
+    // Drift check : rejette si cote a bouge de >DRIFT_MAX entre candidate et fresh.
+    // Cote candidate = o.leg_a_odd / o.leg_b_odd (lues depuis readOdds cache).
+    // Cote fresh = freshA / freshB (refetch noCache=true).
+    const candA = Number(o.leg_a_odd) || null;
+    const candB = Number(o.leg_b_odd) || null;
+    const driftA = candA ? Math.abs(freshA - candA) : 0;
+    const driftB = candB ? Math.abs(freshB - candB) : 0;
+    driftSamples.push({ book_a: o.leg_a_book, book_b: o.leg_b_book, driftA, driftB });
+    if (driftA > DRIFT_MAX || driftB > DRIFT_MAX) { trackReject(o, 'unstableDrift'); continue; }
     const invSum = 1 / freshA + 1 / freshB;
     if (invSum >= 1) { trackReject(o, 'noArb'); continue; }
     const profit = (1 - invSum) * 100;
@@ -370,6 +385,9 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
       profit_pct: Math.round(profit * 100) / 100,
       stake_a_pct: Math.round(stakeA * 10) / 10,
       stake_b_pct: Math.round(stakeB * 10) / 10,
+      odds_confirmed_at: confirmedAt,
+      leg_a_drift: Math.round(driftA * 100) / 100,
+      leg_b_drift: Math.round(driftB * 100) / 100,
       ...(liveAtConfirm ? {
         live_score_at_confirm: liveAtConfirm.score,
         live_minute_at_confirm: liveAtConfirm.minute,
@@ -396,6 +414,20 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
         log(`     - ${book} (${total} rejets): ${details}`);
       }
     }
+  }
+  // Synthese drift : max / moyenne par book, aide a detecter parseurs instables ou caches obsoletes.
+  if (driftSamples.length) {
+    const perBook = {}; // book => {maxA, sumA, nA, maxB, sumB, nB}
+    for (const s of driftSamples) {
+      if (!perBook[s.book_a]) perBook[s.book_a] = { max: 0, sum: 0, n: 0 };
+      if (!perBook[s.book_b]) perBook[s.book_b] = { max: 0, sum: 0, n: 0 };
+      perBook[s.book_a].max = Math.max(perBook[s.book_a].max, s.driftA);
+      perBook[s.book_a].sum += s.driftA; perBook[s.book_a].n++;
+      perBook[s.book_b].max = Math.max(perBook[s.book_b].max, s.driftB);
+      perBook[s.book_b].sum += s.driftB; perBook[s.book_b].n++;
+    }
+    const parts = Object.entries(perBook).map(([b, s]) => `${b}:max=${s.max.toFixed(2)}/avg=${(s.sum / s.n).toFixed(3)}(n=${s.n})`);
+    log(`  📈 drift candidate→fresh par book : ${parts.join(' | ')}`);
   }
   return out.sort((a, b) => b.profit_pct - a.profit_pct);
 }
