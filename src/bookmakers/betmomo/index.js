@@ -13,11 +13,11 @@ export default {
   // getOdds : par défaut on utilise les cotes capturées au listMatches (rapide).
   // En mode noCache (confirm re-fetch juste avant envoi) et en LIVE, on force
   // un re-fetch dédié via SWARM sur cet unique game → cotes fraîches.
-  async getOdds(match, { live = false, noCache = false } = {}) {
+  async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
     if (live || noCache) {
       const markets = await fetchMatchOdds(match.id);
-      if (markets.length) return betmomoFlatOdds(markets);
+      if (markets.length) return betmomoFlatOdds(markets, { sport });
     }
-    return betmomoFlatOdds(match.__raw?.markets || []);
+    return betmomoFlatOdds(match.__raw?.markets || [], { sport });
   },
 };

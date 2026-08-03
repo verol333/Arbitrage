@@ -13,11 +13,11 @@ function dedupeMarkets(event) {
 
 // En LIVE ou au re-fetch confirm noCache : force cache-buster pour éviter les cotes
 // stale servies par CDN/proxy (bug user : cotes 20+ pour équipe qui mène en 2ème MT).
-export async function getOdds(match, { live = false, noCache = false } = {}) {
+export async function getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
   const forceNoCache = live || noCache;
   const event = await mget(`/events/${match.id}`, {}, 15_000, { noCache: forceNoCache });
   if (!event) return {};
   const evObj = event?.data || event;
   const markets = dedupeMarkets(evObj);
-  return premierbetFlatOdds(markets, { live });
+  return premierbetFlatOdds(markets, { live, sport });
 }

@@ -18,7 +18,14 @@ export default {
   //
   // PREMATCH : peut réutiliser __raw.markets (capturé par listPrematch avec
   // markets embedded via pcUpcomingEvents) SAUF si noCache demandé (confirm).
-  async getOdds(match, { live = false, noCache = false } = {}) {
+  async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
+    // Tennis : listPrematch filtre par MARKET_IDS_FOOTBALL → __raw pauvre.
+    // Force fetch event detail pour recuperer TOUS les markets tennis (jusqu'a 50).
+    if (sport === 'tennis') {
+      const evt = await sbFetchEvent(match.id, { live });
+      const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
+      return markets.length ? sportybetFlatOdds(markets, { live, sport: 'tennis' }) : {};
+    }
     if (live) {
       const evt = await sbFetchEvent(match.id, { live: true });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];

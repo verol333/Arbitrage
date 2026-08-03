@@ -21,10 +21,11 @@ async function listSafe(book, opts) {
 async function readOddsSafe(book, matches, opts) {
   const map = new Map();
   if (!matches.length) return map;
+  const sport = opts?.sport || 'football';
   try {
     if (book.getOddsBatch) {
       const batch = await book.getOddsBatch(matches, opts);
-      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}));
+      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}, sport));
       return map;
     }
     // Batch size par book, calé sur la tolérance de leur API :
@@ -44,7 +45,7 @@ async function readOddsSafe(book, matches, opts) {
         log(`⚠️ ${book.key} getOdds(${m.id}): ${e.message || e}`);
         return {};
       })));
-      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {})));
+      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {}, sport)));
     }
     return map;
   } catch (e) {
@@ -53,10 +54,11 @@ async function readOddsSafe(book, matches, opts) {
   }
 }
 
-// Football-only : retire les clés per-set (s1_/set_) qui polluent le foot,
-// laissées par des parseurs multi-sport encore présents dans certains modules.
-function sanitizeForSport(odds) {
+// Football : retire les clés per-set (s1_/set_) qui polluent le foot.
+// Tennis : garde les cles per-set (s1_/s2_/set_) car ce sont des marches valides.
+function sanitizeForSport(odds, sport = 'football') {
   if (!odds || typeof odds !== 'object') return {};
+  if (sport === 'tennis') return odds; // Tennis : garde tout (s1_, s2_, hcp_sets_, total_sets_).
   const out = {};
   for (const [k, v] of Object.entries(odds)) {
     if (/^s[1-5]_/.test(k)) continue;

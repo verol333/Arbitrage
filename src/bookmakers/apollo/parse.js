@@ -13,7 +13,8 @@ function eachOdd(offers, key, cb) {
   }
 }
 
-export function apolloFlatOdds(offers) {
+export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
+  if (sport === 'tennis') return apolloTennisFlatOdds(offers);
   const odds = {};
   if (!offers || !offers.length) return odds;
 
@@ -61,6 +62,89 @@ export function apolloFlatOdds(offers) {
   eachOdd(offers, 128, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`cor_hcp_home_${l}`] = c; else if (t === '2') odds[`cor_hcp_away_${-l}`] = c; });
   eachOdd(offers, 129, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.cor_odd = c; else if (s.includes('even') || s.includes('pair')) odds.cor_even = c; });
   eachOdd(offers, 5002, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_ht_under_${l}`] = c; else if (s.includes('over')) odds[`cor_ht_over_${l}`] = c; });
+
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR TENNIS Apollo (BetTypeKey → cle plate).
+// Verifie via IncludeBetTypeNames=true, 11 marches utiles cross-book.
+// ATTENTION : 911/841/842/597 utilisent "tip 1 = under, tip 2 = over"
+// (documente dans BetTypeInfo API) → t=1 mappe Under, t=2 mappe Over.
+// ═══════════════════════════════════════════════════════════════
+function apolloTennisFlatOdds(offers) {
+  const odds = {};
+  if (!offers || !offers.length) return odds;
+
+  // Match Winner (2-way tennis) — BetTypeKey=20, "Two-Way Basic Offer"
+  eachOdd(offers, 20, (t, _n, c) => {
+    if (t === '1') odds.match_1 = c;
+    else if (t === '2') odds.match_2 = c;
+  });
+  // 1st Set Winner — BetTypeKey=502, "1. set"
+  eachOdd(offers, 502, (t, _n, c) => {
+    if (t === '1') odds.s1_match_1 = c;
+    else if (t === '2') odds.s1_match_2 = c;
+  });
+  // 2nd Set Winner — BetTypeKey=558, "2. set"
+  eachOdd(offers, 558, (t, _n, c) => {
+    if (t === '1') odds.s2_match_1 = c;
+    else if (t === '2') odds.s2_match_2 = c;
+  });
+  // Game Handicap — BetTypeKey=910, "Handicap games", Sbv=line
+  eachOdd(offers, 910, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(Math.abs(l))) return;
+    if (t === '1') odds[`hcp_home_${l}`] = c;
+    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+  });
+  // Total Games Match — BetTypeKey=911, "Total games". "tip 1=under, tip 2=over".
+  eachOdd(offers, 911, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`match_under_${l}`] = c;
+    else if (t === '2') odds[`match_over_${l}`] = c;
+  });
+  // Home Total Games — BetTypeKey=841. "tip 1=under, tip 2=over"
+  eachOdd(offers, 841, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`tt_home_under_${l}`] = c;
+    else if (t === '2') odds[`tt_home_over_${l}`] = c;
+  });
+  // Away Total Games — BetTypeKey=842. "tip 1=under, tip 2=over"
+  eachOdd(offers, 842, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`tt_away_under_${l}`] = c;
+    else if (t === '2') odds[`tt_away_over_${l}`] = c;
+  });
+  // 1st Set Total Games — BetTypeKey=597, "1st Set - Total Games". "tip 1=under, tip 2=over"
+  eachOdd(offers, 597, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`s1_under_${l}`] = c;
+    else if (t === '2') odds[`s1_over_${l}`] = c;
+  });
+  // 1st Set Game Handicap — BetTypeKey=988
+  eachOdd(offers, 988, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(Math.abs(l))) return;
+    if (t === '1') odds[`s1_hcp_home_${l}`] = c;
+    else if (t === '2') odds[`s1_hcp_away_${-l}`] = c;
+  });
+  // Set Handicap (±1.5) — BetTypeKey=914, "Handicap sets"
+  eachOdd(offers, 914, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(Math.abs(l))) return;
+    if (t === '1') odds[`hcp_sets_home_${l}`] = c;
+    else if (t === '2') odds[`hcp_sets_away_${-l}`] = c;
+  });
+  // Total Sets (2 or 3) — BetTypeKey=915, "Total Number of Sets"
+  eachOdd(offers, 915, (t, _n, c) => {
+    if (t === '2') odds.total_sets_2 = c;
+    else if (t === '3') odds.total_sets_3 = c;
+  });
 
   return odds;
 }

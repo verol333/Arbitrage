@@ -192,9 +192,60 @@ function parseLive(markets, odds) {
   }
 }
 
-export function premierbetFlatOdds(markets, { live = false } = {}) {
+export function premierbetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
   const odds = {};
-  if (live) parseLive(markets, odds);
+  if (sport === 'tennis') parseTennis(markets, odds);
+  else if (live) parseLive(markets, odds);
   else parsePrematch(markets, odds);
   return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR TENNIS PremierBet (guineegames sportId=5).
+// Verifie via dict-premierbet-tennis probe : 7 marketIds, 6 utiles.
+// Structure outcomes : name="1"/"2" (winner/hcp) ou "plus de"/"moins de" (total).
+// Handicap : outcome.handicap = ligne (signe inclus).
+// ═══════════════════════════════════════════════════════════════
+function putTennisWinner(m, pfx, odds) {
+  const p = byName(m.outcomes);
+  if (p['1']) odds[`${pfx}match_1`] = p['1'];
+  if (p['2']) odds[`${pfx}match_2`] = p['2'];
+}
+function putTennisHcp(m, pfx, odds) {
+  for (const o of (m.outcomes || [])) {
+    const v = Number(o.value);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    const h = o.handicap != null ? Number(String(o.handicap).replace(/^\+/, '')) : null;
+    if (h == null || !isHalfLine(Math.abs(h))) continue;
+    const nm = cleanName(o.name);
+    if (nm === '1') odds[`${pfx}hcp_home_${h}`] = v;
+    else if (nm === '2') odds[`${pfx}hcp_away_${-h}`] = v;
+  }
+}
+function putTennisTotal(m, pfx, odds) {
+  for (const o of (m.outcomes || [])) {
+    const v = Number(o.value);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    const h = o.handicap != null ? Number(String(o.handicap).replace(/^\+/, '')) : null;
+    if (h == null || !isHalfLine(h)) continue;
+    const nm = (o.name || '').toLowerCase().trim();
+    if (/plus|over/.test(nm)) odds[`${pfx}over_${h}`] = v;
+    else if (/moins|under/.test(nm)) odds[`${pfx}under_${h}`] = v;
+  }
+}
+
+function parseTennis(markets, odds) {
+  for (const m of markets) {
+    const id = String(m.id || '');
+    switch (id) {
+      case '4':   putTennisWinner(m, '', odds); break;         // Gagnant Du Match
+      case '23':  putTennisHcp(m, '', odds); break;            // Jeux Handicap
+      case '64':  putTennisTotal(m, 'match_', odds); break;    // Plus De/Moins De (total games)
+      case '33':  putTennisWinner(m, 's1_', odds); break;      // Gagnant 1er Set
+      case '339': putTennisHcp(m, 's1_', odds); break;         // Handicap 1er Set
+      case '340': putTennisTotal(m, 's1_', odds); break;       // Total 1er Set
+      // IGNORE : 219 (1er Set - Score Exact, granulaire)
+      default: break;
+    }
+  }
 }

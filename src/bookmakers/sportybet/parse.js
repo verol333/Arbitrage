@@ -20,7 +20,8 @@ import { isHalfLine } from '../../core/markets.js';
 // dont les cotes divergent du 1X2 standard → produisent des fake arbs.
 // ⚠️ NE PAS mapper 14 : Handicap score-based (specifier "hcp=0:1"), pas un Asian HCP.
 
-export function sportybetFlatOdds(markets, { live = false } = {}) {
+export function sportybetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
+  if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
   const odds = {};
   if (!Array.isArray(markets)) return odds;
 
@@ -160,4 +161,101 @@ function extractLine(specifier, key) {
   if (!m) return null;
   const n = Number(m[1]);
   return Number.isFinite(n) ? n : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR TENNIS (SportRadar UOF standard).
+// Verifie via dict-sportybet-tennis probe : 24 marketIds distincts, 12 utiles.
+// Structure outcomes : id=4=Home, id=5=Away, id=12=Over, id=13=Under,
+// id=1714=Home hcp, id=1715=Away hcp, id=70=Odd, id=72=Even.
+// Specifier peut combiner : "setnr=1|hcp=-2.5" ou "setnr=1|total=9.5".
+// ═══════════════════════════════════════════════════════════════
+function sportybetTennisFlatOdds(markets) {
+  const odds = {};
+  if (!Array.isArray(markets)) return odds;
+  for (const mk of markets) {
+    const id = String(mk?.id || '');
+    const outcomes = Array.isArray(mk?.outcomes) ? mk.outcomes : [];
+    if (!outcomes.length) continue;
+    const spec = String(mk.specifier || '');
+    const hcp = extractLine(spec, 'hcp');
+    const total = extractLine(spec, 'total');
+    const setnr = extractLine(spec, 'setnr');
+    const setPfx = setnr ? `s${setnr}_` : '';
+    for (const oc of outcomes) {
+      const v = Number(oc?.odds);
+      if (!Number.isFinite(v) || v <= 1) continue;
+      const ocId = String(oc?.id || '');
+      switch (id) {
+        case '186': // Winner
+          if (ocId === '4') odds.match_1 = v;
+          else if (ocId === '5') odds.match_2 = v;
+          break;
+        case '187': // Game handicap
+          if (hcp != null && isHalfLine(Math.abs(hcp))) {
+            if (ocId === '1714') odds[`hcp_home_${hcp}`] = v;
+            else if (ocId === '1715') odds[`hcp_away_${-hcp}`] = v;
+          }
+          break;
+        case '188': // Set handicap (±1.5)
+          if (hcp != null) {
+            if (ocId === '1714') odds[`hcp_sets_home_${hcp}`] = v;
+            else if (ocId === '1715') odds[`hcp_sets_away_${-hcp}`] = v;
+          }
+          break;
+        case '189': // Total games
+          if (total != null && isHalfLine(total)) {
+            if (ocId === '12') odds[`match_over_${total}`] = v;
+            else if (ocId === '13') odds[`match_under_${total}`] = v;
+          }
+          break;
+        case '190': // Player 1 (home) total games
+          if (total != null && isHalfLine(total)) {
+            if (ocId === '12') odds[`tt_home_over_${total}`] = v;
+            else if (ocId === '13') odds[`tt_home_under_${total}`] = v;
+          }
+          break;
+        case '191': // Player 2 (away) total games
+          if (total != null && isHalfLine(total)) {
+            if (ocId === '12') odds[`tt_away_over_${total}`] = v;
+            else if (ocId === '13') odds[`tt_away_under_${total}`] = v;
+          }
+          break;
+        case '196': // Exact sets (2 or 3)
+          if (String(oc.id).includes(':32')) odds.total_sets_2 = v;
+          else if (String(oc.id).includes(':33')) odds.total_sets_3 = v;
+          break;
+        case '198': // Odd/Even games
+          if (ocId === '70') odds.odd = v;
+          else if (ocId === '72') odds.even = v;
+          break;
+        case '202': // Set N winner (setnr=1 or 2)
+          if (setnr) {
+            if (ocId === '4') odds[`${setPfx}match_1`] = v;
+            else if (ocId === '5') odds[`${setPfx}match_2`] = v;
+          }
+          break;
+        case '203': // Set N game handicap
+          if (setnr && hcp != null && isHalfLine(Math.abs(hcp))) {
+            if (ocId === '1714') odds[`${setPfx}hcp_home_${hcp}`] = v;
+            else if (ocId === '1715') odds[`${setPfx}hcp_away_${-hcp}`] = v;
+          }
+          break;
+        case '204': // Set N total games
+          if (setnr && total != null && isHalfLine(total)) {
+            if (ocId === '12') odds[`${setPfx}over_${total}`] = v;
+            else if (ocId === '13') odds[`${setPfx}under_${total}`] = v;
+          }
+          break;
+        case '314': // Total sets 2.5
+          if (total != null) {
+            if (ocId === '12') odds[`total_sets_over_${total}`] = v;
+            else if (ocId === '13') odds[`total_sets_under_${total}`] = v;
+          }
+          break;
+        default: break;
+      }
+    }
+  }
+  return odds;
 }
