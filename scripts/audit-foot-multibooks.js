@@ -26,14 +26,16 @@ const top = opps.sort((a, b) => b.profit_pct - a.profit_pct).slice(0, 5);
 function keyForFootLabel(family, label) {
   const fam = String(family || '');
   const lab = String(label || '').toLowerCase();
-  // 1X2
-  if (/1X2 —/.test(fam) || fam === 'Match Winner') {
-    if (/dom/i.test(lab)) return 'match_1';
-    if (/nul.*ext|ext.*nul|dc_x2/i.test(lab)) return 'dc_X2';
-    if (/nul/i.test(lab)) return 'match_X';
-    if (/^ext|extérieur$|^extérieur\s*$/i.test(lab)) return 'match_2';
+  // 1X2 / Double Chance — DC en PREMIER car labels contiennent "dom" et "nul"
+  if (/1X2/i.test(fam)) {
+    // Double Chance : "Domicile ou Nul", "Nul ou Extérieur", "Un gagnant (12)"
     if (/dom.*nul|nul.*dom/i.test(lab)) return 'dc_1X';
-    if (/gagnant|dc_12|dom.*ext|ext.*dom/i.test(lab)) return 'dc_12';
+    if (/nul.*ext|ext.*nul/i.test(lab)) return 'dc_X2';
+    if (/gagnant|un gagnant|dom.*ext|ext.*dom|12/i.test(lab) && !/nul/i.test(lab)) return 'dc_12';
+    // 1X2 simple : "Domicile", "Nul", "Extérieur" (pas de "ou")
+    if (/^dom(icile)?\s*$/i.test(lab) || (/dom/i.test(lab) && !/ou|nul|ext/i.test(lab))) return 'match_1';
+    if (/^nul\s*$/i.test(lab) || (/nul/i.test(lab) && !/ou|dom|ext/i.test(lab))) return 'match_X';
+    if (/^ext(érieur)?\s*$/i.test(lab) || (/ext/i.test(lab) && !/ou|dom|nul/i.test(lab))) return 'match_2';
   }
   const hcp = fam.match(/Handicap Asiatique\s*([+-]?\d+(?:\.\d+)?)/);
   if (hcp) {
