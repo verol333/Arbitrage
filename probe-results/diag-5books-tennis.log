@@ -1,0 +1,55 @@
+
+════════════ 1) YELLOWBET tennis — dump bts markets structure ════════════
+  0 events sportId=35 (tennis)
+
+
+════════════ 2) SPORTYBET tennis — diagnostic 403 ════════════
+  UA=Mozilla/5.0 (Windows NT 10.0; ... : status=200 len=618499
+    ✓ 74 events
+  liveOrPrematchEvents : status=200
+
+
+════════════ 3) PREMIERBET tennis — elargir dates + top matchs ════════════
+  date=2026-08-03: 71 events. Ex: Dodig, Matej vs Krutykh, Oleksii [Challenger] | Barrena, Alex vs Skatov, Timofey [Challenger] | Den Ouden, Guy vs Müller, Alexandre [Challenger]
+  date=2026-08-04: 128 events. Ex: Marino, Rebecca vs Sonmez, Zeynep [WTA] | Wang, Xinyu vs Kasatkina, Daria [WTA] | Svitolina, Elina vs Bouzas Maneiro, Jessica [WTA]
+  date=2026-08-05: 0 events. Ex: 
+  date=2026-08-06: 0 events. Ex: 
+  highlights: 57 events. Ex: Korneeva, Alina vs Kudermetova, Polina [WTA] | Parry, Diane vs Day, Kayla [WTA] | Oliynykova, Oleksandra vs Pliskova, Karolina [WTA]
+
+
+════════════ 4) BETPAWA tennis — probe multi-region ════════════
+  ke.betpawa.com cat=4: status=403
+  ke.betpawa.com cat=5: status=403
+  ke.betpawa.com cat=6: status=403
+  ug.betpawa.com cat=4: ERR fetch failed
+  ug.betpawa.com cat=5: ERR fetch failed
+  ug.betpawa.com cat=6: ERR fetch failed
+  gh.betpawa.com cat=4: status=403
+  gh.betpawa.com cat=5: status=403
+  gh.betpawa.com cat=6: status=403
+  ng.betpawa.com cat=4: status=403
+  ng.betpawa.com cat=5: status=403
+  ng.betpawa.com cat=6: status=403
+  tz.betpawa.com cat=4: ERR fetch failed
+  tz.betpawa.com cat=5: ERR fetch failed
+  tz.betpawa.com cat=6: ERR fetch failed
+  cm.betpawa.com cat=4: ERR fetch failed
+  cm.betpawa.com cat=5: ERR fetch failed
+  cm.betpawa.com cat=6: ERR fetch failed
+
+
+════════════ 5) 1WIN tennis — chercher endpoint alternatif ATP ════════════
+  sportId=200: status=200 items=0
+  sportId=300: status=200 items=0
+  sportId=500: status=200 items=0
+  sportId=5: status=200 items=0
+  sportId=sr:sport:5: status=400 items=0
+  sportId=tennis: status=400 items=0
+
+  Chercher endpoints listing :
+    /sports/get-all: status=404
+    /categories/get-all: status=404
+    /sports: status=404
+    /categories: status=404
+
+═══════════════ FIN DIAG 5 BOOKS ═══════════════
