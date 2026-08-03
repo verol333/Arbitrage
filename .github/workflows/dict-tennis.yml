@@ -1,0 +1,67 @@
+name: Dictionary Tennis (par book)
+
+on:
+  workflow_dispatch:
+    inputs:
+      book:
+        description: 'Book to dictionary'
+        required: true
+        default: 'apollo'
+        type: choice
+        options:
+          - apollo
+          - 1win
+          - sportybet
+          - betmomo
+          - premierbet
+  push:
+    paths:
+      - 'scripts/dict-*.js'
+      - '.github/workflows/dict-tennis.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  dict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: arbitrage-service/node_modules
+          key: npm-${{ hashFiles('arbitrage-service/package.json') }}
+      - run: npm install --production
+      - working-directory: .
+        run: ln -sf arbitrage-service/node_modules node_modules
+      - name: Run apollo dict
+        working-directory: .
+        run: |
+          mkdir -p probe-results
+          node scripts/dict-apollo-tennis.js 2>&1 | tee probe-results/dict-apollo-tennis.log || true
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+      - name: Commit log
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for f in probe-results/dict-*.log; do
+            [ -f "$f" ] || continue
+            git add "$f"
+          done
+          git commit -m "DICT tennis run ${{ github.run_id }}" || echo "nothing"
+          git push || true
