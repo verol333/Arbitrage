@@ -40,9 +40,12 @@ async function notifyWebhook(result, { live = false, sport = 'football' } = {}) 
 
 const mode = process.argv[2] || 'prematch';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const sport = 'football';
 
-async function doScan({ live }) {
+// Multi-sport : SCAN_SPORTS="football,tennis" scanne les deux en parallele.
+// Chaque sport a son propre bulkCreate/webhook, marque stale independamment.
+const SPORTS = (process.env.SCAN_SPORTS || 'football').split(',').map(s => s.trim()).filter(Boolean);
+
+async function doScan({ live, sport }) {
   const result = await runScan({
     live, sport,
     minProfit: Number(live ? process.env.MIN_PROFIT_LIVE || 0.5 : process.env.MIN_PROFIT_PREMATCH || 0.5),
@@ -53,22 +56,35 @@ async function doScan({ live }) {
   return result;
 }
 
+async function doAllSports({ live }) {
+  // Foot + tennis en PARALLELE (pas de priorite : les deux sont equivalents).
+  const results = await Promise.allSettled(SPORTS.map(sport => doScan({ live, sport })));
+  const totals = {};
+  results.forEach((r, i) => {
+    const sport = SPORTS[i];
+    if (r.status === 'fulfilled') totals[sport] = r.value.opportunities?.length ?? 0;
+    else { totals[sport] = 'ERR'; log(`  ⚠️ ${sport} scan erreur: ${r.reason?.message || r.reason}`); }
+  });
+  return totals;
+}
+
 if (mode === 'prematch') {
-  log(`▶ Scan PRÉMATCH football`);
-  const r = await doScan({ live: false });
-  log(`✅ Prématch terminé — ${r.opportunities.length} opportunités | ${r.stats.duration_ms}ms`);
+  log(`▶ Scan PRÉMATCH sports=[${SPORTS.join(',')}] (parallele)`);
+  const totals = await doAllSports({ live: false });
+  const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
+  log(`✅ Prématch terminé — ${summary}`);
 } else if (mode === 'live') {
   const duration = parseInt(process.env.SCAN_DURATION_MINUTES || '30', 10);
   const interval = parseInt(process.env.LIVE_INTERVAL_MS || '15000', 10);
   const end = Date.now() + duration * 60 * 1000;
-  let cycles = 0, total = 0;
-  log(`▶ Scan LIVE football — boucle de ${duration} min, intervalle ${interval / 1000}s`);
+  let cycles = 0;
+  log(`▶ Scan LIVE sports=[${SPORTS.join(',')}] — boucle ${duration} min, intervalle ${interval / 1000}s`);
   while (Date.now() < end) {
     try {
-      const r = await doScan({ live: true });
-      total += r.opportunities.length;
+      const totals = await doAllSports({ live: true });
       cycles++;
-      log(`  cycle ${cycles}: ${r.opportunities.length} opps`);
+      const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
+      log(`  cycle ${cycles}: ${summary}`);
     } catch (e) {
       log(`  cycle ${cycles + 1}: erreur — ${e.message}`);
       cycles++;
@@ -76,7 +92,7 @@ if (mode === 'prematch') {
     if (end - Date.now() > interval) await sleep(interval);
     else break;
   }
-  log(`✅ Live terminé — ${total} opportunités en ${cycles} cycles (${duration} min)`);
+  log(`✅ Live terminé — ${cycles} cycles (${duration} min)`);
 } else {
   console.error(`Mode inconnu : ${mode}. Utilisez "prematch" ou "live".`);
   process.exit(1);

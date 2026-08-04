@@ -29,28 +29,27 @@ async function base44Fetch(path, init = {}) {
   } finally { clearTimeout(t); }
 }
 
-// Marque comme "stale" les anciennes opps du sport courant avant d'insérer
-// les nouvelles.
-async function markStaleFoot({ live }) {
-  if (!base44Configured()) return;
+// Marque comme "stale" les anciennes opps du sport+mode courants avant d'inserer
+// les nouvelles. Chaque sport est marque independamment (foot vs tennis vs autres).
+async function markStaleForSport({ live, sport }) {
+  if (!base44Configured() || !sport) return;
   await base44Fetch(`/entities/${ENTITY}/update-many`, {
     method: 'POST',
     body: JSON.stringify({
-      filter: { status: 'live', sport: 'football', is_live: !!live },
+      filter: { status: 'live', sport, is_live: !!live },
       update: { status: 'stale' },
     }),
   }).catch(() => { /* silencieux — si l'API refuse, on ne bloque pas le scan */ });
 }
 
-// Nettoie systématiquement les vieilles opps NON-FOOT (tennis, basket, hockey,
-// volley) qui traînent en 'live' dans Base44 depuis l'ère multi-sport. Comme
-// on ne scanne plus ces sports, markStaleFoot ne les nettoyait pas et elles
-// restaient visibles indéfiniment côté client. Les 8 appels sont parallélisés
-// et ne bloquent pas — on n'attend pas leur résolution avant de continuer.
-function purgeNonFootStale() {
+// Purge des sports NON-SCANNES : sport qui n'est PAS dans SCAN_SPORTS mais
+// dont des opps trainent en 'live' Base44. Evite l'accumulation ad vitam.
+function purgeUnscannedSports() {
   if (!base44Configured()) return Promise.resolve();
+  const scanned = new Set((process.env.SCAN_SPORTS || 'football').split(',').map(s => s.trim().toLowerCase()));
   const jobs = [];
-  for (const sport of ['tennis', 'basketball', 'hockey', 'volleyball']) {
+  for (const sport of ['football', 'tennis', 'basketball', 'hockey', 'volleyball']) {
+    if (scanned.has(sport)) continue;
     for (const isLive of [true, false]) {
       jobs.push(base44Fetch(`/entities/${ENTITY}/update-many`, {
         method: 'POST',
@@ -75,9 +74,9 @@ async function bulkCreate(opps) {
   }
 }
 
-export async function persistOpportunities(opps, { live = false } = {}) {
+export async function persistOpportunities(opps, { live = false, sport = 'football' } = {}) {
   if (!base44Configured()) return;
-  // Purge non-foot et markStale foot en parallèle — pas de dépendance mutuelle.
-  await Promise.allSettled([purgeNonFootStale(), markStaleFoot({ live })]);
+  // Purge sports non-scannes + markStale du sport courant en parallele.
+  await Promise.allSettled([purgeUnscannedSports(), markStaleForSport({ live, sport })]);
   await bulkCreate(opps);
 }

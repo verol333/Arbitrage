@@ -1,7 +1,9 @@
 import { mget, isVirtual, isOutright, splitTeams } from './api.js';
 
-// SportId guineegames : 1=Football, 2=Tennis (validé probe-tennis-3books)
-const SPORT_IDS = { football: '1', tennis: '2' };
+// SportId guineegames validés via probe-pb-tennis-raw (04/08/2026) :
+//   1=Football, 2=Basketball (WNBA/BSN/Euroligue), 3=Baseball, 5=Tennis (ATP/WTA/Challenger).
+// L'ancien mapping 2=Tennis etait faux (validation obsolete).
+const SPORT_IDS = { football: '1', tennis: '5' };
 // Regex "non-foot" appliquée UNIQUEMENT en mode football (filtre les catégories
 // tennis/basket/etc. leakées dans le feed foot). En tennis on ne filtre pas.
 const NON_FOOT_RE = /tennis|baseball|basketball|volleyball|hockey|mma|boxing|cricket|\bnfl\b|\bnba\b|\bnhl\b|\bmlb\b|table tennis|snooker|darts|handball|rugby|badminton|golf|esports?|counter.?strike|dota|starcraft|league of legends/i;

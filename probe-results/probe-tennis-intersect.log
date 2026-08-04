@@ -1,0 +1,306 @@
+▶▶▶ PROBE tennis intersection cles cross-book
+[xbet] listPrematch : 59 champs a fetcher (BATCH=40)
+  1xbet: 401 matchs
+  congobet: 98 matchs
+  apollo: 100 matchs
+  betmomo: 96 matchs
+[sportybet:tennis] UPCOMING : 192 matchs listés
+  sportybet: 192 matchs
+
+219 entrees alignees
+73 entrees a >=3 books
+
+
+════════════════════════════════════════════════════════════════════════
+MATCH: "Camilo Ugo Carabelli" vs "Cameron Norrie"
+  Books: 1xbet, congobet, apollo, betmomo, sportybet
+
+  86 cles distinctes tous books confondus
+  Cles par book: 1xbet=44 | congobet=68 | apollo=40 | betmomo=42 | sportybet=74
+
+  KEY                          1xbet    congobet apollo   betmomo  sportybet
+  ---------------------------- ---------------------------------------------
+  ✅even                         1.86        —        —     1.85     1.87     
+  ✅hcp_away_-1.5                1.28     1.24        —        —     1.29     
+  ✅hcp_away_-2.5                1.363    1.32        —        —     1.37     
+  ✅hcp_away_-3.5                1.533    1.49     1.52        —     1.55     
+  ✅hcp_away_-4.5                1.88     1.83     1.88     1.8      1.93     
+  ✅hcp_away_-5.5                2.5      2.41     2.5      2.3      2.6      
+  ✅hcp_away_-6.5                3.72     3.45        —        —     3.9      
+  ✅hcp_away_-7.5                6.35     5.2         —        —     6.5      
+  ✅hcp_home_1.5                 3.4      3.3         —        —     3.7      
+  ✅hcp_home_2.5                 2.92     2.85        —        —     3.1      
+  ✅hcp_home_3.5                 2.36     2.29     2.38        —     2.45     
+  ✅hcp_home_4.5                 1.85     1.78     1.83     1.94     1.88     
+  ✅hcp_home_5.5                 1.48     1.44     1.47     1.57     1.5      
+  ✅hcp_home_6.5                 1.24     1.22        —        —     1.26     
+  ✅hcp_home_7.5                 1.089    1.09        —        —     1.12     
+  ✅hcp_sets_away_-1.5              —        —     1.66     1.64     1.68     
+  ✅hcp_sets_away_1.5               —        —     1.08     1.07     1.08     
+  ✅hcp_sets_home_-1.5              —        —     7.2      6.3      6.8      
+  ✅hcp_sets_home_1.5               —        —     2.09     2.12     2.1      
+  ✅match_1                      4.085    3.85     4        4.35     4.4      
+  ✅match_2                      1.24     1.19     1.2      1.22     1.23     
+    match_over_17.5                 —     1.19        —        —        —     
+  ✅match_over_18.5              1.34     1.33        —        —     1.38     
+  ✅match_over_19.5              1.53     1.5         —     1.59     1.57     
+  ✅match_over_20.5              1.75     1.7      1.75     1.81     1.8      
+  ✅match_over_21.5              1.96     1.88     1.94     2        2        
+  ✅match_over_22.5              2.25     2.17     2.24     2.28     2.3      
+  ✅match_over_23.5              2.48     2.42        —        —     2.6      
+  ✅match_over_24.5              2.56     2.5         —        —     2.7      
+    match_over_25.5                 —     2.75        —        —        —     
+    match_under_17.5                —     3.7         —        —        —     
+  ✅match_under_18.5             2.78     2.8         —        —     3.1      
+  ✅match_under_19.5             2.28     2.25        —     2.26     2.4      
+  ✅match_under_20.5             1.96     1.91     1.97     1.93     2.05     
+  ✅match_under_21.5             1.78     1.73     1.77     1.75     1.82     
+  ✅match_under_22.5             1.57     1.54     1.58     1.58     1.61     
+  ✅match_under_23.5             1.45     1.44        —        —     1.5      
+  ✅match_under_24.5             1.4      1.41        —        —     1.46     
+    match_under_25.5                —     1.34        —        —        —     
+  ✅odd                          1.86        —        —     1.85     1.87     
+  ✅s1_hcp_away_-1.5                —        —        —     1.47     1.5      
+  ✅s1_hcp_away_-2.5                —        —     2.23        —     2.25     
+  ✅s1_hcp_away_-3.5                —        —        —     3.55     3.7      
+    s1_hcp_away_1.5                 —        —        —     1.2         —     
+    s1_hcp_home_-1.5                —        —        —     4.25        —     
+  ✅s1_hcp_home_1.5                 —        —        —     2.57     2.45     
+  ✅s1_hcp_home_2.5                 —        —     1.58        —     1.6      
+  ✅s1_hcp_home_3.5                 —        —        —     1.27     1.25     
+  ✅s1_match_1                      —     3        3.15     3.2      3.4      
+  ✅s1_match_2                      —     1.27     1.29     1.31     1.33     
+  ✅s1_over_10.5                    —     3.2      3.45     3.35     3.55     
+  ✅s1_over_12.5                    —     4.4         —     5.1      5.1      
+  ✅s1_over_6.5                     —     1.01     1.01        —     1.01     
+  ✅s1_over_7.5                     —     1.08     1.1         —     1.1      
+  ✅s1_over_8.5                     —     1.29     1.32     1.34     1.32     
+  ✅s1_over_9.5                     —     1.83     1.9         —     1.92     
+  ✅s1_under_10.5                   —     1.24     1.26     1.24     1.27     
+  ✅s1_under_12.5                   —     1.12        —     1.13     1.15     
+  ✅s1_under_6.5                    —     8        11          —     12.5     
+  ✅s1_under_7.5                    —     5.2      6           —     6.1      
+  ✅s1_under_8.5                    —     2.9      3.1      3        3.15     
+  ✅s1_under_9.5                    —     1.74     1.8         —     1.82     
+  ✅s2_match_1                      —     2.95     3.1         —     3.35     
+  ✅s2_match_2                      —     1.28     1.3         —     1.33     
+    set_hcp_away_-1.5               —     1.64        —        —        —     
+    set_hcp_away_1.5                —     1.06        —        —        —     
+    set_hcp_home_-1.5               —     8           —        —        —     
+    set_hcp_home_1.5                —     2           —        —        —     
+    set_over_2.5                    —     2.55        —        —        —     
+    set_under_2.5                   —     1.38        —        —        —     
+  ✅total_sets_2                    —        —     1.4         —     1.42     
+  ✅total_sets_3                    —        —     2.65        —     2.7      
+  ✅total_sets_over_2.5             —        —        —     2.73     2.7      
+  ✅total_sets_under_2.5            —        —        —     1.42     1.41     
+  ✅tt_away_over_11.5            1.086    1.08        —        —     1.09     
+  ✅tt_away_over_12.5            1.84     1.77     1.81     1.86     1.83     
+  ✅tt_away_over_13.5            2.89     2.75        —        —     2.95     
+  ✅tt_away_under_11.5           6.2      5.6         —        —     6.4      
+  ✅tt_away_under_12.5           1.88     1.84     1.89     1.84     1.91     
+  ✅tt_away_under_13.5           1.36     1.34        —        —     1.37     
+  ✅tt_home_over_10.5            2.11     2.08        —        —     2.15     
+  ✅tt_home_over_8.5             1.71     1.68        —     1.76     1.74     
+  ✅tt_home_over_9.5             1.909    1.88     1.93     1.95     1.95     
+  ✅tt_home_under_10.5           1.65     1.59        —        —     1.64     
+  ✅tt_home_under_8.5            2.02     1.94        —     1.94     2        
+  ✅tt_home_under_9.5            1.81     1.73     1.78     1.75     1.79     
+
+  🔍 Cles intersectant >=2 books : 74/86
+
+════════════════════════════════════════════════════════════════════════
+MATCH: "Aleksandar Vukic" vs "Daniel Altmaier"
+  Books: 1xbet, congobet, apollo, sportybet
+
+  86 cles distinctes tous books confondus
+  Cles par book: 1xbet=44 | congobet=68 | apollo=39 | sportybet=74
+
+  KEY                          1xbet    congobet apollo   sportybet
+  ---------------------------- ------------------------------------
+  ✅even                         1.86        —        —     1.87     
+  ✅hcp_away_-0.5                2.324    2.25        —     2.4      
+    hcp_away_-1.5                2.45        —        —        —     
+  ✅hcp_away_0.5                 2.133    2.08        —     2.25     
+  ✅hcp_away_1.5                 1.955    1.93     1.99     2.05     
+  ✅hcp_away_2.5                 1.755    1.73     1.77     1.82     
+  ✅hcp_away_3.5                 1.509    1.5      1.53     1.57     
+  ✅hcp_away_4.5                 1.289    1.28        —     1.33     
+  ✅hcp_away_5.5                 1.129    1.14        —     1.17     
+  ✅hcp_home_-0.5                1.602    1.59        —     1.66     
+  ✅hcp_home_-1.5                1.72     1.69     1.74     1.78     
+  ✅hcp_home_-2.5                1.912    1.88     1.94     1.99     
+  ✅hcp_home_-3.5                2.324    2.26     2.34     2.45     
+  ✅hcp_home_-4.5                3.15     3.05        —     3.35     
+  ✅hcp_home_-5.5                4.815    4.3         —     5.1      
+  ✅hcp_home_0.5                 1.509    1.5         —     1.57     
+    hcp_home_1.5                 1.46        —        —        —     
+  ✅hcp_sets_away_-1.5              —        —     3.65     3.75     
+  ✅hcp_sets_away_1.5               —        —     1.48     1.49     
+  ✅hcp_sets_home_-1.5              —        —     2.46     2.5      
+  ✅hcp_sets_home_1.5               —        —     1.24     1.25     
+  ✅match_1                      1.63     1.55     1.57     1.63     
+  ✅match_2                      2.284    2.19     2.25     2.35     
+    match_over_18.5                 —     1.16        —        —     
+  ✅match_over_19.5              1.27     1.28        —     1.32     
+  ✅match_over_20.5              1.43     1.42        —     1.48     
+  ✅match_over_21.5              1.58     1.54     1.58     1.61     
+  ✅match_over_22.5              1.84     1.77     1.81     1.86     
+  ✅match_over_23.5              2.04     1.98     2.05     2.1      
+  ✅match_over_24.5              2.09     2.03        —     2.15     
+  ✅match_over_25.5              2.24     2.2         —     2.35     
+    match_over_26.5                 —     2.45        —        —     
+    match_under_18.5                —     4.1         —        —     
+  ✅match_under_19.5             3.14     3.05        —     3.4      
+  ✅match_under_20.5             2.54     2.46        —     2.65     
+  ✅match_under_21.5             2.23     2.17     2.25     2.35     
+  ✅match_under_22.5             1.89     1.84     1.89     1.95     
+  ✅match_under_23.5             1.69     1.65     1.69     1.74     
+  ✅match_under_24.5             1.63     1.62        —     1.7      
+  ✅match_under_25.5             1.52     1.53        —     1.6      
+    match_under_26.5                —     1.43        —        —     
+  ✅odd                          1.86        —        —     1.87     
+    s1_hcp_away_-1.5                —        —        —     2.7      
+  ✅s1_hcp_away_1.5                 —        —     1.71     1.72     
+    s1_hcp_away_2.5                 —        —        —     1.29     
+  ✅s1_hcp_home_-1.5                —        —     2.03     2.05     
+    s1_hcp_home_-2.5                —        —        —     3.4      
+    s1_hcp_home_1.5                 —        —        —     1.42     
+  ✅s1_match_1                      —     1.59     1.63     1.69     
+  ✅s1_match_2                      —     2.03     2.09     2.2      
+  ✅s1_over_10.5                    —     2.7      2.85     2.9      
+  ✅s1_over_12.5                    —     3.55        —     4        
+  ✅s1_over_6.5                     —     1.01        —     1.01     
+  ✅s1_over_7.5                     —     1.04     1.05     1.05     
+  ✅s1_over_8.5                     —     1.17     1.19     1.19     
+  ✅s1_over_9.5                     —     1.59     1.64     1.66     
+  ✅s1_under_10.5                   —     1.33     1.37     1.38     
+  ✅s1_under_12.5                   —     1.19        —     1.22     
+  ✅s1_under_6.5                    —     8.2      12       14       
+  ✅s1_under_7.5                    —     6.4      8        8.5      
+  ✅s1_under_8.5                    —     3.8      4.2      4.3      
+  ✅s1_under_9.5                    —     2.03     2.12     2.15     
+  ✅s2_match_1                      —     1.6      1.64     1.69     
+  ✅s2_match_2                      —     2.02     2.09     2.2      
+    set_hcp_away_-1.5               —     3.85        —        —     
+    set_hcp_away_1.5                —     1.44        —        —     
+    set_hcp_home_-1.5               —     2.48        —        —     
+    set_hcp_home_1.5                —     1.21        —        —     
+    set_over_2.5                    —     2.15        —        —     
+    set_under_2.5                   —     1.53        —        —     
+  ✅total_sets_2                    —        —     1.56     1.59     
+  ✅total_sets_3                    —        —     2.22     2.3      
+    total_sets_over_2.5             —        —        —     2.25     
+    total_sets_under_2.5            —        —        —     1.57     
+  ✅tt_away_over_11.5            1.54     1.51        —     1.55     
+  ✅tt_away_over_12.5            2.02     1.95     2.01     2.05     
+  ✅tt_away_over_13.5               —     2.7         —     2.85     
+  ✅tt_away_under_11.5           2.32     2.24        —     2.35     
+  ✅tt_away_under_12.5           1.71     1.67     1.71     1.73     
+  ✅tt_away_under_13.5              —     1.35        —     1.39     
+  ✅tt_home_over_11.5            1.25     1.24        —     1.27     
+  ✅tt_home_over_12.5            1.75     1.7      1.74     1.76     
+  ✅tt_home_over_13.5            2.57     2.44        —     2.6      
+  ✅tt_home_under_11.5           3.55     3.3         —     3.55     
+  ✅tt_home_under_12.5           1.99     1.92     1.97     1.99     
+  ✅tt_home_under_13.5           1.444    1.43        —     1.47     
+
+  🔍 Cles intersectant >=2 books : 68/86
+
+════════════════════════════════════════════════════════════════════════
+MATCH: "Benjamin Bonzi" vs "Yannick Hanfmann"
+  Books: 1xbet, congobet, apollo, sportybet
+
+  84 cles distinctes tous books confondus
+  Cles par book: 1xbet=42 | congobet=67 | apollo=39 | sportybet=74
+
+  KEY                          1xbet    congobet apollo   sportybet
+  ---------------------------- ------------------------------------
+  ✅even                         1.86        —        —     1.85     
+  ✅hcp_away_-0.5                1.82     1.77     1.82     1.87     
+  ✅hcp_away_-1.5                1.96     1.91     1.97     2.05     
+  ✅hcp_away_-2.5                2.26     2.21        —     2.4      
+  ✅hcp_away_-3.5                2.85     2.75        —     3        
+  ✅hcp_away_0.5                 1.68     1.65     1.7      1.74     
+  ✅hcp_away_1.5                 1.57     1.55        —     1.62     
+  ✅hcp_away_2.5                 1.43     1.42        —     1.48     
+  ✅hcp_home_-0.5                2.08     1.98     2.04     2.1      
+  ✅hcp_home_-1.5                2.28     2.16        —     2.3      
+  ✅hcp_home_-2.5                2.66     2.45        —     2.65     
+  ✅hcp_home_0.5                 1.92     1.83     1.88     1.94     
+  ✅hcp_home_1.5                 1.77     1.71     1.75     1.8      
+  ✅hcp_home_2.5                 1.58     1.52        —     1.59     
+  ✅hcp_home_3.5                 1.38     1.34        —     1.4      
+  ✅hcp_sets_away_-1.5              —        —     2.8      2.85     
+  ✅hcp_sets_away_1.5               —        —     1.3      1.31     
+  ✅hcp_sets_home_-1.5              —        —     3.25     3.3      
+  ✅hcp_sets_home_1.5               —        —     1.38     1.39     
+  ✅match_1                      2.03     1.93     1.98     2.05     
+  ✅match_2                      1.78     1.72     1.74     1.81     
+    match_over_19.5                 —     1.2         —        —     
+  ✅match_over_20.5              1.32     1.33        —     1.38     
+  ✅match_over_21.5              1.44     1.43        —     1.49     
+  ✅match_over_22.5              1.7      1.64     1.68     1.73     
+  ✅match_over_23.5              1.95     1.87     1.93     1.98     
+  ✅match_over_24.5              1.98     1.91     1.96     2        
+  ✅match_over_25.5              2.1      2.04        —     2.2      
+  ✅match_over_26.5              2.35     2.29        —     2.45     
+    match_over_27.5                 —     2.44        —        —     
+    match_under_19.5                —     3.6         —        —     
+  ✅match_under_20.5             2.875    2.8         —     3.1      
+  ✅match_under_21.5             2.51     2.45        —     2.65     
+  ✅match_under_22.5             2.03     2        2.06     2.15     
+  ✅match_under_23.5             1.79     1.74     1.78     1.83     
+  ✅match_under_24.5             1.74     1.71     1.75     1.8      
+  ✅match_under_25.5             1.62     1.61        —     1.69     
+  ✅match_under_26.5             1.47     1.49        —     1.55     
+    match_under_27.5                —     1.43        —        —     
+  ✅odd                          1.86        —        —     1.89     
+    s1_hcp_away_-1.5                —        —        —     2.35     
+  ✅s1_hcp_away_0.5                 —        —     1.78     1.79     
+    s1_hcp_away_1.5                 —        —        —     1.46     
+  ✅s1_hcp_home_-0.5                —        —     1.93     1.95     
+    s1_hcp_home_-1.5                —        —        —     2.6      
+    s1_hcp_home_1.5                 —        —        —     1.55     
+  ✅s1_match_1                      —     1.86     1.92     1.99     
+  ✅s1_match_2                      —     1.72     1.76     1.82     
+  ✅s1_over_10.5                    —     2.42     2.55     2.6      
+  ✅s1_over_12.5                    —     3.05        —     3.35     
+    s1_over_6.5                     —        —        —     1.01     
+  ✅s1_over_7.5                     —     1.02     1.03     1.03     
+  ✅s1_over_8.5                     —     1.11     1.13     1.13     
+  ✅s1_over_9.5                     —     1.47     1.52     1.53     
+  ✅s1_under_10.5                   —     1.41     1.45     1.46     
+  ✅s1_under_12.5                   —     1.26        —     1.29     
+  ✅s1_under_6.5                    —     8.2      12       14       
+  ✅s1_under_7.5                    —     7.2      9.4      10       
+  ✅s1_under_8.5                    —     4.5      5.2      5.3      
+  ✅s1_under_9.5                    —     2.26     2.38     2.4      
+  ✅s2_match_1                      —     1.86     1.91     1.99     
+  ✅s2_match_2                      —     1.72     1.76     1.83     
+    set_hcp_away_-1.5               —     2.85        —        —     
+    set_hcp_away_1.5                —     1.27        —        —     
+    set_hcp_home_-1.5               —     3.35        —        —     
+    set_hcp_home_1.5                —     1.35        —        —     
+    set_over_2.5                    —     2.09        —        —     
+    set_under_2.5                   —     1.56        —        —     
+  ✅total_sets_2                    —        —     1.6      1.62     
+  ✅total_sets_3                    —        —     2.16     2.2      
+    total_sets_over_2.5             —        —        —     2.2      
+    total_sets_under_2.5            —        —        —     1.61     
+  ✅tt_away_over_11.5               —     1.28        —     1.32     
+  ✅tt_away_over_12.5            1.69     1.66     1.7      1.72     
+  ✅tt_away_over_13.5            2.41     2.33        —     2.45     
+  ✅tt_away_under_11.5              —     3           —     3.25     
+  ✅tt_away_under_12.5           2.04     1.97     2.03     2.05     
+  ✅tt_away_under_13.5           1.5      1.47        —     1.51     
+  ✅tt_home_over_11.5            1.4      1.36        —     1.4      
+  ✅tt_home_over_12.5            1.8      1.73     1.78     1.8      
+  ✅tt_home_over_13.5            2.49     2.38        —     2.5      
+  ✅tt_home_under_11.5           2.72     2.65        —     2.8      
+  ✅tt_home_under_12.5           1.92     1.88     1.93     1.95     
+  ✅tt_home_under_13.5           1.47     1.45        —     1.49     
+
+  🔍 Cles intersectant >=2 books : 67/84
+
+═══ FIN PROBE ═══

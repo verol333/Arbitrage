@@ -1,0 +1,137 @@
+▶▶▶ Dump marches tennis BetPawa (raw markets)
+[betpawa:tennis] UPCOMING : 169 matchs listés (sans startTime)
+169 matchs tennis
+
+════════════════════════════════════════════════════════════════════════
+MATCH 37013117 : "&Jacquemot, Elsa" vs "Lee, Carol Young Suh"
+  11 marches
+
+  ── marketId=4429 "Correct Score - FT" (4 outcomes)
+      name="0-2" | odds=1.87 | row={}
+      name="1-2" | odds=4.05 | row={}
+      name="2-0" | odds=3.45 | row={}
+      name="2-1" | odds=5.25 | row={}
+  ── marketId=2068172 "Games Over/Under Away - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.29 | row={"id":"394268329","handicap":46,"specifier":{"total":"11.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=3.25 | row={"id":"394268329","handicap":46,"specifier":{"total":"11.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.17 | row={"id":"393783366","handicap":50,"specifier":{"total":"12.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.6 | row={"id":"393783366","handicap":50,"specifier":{"total":"12.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=3.35 | row={"id":"394268328","handicap":54,"specifier":{"total":"13.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.27 | row={"id":"394268328","handicap":54,"specifier":{"total":"13.5"}}
+  ── marketId=2068161 "Games Over/Under Home - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.7 | row={"id":"393783368","handicap":42,"specifier":{"total":"10.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.01 | row={"id":"393783368","handicap":42,"specifier":{"total":"10.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.81 | row={"id":"394148475","handicap":46,"specifier":{"total":"11.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.89 | row={"id":"394148475","handicap":46,"specifier":{"total":"11.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.65 | row={"id":"394132715","handicap":50,"specifier":{"total":"12.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.42 | row={"id":"394132715","handicap":50,"specifier":{"total":"12.5"}}
+  ── marketId=3532590 "Match Handicap Games 2-way - FT" (10 outcomes)
+      name="1" | disp="{formattedHandicap}" | odds=2.2 | row={"id":"394149244","handicap":6,"specifier":{"hcp":"1.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=1.59 | row={"id":"394149244","handicap":6,"specifier":{"hcp":"1.5"}}
+      name="1" | disp="{formattedHandicap}" | odds=2.03 | row={"id":"393705371","handicap":10,"specifier":{"hcp":"2.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=1.69 | row={"id":"393705371","handicap":10,"specifier":{"hcp":"2.5"}}
+      name="1" | disp="{formattedHandicap}" | odds=1.81 | row={"id":"393705372","handicap":14,"specifier":{"hcp":"3.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=1.88 | row={"id":"393705372","handicap":14,"specifier":{"hcp":"3.5"}}
+      name="1" | disp="{formattedHandicap}" | odds=1.56 | row={"id":"393705373","handicap":18,"specifier":{"hcp":"4.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=2.25 | row={"id":"393705373","handicap":18,"specifier":{"hcp":"4.5"}}
+      … +2 outcomes
+  ── marketId=4758 "Moneyline - 1S" (2 outcomes)
+      name="1" | odds=2.3 | row={"id":"393705360"}
+      name="2" | odds=1.56 | row={"id":"393705360"}
+  ── marketId=4770 "Moneyline - 2S" (2 outcomes)
+      name="1" | odds=2.24 | row={"id":"393705362"}
+      name="2" | odds=1.53 | row={"id":"393705362"}
+  ── marketId=2043818 "Moneyline - FT" (2 outcomes)
+      name="1" | odds=2.45 | row={"id":"393705364"}
+      name="2" | odds=1.5 | row={"id":"393705364"}
+  ── marketId=4666923 "Set 1 Game Handicap" (6 outcomes)
+      name="Domicile" | disp="{formattedHandicap}" | odds=2.5 | row={"id":"394178655","handicap":-6,"specifier":{"hcp":"-1.5"}}
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.42 | row={"id":"394178655","handicap":-6,"specifier":{"hcp":"-1.5"}}
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.94 | row={"id":"393783371","handicap":6,"specifier":{"hcp":"1.5"}}
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.71 | row={"id":"393783371","handicap":6,"specifier":{"hcp":"1.5"}}
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.43 | row={"id":"393783372","handicap":10,"specifier":{"hcp":"2.5"}}
+      name="Extérieur" | disp="{formattedHandicap}" | odds=2.5 | row={"id":"393783372","handicap":10,"specifier":{"hcp":"2.5"}}
+  ── marketId=4880 "Total Games - Over/Under - 1S" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.03 | row={"id":"393705367","handicap":38,"specifier":{"total":"9.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.64 | row={"id":"393705367","handicap":38,"specifier":{"total":"9.5"}}
+  ── marketId=4895 "Total Games - Over/Under - FT" (10 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.43 | row={"id":"393705366","handicap":74,"specifier":{"total":"18.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.65 | row={"id":"393705366","handicap":74,"specifier":{"total":"18.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.62 | row={"id":"393705365","handicap":78,"specifier":{"total":"19.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.15 | row={"id":"393705365","handicap":78,"specifier":{"total":"19.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.84 | row={"id":"393705375","handicap":82,"specifier":{"total":"20.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.85 | row={"id":"393705375","handicap":82,"specifier":{"total":"20.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.04 | row={"id":"393705374","handicap":86,"specifier":{"total":"21.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.68 | row={"id":"393705374","handicap":86,"specifier":{"total":"21.5"}}
+      … +2 outcomes
+  ── marketId=3597899 "Total Sets - Over/Under - FT" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.6 | row={"id":"393705361","handicap":10,"specifier":{"total":"2.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.43 | row={"id":"393705361","handicap":10,"specifier":{"total":"2.5"}}
+
+════════════════════════════════════════════════════════════════════════
+MATCH 37016223 : "Durasovic, Viktor" vs "Geerts, Michael"
+  11 marches
+
+  ── marketId=4429 "Correct Score - FT" (4 outcomes)
+      name="0-2" | odds=3.1 | row={}
+      name="1-2" | odds=4.4 | row={}
+      name="2-0" | odds=2.3 | row={}
+      name="2-1" | odds=3.75 | row={}
+  ── marketId=2068172 "Games Over/Under Away - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.52 | row={"id":"394059886","handicap":46,"specifier":{"total":"11.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.35 | row={"id":"394059886","handicap":46,"specifier":{"total":"11.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.04 | row={"id":"394061534","handicap":50,"specifier":{"total":"12.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.68 | row={"id":"394061534","handicap":50,"specifier":{"total":"12.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.9 | row={"id":"394268322","handicap":54,"specifier":{"total":"13.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.36 | row={"id":"394268322","handicap":54,"specifier":{"total":"13.5"}}
+  ── marketId=2068161 "Games Over/Under Home - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.31 | row={"id":"394059884","handicap":46,"specifier":{"total":"11.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=3.15 | row={"id":"394059884","handicap":46,"specifier":{"total":"11.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.85 | row={"id":"394059890","handicap":50,"specifier":{"total":"12.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.85 | row={"id":"394059890","handicap":50,"specifier":{"total":"12.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.7 | row={"id":"394059889","handicap":54,"specifier":{"total":"13.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.4 | row={"id":"394059889","handicap":54,"specifier":{"total":"13.5"}}
+  ── marketId=3532590 "Match Handicap Games 2-way - FT" (10 outcomes)
+      name="1" | disp="{formattedHandicap}" | odds=2.4 | row={"id":"393978059","handicap":-14,"specifier":{"hcp":"-3.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=1.51 | row={"id":"393978059","handicap":-14,"specifier":{"hcp":"-3.5"}}
+      name="1" | disp="{formattedHandicap}" | odds=1.99 | row={"id":"393978062","handicap":-10,"specifier":{"hcp":"-2.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=1.72 | row={"id":"393978062","handicap":-10,"specifier":{"hcp":"-2.5"}}
+      name="1" | disp="{formattedHandicap}" | odds=1.8 | row={"id":"393978058","handicap":-6,"specifier":{"hcp":"-1.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=1.9 | row={"id":"393978058","handicap":-6,"specifier":{"hcp":"-1.5"}}
+      name="1" | disp="{formattedHandicap}" | odds=1.69 | row={"id":"393978061","handicap":-2,"specifier":{"hcp":"-0.5"}}
+      name="2" | disp="{formattedHandicap}" | odds=2.03 | row={"id":"393978061","handicap":-2,"specifier":{"hcp":"-0.5"}}
+      … +2 outcomes
+  ── marketId=4758 "Moneyline - 1S" (2 outcomes)
+      name="1" | odds=1.69 | row={"id":"393848786"}
+      name="2" | odds=2.03 | row={"id":"393848786"}
+  ── marketId=4770 "Moneyline - 2S" (2 outcomes)
+      name="1" | odds=1.66 | row={"id":"393848788"}
+      name="2" | odds=2.01 | row={"id":"393848788"}
+  ── marketId=2043818 "Moneyline - FT" (2 outcomes)
+      name="1" | odds=1.66 | row={"id":"393848790"}
+      name="2" | odds=2.13 | row={"id":"393848790"}
+  ── marketId=4666923 "Set 1 Game Handicap" (6 outcomes)
+      name="Domicile" | disp="{formattedHandicap}" | odds=2.02 | row={"id":"394059885","handicap":-6,"specifier":{"hcp":"-1.5"}}
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.65 | row={"id":"394059885","handicap":-6,"specifier":{"hcp":"-1.5"}}
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.67 | row={"id":"394158724","handicap":-2,"specifier":{"hcp":"-0.5"}}
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.99 | row={"id":"394158724","handicap":-2,"specifier":{"hcp":"-0.5"}}
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.45 | row={"id":"394059887","handicap":6,"specifier":{"hcp":"1.5"}}
+      name="Extérieur" | disp="{formattedHandicap}" | odds=2.45 | row={"id":"394059887","handicap":6,"specifier":{"hcp":"1.5"}}
+  ── marketId=4880 "Total Games - Over/Under - 1S" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.65 | row={"id":"393978060","handicap":38,"specifier":{"total":"9.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.01 | row={"id":"393978060","handicap":38,"specifier":{"total":"9.5"}}
+  ── marketId=4895 "Total Games - Over/Under - FT" (10 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.49 | row={"id":"393978068","handicap":82,"specifier":{"total":"20.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.45 | row={"id":"393978068","handicap":82,"specifier":{"total":"20.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.64 | row={"id":"393978067","handicap":86,"specifier":{"total":"21.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.12 | row={"id":"393978067","handicap":86,"specifier":{"total":"21.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.89 | row={"id":"393978064","handicap":90,"specifier":{"total":"22.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.8 | row={"id":"393978064","handicap":90,"specifier":{"total":"22.5"}}
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.13 | row={"id":"393978066","handicap":94,"specifier":{"total":"23.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.63 | row={"id":"393978066","handicap":94,"specifier":{"total":"23.5"}}
+      … +2 outcomes
+  ── marketId=3597899 "Total Sets - Over/Under - FT" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.3 | row={"id":"393848787","handicap":10,"specifier":{"total":"2.5"}}
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.54 | row={"id":"393848787","handicap":10,"specifier":{"total":"2.5"}}
+
+═══ FIN ═══

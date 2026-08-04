@@ -1,6 +1,6 @@
 import { listPrematch, listLive } from './list.js';
 import { fetchOddsWS } from './ws.js';
-import { winFlatOdds } from './parse.js';
+import { winFlatOdds, winTennisFlatOdds } from './parse.js';
 
 export default {
   key: '1win',
@@ -10,12 +10,14 @@ export default {
     if (sport !== 'football' && sport !== 'tennis') return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
-  async getOdds(match) {
+  async getOdds(match, opts = {}) {
     const map = await fetchOddsWS([match.id]);
     const groups = map.get(match.id) || map.get(String(match.id));
-    return groups ? winFlatOdds(groups, { home: match.home, away: match.away }) : {};
+    if (!groups) return {};
+    const flat = opts.sport === 'tennis' ? winTennisFlatOdds : winFlatOdds;
+    return flat(groups, { home: match.home, away: match.away });
   },
-  async getOddsBatch(matches) {
+  async getOddsBatch(matches, opts = {}) {
     if (!matches.length) return new Map();
     // Le WS 1win coupe si on lui envoie >~100 IDs (timeout de subscribe).
     // On chunk en lots de 60 avec un WS neuf par lot, puis on fusionne.
@@ -27,9 +29,10 @@ export default {
       for (const [k, v] of part) raw.set(k, v);
     }
     const out = new Map();
+    const flat = opts.sport === 'tennis' ? winTennisFlatOdds : winFlatOdds;
     for (const m of matches) {
       const g = raw.get(m.id) || raw.get(String(m.id)) || raw.get(Number(m.id));
-      out.set(m.id, g ? winFlatOdds(g, { home: m.home, away: m.away }) : {});
+      out.set(m.id, g ? flat(g, { home: m.home, away: m.away }) : {});
     }
     return out;
   },
