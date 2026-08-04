@@ -2,7 +2,7 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTennisTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
@@ -118,7 +118,9 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
   const oddsFetchedAt = new Date().toISOString();
-  const compare = compareTwoBooks;
+  // Dispatch comparateur selon sport : tennis a ses propres marches et labels
+  // (Handicap Jeux vs Handicap Asiatique, Total Jeux vs Total Buts, s1_/s2_/...).
+  const compare = sport === 'tennis' ? compareTennisTwoBooks : compareTwoBooks;
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;
@@ -524,6 +526,56 @@ function marketKeyFromOpp(o) {
              : ['match_X', 'dc_12'];
     return { a: `${pfx}${sk[0]}`, b: `${pfx}${sk[1]}` };
   }
+
+  // ─── TENNIS market families ─────────────────────────────────────────────
+  if (fam === 'Vainqueur du Match') return { a: 'match_1', b: 'match_2' };
+  // Vainqueur Set N
+  const vainSet = fam.match(/^Vainqueur Set ([1-5])$/);
+  if (vainSet) return { a: `s${vainSet[1]}_match_1`, b: `s${vainSet[1]}_match_2` };
+  // Handicap Jeux (match)
+  const hcpJeux = fam.match(/^Handicap Jeux\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (hcpJeux) {
+    const l = parseFloat(hcpJeux[1]);
+    return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
+  }
+  // Handicap Jeux Set N
+  const hcpJeuxSet = fam.match(/^Handicap Jeux Set ([1-5])\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (hcpJeuxSet) {
+    const l = parseFloat(hcpJeuxSet[2]);
+    return { a: `s${hcpJeuxSet[1]}_hcp_home_${l}`, b: `s${hcpJeuxSet[1]}_hcp_away_${-l}` };
+  }
+  // Total Jeux Match
+  const totJeux = fam.match(/^Total Jeux Match\s*(\d+(?:\.\d+)?)$/);
+  if (totJeux) {
+    const l = parseFloat(totJeux[1]);
+    return { a: `match_over_${l}`, b: `match_under_${l}` };
+  }
+  // Total Jeux Set N
+  const totJeuxSet = fam.match(/^Total Jeux Set ([1-5])\s*(\d+(?:\.\d+)?)$/);
+  if (totJeuxSet) {
+    const l = parseFloat(totJeuxSet[2]);
+    return { a: `s${totJeuxSet[1]}_over_${l}`, b: `s${totJeuxSet[1]}_under_${l}` };
+  }
+  // Total Jeux Joueur (J1/J2)
+  const totJeuxJ = fam.match(/^Total Jeux (J1|J2)\s*(\d+(?:\.\d+)?)$/);
+  if (totJeuxJ) {
+    const side = totJeuxJ[1] === 'J1' ? 'home' : 'away';
+    const l = parseFloat(totJeuxJ[2]);
+    return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
+  }
+  // Total Sets
+  const totSets = fam.match(/^Total Sets\s*(\d+(?:\.\d+)?)$/);
+  if (totSets) {
+    const l = parseFloat(totSets[1]);
+    return { a: `total_sets_over_${l}`, b: `total_sets_under_${l}` };
+  }
+  // Handicap Sets
+  const hcpSets = fam.match(/^Handicap Sets\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (hcpSets) {
+    const l = parseFloat(hcpSets[1]);
+    return { a: `hcp_sets_home_${l}`, b: `hcp_sets_away_${-l}` };
+  }
+
   return null;
 }
 
