@@ -69,10 +69,34 @@ async function doAllSports({ live }) {
 }
 
 if (mode === 'prematch') {
-  log(`▶ Scan PRÉMATCH sports=[${SPORTS.join(',')}] (parallele)`);
-  const totals = await doAllSports({ live: false });
-  const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
-  log(`✅ Prématch terminé — ${summary}`);
+  // PREMATCH_DURATION_MINUTES defini → mode boucle interne (bypass throttle
+  // GitHub Actions sur schedule cron). Sinon : mode one-shot classique.
+  const durMin = parseInt(process.env.PREMATCH_DURATION_MINUTES || '0', 10);
+  if (durMin > 0) {
+    const interval = parseInt(process.env.PREMATCH_INTERVAL_MS || '300000', 10); // 5 min defaut
+    const end = Date.now() + durMin * 60 * 1000;
+    let cycles = 0;
+    log(`▶ Scan PRÉMATCH LOOP sports=[${SPORTS.join(',')}] — boucle ${durMin} min, intervalle ${interval / 1000}s`);
+    while (Date.now() < end) {
+      try {
+        const totals = await doAllSports({ live: false });
+        cycles++;
+        const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
+        log(`  cycle ${cycles}: ${summary}`);
+      } catch (e) {
+        log(`  cycle ${cycles + 1}: erreur — ${e.message}`);
+        cycles++;
+      }
+      if (end - Date.now() > interval) await sleep(interval);
+      else break;
+    }
+    log(`✅ Prématch loop terminé — ${cycles} cycles (${durMin} min)`);
+  } else {
+    log(`▶ Scan PRÉMATCH sports=[${SPORTS.join(',')}] (parallele)`);
+    const totals = await doAllSports({ live: false });
+    const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
+    log(`✅ Prématch terminé — ${summary}`);
+  }
 } else if (mode === 'live') {
   const duration = parseInt(process.env.SCAN_DURATION_MINUTES || '30', 10);
   const interval = parseInt(process.env.LIVE_INTERVAL_MS || '15000', 10);
