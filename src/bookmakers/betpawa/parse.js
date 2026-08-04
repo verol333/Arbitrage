@@ -31,6 +31,117 @@
 //   Winning Margin, Clean Sheet, Team-specific, etc.) ignorés.
 import { isHalfLine } from '../../core/markets.js';
 
+// Parseur tennis BetPawa. Marches identifies via probe-bp-tennis-markets :
+//   2043818 = Moneyline - FT              (name 1/2 → match_1/2)
+//   4758    = Moneyline - 1S              → s1_match_1/2
+//   4770    = Moneyline - 2S              → s2_match_1/2
+//   3532590 = Match Handicap Games 2-way  (specifier.hcp, name 1=home/2=away)
+//   4666923 = Set 1 Game Handicap         (specifier.hcp, name Domicile/Extérieur)
+//   4895    = Total Games O/U - FT        (specifier.total, name Plus de/Moins de)
+//   4880    = Total Games O/U - 1S        → s1_over/under_X
+//   2068161 = Games O/U Home - FT         → tt_home_over/under_X
+//   2068172 = Games O/U Away - FT         → tt_away_over/under_X
+//   3597899 = Total Sets O/U - FT         → total_sets_over/under_X
+//   4429    = Correct Score               (skip, pas standard cross-book)
+export function betpawaTennisFlatOdds(eventJson) {
+  const odds = {};
+  if (!eventJson?.markets?.length) return odds;
+  for (const market of eventJson.markets) {
+    const marketId = String(market?.marketType?.id ?? '');
+    const rows = market.row || [];
+    if (!rows.length) continue;
+
+    // Iterer sur chaque row (chaque row = 1 ligne handicap/total, avec ses prices)
+    for (const row of rows) {
+      const spec = row?.specifier || {};
+      const hcpStr = spec.hcp;
+      const totalStr = spec.total;
+      for (const p of (row.prices || [])) {
+        const name = String(p?.name || '').trim();
+        const v = Number(p?.odds);
+        if (!Number.isFinite(v) || v <= 1) continue;
+
+        switch (marketId) {
+          // Moneyline FT/1S/2S : name "1" = home, "2" = away
+          case '2043818': // Match Winner FT
+            if (name === '1') odds.match_1 = v;
+            else if (name === '2') odds.match_2 = v;
+            break;
+          case '4758': // 1S
+            if (name === '1') odds.s1_match_1 = v;
+            else if (name === '2') odds.s1_match_2 = v;
+            break;
+          case '4770': // 2S
+            if (name === '1') odds.s2_match_1 = v;
+            else if (name === '2') odds.s2_match_2 = v;
+            break;
+
+          // Handicap match : specifier.hcp = valeur pour home (name=1)
+          // name "2" = away avec le hcp inverse
+          case '3532590': { // Match Handicap Games 2-way
+            const hcp = Number(hcpStr);
+            if (!Number.isFinite(hcp) || !isHalfLine(hcp)) break;
+            if (name === '1') odds[`hcp_home_${hcp}`] = v;
+            else if (name === '2') odds[`hcp_away_${-hcp}`] = v;
+            break;
+          }
+          // Handicap 1S : name = "Domicile"/"Extérieur"
+          case '4666923': { // Set 1 Game Handicap
+            const hcp = Number(hcpStr);
+            if (!Number.isFinite(hcp) || !isHalfLine(hcp)) break;
+            if (/dom/i.test(name)) odds[`s1_hcp_home_${hcp}`] = v;
+            else if (/ext/i.test(name)) odds[`s1_hcp_away_${-hcp}`] = v;
+            break;
+          }
+
+          // Total games FT : "Plus de"/"Moins de" + specifier.total
+          case '4895': { // Total Games O/U FT
+            const line = Number(totalStr);
+            if (!Number.isFinite(line) || !isHalfLine(line)) break;
+            if (/plus/i.test(name)) odds[`match_over_${line}`] = v;
+            else if (/moins/i.test(name)) odds[`match_under_${line}`] = v;
+            break;
+          }
+          case '4880': { // Total Games O/U 1S
+            const line = Number(totalStr);
+            if (!Number.isFinite(line) || !isHalfLine(line)) break;
+            if (/plus/i.test(name)) odds[`s1_over_${line}`] = v;
+            else if (/moins/i.test(name)) odds[`s1_under_${line}`] = v;
+            break;
+          }
+
+          // Team totals (Games par joueur)
+          case '2068161': { // Home total games
+            const line = Number(totalStr);
+            if (!Number.isFinite(line) || !isHalfLine(line)) break;
+            if (/plus/i.test(name)) odds[`tt_home_over_${line}`] = v;
+            else if (/moins/i.test(name)) odds[`tt_home_under_${line}`] = v;
+            break;
+          }
+          case '2068172': { // Away total games
+            const line = Number(totalStr);
+            if (!Number.isFinite(line) || !isHalfLine(line)) break;
+            if (/plus/i.test(name)) odds[`tt_away_over_${line}`] = v;
+            else if (/moins/i.test(name)) odds[`tt_away_under_${line}`] = v;
+            break;
+          }
+
+          // Total sets FT
+          case '3597899': { // Total Sets O/U FT
+            const line = Number(totalStr);
+            if (!Number.isFinite(line) || !isHalfLine(line)) break;
+            if (/plus/i.test(name)) odds[`total_sets_over_${line}`] = v;
+            else if (/moins/i.test(name)) odds[`total_sets_under_${line}`] = v;
+            break;
+          }
+          default: break;
+        }
+      }
+    }
+  }
+  return odds;
+}
+
 export function betpawaFlatOdds(eventJson) {
   const odds = {};
   if (!eventJson?.markets?.length) return odds;
