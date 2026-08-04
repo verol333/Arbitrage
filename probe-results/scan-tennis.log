@@ -1,20 +1,121 @@
-[21:41:19] ▶▶▶ SCAN TENNIS ONLY (validation avant branchement prod)
-[premierbet] upcoming[2026-08-03]=1 upcoming[2026-08-04]=8 upcoming[2026-08-05]=3 highlights=14 unique=22 kept=13 filtered=(outright:0 virtual:0 horizon:9 noTeams:0 nonFoot:0)
-[xbet] listPrematch : 59 champs a fetcher (BATCH=40)
-[betpawa:tennis] UPCOMING : 141 matchs listés (sans startTime)
-[sportybet:tennis] UPCOMING : 197 matchs listés
-[21:41:24]   ⏱️ tennis listMatches done: +5129ms
-[21:41:24] 📋 TENNIS PRÉMATCH — 1xbet:396 | 1win:270 | congobet:100 | yellowbet:0 | apollo:100 | betmomo:105 | premierbet:13 | betpawa:141 | sportybet:197
-[21:41:35]   ⏱️ tennis alignCatalogs done: +10562ms (302 entrées)
-[21:41:35] 🔗 302/302 matchs exploitables (≥2 books)
-[21:42:04]   ⏱️ tennis readOdds done: +44460ms
-[21:42:04] ⏱️ readOdds par book (trié par lenteur) — 1win:28767ms/192 | apollo:8278ms/98 | congobet:6934ms/97 | 1xbet:6053ms/204 | sportybet:2110ms/173 | betpawa:1593ms/52 | betmomo:205ms/77 | yellowbet:203ms/0 | premierbet:199ms/0
-[21:42:04] 💰 cotes lues — 1xbet:204 | 1win:191 | congobet:97 | yellowbet:0 | apollo:98 | betmomo:67 | premierbet:0 | betpawa:0 | sportybet:173
-[21:42:04] 🎯 0 opportunités candidates ≥ 0.5% | 44577ms
-[21:42:04] 📊 distribution candidates par book — 1xbet:0(scope:204) | 1win:0(scope:191) | congobet:0(scope:97) | yellowbet:0(scope:0) | apollo:0(scope:98) | betmomo:0(scope:67) | premierbet:0(scope:0) | betpawa:0(scope:0) | sportybet:0(scope:173)
-[21:42:04]   ⏱️ tennis confirm+freshLive done: +44580ms
-[21:42:04] ✅ 0/0 opportunités confirmées après re-fetch | 44580ms
-[21:42:04] 📊 distribution confirmed par book — 1xbet:0 | 1win:0 | congobet:0 | yellowbet:0 | apollo:0 | betmomo:0 | premierbet:0 | betpawa:0 | sportybet:0
-[21:42:04] 
-▶▶▶ TERMINE en 44582ms — 0 opportunites TENNIS confirmees
-[21:42:04]   (aucune opportunite tennis trouvee)
+[09:10:19] ▶▶▶ SCAN TENNIS ONLY (validation avant branchement prod)
+[xbet] listPrematch : 77 champs a fetcher (BATCH=40)
+[premierbet] upcoming[2026-08-04]=120 upcoming[2026-08-05]=82 upcoming[2026-08-06]=0 highlights=64 unique=202 kept=201 filtered=(outright:0 virtual:0 horizon:1 noTeams:0 nonFoot:0)
+[betpawa:tennis] UPCOMING : 164 matchs listés (sans startTime)
+[sportybet:tennis] UPCOMING : 283 matchs listés
+[09:10:27]   ⏱️ tennis listMatches done: +7786ms
+[09:10:27] 📋 TENNIS PRÉMATCH — 1xbet:537 | 1win:473 | congobet:137 | yellowbet:0 | apollo:100 | betmomo:316 | premierbet:201 | betpawa:164 | sportybet:283
+[09:10:58]   ⏱️ tennis alignCatalogs done: +30893ms (527 entrées)
+[09:10:58] 🔗 527/527 matchs exploitables (≥2 books)
+[09:11:44]   ⏱️ tennis readOdds done: +85310ms
+[09:11:44] ⏱️ readOdds par book (trié par lenteur) — 1win:46628ms/367 | apollo:12193ms/100 | congobet:11010ms/137 | 1xbet:9927ms/408 | sportybet:2022ms/254 | betpawa:1140ms/44 | premierbet:1053ms/198 | betmomo:317ms/274 | yellowbet:300ms/0
+[09:11:44] 💰 cotes lues — 1xbet:408 | 1win:365 | congobet:137 | yellowbet:0 | apollo:100 | betmomo:257 | premierbet:197 | betpawa:44 | sportybet:254
+[09:11:45] 🎯 19 opportunités candidates ≥ 0.5% | 85645ms
+[09:11:45] 📊 distribution candidates par book — 1xbet:5(scope:408) | 1win:7(scope:365) | congobet:2(scope:137) | yellowbet:0(scope:0) | apollo:0(scope:100) | betmomo:2(scope:257) | premierbet:18(scope:197) | betpawa:1(scope:44) | sportybet:3(scope:254)
+[09:11:51]   📈 drift candidate→fresh par book : 1win:max=0.00/avg=0.000(n=7) | premierbet:max=0.00/avg=0.000(n=18) | sportybet:max=0.00/avg=0.000(n=3) | betpawa:max=0.00/avg=0.000(n=1) | betmomo:max=0.00/avg=0.000(n=2) | congobet:max=0.00/avg=0.000(n=2) | 1xbet:max=0.00/avg=0.000(n=5)
+[09:11:51]   ⏱️ tennis confirm+freshLive done: +91947ms
+[09:11:51] ✅ 19/19 opportunités confirmées après re-fetch | 91947ms
+[09:11:51] 📊 distribution confirmed par book — 1xbet:5 | 1win:7 | congobet:2 | yellowbet:0 | apollo:0 | betmomo:2 | premierbet:18 | betpawa:1 | sportybet:3
+[09:11:51] 📤 Sample opps envoyees :
+[09:11:51]    12.47% "Zachary Svajda vs Denis Shapovalov" [Handicap Asiatique -2.5] 1win@2.8 vs premierbet@1.93
+[09:11:51]    11.28% "Adam Walton vs Jenson Brooksby" [Handicap Asiatique -2.5] 1win@2.55 vs premierbet@2.02
+[09:11:51]    9.77% "Maja Chwalinska vs Talia Gibson" [Handicap Asiatique -2.5] 1win@2.64 vs premierbet@1.91
+[09:11:51]    5.85% "Luciano Darderi vs Gabriel Diallo" [Handicap Asiatique -1.5] 1win@2.24 vs premierbet@2.02
+[09:11:51]    3.39% "Adam Walton vs Jenson Brooksby" [Handicap Asiatique -1.5] sportybet@2.4 vs premierbet@1.82
+[09:11:51] 
+▶▶▶ TERMINE en 91949ms — 19 opportunites TENNIS confirmees
+[09:11:51] 
+=== 7 matchs avec opportunites ===
+
+[09:11:51] ─── #1 Zachary Svajda vs Denis Shapovalov (4 opps) ───
+[09:11:51]   ligue: ATP. Montreal | kickoff: 2026-08-04T16:35:00.000Z
+[09:11:51]   📊 12.47% [Handicap Asiatique -2.5]
+[09:11:51]      A: 1win        "Dom. -2.5" = 2.8
+[09:11:51]      B: premierbet  "Ext. +2.5" = 1.93
+[09:11:51]   📊 3.31% [Handicap Asiatique -1.5]
+[09:11:51]      A: sportybet   "Dom. -1.5" = 2.55
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.74
+[09:11:51]   📊 2.69% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1win        "Dom. -1.5" = 2.51
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.74
+[09:11:51]   📊 1.21% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1xbet       "Dom. -1.5" = 2.42
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.74
+[09:11:51] 
+[09:11:51] ─── #2 Adam Walton vs Jenson Brooksby (4 opps) ───
+[09:11:51]   ligue: ATP. Montreal | kickoff: 2026-08-04T15:05:00.000Z
+[09:11:51]   📊 11.28% [Handicap Asiatique -2.5]
+[09:11:51]      A: 1win        "Dom. -2.5" = 2.55
+[09:11:51]      B: premierbet  "Ext. +2.5" = 2.02
+[09:11:51]   📊 3.39% [Handicap Asiatique -1.5]
+[09:11:51]      A: sportybet   "Dom. -1.5" = 2.4
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.82
+[09:11:51]   📊 1.95% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1xbet       "Dom. -1.5" = 2.32
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.82
+[09:11:51]   📊 1.39% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1win        "Dom. -1.5" = 2.29
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.82
+[09:11:51] 
+[09:11:51] ─── #3 Maja Chwalinska vs Talia Gibson (4 opps) ───
+[09:11:51]   ligue: WTA. Toronto | kickoff: 2026-08-04T18:05:00.000Z
+[09:11:51]   📊 9.77% [Handicap Asiatique -2.5]
+[09:11:51]      A: 1win        "Dom. -2.5" = 2.64
+[09:11:51]      B: premierbet  "Ext. +2.5" = 1.91
+[09:11:51]   📊 1.98% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1win        "Dom. -1.5" = 2.39
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.78
+[09:11:51]   📊 1.27% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1xbet       "Dom. -1.5" = 2.35
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.78
+[09:11:51]   📊 1.27% [Handicap Asiatique -1.5]
+[09:11:51]      A: sportybet   "Dom. -1.5" = 2.35
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.78
+[09:11:51] 
+[09:11:51] ─── #4 Luciano Darderi vs Gabriel Diallo (3 opps) ───
+[09:11:51]   ligue: ATP. Montreal | kickoff: 2026-08-05T00:35:00.000Z
+[09:11:51]   📊 5.85% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1win        "Dom. -1.5" = 2.24
+[09:11:51]      B: premierbet  "Ext. +1.5" = 2.02
+[09:11:51]   📊 3.10% [Handicap Asiatique -1.5]
+[09:11:51]      A: betmomo     "Dom. -1.5" = 2.11
+[09:11:51]      B: premierbet  "Ext. +1.5" = 2.02
+[09:11:51]   📊 2.28% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1xbet       "Dom. -1.5" = 2.07
+[09:11:51]      B: premierbet  "Ext. +1.5" = 2.02
+[09:11:51] 
+[09:11:51] ─── #5 Sonego, Lorenzo vs Griekspoor, Tallon (2 opps) ───
+[09:11:51]   ligue: /103/25570/58432/ | kickoff: 2026-08-04T17:20:00.000Z
+[09:11:51]   📊 3.33% [Handicap Asiatique -1.5]
+[09:11:51]      A: betpawa     "Dom. -1.5" = 2.12
+[09:11:51]      B: premierbet  "Ext. +1.5" = 2.02
+[09:11:51]   📊 1.23% [Handicap Asiatique -1.5]
+[09:11:51]      A: congobet    "Dom. -1.5" = 2.03
+[09:11:51]      B: premierbet  "Ext. +1.5" = 2.02
+[09:11:51] 
+[09:11:51] ─── #6 Edas Butvilas vs Tristan Boyer (1 opp) ───
+[09:11:51]   ligue: Challenger. Lexington | kickoff: 2026-08-04T15:00:00.000Z
+[09:11:51]   📊 2.43% [Total Dom. 10.5]
+[09:11:51]      A: congobet    "Dom. +10.5" = 1.8
+[09:11:51]      B: betmomo     "Dom. −10.5" = 2.38
+[09:11:51] 
+[09:11:51] ─── #7 Alina Korneeva vs Emma Navarro (1 opp) ───
+[09:11:51]   ligue: WTA. Toronto | kickoff: 2026-08-05T15:05:00.000Z
+[09:11:51]   📊 1.58% [Handicap Asiatique -1.5]
+[09:11:51]      A: 1xbet       "Dom. -1.5" = 2.35
+[09:11:51]      B: premierbet  "Ext. +1.5" = 1.79
+[09:11:51] 
+[09:11:51] 
+=== RESUME PAR BOOKMAKER (apparitions dans les opps) ===
+[09:11:51]   premierbet   18
+[09:11:51]   1win         7
+[09:11:51]   1xbet        5
+[09:11:51]   sportybet    3
+[09:11:51]   betmomo      2
+[09:11:51]   congobet     2
+[09:11:51]   betpawa      1
+[09:11:51] 
+=== STATS SCAN ===
+[09:11:51]   catalogs: [{"book":"1xbet","matches":537},{"book":"1win","matches":473},{"book":"congobet","matches":137},{"book":"yellowbet","matches":0},{"book":"apollo","matches":100},{"book":"betmomo","matches":316},{"book":"premierbet","matches":201},{"book":"betpawa","matches":164},{"book":"sportybet","matches":283}]
+[09:11:51]   entries: 527
+[09:11:51]   duration_ms: 91947
