@@ -3,6 +3,7 @@
 // Garde-fous conservés : cote > 80 ou profit > 40% → rejet (cotes gelées/corrompues).
 import { config } from '../config.js';
 import { normalizeAliases } from './markets.js';
+import { teamSim } from './text.js';
 
 const MAX_ODD = 80;
 const MAX_PROFIT = () => config.scan.maxProfitSanity;
@@ -285,6 +286,62 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   return out;
 }
 
+// Detecte si les 2 books ont inverse home/away pour le meme match. En tennis
+// il n'y a pas de vrai "home", l'ordre J1/J2 est arbitraire par book. Si les
+// noms de "home" sont differents entre books (matchA.home ~ matchB.away plus
+// que matchA.home ~ matchB.home), on doit flipper les cotes du book B pour
+// que les comparaisons hcp_home_X ↔ hcp_away_-X soient valides.
+function orientationsInverted(matchA, matchB) {
+  if (!matchA?.home || !matchB?.home || !matchA?.away || !matchB?.away) return false;
+  const sameHome = teamSim(matchA.home, matchB.home);
+  const invHome = teamSim(matchA.home, matchB.away);
+  const sameAway = teamSim(matchA.away, matchB.away);
+  const invAway = teamSim(matchA.away, matchB.home);
+  // Inversion : matchA.home est plus proche de matchB.away que de matchB.home
+  // ET matchA.away est plus proche de matchB.home que de matchB.away
+  return invHome > sameHome + 0.15 && invAway > sameAway + 0.15;
+}
+
+// Flippe home ↔ away pour toutes les cles de tennis. Applique aux cotes du
+// book B quand orientationsInverted() detecte que J1/J2 sont echanges vs A.
+function flipTennisOdds(odds) {
+  const out = {};
+  const swapHomeAway = (k) => {
+    // match_1 ↔ match_2 (winner)
+    if (k === 'match_1') return 'match_2';
+    if (k === 'match_2') return 'match_1';
+    // sN_match_1 ↔ sN_match_2
+    let m = k.match(/^(s[1-5])_match_1$/);
+    if (m) return `${m[1]}_match_2`;
+    m = k.match(/^(s[1-5])_match_2$/);
+    if (m) return `${m[1]}_match_1`;
+    // hcp_home_X ↔ hcp_away_-X (signe s'inverse aussi)
+    m = k.match(/^hcp_home_(-?\d+(?:\.\d+)?)$/);
+    if (m) return `hcp_away_${-parseFloat(m[1])}`;
+    m = k.match(/^hcp_away_(-?\d+(?:\.\d+)?)$/);
+    if (m) return `hcp_home_${-parseFloat(m[1])}`;
+    // sN_hcp_home_X ↔ sN_hcp_away_-X
+    m = k.match(/^(s[1-5])_hcp_home_(-?\d+(?:\.\d+)?)$/);
+    if (m) return `${m[1]}_hcp_away_${-parseFloat(m[2])}`;
+    m = k.match(/^(s[1-5])_hcp_away_(-?\d+(?:\.\d+)?)$/);
+    if (m) return `${m[1]}_hcp_home_${-parseFloat(m[2])}`;
+    // hcp_sets_home_X ↔ hcp_sets_away_-X
+    m = k.match(/^hcp_sets_home_(-?\d+(?:\.\d+)?)$/);
+    if (m) return `hcp_sets_away_${-parseFloat(m[1])}`;
+    m = k.match(/^hcp_sets_away_(-?\d+(?:\.\d+)?)$/);
+    if (m) return `hcp_sets_home_${-parseFloat(m[1])}`;
+    // tt_home ↔ tt_away
+    m = k.match(/^tt_home_(over|under)_(\d+(?:\.\d+)?)$/);
+    if (m) return `tt_away_${m[1]}_${m[2]}`;
+    m = k.match(/^tt_away_(over|under)_(\d+(?:\.\d+)?)$/);
+    if (m) return `tt_home_${m[1]}_${m[2]}`;
+    // Neutres : totals match, total_sets, odd/even, sN_over/under
+    return k;
+  };
+  for (const [k, v] of Object.entries(odds)) out[swapHomeAway(k)] = v;
+  return out;
+}
+
 // Comparateur TENNIS 2-way (pas de nul → pas de DC, pas de BTTS, pas de DNB).
 // Marches supportes :
 // - Vainqueur du Match       (match_1 vs match_2, croisé cross-book)
@@ -297,9 +354,16 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
 // - Handicap Jeux Set N X    (sN_hcp_home_X vs sN_hcp_away_-X)
 // - Total Jeux Set N X       (sN_over_X vs sN_under_X)
 // - Pair/Impair Jeux         (odd vs even)
-export function compareTennisTwoBooks(rawA, bookA, rawB, bookB) {
+export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, matchB = null) {
   const oa = normalizeAliases(rawA);
-  const ob = normalizeAliases(rawB);
+  let ob = normalizeAliases(rawB);
+  // Fix fake arbs 40%+ : si les 2 books ont inverse J1/J2 pour ce match, on
+  // flippe les cotes du book B pour aligner les orientations. Sinon on
+  // compare hcp_home_-2.5 de A (Duckworth doit gagner de +3) avec hcp_away_+2.5
+  // de B (Duckworth outsider avec avantage) → fake arb.
+  if (orientationsInverted(matchA, matchB)) {
+    ob = flipTennisOdds(ob);
+  }
   const out = [];
 
   // Vainqueur du Match : 2-way sans nul. match_1 vs match_2 sont complementaires.
