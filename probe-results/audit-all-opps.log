@@ -1,51 +1,137 @@
-[18:42:38] ▶▶▶ AUDIT COMPLET DE TOUTES LES OPPS FOOT ENVOYEES
-[premierbet] upcoming[2026-08-03]=24 upcoming[2026-08-04]=72 upcoming[2026-08-05]=38 highlights=363 unique=442 kept=180 filtered=(outright:0 virtual:0 horizon:262 noTeams:0 nonFoot:0)
-[xbet] listPrematch : 233 champs a fetcher (BATCH=40)
-[sportybet:football] UPCOMING : 101 matchs listés
-[betpawa:football] UPCOMING : 985 matchs listés (sans startTime)
-[18:42:52]   ⏱️ football listMatches done: +14293ms
-[18:42:52] 📋 FOOTBALL PRÉMATCH — 1xbet:1485 | 1win:698 | congobet:412 | yellowbet:218 | apollo:487 | betmomo:223 | premierbet:180 | betpawa:985 | sportybet:101
-[18:43:19]   ⏱️ football alignCatalogs done: +27027ms (262 entrées)
-[18:43:19] 🔗 262/262 matchs exploitables (≥2 books)
-[18:43:36]   ⏱️ football readOdds done: +58287ms
-[18:43:36] ⏱️ readOdds par book (trié par lenteur) — apollo:16958ms/127 | congobet:15889ms/180 | 1xbet:14995ms/213 | 1win:13633ms/118 | betpawa:2529ms/162 | premierbet:1686ms/175 | yellowbet:257ms/216 | betmomo:228ms/194 | sportybet:32ms/96
-[18:43:36] 💰 cotes lues — 1xbet:213 | 1win:118 | congobet:180 | yellowbet:216 | apollo:127 | betmomo:189 | premierbet:175 | betpawa:162 | sportybet:96
-[18:43:37] 🎯 1 opportunités candidates ≥ 0.3% | 59179ms
-[18:43:37] 📊 distribution candidates par book — 1xbet:1(scope:213) | 1win:0(scope:118) | congobet:1(scope:180) | yellowbet:0(scope:216) | apollo:0(scope:127) | betmomo:0(scope:189) | premierbet:0(scope:175) | betpawa:0(scope:162) | sportybet:0(scope:96)
-[18:43:38]   📈 drift candidate→fresh par book : congobet:max=0.00/avg=0.000(n=1) | 1xbet:max=0.00/avg=0.000(n=1)
-[18:43:38]   ⏱️ football confirm+freshLive done: +59472ms
-[18:43:38] ✅ 1/1 opportunités confirmées après re-fetch | 59472ms
-[18:43:38] 📊 distribution confirmed par book — 1xbet:1 | 1win:0 | congobet:1 | yellowbet:0 | apollo:0 | betmomo:0 | premierbet:0 | betpawa:0 | sportybet:0
-[18:43:38] 📤 Sample opps envoyees :
-[18:43:38]    4.76% "Ringsted vs Frem" [1X2 — 2 + 1X] congobet@2.11 vs 1xbet@2.09
-[18:43:38] 
-1 opps envoyees a l'app
+[09:03:14] ▶▶▶ AUDIT COMPLET DE TOUTES LES OPPS FOOT ENVOYEES
+[xbet] listPrematch : 241 champs a fetcher (BATCH=40)
+[premierbet] upcoming[2026-08-04]=73 upcoming[2026-08-05]=50 upcoming[2026-08-06]=65 highlights=357 unique=444 kept=196 filtered=(outright:0 virtual:0 horizon:248 noTeams:0 nonFoot:0)
+[sportybet:football] UPCOMING : 109 matchs listés
+[betpawa:football] UPCOMING : 996 matchs listés (sans startTime)
+[09:03:29]   ⏱️ football listMatches done: +14474ms
+[09:03:29] 📋 FOOTBALL PRÉMATCH — 1xbet:1535 | 1win:716 | congobet:438 | yellowbet:233 | apollo:500 | betmomo:243 | premierbet:196 | betpawa:996 | sportybet:109
+[09:03:58]   ⏱️ football alignCatalogs done: +29295ms (291 entrées)
+[09:03:58] 🔗 291/291 matchs exploitables (≥2 books)
+[09:04:19]   ⏱️ football readOdds done: +64505ms
+[09:04:19] ⏱️ readOdds par book (trié par lenteur) — 1win:20734ms/133 | apollo:17806ms/145 | congobet:16681ms/214 | 1xbet:15255ms/228 | betpawa:2416ms/172 | premierbet:1868ms/196 | yellowbet:292ms/233 | betmomo:256ms/208 | sportybet:36ms/105
+[09:04:19] 💰 cotes lues — 1xbet:228 | 1win:133 | congobet:214 | yellowbet:233 | apollo:145 | betmomo:203 | premierbet:196 | betpawa:172 | sportybet:105
+[09:04:20] 🎯 12 opportunités candidates ≥ 0.3% | 65545ms
+[09:04:20] 📊 distribution candidates par book — 1xbet:9(scope:228) | 1win:2(scope:133) | congobet:1(scope:214) | yellowbet:1(scope:233) | apollo:0(scope:145) | betmomo:8(scope:203) | premierbet:1(scope:196) | betpawa:0(scope:172) | sportybet:2(scope:105)
+[stealth] https://yellowbet.cg/services/evapi/event/GetEventDetails?id… → 503
+[09:04:26]   ❌ rejets confirm (2): missingFresh:2
+[09:04:26]      - sportybet (2 rejets): missingFresh:2
+[09:04:26]   📈 drift candidate→fresh par book : betmomo:max=0.04/avg=0.005(n=8) | 1xbet:max=0.00/avg=0.000(n=9) | congobet:max=0.00/avg=0.000(n=1) | 1win:max=0.00/avg=0.000(n=2)
+[09:04:26]   ⏱️ football confirm+freshLive done: +71643ms
+[09:04:26] ✅ 10/12 opportunités confirmées après re-fetch | 71643ms
+[09:04:26] 📊 distribution confirmed par book — 1xbet:9 | 1win:2 | congobet:1 | yellowbet:0 | apollo:0 | betmomo:8 | premierbet:0 | betpawa:0 | sportybet:0
+[09:04:26] 📤 Sample opps envoyees :
+[09:04:26]    10.75% "BG Pathum United vs Aston Villa" [Corners Total 8.5] betmomo@1.8 vs 1xbet@2.97
+[09:04:26]    7.2% "Strasbourg vs Elversberg" [Corners Total 8.5] betmomo@1.85 vs 1xbet@2.58
+[09:04:26]    6.17% "Sawmer vs Rangdajied United" [1MT Total Dom. 0.5] 1xbet@2.75 vs betmomo@1.74
+[09:04:26]    4.76% "Ringsted vs Frem" [1X2 — 2 + 1X] congobet@2.11 vs 1xbet@2.09
+[09:04:26]    3.94% "Newport County vs Roma" [Corners Total 9.5] betmomo@1.92 vs 1xbet@2.27
+[09:04:26] 
+10 opps envoyees a l'app
 
-[18:43:38] 
-[1/1] 4.76% [1X2 — 2 + 1X]
-[18:43:38]   Ringsted vs Frem
-[18:43:38]   A: congobet "Extérieur" = 2.11
-[18:43:38]   B: 1xbet "Domicile ou Nul" = 2.09
-[18:43:38]       ✅ a congobet: match_2 opp=2.11 refetch=2.11
-[18:43:38]       ✅ b 1xbet: dc_1X opp=2.09 refetch=2.09
-[18:43:38] 
+[09:04:26] 
+[1/10] 10.75% [Corners Total 8.5]
+[09:04:26]   BG Pathum United vs Aston Villa
+[09:04:26]   A: betmomo "+8.5" = 1.8
+[09:04:26]   B: 1xbet "−8.5" = 2.97
+[09:04:27]     a:mapfail
+[09:04:27]     b:mapfail
+[09:04:27] 
+[2/10] 7.20% [Corners Total 8.5]
+[09:04:27]   Strasbourg vs Elversberg
+[09:04:27]   A: betmomo "+8.5" = 1.85
+[09:04:27]   B: 1xbet "−8.5" = 2.58
+[09:04:27]     a:mapfail
+[09:04:27]     b:mapfail
+[09:04:27] 
+[3/10] 6.17% [1MT Total Dom. 0.5]
+[09:04:27]   Sawmer vs Rangdajied United
+[09:04:27]   A: 1xbet "Dom. +0.5" = 2.75
+[09:04:27]   B: betmomo "Dom. −0.5" = 1.74
+[09:04:28]     a:mapfail
+[09:04:28]     b:mapfail
+[09:04:28] 
+[4/10] 4.76% [1X2 — 2 + 1X]
+[09:04:28]   Ringsted vs Frem
+[09:04:28]   A: congobet "Extérieur" = 2.11
+[09:04:28]   B: 1xbet "Domicile ou Nul" = 2.09
+[09:04:28]       ✅ a congobet: match_2 opp=2.11 refetch=2.11
+[09:04:28]       ✅ b 1xbet: dc_1X opp=2.09 refetch=2.09
+[09:04:28] 
+[5/10] 3.94% [Corners Total 9.5]
+[09:04:28]   Newport County vs Roma
+[09:04:28]   A: betmomo "+9.5" = 1.92
+[09:04:28]   B: 1xbet "−9.5" = 2.27
+[09:04:29]     a:mapfail
+[09:04:29]     b:mapfail
+[09:04:29] 
+[6/10] 3.84% [Corners Total 8.5]
+[09:04:29]   Ipswich Town vs Le Havre
+[09:04:29]   A: betmomo "+8.5" = 1.87
+[09:04:29]   B: 1xbet "−8.5" = 2.34
+[09:04:29]     a:mapfail
+[09:04:29]     b:mapfail
+[09:04:29] 
+[7/10] 3.64% [1MT 1X2 — Domicile]
+[09:04:29]   Sawmer vs Rangdajied United
+[09:04:29]   A: 1xbet "Domicile" = 9.85
+[09:04:29]   B: betmomo "Nul ou Ext." = 1.16
+[09:04:29]       🔴 a 1xbet: match_1 opp=9.85 refetch=14.5 DRIFT=4.65
+[09:04:29]       🔴 b betmomo: dc_X2 opp=1.16 refetch=1.05 DRIFT=0.11
+[09:04:29] 
+[8/10] 3.43% [Corners Total 9.5]
+[09:04:29]   BG Pathum United vs Aston Villa
+[09:04:29]   A: 1win "+9.5" = 1.95
+[09:04:29]   B: 1xbet "−9.5" = 2.21
+[09:04:36]     a:mapfail
+[09:04:36]     b:mapfail
+[09:04:36] 
+[9/10] 2.18% [1MT 1X2 — Extérieur]
+[09:04:36]   Sawmer vs Rangdajied United
+[09:04:36]   A: betmomo "Extérieur" = 1.77
+[09:04:36]   B: 1xbet "Dom. ou Nul" = 2.42
+[09:04:36]       🔴 a betmomo: match_2 opp=1.77 refetch=1.13 DRIFT=0.64
+[09:04:36]       🔴 b 1xbet: dc_1X opp=2.42 refetch=4.32 DRIFT=1.90
+[09:04:36] 
+[10/10] 0.83% [1X2 — 2 + 1X]
+[09:04:36]   Gor Mahia vs Al-Hilal Omdurman
+[09:04:36]   A: betmomo "Extérieur" = 1.94
+[09:04:36]   B: 1win "Domicile ou Nul" = 2.1
+[09:04:42]       ✅ a betmomo: match_2 opp=1.94 refetch=1.94
+[09:04:42]       🔴 b 1win: dc_1X ABSENTE (opp=2.1)
+[09:04:42] 
 
 ════════════════════ SYNTHESE GLOBALE ════════════════════
-[18:43:38] Opps totales : 1
-[18:43:38] Legs OK      : 2
-[18:43:38] Legs drift <0.10 : 0
-[18:43:38] Legs drift >0.10 (fake/stale) : 0
-[18:43:38] Legs cle absente refetch : 0
-[18:43:38] Legs label non mappable : 0
-[18:43:38] Legs erreur refetch : 0
-[18:43:38] Legs sans id : 0
-[18:43:38] 
-Opps SUSPECTES (fake/stale) : 0/1
-[18:43:38] 
+[09:04:42] Opps totales : 10
+[09:04:42] Legs OK      : 3
+[09:04:42] Legs drift <0.10 : 0
+[09:04:42] Legs drift >0.10 (fake/stale) : 4
+[09:04:42] Legs cle absente refetch : 1
+[09:04:42] Legs label non mappable : 12
+[09:04:42] Legs erreur refetch : 0
+[09:04:42] Legs sans id : 0
+[09:04:42] 
+Opps SUSPECTES (fake/stale) : 3/10
+[09:04:42] 
 ── Detail par bookmaker ──
-[18:43:38]   1xbet        total=1 ok=1(100%) drift_s=0 drift_BIG=0 missing=0 err=0 noid=0 mapfail=0
-[18:43:38]   congobet     total=1 ok=1(100%) drift_s=0 drift_BIG=0 missing=0 err=0 noid=0 mapfail=0
-[18:43:38] 
+[09:04:42]   1win         total=2 ok=0(0%) drift_s=0 drift_BIG=0 missing=1 err=0 noid=0 mapfail=1
+[09:04:42]   1xbet        total=9 ok=1(11%) drift_s=0 drift_BIG=2 missing=0 err=0 noid=0 mapfail=6
+[09:04:42]   betmomo      total=8 ok=1(13%) drift_s=0 drift_BIG=2 missing=0 err=0 noid=0 mapfail=5
+[09:04:42]   congobet     total=1 ok=1(100%) drift_s=0 drift_BIG=0 missing=0 err=0 noid=0 mapfail=0
+[09:04:42] 
 ── Opps a examiner ──
-[18:43:38] 
+[09:04:42] 
+  3.64% Sawmer vs Rangdajied United [1MT 1X2 — Domicile]
+[09:04:42]     1xbet Domicile=9.85 vs betmomo Nul ou Ext.=1.16
+[09:04:42]       🔴 a 1xbet: match_1 opp=9.85 refetch=14.5 DRIFT=4.65
+[09:04:42]       🔴 b betmomo: dc_X2 opp=1.16 refetch=1.05 DRIFT=0.11
+[09:04:42] 
+  2.18% Sawmer vs Rangdajied United [1MT 1X2 — Extérieur]
+[09:04:42]     betmomo Extérieur=1.77 vs 1xbet Dom. ou Nul=2.42
+[09:04:42]       🔴 a betmomo: match_2 opp=1.77 refetch=1.13 DRIFT=0.64
+[09:04:42]       🔴 b 1xbet: dc_1X opp=2.42 refetch=4.32 DRIFT=1.90
+[09:04:42] 
+  0.83% Gor Mahia vs Al-Hilal Omdurman [1X2 — 2 + 1X]
+[09:04:42]     betmomo Extérieur=1.94 vs 1win Domicile ou Nul=2.1
+[09:04:42]       🔴 b 1win: dc_1X ABSENTE (opp=2.1)
+[09:04:42] 
 ═══ FIN AUDIT ═══
