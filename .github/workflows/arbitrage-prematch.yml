@@ -1,17 +1,29 @@
 name: Arbitrage — Scan Prématch
 
-# Toutes les 5 minutes — repo PUBLIC = minutes illimitées.
-# Le scan lui-même prend ~10 min mais GitHub queue les runs → OK.
-# Code minifié dans dist/action.min.js — illisible, secrets chiffrés.
+# Boucle interne : chaque creneau (6 par jour, 350min chacun) execute un scan
+# prematch toutes les 5 min → couverture 24/7 garantie. Le */5 * * * * cron
+# etait throttle par GitHub Actions (1 run toutes les 2-3h au lieu de toutes
+# les 5 min), d'ou passage au meme design que arbitrage-live.yml.
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Durée du scan en minutes (max 350)'
+        required: false
+        default: '55'
+
+  schedule:
+    - cron: '0 0 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 10 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 18 * * *'
+    - cron: '0 22 * * *'
 
 jobs:
   prematch:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 360
     defaults:
       run:
         working-directory: arbitrage-service
@@ -31,9 +43,12 @@ jobs:
       - name: Install dependencies
         run: npm install --production
 
-      - name: Run prematch scan
+      - name: Run prematch scan loop
         run: node dist/action.min.js prematch
         env:
+          # Cron schedule : 350min (couvre 24/7 via 6 créneaux). Manuel : 55min (test).
+          PREMATCH_DURATION_MINUTES: ${{ github.event.inputs.duration || (github.event_name == 'schedule' && '350' || '55') }}
+          PREMATCH_INTERVAL_MS: '300000'
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
