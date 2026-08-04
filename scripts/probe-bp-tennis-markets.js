@@ -25,10 +25,13 @@ for (const m of sample) {
     const id = mkt?.marketType?.id;
     const name = mkt?.marketType?.name || '';
     if (!byId.has(id)) byId.set(id, { name, samples: [] });
-    // Aplatir prices
+    // Aplatir prices + garder les infos ROW (handicap, name, etc)
     for (const row of (mkt.row || [])) {
       for (const p of (row.prices || [])) {
-        byId.get(id).samples.push({ name: p.name, displayName: p.displayName, odds: p.odds, rowName: row.name });
+        byId.get(id).samples.push({
+          name: p.name, displayName: p.displayName, odds: p.odds,
+          row_all: JSON.stringify(Object.fromEntries(Object.entries(row).filter(([k]) => k !== 'prices'))),
+        });
       }
     }
   }
@@ -39,8 +42,8 @@ for (const m of sample) {
       const parts = [];
       if (s.name) parts.push(`name="${s.name}"`);
       if (s.displayName && s.displayName !== s.name) parts.push(`disp="${s.displayName}"`);
-      if (s.rowName) parts.push(`row="${s.rowName}"`);
       parts.push(`odds=${s.odds}`);
+      parts.push(`row=${s.row_all}`);
       console.log(`      ${parts.join(' | ')}`);
     }
     if (info.samples.length > 8) console.log(`      … +${info.samples.length - 8} outcomes`);
