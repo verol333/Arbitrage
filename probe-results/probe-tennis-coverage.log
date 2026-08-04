@@ -2,58 +2,58 @@
 
 ════════════════════════════════════════════════════════════
 1XBET
-[xbet] listPrematch : 59 champs a fetcher (BATCH=40)
-  Total : 407 matchs
-  59 leagues distinctes
+[xbet] listPrematch : 76 champs a fetcher (BATCH=40)
+  Total : 563 matchs
+  76 leagues distinctes
   Sans league : 0
-  Suspects tennis de TABLE : 17
-  Categorie obscure (ITF/Challenger/UTR/Futures) : 131
+  Suspects tennis de TABLE : 30
+  Categorie obscure (ITF/Challenger/UTR/Futures) : 133
 
   Top 20 leagues :
-      27 × "ATP. Montreal"
-         → ex: "Camilo Ugo Carabelli" vs "Cameron Norrie"
-      19 × "WTA. Toronto"
-         → ex: "Panna Udvardy" vs "Eva Lys"
+      32 × "ATP. Montreal"
+         → ex: "Hubert Hurkacz" vs "Marcos Giron"
+      32 × "WTA. Toronto"
+         → ex: "Elina Svitolina" vs "Jessica Bouzas Maneiro"
+      16 × "World Tennis. Londrina"
+         → ex: "Andre Souza" vs "Nicolas Oliveira"
+      16 × "World Tennis. Roehampton. Women"
+         → ex: "Alice Tubello" vs "Angella Okutoyi"
+      15 × "World Tennis. Leipzig. Women"
+         → ex: "Tina Manescu" vs "Laura Mair"
       14 × "Challenger. Grodzisk Mazowiecki" [obscur]
          → ex: "Alejandro Moro Canas" vs "Robin Bertrand"
-      14 × "Challenger. Hagen" [obscur]
-         → ex: "Dominik Recek" vs "Diego Dedura-Palomero"
-      12 × "World Tennis. Kursumlijska Banja. Women"
-         → ex: "Ariadna Garcia-Patron Canals" vs "Denislava Glushkova"
+      14 × "World Tennis. Roehampton"
+         → ex: "Mark Ceban" vs "Charlie Robertson"
+      13 × "Challenger. Istanbul" [obscur]
+         → ex: "Petr Bar Biryukov" vs "Paul Inchauspe"
+      13 × "World Tennis. Koksijde. Women"
+         → ex: "Ane Mintegi Del Olmo" vs "Gabriela Ce"
+      13 × "World Tennis. Ourense. Women"
+         → ex: "Elyse Tse" vs "Daria Khomutyanskaya"
+      12 × "Challenger. Lexington" [obscur]
+         → ex: "Edas Butvilas" vs "Tristan Boyer"
+      12 × "Challenger. Plovdiv 2" [obscur]
+         → ex: "Daniel Elahi Galan Riveros" vs "Georgy Georgiev"
+      12 × "World Tennis. Fano"
+         → ex: "Alberto Bronzetti" vs "Leonardo Primucci"
+      11 × "Challenger. Hagen" [obscur]
+         → ex: "Rudolf Molleker" vs "Maxim Mrva"
+      11 × "World Tennis. Tauste"
+         → ex: "Daniel De Jonge" vs "Valentin Gonzalez-Galino"
       10 × "WTA. Warsaw"
          → ex: "Elsa Jacquemot" vs "Carol Young Suh Lee"
       10 × "World Tennis. Chacabuco. Women"
-         → ex: "Jimar Geraldine Gerald Gonzalez" vs "Daria Egorova"
-      10 × "World Tennis. Roehampton. Women"
-         → ex: "Emily Appleton" vs "Edie Griffiths"
-       9 × "World Tennis. Astana. Women"
-         → ex: "Ingkar Dyussebay" vs "Eva Korysheva"
-       9 × "World Tennis. Tauste"
-         → ex: "Samuel Heredia" vs "Luca Potenza"
-       8 × "Challenger. Grodzisk Mazowiecki. Doubles" [obscur]
-         → ex: "Dev/Sinha" vs "Bojarski/Majchrzak"
-       8 × "Challenger. Lexington. Doubles" [obscur]
-         → ex: "Andrade/Maginley" vs "Arseneault/Arseneault"
-       8 × "UTR Pro Tennis Series. Auburn" [obscur]
-         → ex: "Enzo Aguiard" vs "Andrew Kotzen"
-       8 × "UTR Pro Tennis Series. Auburn. Women" [obscur]
+         → ex: "Camila Romero" vs "Fernanda Labrana"
+      10 × "World Tennis. Poprad"
+         → ex: "Dominik Macej" vs "Filip Drab"
+       9 × "UTR Pro Tennis Series. Auburn. Women" [obscur]
          → ex: "Alana Boyce" vs "McKenzie Shelton"
-       8 × "World Tennis. Astana. Women. Qualification"
-         → ex: "Soo Ha Jang" vs "Eunchae Kim"
-       8 × "World Tennis. Koksijde. Women"
-         → ex: "Federica Urgesi" vs "Amelie Van Impe"
-       8 × "World Tennis. Leipzig. Women"
-         → ex: "Anastasia Tikhonova" vs "Lola Giza"
-       8 × "World Tennis. Poprad"
-         → ex: "Jan Wygona" vs "Filip Poklemba"
-       8 × "World Tennis. Tianjin"
-         → ex: "Eito Komada" vs "Dong Ju Kim"
-       8 × "World Tennis. Tianjin. Women"
-         → ex: "Yihan Qu" vs "Michika Ozeki"
-    … +39 autres leagues
+       9 × "World Tennis. Kursumlijska Banja. Women"
+         → ex: "Anastasia Bertacchi" vs "Ustiniya Lekomtseva"
+    … +56 autres leagues
 
   🚨 Sample suspects tennis de TABLE :
-      "Elijah Cham" vs "Scott Jones" [UTR Pro Tennis Series. Brisbane]
+      "Sklar Phillips" vs "Emmett Potter" [UTR Pro Tennis Series. Newport Beach]
       "Akanksha Dileep Nitture" vs "Edda Mamedova" [World Tennis. Astana. Women]
       "Mamedova/Kharlanova" vs "Nitture/Patil" [World Tennis. Astana. Women. Doubles]
       "Noel Larwig" vs "Kacper Knitter" [World Tennis. Bielsko-Biala]
@@ -61,25 +61,25 @@
 
 ════════════════════════════════════════════════════════════
 1WIN
-  Total : 270 matchs
+  Total : 487 matchs
   11 leagues distinctes
   Sans league : 0
-  Suspects tennis de TABLE : 0
-  Categorie obscure (ITF/Challenger/UTR/Futures) : 205
+  Suspects tennis de TABLE : 2
+  Categorie obscure (ITF/Challenger/UTR/Futures) : 414
 
   Top 20 leagues :
-      73 × "atp-challenger" [obscur]
-         → ex: "Henry Searle" vs "Lloyd Harris"
-      56 × "itf-men" [obscur]
-         → ex: "Donghyun Hwang" vs "Yeongseok Jeong"
-      40 × "utr-pro" [obscur]
-         → ex: "Yilin Yan" vs "Kaylah Mcphee"
-      36 × "itf-women" [obscur]
-         → ex: "Yujin Kim" vs "Anna Yang"
-      28 × "atp"
-         → ex: "Matteo Berrettini" vs "Mariano Navone"
-      21 × "wta"
-         → ex: "Janice Tjen" vs "Liudmilla Samsonova"
+     155 × "itf-men" [obscur]
+         → ex: "S. Tang / W. Trongcharoenchaikul" vs "Suk Ann / Duckhee Lee"
+     142 × "itf-women" [obscur]
+         → ex: "Duanrui Gao / Xiran Lan" vs "Gaeul Jang / Thasaporn Naklo"
+      86 × "atp-challenger" [obscur]
+         → ex: "Zsombor Piros" vs "Daniel Rincon"
+      31 × "utr-pro" [obscur]
+         → ex: "Cian Mcdonnell" vs "Filip Soderqvist"
+      30 × "atp"
+         → ex: "Hubert Hurkacz" vs "Marcos Giron"
+      27 × "wta"
+         → ex: "Donna Vekic" vs "Viktorija Golubic"
        8 × "wta-125k"
          → ex: "Viktoria Hruncakova" vs "Susan Bandecchi"
        2 × "us-open"
@@ -91,195 +91,209 @@
        2 × "wimbledon"
          → ex: "Gentlemen's Singles. Wimbledon. Long-term bets" vs "Long-term bets"
 
+  🚨 Sample suspects tennis de TABLE :
+      "Sofia Camila Rojas" vs "Britt Du Pree" [itf-women]
+      "Britt Du Pree / Isis Louise Van Den Broek" vs "Alice Ferlito / Valentina Losciale" [itf-women]
+
 ════════════════════════════════════════════════════════════
 CONGOBET
-  Total : 97 matchs
-  10 leagues distinctes
+  Total : 143 matchs
+  11 leagues distinctes
   Sans league : 0
   Suspects tennis de TABLE : 0
   Categorie obscure (ITF/Challenger/UTR/Futures) : 0
 
   Top 20 leagues :
-      24 × "/103/25570/58432/"
-         → ex: "Ugo Carabelli, Camilo" vs "Norrie, Cameron"
-      18 × "/103/26252/58444/"
-         → ex: "Zarazua, Renata" vs "Korpatsch, Tamara"
-      11 × "/103/24585/103796/"
-         → ex: "Piros, Zsombor" vs "Rincon, Daniel"
-      11 × "/103/24585/58464/"
+      32 × "/103/25570/58432/"
+         → ex: "Baez, Sebastian" vs "Bellucci, Mattia"
+      32 × "/103/26252/58444/"
+         → ex: "Svitolina, Elina" vs "Bouzas Maneiro, Jessica"
+      13 × "/103/24585/58464/"
          → ex: "Moro Canas, Alejandro" vs "Bertrand, Robin"
+      12 × "/103/24585/55437/"
+         → ex: "Bar Biryukov, Petr" vs "Inchauspe, Paul"
+      12 × "/103/24585/157876/"
+         → ex: "Brunclik, Petr" vs "Carboni, Lorenzo"
+      10 × "/103/24585/54952/"
+         → ex: "McCabe, James" vs "Lajovic, Dusan"
+      10 × "/103/24585/103796/"
+         → ex: "Molleker, Rudolf" vs "Mrva, Maxim"
        9 × "/103/25480/73465/"
          → ex: "Jacquemot, Elsa" vs "Lee, Carol Youngsuh"
        8 × "/103/24585/54969/"
          → ex: "Bayldon B / Harper P" vs "Kittay B / Romboli F"
-       7 × "/103/24585/54952/"
-         → ex: "Searle, Henry" vs "Harris, Lloyd"
-       4 × "/103/24585/55437/"
-         → ex: "Bar Biryukov, Petr" vs "Inchauspe, Paul"
        4 × "/103/25480/73510/"
          → ex: "Falkowska W / Smith A" vs "Brooks M / Haverlag I"
-       1 × "/103/24585/157876/"
-         → ex: "Angelini, Lorenzo" vs "Nesterov, Pyotr"
+       1 × "/103/24585/58465/"
+         → ex: "Dev S D P / Sinha N K" vs "Bojarski A / Majchrzak A"
 
 ════════════════════════════════════════════════════════════
 APOLLO
   Total : 100 matchs
-  9 leagues distinctes
+  6 leagues distinctes
   Sans league : 0
   Suspects tennis de TABLE : 0
-  Categorie obscure (ITF/Challenger/UTR/Futures) : 55
+  Categorie obscure (ITF/Challenger/UTR/Futures) : 36
 
   Top 20 leagues :
-      24 × "ATP / ATP Montreal, Canada Men Singles"
-         → ex: "Vukic, Aleksandar" vs "Altmaier, Daniel"
-      21 × "WTA / WTA Toronto, Canada Women Singles"
-         → ex: "Zarazua, Renata" vs "Korpatsch, Tamara"
+      32 × "ATP / ATP Montreal, Canada Men Singles"
+         → ex: "Hurkacz, Hubert" vs "Giron, Marcos"
+      32 × "WTA / WTA Toronto, Canada Women Singles"
+         → ex: "Svitolina, Elina" vs "Bouzas Maneiro, Jessica"
       14 × "Challenger / ATP Challenger Grodzisk Mazowiecki, Poland Men Singles" [obscur]
          → ex: "Moro Canas, Alejandro" vs "Bertrand, Robin"
-      13 × "Challenger / ATP Challenger Hagen, Germany Men Singles" [obscur]
-         → ex: "Piros, Zsombor" vs "Rincon, Daniel"
        8 × "Challenger / ATP Challenger Grodzisk Mazowiecki, Poland Men Doubles" [obscur]
          → ex: "Dev, S D Prajwal / Sinha, Nitin Kumar" vs "Bojarski A / Majchrzak A"
        7 × "Challenger / ATP Challenger Hagen, Germany Men Doubles" [obscur]
          → ex: "Kolar Z / Vocel M" vs "Opitz J / van Sambeek F"
-       6 × "Challenger / ATP Challenger Istanbul 2, Turkiye Men Doubles" [obscur]
-         → ex: "Azkara A / Mackinlay J" vs "Bax F / Ghibaudo A"
-       6 × "Challenger / ATP Challenger Istanbul 2, Turkiye Men Singles" [obscur]
-         → ex: "Bar Biryukov, Petr" vs "Inchauspe, Paul"
-       1 × "Challenger / ATP Challenger Lexington, USA Men Doubles" [obscur]
-         → ex: "Bayldon B / Harper P" vs "Kittay B / Romboli F"
+       7 × "Challenger / ATP Challenger Hagen, Germany Men Singles" [obscur]
+         → ex: "Monteiro, Thiago" vs "Gentzsch, Tom"
 
 ════════════════════════════════════════════════════════════
 BETMOMO
-  Total : 100 matchs
-  15 leagues distinctes
+  Total : 322 matchs
+  36 leagues distinctes
   Sans league : 0
-  Suspects tennis de TABLE : 26
-  Categorie obscure (ITF/Challenger/UTR/Futures) : 28
+  Suspects tennis de TABLE : 207
+  Categorie obscure (ITF/Challenger/UTR/Futures) : 47
 
   Top 20 leagues :
+      25 × "WTA Toronto - Hard"
+         → ex: "Kamilla Rakhimova" vs "Katerina Siniakova"
       23 × "ATP Masters Montreal - Hard"
          → ex: "Giovanni Mpetshi Perricard" vs "Botic Van De Zandschulp"
-      13 × "WTA Toronto - Hard"
-         → ex: "Panna Udvardy" vs "Eva Lys"
-       9 × "WTA Warsaw - Hard"
-         → ex: "Viktoria Hruncakova" vs "Susan Bandecchi"
-       8 × "ATP Challenger Grodzisk Mazowiecki - Hard" [obscur]
-         → ex: "Alejandro Moro Canas" vs "Robin Bertrand"
-       7 × "ATP Challenger Plovdiv - Clay" [obscur]
+      16 × "WTT Women - Roehampton - Hard" 🚨TT?
+         → ex: "Alice Tubello" vs "Angella Okutoyi"
+      14 × "WTT Men - Roehampton - Hard" 🚨TT?
+         → ex: "Hugo Coquelin" vs "Pablo Perez Ramos"
+      13 × "WTT Men - Londrina - Clay" 🚨TT?
+         → ex: "Gabriel Augusto Carvalho" vs "Enzo Kohlmann de Freitas"
+      13 × "WTT Women - Leipzig - Clay" 🚨TT?
+         → ex: "Sohyun Park" vs "Alena Kovackova"
+      12 × "ATP Challenger Grodzisk Mazowiecki - Hard" [obscur]
+         → ex: "Filip Peliwo" vs "Ivan Marrero Curbelo"
+      11 × "ATP Challenger Plovdiv - Clay" [obscur]
          → ex: "Lorenzo Angelini" vs "Petr Nesterov"
-       7 × "ATP Challenger Hagen - Clay" [obscur]
-         → ex: "Elmer Moller" vs "Jamie Mackenzie"
-       7 × "WTT Men - Tauste - Hard" 🚨TT?
-         → ex: "Daniel De Jonge" vs "Valentin Gonzalez-Galino"
-       6 × "WTT Men - Tianjin - Hard" 🚨TT?
-         → ex: "Hanlei Lu" vs "Seongwoo Cho"
-       6 × "WTT Men - Fano - Clay" 🚨TT?
+      11 × "WTT Men - Fano - Clay" 🚨TT?
          → ex: "Denis Constantin Spiridon" vs "Pietro Romeo Scomparin"
-       4 × "WTT Women - Tianjin - Hard" 🚨TT?
-         → ex: "Yihan Qu" vs "Michika Ozeki"
-       4 × "ATP Challenger Istanbul - Hard" [obscur]
+      11 × "WTT Women - Ourense - Hard" 🚨TT?
+         → ex: "Rose Marie Nijkamp" vs "Camilla Zanolini"
+      11 × "WTT Men - Tauste - Hard" 🚨TT?
+         → ex: "Daniel De Jonge" vs "Valentin Gonzalez-Galino"
+      10 × "WTT Women - Koksijde - Clay" 🚨TT?
+         → ex: "Marie Weckerle" vs "Noemi Basiletti"
+      10 × "ATP Challenger Hagen - Clay" [obscur]
+         → ex: "Elmer Moller" vs "Jamie Mackenzie"
+       9 × "WTT Women - Chacabuco - Clay" 🚨TT?
+         → ex: "Giorgia Pedone" vs "Francesca Mattioli"
+       9 × "WTT Women - Hameenlinna - Clay" 🚨TT?
+         → ex: "Mayuka Aikawa" vs "Daniela Vismane"
+       9 × "WTT Women - Astana - Hard" 🚨TT?
+         → ex: "Maria Mikhailova" vs "Ha Eum Lee"
+       9 × "WTT Women - Kursumlijska Banja - Clay" 🚨TT?
+         → ex: "Anastasia Bertacchi" vs "Ustiniya Lekomtseva"
+       9 × "ATP Challenger Istanbul - Hard" [obscur]
          → ex: "Arthur Weber" vs "Florent Bax"
-       2 × "WTT Women - Roehampton - Hard" 🚨TT?
-         → ex: "Sayaka Ishii" vs "Amelia Rajecki"
-       2 × "ATP Challenger Lexington - Hard" [obscur]
-         → ex: "Yu Hsiou Hsu" vs "Sebastian Gorzny"
-       1 × "Premier Padel London"
-         → ex: "Maximiliano Sanchez Blasco/Daniel Santigosa Sastre" vs "Jose Antonio Diestro/Marc Sintes Villalonga"
-       1 × "WTT Women - Koksijde - Clay" 🚨TT?
-         → ex: "Federica Urgesi" vs "Amelie Van Impe"
+       8 × "WTT Men - Frankfurt - Clay" 🚨TT?
+         → ex: "Carlos Giraldi" vs "Kirill Kivattsev"
+       8 × "WTT Men - Curtea de Arges - Clay" 🚨TT?
+         → ex: "Nicolas Robert" vs "Matei Victor Chelemen"
+    … +16 autres leagues
 
   🚨 Sample suspects tennis de TABLE :
-      "Federica Urgesi" vs "Amelie Van Impe" [WTT Women - Koksijde - Clay]
-      "Yihan Qu" vs "Michika Ozeki" [WTT Women - Tianjin - Hard]
-      "Maria Kalyakina" vs "Chenting Zhu" [WTT Women - Tianjin - Hard]
-      "Anna Snigireva" vs "Sae Noguchi" [WTT Women - Tianjin - Hard]
-      "Xi Luo" vs "Meng Yi Chen" [WTT Women - Tianjin - Hard]
+      "Giorgia Pedone" vs "Francesca Mattioli" [WTT Women - Chacabuco - Clay]
+      "Jimar Geraldine Gerald Gonzalez" vs "Daria Egorova" [WTT Women - Chacabuco - Clay]
+      "Lorena Schaedel" vs "Justina Maria Gonzalez Daniele" [WTT Women - Chacabuco - Clay]
+      "Berta Bonardi" vs "Victoria Bosio" [WTT Women - Chacabuco - Clay]
+      "Maria Florencia Urrutia" vs "Luciana Moyano" [WTT Women - Chacabuco - Clay]
 
 ════════════════════════════════════════════════════════════
 SPORTYBET
-[sportybet:tennis] UPCOMING : 197 matchs listés
-  Total : 197 matchs
-  36 leagues distinctes
+[sportybet:tennis] UPCOMING : 286 matchs listés
+  Total : 286 matchs
+  52 leagues distinctes
   Sans league : 0
-  Suspects tennis de TABLE : 49
-  Categorie obscure (ITF/Challenger/UTR/Futures) : 167
+  Suspects tennis de TABLE : 36
+  Categorie obscure (ITF/Challenger/UTR/Futures) : 254
 
   Top 20 leagues :
       10 × "ATP Montreal, Canada Men Singles"
-         → ex: "Bonzi, Benjamin" vs "Hanfmann, Yannick"
+         → ex: "Baez, Sebastian" vs "Bellucci, Mattia"
       10 × "WTA Toronto, Canada Women Singles"
-         → ex: "Zarazua, Renata" vs "Korpatsch, Tamara"
+         → ex: "Svitolina, Elina" vs "Bouzas Maneiro, Jessica"
       10 × "ATP Challenger Grodzisk Mazowiecki, Poland Men Singles" [obscur]
          → ex: "Durasovic, Viktor" vs "Geerts, Michael"
       10 × "ATP Challenger Hagen, Germany Men Singles" [obscur]
-         → ex: "Gomez, Federico Agustin" vs "Squire, Henri"
+         → ex: "Molleker, Rudolf" vs "Mrva, Maxim"
+      10 × "ATP Challenger Lexington, USA Men Singles" [obscur]
+         → ex: "Baris, Ozan" vs "Broady, Liam"
+      10 × "ATP Challenger Istanbul 2, Turkiye Men Singles" [obscur]
+         → ex: "Bar Biryukov, Petr" vs "Inchauspe, Paul"
+      10 × "ATP Challenger Plovdiv 2, Bulgaria Men Singles" [obscur]
+         → ex: "Brunclik, Petr" vs "Carboni, Lorenzo"
+      10 × "ITF M25 Fano" [obscur]
+         → ex: "Vasa, I" vs "Planinsek, F"
+      10 × "ITF M25 Londrina" [obscur]
+         → ex: "Camargo Lima, E" vs "Costa Goncalves, Vitor"
+      10 × "ITF M25+H Tauste" [obscur]
+         → ex: "McCormick, T" vs "Almazan Valiente, I"
        8 × "WTA 125K Warsaw, Poland Women Singles"
          → ex: "Ewald, Weronika" vs "Mikulskyte, Justina"
-       8 × "ITF M15 Poprad" [obscur]
-         → ex: "Bakonyi, David" vs "Klimas, Jan"
-       8 × "ITF M25+H Tauste" [obscur]
-         → ex: "Heredia, S" vs "Potenza, L"
-       7 × "ATP Challenger Lexington, USA Men Singles" [obscur]
-         → ex: "Hsu, Yu Hsiou" vs "Gorzny, Sebastian"
-       7 × "ATP Challenger Plovdiv 2, Bulgaria Men Singles" [obscur]
-         → ex: "Brunclik, Petr" vs "Carboni, Lorenzo"
-       7 × "ITF M25 Fano" [obscur]
-         → ex: "Arnaboldi, F" vs "Ciavarella, N"
-       7 × "ITF W35 Roehampton" [obscur]
+       8 × "ITF M25 Roehampton" [obscur]
+         → ex: "Ceban, Mark" vs "Robertson, C"
+       8 × "ITF M25 Southaven, MS Qualification" [obscur]
+         → ex: "Alejandro Moreno" vs "Gamble, Jon"
+       8 × "ITF W100 Landisville, PA Qualification" [obscur]
+         → ex: "Ansari, C" vs "Okalova, M"
+       8 × "ITF W35 Roehampton" [obscur]
          → ex: "Appleton, E" vs "Griffiths, Edie"
-       7 × "UTR PTT Auburn Women 02" 🚨TT? [obscur]
-         → ex: "Boyce, Alana" vs "Shelton, McKenzie"
-       7 × "UTR PTT Brisbane Men 01" 🚨TT? [obscur]
-         → ex: "Jones, Hayden" vs "Loh, Brendan"
-       7 × "UTR PTT Newport Beach Men 19" 🚨TT? [obscur]
-         → ex: "Calvelo, Xavier" vs "Hakopian, George"
-       6 × "ATP Challenger Istanbul 2, Turkiye Men Singles" [obscur]
-         → ex: "Bar Biryukov, Petr" vs "Inchauspe, Paul"
+       8 × "ITF W35 Southaven, MS Qualification" [obscur]
+         → ex: "Ahn, A" vs "Fakih, K"
+       8 × "UTR PTT Auburn Men 02" 🚨TT? [obscur]
+         → ex: "Aguiard, Enzo" vs "Kotzen, Andrew"
+       7 × "ATP Challenger Hagen, Germany Men Doubles" [obscur]
+         → ex: "Bass F / Jans J" vs "Martos Gornes S / Walkow S"
+       7 × "ITF W75 Leipzig" [obscur]
+         → ex: "Park, Sohyun" vs "Kovackova, A"
        6 × "ITF M15 Frankfurt" [obscur]
          → ex: "Fix, D" vs "Mujakic, A"
-       6 × "ITF W75 Koksijde" [obscur]
-         → ex: "Trevisan, Martina" vs "Bertea, E"
-       6 × "UTR PTT Auburn Men 02" 🚨TT? [obscur]
-         → ex: "Aguiard, Enzo" vs "Kotzen, Andrew"
-       6 × "UTR PTT Newport Beach Women 19" 🚨TT? [obscur]
-         → ex: "Kiss, Camille" vs "Ikemori, Mika"
-       6 × "UTR PTT Saitama Men 06" 🚨TT? [obscur]
-         → ex: "Fu, Hong-Lin" vs "Tashiro, Yuga"
-    … +16 autres leagues
+    … +32 autres leagues
 
   🚨 Sample suspects tennis de TABLE :
       "Aguiard, Enzo" vs "Kotzen, Andrew" [UTR PTT Auburn Men 02]
       "Bowers, Tyler" vs "Cordova, Francesco" [UTR PTT Auburn Men 02]
+      "Kalinin, Aleksandr" vs "Bonaiuti, Giuseppe" [UTR PTT Auburn Men 02]
       "Phillips, Joseph" vs "Deem, AJ" [UTR PTT Auburn Men 02]
       "Aronson, Stewart" vs "Hilsen, Blake" [UTR PTT Auburn Men 02]
-      "Frey, Charles" vs "Kennedy, Thomas" [UTR PTT Auburn Men 02]
 
 ════════════════════════════════════════════════════════════
 PREMIERBET
-[premierbet] upcoming[2026-08-03]=1 upcoming[2026-08-04]=8 upcoming[2026-08-05]=3 highlights=14 unique=22 kept=13 filtered=(outright:0 virtual:0 horizon:9 noTeams:0 nonFoot:0)
-  Total : 13 matchs
+[premierbet] upcoming[2026-08-04]=125 upcoming[2026-08-05]=81 upcoming[2026-08-06]=0 highlights=64 unique=206 kept=206 filtered=(outright:0 virtual:0 horizon:0 noTeams:0 nonFoot:0)
+  Total : 206 matchs
   1 leagues distinctes
-  Sans league : 13
-  Suspects tennis de TABLE : 0
+  Sans league : 206
+  Suspects tennis de TABLE : 1
   Categorie obscure (ITF/Challenger/UTR/Futures) : 0
 
   Top 20 leagues :
-      13 × "(sans league)"
-         → ex: "Belize U20" vs "Mexico U20"
+     206 × "(sans league)"
+         → ex: "Moro Canas, Alejandro" vs "Bertrand, Robin"
+
+  🚨 Sample suspects tennis de TABLE :
+      "Scott Duncan / Whitehouse M" vs "Basic M / Dzumhur D" []
 
 ════════════════════════════════════════════════════════════
 BETPAWA
-[betpawa:tennis] UPCOMING : 138 matchs listés (sans startTime)
-  Total : 138 matchs
+[betpawa:tennis] UPCOMING : 169 matchs listés (sans startTime)
+  Total : 169 matchs
   1 leagues distinctes
-  Sans league : 138
+  Sans league : 169
   Suspects tennis de TABLE : 0
   Categorie obscure (ITF/Challenger/UTR/Futures) : 0
 
   Top 20 leagues :
-     138 × "(sans league)"
-         → ex: "Ugo Carabelli, Camilo" vs "Norrie, Cameron"
+     169 × "(sans league)"
+         → ex: "&Jacquemot, Elsa" vs "Lee, Carol Young Suh"
 
 ════════════════════════════════════════════════════════════
 YELLOWBET
