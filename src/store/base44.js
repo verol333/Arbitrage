@@ -76,7 +76,18 @@ async function bulkCreate(opps) {
 
 export async function persistOpportunities(opps, { live = false, sport = 'football' } = {}) {
   if (!base44Configured()) return;
-  // Purge sports non-scannes + markStale du sport courant en parallele.
+  // BUGFIX conflit foot/tennis : si scan produit 0 opps ce cycle, NE PAS
+  // markStale — sinon on vide le sport dans l'app alors que les opps du
+  // cycle precedent etaient encore valables. Symptome : "tennis disparu
+  // quand foot arrive" quand tennis produit 0 opps transitoirement.
+  // markStale ne s'execute que si on a des nouvelles opps a inserer pour
+  // ce sport → garantit qu'un cycle sans arbs prolonge l'affichage prec.
+  if (opps.length === 0) {
+    console.log(`[base44] ${sport} ${live ? 'live' : 'prematch'}: 0 opps ce cycle — skip markStale (preserve opps precedentes)`);
+    await purgeUnscannedSports();
+    return;
+  }
+  console.log(`[base44] ${sport} ${live ? 'live' : 'prematch'}: ${opps.length} opps → markStale + bulkCreate`);
   await Promise.allSettled([purgeUnscannedSports(), markStaleForSport({ live, sport })]);
   await bulkCreate(opps);
 }
