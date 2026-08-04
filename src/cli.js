@@ -8,15 +8,20 @@ async function sendWebhook(payload) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 15_000);
   try {
+    const bodyStr = JSON.stringify(payload);
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': secret || '' },
-      body: JSON.stringify(payload),
+      body: bodyStr,
       signal: ctrl.signal,
     });
-    console.log(`[webhook] ${res.status} — ${payload.count} opportunités envoyées`);
+    // Log verbose : sport + count + payload size + response body (500 chars max)
+    // Pour diagnostiquer si le handler accepte foot et rejette tennis.
+    let respText = '';
+    try { respText = (await res.text()).slice(0, 500); } catch {}
+    console.log(`[webhook] sport=${payload.sport} status=${res.status} count=${payload.count} bodySize=${bodyStr.length}B resp="${respText}"`);
   } catch (e) {
-    console.warn(`[webhook] erreur: ${e.message}`);
+    console.warn(`[webhook] sport=${payload.sport} erreur: ${e.message}`);
   } finally { clearTimeout(t); }
 }
 
@@ -26,6 +31,9 @@ async function notifyWebhook(result, { live = false, sport = 'football' } = {}) 
       const first = result.opportunities[0];
       log(`  → live sample: score=${first.live_score ?? 'null'} min=${first.live_minute ?? 'null'} period=${first.live_period ?? 'null'} src=${first.live_score_source ?? 'null'} match=${first.match_label}`);
     }
+    // DIAG : dump structure de la 1ere opp pour verifier le payload (sport, market_family, fields).
+    const first = result.opportunities[0];
+    log(`  → ${sport} sample opp fields: sport=${first.sport} market_family="${first.market_family}" match_label="${first.match_label}" league="${first.league || ''}" status=${first.status} is_live=${first.is_live}`);
     await sendWebhook({
       type: 'arbitrage_alert',
       scan_type: live ? 'live' : 'prematch',
