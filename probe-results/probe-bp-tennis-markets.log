@@ -1,0 +1,137 @@
+▶▶▶ Dump marches tennis BetPawa (raw markets)
+[betpawa:tennis] UPCOMING : 169 matchs listés (sans startTime)
+169 matchs tennis
+
+════════════════════════════════════════════════════════════════════════
+MATCH 37013117 : "&Jacquemot, Elsa" vs "Lee, Carol Young Suh"
+  11 marches
+
+  ── marketId=4429 "Correct Score - FT" (4 outcomes)
+      name="0-2" | odds=1.87
+      name="1-2" | odds=4.05
+      name="2-0" | odds=3.45
+      name="2-1" | odds=5.25
+  ── marketId=2068172 "Games Over/Under Away - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.29
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=3.25
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.17
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.6
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=3.35
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.27
+  ── marketId=2068161 "Games Over/Under Home - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.7
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.01
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.81
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.89
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.65
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.42
+  ── marketId=3532590 "Match Handicap Games 2-way - FT" (10 outcomes)
+      name="1" | disp="{formattedHandicap}" | odds=2.2
+      name="2" | disp="{formattedHandicap}" | odds=1.59
+      name="1" | disp="{formattedHandicap}" | odds=2.03
+      name="2" | disp="{formattedHandicap}" | odds=1.69
+      name="1" | disp="{formattedHandicap}" | odds=1.81
+      name="2" | disp="{formattedHandicap}" | odds=1.88
+      name="1" | disp="{formattedHandicap}" | odds=1.56
+      name="2" | disp="{formattedHandicap}" | odds=2.25
+      … +2 outcomes
+  ── marketId=4758 "Moneyline - 1S" (2 outcomes)
+      name="1" | odds=2.3
+      name="2" | odds=1.56
+  ── marketId=4770 "Moneyline - 2S" (2 outcomes)
+      name="1" | odds=2.24
+      name="2" | odds=1.53
+  ── marketId=2043818 "Moneyline - FT" (2 outcomes)
+      name="1" | odds=2.45
+      name="2" | odds=1.5
+  ── marketId=4666923 "Set 1 Game Handicap" (6 outcomes)
+      name="Domicile" | disp="{formattedHandicap}" | odds=2.5
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.42
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.94
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.71
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.43
+      name="Extérieur" | disp="{formattedHandicap}" | odds=2.5
+  ── marketId=4880 "Total Games - Over/Under - 1S" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.03
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.64
+  ── marketId=4895 "Total Games - Over/Under - FT" (10 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.43
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.65
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.62
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.15
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.84
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.85
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.04
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.68
+      … +2 outcomes
+  ── marketId=3597899 "Total Sets - Over/Under - FT" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.6
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.43
+
+════════════════════════════════════════════════════════════════════════
+MATCH 37016223 : "Durasovic, Viktor" vs "Geerts, Michael"
+  11 marches
+
+  ── marketId=4429 "Correct Score - FT" (4 outcomes)
+      name="0-2" | odds=3.1
+      name="1-2" | odds=4.4
+      name="2-0" | odds=2.3
+      name="2-1" | odds=3.75
+  ── marketId=2068172 "Games Over/Under Away - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.52
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.35
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.04
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.68
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.9
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.36
+  ── marketId=2068161 "Games Over/Under Home - FT" (6 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.31
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=3.15
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.85
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.85
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.7
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.4
+  ── marketId=3532590 "Match Handicap Games 2-way - FT" (10 outcomes)
+      name="1" | disp="{formattedHandicap}" | odds=2.4
+      name="2" | disp="{formattedHandicap}" | odds=1.51
+      name="1" | disp="{formattedHandicap}" | odds=1.99
+      name="2" | disp="{formattedHandicap}" | odds=1.72
+      name="1" | disp="{formattedHandicap}" | odds=1.8
+      name="2" | disp="{formattedHandicap}" | odds=1.9
+      name="1" | disp="{formattedHandicap}" | odds=1.69
+      name="2" | disp="{formattedHandicap}" | odds=2.03
+      … +2 outcomes
+  ── marketId=4758 "Moneyline - 1S" (2 outcomes)
+      name="1" | odds=1.69
+      name="2" | odds=2.03
+  ── marketId=4770 "Moneyline - 2S" (2 outcomes)
+      name="1" | odds=1.66
+      name="2" | odds=2.01
+  ── marketId=2043818 "Moneyline - FT" (2 outcomes)
+      name="1" | odds=1.66
+      name="2" | odds=2.13
+  ── marketId=4666923 "Set 1 Game Handicap" (6 outcomes)
+      name="Domicile" | disp="{formattedHandicap}" | odds=2.02
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.65
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.67
+      name="Extérieur" | disp="{formattedHandicap}" | odds=1.99
+      name="Domicile" | disp="{formattedHandicap}" | odds=1.45
+      name="Extérieur" | disp="{formattedHandicap}" | odds=2.45
+  ── marketId=4880 "Total Games - Over/Under - 1S" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.65
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.01
+  ── marketId=4895 "Total Games - Over/Under - FT" (10 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.49
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.45
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.64
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=2.12
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=1.89
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.8
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.13
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.63
+      … +2 outcomes
+  ── marketId=3597899 "Total Sets - Over/Under - FT" (2 outcomes)
+      name="Plus de" | disp="Plus de {formattedHandicap}" | odds=2.3
+      name="Moins de" | disp="Moins de {formattedHandicap}" | odds=1.54
+
+═══ FIN ═══
