@@ -285,6 +285,101 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   return out;
 }
 
+// Comparateur TENNIS 2-way (pas de nul → pas de DC, pas de BTTS, pas de DNB).
+// Marches supportes :
+// - Vainqueur du Match       (match_1 vs match_2, croisé cross-book)
+// - Handicap Jeux X          (hcp_home_X vs hcp_away_-X)
+// - Total Jeux Match X       (match_over_X vs match_under_X)
+// - Total Jeux J1/J2 X       (tt_home/tt_away over/under)
+// - Total Sets X             (total_sets_over/under)
+// - Handicap Sets X          (hcp_sets_home_X vs hcp_sets_away_-X)
+// - Vainqueur Set N          (sN_match_1 vs sN_match_2)
+// - Handicap Jeux Set N X    (sN_hcp_home_X vs sN_hcp_away_-X)
+// - Total Jeux Set N X       (sN_over_X vs sN_under_X)
+// - Pair/Impair Jeux         (odd vs even)
+export function compareTennisTwoBooks(rawA, bookA, rawB, bookB) {
+  const oa = normalizeAliases(rawA);
+  const ob = normalizeAliases(rawB);
+  const out = [];
+
+  // Vainqueur du Match : 2-way sans nul. match_1 vs match_2 sont complementaires.
+  pushArb(out, 'Vainqueur du Match', 'Joueur 1', oa.match_1, bookA, 'Joueur 2', ob.match_2, bookB);
+  pushArb(out, 'Vainqueur du Match', 'Joueur 1', ob.match_1, bookB, 'Joueur 2', oa.match_2, bookA);
+
+  // Handicap Jeux (games handicap) — signe positif = avantage
+  for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
+    const sign = lNum > 0 ? '+' + l : l;
+    const fam = `Handicap Jeux ${sign}`;
+    pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
+    pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
+  }
+
+  // Total Jeux du match
+  for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Jeux Match ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB);
+    pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA);
+  }
+
+  // Total Jeux par joueur (tt_home = J1, tt_away = J2)
+  for (const [side, lbl] of [['home', 'J1'], ['away', 'J2']]) {
+    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
+      const fam = `Total Jeux ${lbl} ${l}`;
+      pushArb(out, fam, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB);
+      pushArb(out, fam, `${lbl} +${l}`, ob[ok], bookB, `${lbl} −${l}`, oa[uk], bookA);
+    }
+  }
+
+  // Total Sets (nombre de sets du match)
+  for (const l of linesOf(oa, ob, /^total_sets_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Sets ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`total_sets_over_${l}`], bookA, `−${l}`, ob[`total_sets_under_${l}`], bookB);
+    pushArb(out, fam, `+${l}`, ob[`total_sets_over_${l}`], bookB, `−${l}`, oa[`total_sets_under_${l}`], bookA);
+  }
+
+  // Handicap Sets
+  for (const l of linesOf(oa, ob, /^hcp_sets_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_sets_home_${l}`, ak = `hcp_sets_away_${-lNum}`;
+    const sign = lNum > 0 ? '+' + l : l;
+    const fam = `Handicap Sets ${sign}`;
+    pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
+    pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
+  }
+
+  // Marches par set : Vainqueur, Handicap Jeux, Total Jeux
+  for (const n of ['1', '2', '3', '4', '5']) {
+    const pfx = `s${n}_`;
+    // Vainqueur Set N
+    pushArb(out, `Vainqueur Set ${n}`, 'J1', oa[`${pfx}match_1`], bookA, 'J2', ob[`${pfx}match_2`], bookB);
+    pushArb(out, `Vainqueur Set ${n}`, 'J1', ob[`${pfx}match_1`], bookB, 'J2', oa[`${pfx}match_2`], bookA);
+    // Handicap Jeux Set N
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
+      const lNum = parseFloat(l);
+      const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
+      const sign = lNum > 0 ? '+' + l : l;
+      const fam = `Handicap Jeux Set ${n} ${sign}`;
+      pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
+      pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
+    }
+    // Total Jeux Set N
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const fam = `Total Jeux Set ${n} ${l}`;
+      pushArb(out, fam, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB);
+      pushArb(out, fam, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA);
+    }
+  }
+
+  // Pair/Impair jeux
+  pushArb(out, 'Pair/Impair Jeux', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB);
+  pushArb(out, 'Pair/Impair Jeux', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA);
+
+  return out;
+}
+
 export function dedupeOpportunities(opps) {
   const seen = new Set();
   const out = [];
