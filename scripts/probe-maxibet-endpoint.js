@@ -1,183 +1,172 @@
 #!/usr/bin/env node
-// Diagnostic complet Maxibet — identifie technologie backend + endpoints.
-// A executer depuis un environnement avec acces direct a m.maxibet.bet
-// (laptop user au Congo/CM, ou runner GH Actions).
-//
-// Etapes :
-//  1) Fetch homepage HTML → cherche site_id / swarm URL / api base
-//  2) Fetch les bundles JS principaux → cherche patterns BetConstruct/Digitain/SBTech
-//  3) Tente une connexion SWARM avec site_ids candidats (site_id BetMomo=122)
-//  4) Si SWARM OK : dump les sports + un exemple de match
-//
-// Usage : node scripts/probe-maxibet-endpoint.js
-// Env facultatif : MAXIBET_SITE_ID=xxx pour forcer un site_id candidat.
+// Probe Maxibet v2 — tente plusieurs proxies (CF Worker, Jina, direct) car
+// m.maxibet.bet est geo-bloque (Cameroon/Gabon only). Enumeration site_ids
+// BetConstruct SWARM et dump partner detail pour trouver Maxibet's site_id.
 import WebSocket from 'ws';
 
 const HOSTS = [
-  'https://m.maxibet.bet',
-  'https://www.maxibet.bet',
-  'https://maxibet.bet',
+  'https://m.maxibet.bet/',
+  'https://www.maxibet.bet/',
 ];
-const HDR = {
-  'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-};
 
-async function fetchText(url, timeoutMs = 20000) {
+const CF = process.env.CF_WORKER_PROXY_URL || '';
+const JINA = process.env.JINA_API_KEY || '';
+
+async function fetchDirect(url) {
   try {
-    const r = await fetch(url, { headers: HDR, signal: AbortSignal.timeout(timeoutMs) });
-    return { status: r.status, text: r.ok ? await r.text() : '', headers: Object.fromEntries(r.headers.entries()) };
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone) Safari' }, signal: AbortSignal.timeout(15000) });
+    return { status: r.status, text: r.ok ? await r.text() : '' };
   } catch (e) { return { status: 0, err: e.message, text: '' }; }
+}
+async function fetchCF(url) {
+  if (!CF) return { status: -1, text: '' };
+  try {
+    const r = await fetch(`${CF}/?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(25000) });
+    return { status: r.status, text: r.ok ? await r.text() : '' };
+  } catch (e) { return { status: 0, err: e.message, text: '' }; }
+}
+async function fetchJina(url) {
+  try {
+    const r = await fetch(`https://r.jina.ai/${url}`, {
+      headers: { Authorization: JINA ? `Bearer ${JINA}` : '', 'X-Return-Format': 'text' },
+      signal: AbortSignal.timeout(25000),
+    });
+    return { status: r.status, text: r.ok ? await r.text() : '' };
+  } catch (e) { return { status: 0, err: e.message, text: '' }; }
+}
+
+console.log('═══ 1) HOMEPAGE FETCH — 3 modes ═══');
+let bestHtml = '';
+for (const host of HOSTS) {
+  console.log(`\n▶ ${host}`);
+  for (const [name, fn] of [['direct', fetchDirect], ['cfworker', fetchCF], ['jina', fetchJina]]) {
+    const r = await fn(host);
+    console.log(`  ${name} → status=${r.status} bytes=${r.text.length}${r.err ? ' err=' + r.err : ''}`);
+    if (r.text.length > bestHtml.length) bestHtml = r.text;
+  }
 }
 
 const PATTERNS = {
   betconstruct: /betconstruct|swarm|springbme|spring-bme|sb-front-office/i,
-  digitain: /digitain|dgtn|digitainapi/i,
+  digitain: /digitain|dgtn/i,
   sbtech: /sbtech|sbstack/i,
-  altenar: /altenar|altenarapi/i,
+  altenar: /altenar/i,
   playtech: /playtech|iflex/i,
   swarmUrl: /wss?:\/\/[a-z0-9.-]*swarm[a-z0-9.-]*\.[a-z]+[^"'\s)]*/gi,
-  siteId: /site[_-]?id["'\s:=]+(\d{2,6})/gi,
+  siteId: /"?site[_-]?id"?[\s:=]+["']?(\d{2,6})/gi,
+  partnerId: /"?partner[_-]?id"?[\s:=]+["']?(\d{2,6})/gi,
   apiBase: /https?:\/\/[a-z0-9.-]+\.maxibet\.bet[a-z0-9\/._-]*/gi,
+  cdnAssets: /https?:\/\/[a-z0-9.-]+\.(cloudfront\.net|amazonaws\.com|betconstruct\.com|springbme\.com)[a-z0-9\/._-]*/gi,
 };
 
-console.log('═══ 1) HOMEPAGES ═══');
-const found = { techs: new Set(), swarmUrls: new Set(), siteIds: new Set(), apiBases: new Set(), scripts: new Set() };
-for (const host of HOSTS) {
-  console.log(`\n▶ ${host}`);
-  const r = await fetchText(host);
-  console.log(`  status=${r.status} bytes=${r.text.length}${r.err ? ' err=' + r.err : ''}`);
-  if (!r.text) continue;
-  console.log(`  server=${r.headers?.server || '?'}  x-powered=${r.headers?.['x-powered-by'] || '?'}`);
-
+const found = { techs: new Set(), swarmUrls: new Set(), siteIds: new Set(), partnerIds: new Set(), apiBases: new Set(), cdns: new Set(), scripts: new Set() };
+function analyze(text) {
   for (const [tech, pat] of Object.entries(PATTERNS)) {
-    if (['swarmUrl', 'siteId', 'apiBase'].includes(tech)) continue;
-    if (pat.test(r.text)) { found.techs.add(tech); console.log(`  → tech match: ${tech}`); }
+    if (['swarmUrl','siteId','partnerId','apiBase','cdnAssets'].includes(tech)) continue;
+    if (pat.test(text)) found.techs.add(tech);
   }
-  for (const m of r.text.matchAll(PATTERNS.swarmUrl)) found.swarmUrls.add(m[0]);
-  for (const m of r.text.matchAll(PATTERNS.siteId)) found.siteIds.add(m[1]);
-  for (const m of r.text.matchAll(PATTERNS.apiBase)) found.apiBases.add(m[0]);
-  // Collect scripts
-  for (const m of r.text.matchAll(/<script[^>]+src="([^"]+)"/gi)) found.scripts.add(m[1]);
+  for (const m of text.matchAll(PATTERNS.swarmUrl)) found.swarmUrls.add(m[0]);
+  for (const m of text.matchAll(PATTERNS.siteId)) found.siteIds.add(m[1]);
+  for (const m of text.matchAll(PATTERNS.partnerId)) found.partnerIds.add(m[1]);
+  for (const m of text.matchAll(PATTERNS.apiBase)) found.apiBases.add(m[0]);
+  for (const m of text.matchAll(PATTERNS.cdnAssets)) found.cdns.add(m[0]);
+  for (const m of text.matchAll(/<script[^>]+src="([^"]+)"/gi)) found.scripts.add(m[1]);
 }
+if (bestHtml) analyze(bestHtml);
 
-console.log('\n═══ 2) SCRIPTS BUNDLES ═══');
-const bundles = [...found.scripts].slice(0, 15);
-for (const src of bundles) {
-  const url = src.startsWith('http') ? src : (src.startsWith('//') ? 'https:' + src : `https://m.maxibet.bet${src.startsWith('/') ? '' : '/'}${src}`);
-  const r = await fetchText(url);
-  if (!r.text || r.text.length < 500) continue;
-  console.log(`\n▶ ${url} (${r.text.length}b)`);
-  let hits = 0;
-  for (const [tech, pat] of Object.entries(PATTERNS)) {
-    if (['swarmUrl', 'siteId', 'apiBase'].includes(tech)) continue;
-    if (pat.test(r.text)) { found.techs.add(tech); console.log(`  tech: ${tech}`); hits++; }
+console.log(`\n▶ Best HTML captured: ${bestHtml.length} bytes`);
+if (bestHtml.length > 0) console.log('  Preview (first 800 chars):\n' + bestHtml.slice(0, 800).replace(/\s+/g, ' '));
+
+// Fetch bundles via CF si possible
+console.log('\n═══ 2) SCRIPTS BUNDLES via CF ═══');
+for (const src of [...found.scripts].slice(0, 8)) {
+  const url = src.startsWith('http') ? src : `https://m.maxibet.bet${src.startsWith('/') ? '' : '/'}${src}`;
+  const r = await fetchCF(url);
+  if (r.text && r.text.length > 500) {
+    console.log(`▶ ${url} (${r.text.length}b)`);
+    const before = found.techs.size + found.swarmUrls.size + found.siteIds.size + found.partnerIds.size;
+    analyze(r.text);
+    const after = found.techs.size + found.swarmUrls.size + found.siteIds.size + found.partnerIds.size;
+    if (after > before) console.log(`  +${after - before} new signals`);
   }
-  for (const m of r.text.matchAll(PATTERNS.swarmUrl)) { found.swarmUrls.add(m[0]); hits++; }
-  for (const m of r.text.matchAll(PATTERNS.siteId)) { found.siteIds.add(m[1]); hits++; }
-  for (const m of r.text.matchAll(PATTERNS.apiBase)) { found.apiBases.add(m[0]); hits++; }
-  if (hits === 0) console.log(`  (aucun signal)`);
 }
 
 console.log('\n═══ RECAP ═══');
-console.log(`Technologies : ${[...found.techs].join(', ') || 'aucune'}`);
-console.log(`SWARM URLs   : ${[...found.swarmUrls].join(', ') || 'aucune'}`);
-console.log(`Site IDs     : ${[...found.siteIds].join(', ') || 'aucun'}`);
-console.log(`API bases    : ${[...found.apiBases].slice(0, 10).join(', ') || 'aucune'}`);
+console.log(`Techs      : ${[...found.techs].join(', ') || 'aucune'}`);
+console.log(`SWARM URLs : ${[...found.swarmUrls].join(', ') || 'aucune'}`);
+console.log(`Site IDs   : ${[...found.siteIds].join(', ') || 'aucun'}`);
+console.log(`Partner IDs: ${[...found.partnerIds].join(', ') || 'aucun'}`);
+console.log(`API bases  : ${[...found.apiBases].slice(0, 5).join(', ') || 'aucune'}`);
+console.log(`CDNs       : ${[...found.cdns].slice(0, 5).join(', ') || 'aucune'}`);
 
 // ═══════════════════════════════════════════════════════════════
-// 3) Test SWARM avec site_ids candidats (BetMomo=122, MaxiBet=?)
+// 3) ENUMERATION SITE_IDS BetConstruct SWARM — dump partner detail
+// Site_ids africains connus : BetMomo=122. Test 100-500 pour trouver Maxibet.
 // ═══════════════════════════════════════════════════════════════
 const swarmUrl = process.env.MAXIBET_SWARM_URL || [...found.swarmUrls][0] || 'wss://eu-swarm-newm.betconstruct.com/';
-const siteIdCandidates = [
-  ...(process.env.MAXIBET_SITE_ID ? [process.env.MAXIBET_SITE_ID] : []),
-  ...found.siteIds,
-  // Enumeration ciblee : African operators BetConstruct connus
-  '122', // BetMomo Congo
-  '999', '1000', '1001', '1500', '2000', '2500', '3000',
-];
+console.log(`\n═══ 3) SWARM PARTNER DETAIL (${swarmUrl}) ═══`);
 
-console.log(`\n═══ 3) SWARM CONNECT TESTS (${swarmUrl}) ═══`);
-for (const siteId of siteIdCandidates.slice(0, 12)) {
-  const ok = await testSwarm(swarmUrl, Number(siteId));
-  if (ok) {
-    console.log(`  ✅ SUCCESS site_id=${siteId} → dumping sports list`);
-    await dumpSports(swarmUrl, Number(siteId));
-    break;
+const candidateIds = [
+  ...(process.env.MAXIBET_SITE_ID ? [Number(process.env.MAXIBET_SITE_ID)] : []),
+  ...[...found.siteIds].map(Number),
+  ...[...found.partnerIds].map(Number),
+];
+// Enumeration ciblee : range africains connus autour BetMomo=122
+const enumRanges = [
+  [100, 130], [150, 200], [1000, 1010], [1500, 1510], [2000, 2010],
+];
+for (const [start, end] of enumRanges) {
+  for (let i = start; i <= end; i++) candidateIds.push(i);
+}
+const uniq = [...new Set(candidateIds.filter(x => Number.isFinite(x) && x > 0))];
+
+for (const siteId of uniq.slice(0, 60)) {
+  const info = await probeSite(swarmUrl, siteId);
+  if (info) {
+    const nameHit = /maxi|max.?bet/i.test(JSON.stringify(info));
+    console.log(`  site_id=${siteId} sid=${info.sid || '?'} title="${(info.title || '').slice(0,40)}" partner=${info.partner_id || '?'}${nameHit ? '  ← 🎯 MAXIBET?' : ''}`);
+    if (nameHit) {
+      console.log('    FULL info:', JSON.stringify(info).slice(0, 500));
+    }
   }
 }
 
-async function testSwarm(url, siteId, timeoutMs = 8000) {
+async function probeSite(url, siteId, timeoutMs = 6000) {
   return new Promise((resolve) => {
     let ws;
-    try { ws = new WebSocket(url); } catch { return resolve(false); }
+    try { ws = new WebSocket(url); } catch { return resolve(null); }
     let done = false;
     const finish = (v) => { if (done) return; done = true; try { ws.close(); } catch { /* ignore */ } resolve(v); };
-    const t = setTimeout(() => finish(false), timeoutMs);
-    ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: siteId, language: 'eng' }, rid: 's1' })));
-    ws.on('message', (raw) => {
-      try {
-        const m = JSON.parse(raw.toString());
-        if (m.rid === 's1') {
-          clearTimeout(t);
-          const hasSid = !!m?.data?.sid;
-          console.log(`  site_id=${siteId} → ${hasSid ? '✅ sid=' + m.data.sid : '❌ ' + (m?.data?.details || 'no sid')}`);
-          finish(hasSid);
-        }
-      } catch { /* ignore */ }
-    });
-    ws.on('error', () => { clearTimeout(t); finish(false); });
-    ws.on('close', () => { clearTimeout(t); finish(false); });
-  });
-}
-
-async function dumpSports(url, siteId) {
-  return new Promise((resolve) => {
-    const ws = new WebSocket(url);
+    const t = setTimeout(() => finish(null), timeoutMs);
     let ridN = 0; const pending = {};
-    const send = (what, where) => new Promise((res) => {
+    const send = (cmd, params) => new Promise((res) => {
       const rid = 'r' + (++ridN);
       pending[rid] = res;
-      ws.send(JSON.stringify({ command: 'get', params: { source: 'betting', what, where }, rid }));
+      ws.send(JSON.stringify({ command: cmd, params, rid }));
     });
     ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: siteId, language: 'eng' }, rid: 's1' })));
     ws.on('message', async (raw) => {
-      const m = JSON.parse(raw.toString());
+      let m; try { m = JSON.parse(raw.toString()); } catch { return; }
       if (m.rid === 's1') {
-        // Fetch sports
-        const sports = await send({ sport: ['id', 'name', 'alias'] }, { sport: {} });
-        console.log('  Sports disponibles :');
-        for (const s of Object.values(sports?.sport || {})) console.log(`    id=${s.id} ${s.name} (alias=${s.alias})`);
-        // Fetch sample football match
-        const foot = Object.values(sports?.sport || {}).find(s => /soccer|football/i.test(s.alias || s.name));
-        if (foot) {
-          const games = await send(
-            { sport: ['id'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name', 'start_ts'] },
-            { sport: { id: foot.id }, game: { start_ts: { '@gt': Math.floor(Date.now() / 1000) }, is_live: 0 } },
-          );
-          let count = 0;
-          for (const sp of Object.values(games?.sport || {})) {
-            for (const rg of Object.values(sp.region || {})) {
-              for (const cp of Object.values(rg.competition || {})) {
-                for (const g of Object.values(cp.competition_game || cp.game || {})) {
-                  count++;
-                  if (count <= 5) console.log(`    ${g.team1_name} vs ${g.team2_name} [${cp.name}] start=${new Date(g.start_ts * 1000).toISOString()}`);
-                }
-              }
-            }
-          }
-          console.log(`  Total matchs foot pre-match : ${count}`);
+        const sid = m?.data?.sid;
+        if (!sid) { clearTimeout(t); return finish(null); }
+        // Tente get_swarm_state pour recuperer partner info
+        const st = await send('get', { source: 'partner', what: { partner: [] } });
+        // Aussi essaie system_state
+        const info = { sid, site_id: siteId };
+        const partners = st?.data?.partner || {};
+        for (const [pid, p] of Object.entries(partners)) {
+          info.partner_id = pid;
+          info.title = p?.name || p?.title || '';
+          if (p?.name) info.name = p.name;
         }
-        try { ws.close(); } catch { /* ignore */ }
-        resolve();
+        clearTimeout(t); finish(info);
       } else if (pending[m.rid]) {
-        pending[m.rid](m?.data?.data);
+        pending[m.rid](m?.data);
         delete pending[m.rid];
       }
     });
-    ws.on('error', () => resolve());
-    ws.on('close', () => resolve());
-    setTimeout(() => { try { ws.close(); } catch { /* ignore */ } resolve(); }, 15000);
+    ws.on('error', () => { clearTimeout(t); finish(null); });
+    ws.on('close', () => { clearTimeout(t); finish(null); });
   });
 }
