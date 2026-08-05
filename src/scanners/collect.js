@@ -531,20 +531,25 @@ function marketKeyFromOpp(o) {
 
   // ─── TENNIS market families ─────────────────────────────────────────────
   if (fam === 'Vainqueur du Match') return { a: 'match_1', b: 'match_2' };
-  // Vainqueur Set N
-  const vainSet = fam.match(/^Vainqueur Set ([1-5])$/);
-  if (vainSet) return { a: `s${vainSet[1]}_match_1`, b: `s${vainSet[1]}_match_2` };
-  // Handicap Jeux (match)
+  // Vainqueur 1er/2e/... Set (nouveau format ordinal FR)
+  const ORD_TO_N = { '1er': '1', '2e': '2', '3e': '3', '4e': '4', '5e': '5' };
+  const vainSetOrd = fam.match(/^Vainqueur (1er|2e|3e|4e|5e) Set$/);
+  if (vainSetOrd) {
+    const n = ORD_TO_N[vainSetOrd[1]];
+    return { a: `s${n}_match_1`, b: `s${n}_match_2` };
+  }
+  // Handicap Jeux (match complet)
   const hcpJeux = fam.match(/^Handicap Jeux\s*([+-]?\d+(?:\.\d+)?)$/);
   if (hcpJeux) {
     const l = parseFloat(hcpJeux[1]);
     return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
   }
-  // Handicap Jeux Set N
-  const hcpJeuxSet = fam.match(/^Handicap Jeux Set ([1-5])\s*([+-]?\d+(?:\.\d+)?)$/);
-  if (hcpJeuxSet) {
-    const l = parseFloat(hcpJeuxSet[2]);
-    return { a: `s${hcpJeuxSet[1]}_hcp_home_${l}`, b: `s${hcpJeuxSet[1]}_hcp_away_${-l}` };
+  // Handicap 1er/2e/... Set (jeux implicite au sein du set)
+  const hcpSetOrd = fam.match(/^Handicap (1er|2e|3e|4e|5e) Set\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (hcpSetOrd) {
+    const n = ORD_TO_N[hcpSetOrd[1]];
+    const l = parseFloat(hcpSetOrd[2]);
+    return { a: `s${n}_hcp_home_${l}`, b: `s${n}_hcp_away_${-l}` };
   }
   // Total Jeux Match
   const totJeux = fam.match(/^Total Jeux Match\s*(\d+(?:\.\d+)?)$/);
@@ -552,11 +557,12 @@ function marketKeyFromOpp(o) {
     const l = parseFloat(totJeux[1]);
     return { a: `match_over_${l}`, b: `match_under_${l}` };
   }
-  // Total Jeux Set N
-  const totJeuxSet = fam.match(/^Total Jeux Set ([1-5])\s*(\d+(?:\.\d+)?)$/);
-  if (totJeuxSet) {
-    const l = parseFloat(totJeuxSet[2]);
-    return { a: `s${totJeuxSet[1]}_over_${l}`, b: `s${totJeuxSet[1]}_under_${l}` };
+  // Total Jeux 1er/2e/... Set (jeux au sein du set)
+  const totJeuxSetOrd = fam.match(/^Total Jeux (1er|2e|3e|4e|5e) Set\s*(\d+(?:\.\d+)?)$/);
+  if (totJeuxSetOrd) {
+    const n = ORD_TO_N[totJeuxSetOrd[1]];
+    const l = parseFloat(totJeuxSetOrd[2]);
+    return { a: `s${n}_over_${l}`, b: `s${n}_under_${l}` };
   }
   // Total Jeux Joueur (J1/J2)
   const totJeuxJ = fam.match(/^Total Jeux (J1|J2)\s*(\d+(?:\.\d+)?)$/);
