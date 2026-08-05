@@ -1,38 +1,136 @@
-═══ 1) CMS BetConstruct bundle ═══
-CMS scripts: build/js/main.js?version=19629, https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496
-https://cms.maxibet.bet/build/js/main.js?version=19629 → 422 0b
-https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496 → 200 35086b
-  head: <html><head><meta name="color-scheme" content="light dark"></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">(()=&gt;{var t={173:function(t,e){!function(t){"use strict";class e{t;o=0;i=[];u(t){if(t.hadRecentInput)return;const e=this.i[0],n=this.i.at(-1);this.o&amp;&amp;e&amp;&amp;n&amp;&amp;t.startTime-n.startTime&lt;1e3&amp;&amp;t.startTime-e.startTime&lt;5e3?(this.o+=t.value,this.i.push(t)):(this.o=t.value,this.i=[t]),this.t?.(t)}}const n=()=&gt;{const t=performance.getEntriesByType("navigation")[0];if(t&amp;&amp;t.responseStart&gt;0&amp;&amp;t.responseStart<performance.now())return t},r="t=">{if("loading"===document.readyState)return"loading";const e=n();if(e){if(t<e.dominteractive)return"loading";if(0===e.domcontentloadedeventstart||t<e.domcontentloadedeventstart)return"dom-interactive";if(0===e.domcomplete||t<e.domcomplete)return"dom-content-loaded"}return"complete"},i=t=>{const e=t.nodeName;return 1===t.nodeType?e.toLowerCase():e.toUpperCase().replace(/^#/,"")},o=t=&gt;{let e="";try{for(;9!==t?.nodeType;){const n=t,r=n.id?"#"+n.id:[i(n),...Array.from(n.classList).sort()].join(".");if(e.length+r.length&gt;99)return e||r;if(e=e?r+"&gt;"+e:r,n.id)break;t=n.parentNode}}catch{}return e},s=new WeakMap;function a(t,e){let n=s.get(e);return n||(n=new WeakMap,s.set(e,n)),n.get(t)||n.set(t,new e),n.get(t)}let c=-1;const l=()=&gt;c,u=t=&gt;{addEventListener("pageshow",e=&gt;{e.persisted&amp;&amp;(c=e.timeStamp,t(e))},!0)},d=(t,e,n,r)=&gt;{let i,o;return s=&gt
+═══ BetMomo session structure (ref) ═══
+{
+  "version": "v1.0.663",
+  "sid": "8da11ec2-a0af-4b69-78d1-d634fd3a92eb-3",
+  "host": "us-central1-b-swarm-optimus-swarm-chart-57bff65b58-g55tg",
+  "ip": "172.171.7.116, 1.54.167.205, 29.70.25.47",
+  "recaptcha_version": 3,
+  "recaptcha_enabled": true,
+  "site_key": "6Lc9FK4UAAAAAJku0V4GnD0d-klV5xO2giDUunKG",
+  "ctx": {
+    "site": 122,
+    "k_type": "None",
+    "tree_mode": "dict"
+  },
+  "recaptcha_actions": [
+    "register",
+    "register_user",
+    "reset_password",
+    "send_sms",
+    "send_verification_code",
+    "forgot_password",
+    "reset_password_via_sms",
+    "send_sms_with_username",
+    "send_verification_code_with_username",
+    "send_username_by_sms",
+    "reset_user_password",
+    "apply_scratch_card"
+  ],
+  "partner_config": {
+    "partner_id": 122,
+    "currency": "BAM",
+    "set_client_wallet": false,
+    "is_cashout_live": 0,
+    "is_cashout_prematch": 0,
+    "max_selections_in_multiple_bet": 0,
+    "max_odd_for_multiple_bet": 1000,
+    "cashout_percetage": 10,
+    "maximum_odd_for_cashout": 251,
+    "is_counter_offer_available": 0,
+    "sports_book_profile_ids": [],
+    "min_bet_stakes": {
+      "BAM": 1
+    },
+    "min_sub_bet_stakes": {
+      "BAM": 1
+    },
+    "min_cashout_amount": {
+      "BAM": 0
+    },
+    "live_max_stake": {
+      "BAM": 500
+    },
+    "prematch_max_stake": {
+      "BAM": 500
+    },
+    "is_superbet_on_live": false,
+    "is_superbet_on_prematch": false,
+    "tax_type": 0,
+    "tax_integration_type": 0,
+    "price_decimals": 3,
+    "price_round_method": 0,
+    "is_trial": false,
+    "integration_type": 0,
+    "single_login": false,
+    "is_two_factor_confirmation": false,
+    "loyalty_bonus_min_exchange_points": 0,
+    "loyalty_bonus_max_exchange_points": 0,
+    "is_loyalty_v2": false,
+    "is_using_loyalty_program": false,
+    "prematch_multiple_disabled": true,
+    "check_balance_for_bonus": false,
+    "supported_currencies": [
+      "BAM"
+    ],
+    "sms_code_active_period": 0,
+    "supports_child_client": false,
+    "can_edit_email": false,
+    "mult_wallet_currencies": [],
+    "enable_confirm_restrictions": false,
+    "is_telegram_chatbot_support": false,
+    "max_payout": 3000,
+    "partial_cashout_off_onn": true,
+    "dont_calc_wagering_bonus": false,
+    "bet_builder_enabled": false,
+    "id": 122
+  }
+}
 
-═══ SWARM ENUM: wss://eu-swarm-newm.betconstruct.com/ ═══
-    tested up to 100
-    tested up to 200
-    tested up to 300
-    tested up to 400
-    tested up to 500
-    tested up to 600
-    tested up to 700
-    tested up to 800
-  aucun match "maxi" sur 802 ids testes.
+═══ BC public API lookups ═══
+https://eu-swarm-newm.betconstruct.com/api/config?url=m.maxibet.bet
+  direct → 404 0b
+https://swarm-preview.betconstruct.com/api/site_info?site=maxibet
+  direct → 530 0b
+https://cms.maxibet.bet/api/v1/site
+  direct → 403 0b
+https://cms.maxibet.bet/api/config
+  direct → 403 0b
+https://cms.maxibet.bet/api/getSiteByHost?host=m.maxibet.bet
+  direct → 403 0b
+https://cms.maxibet.bet/build/js/main.js?version=19629
+  direct → 403 0b
+https://m.maxibet.bet/config.js
+  direct → 403 0b
+https://m.maxibet.bet/assets/config.json
+  direct → 403 0b
+https://static.maxibet.bet/skinning/skinning-variables.js
+  direct → 403 0b
+https://cms.maxibet.bet/skinning/skinning-variables.js
+  direct → 403 0b
 
-═══ SWARM ENUM: wss://eu-swarm.betconstruct.com/ ═══
-    tested up to 100
-    tested up to 200
-    tested up to 300
-    tested up to 400
-    tested up to 500
-    tested up to 600
-    tested up to 700
-    tested up to 800
-  aucun match "maxi" sur 802 ids testes.
-
-═══ SWARM ENUM: wss://eu-swarm-ws.betconstruct.com/ ═══
-    tested up to 100
-    tested up to 200
-    tested up to 300
-    tested up to 400
-    tested up to 500
-    tested up to 600
-    tested up to 700
-    tested up to 800
-  aucun match "maxi" sur 802 ids testes.
+═══ Dump session for site_ids around BetMomo cohort ═══
+  site_id=1 sid=43471b1a currency=? langs= 
+  site_id=100 sid=31294646 currency=? langs= 
+  site_id=122 sid=0168b174 currency=? langs= 
+  site_id=130 sid=79f1f495 currency=? langs= 
+  site_id=150 sid=b6ea810b currency=? langs= 
+  site_id=200 sid=c73787be currency=? langs= 
+  site_id=250 sid=768f4ac4 currency=? langs= 
+  site_id=300 sid=7131ef7d currency=? langs= 
+  site_id=500 sid=11fe14c4 currency=? langs= 
+  site_id=800 sid=e03aa635 currency=? langs= 
+  site_id=1000 sid=08d5dccb currency=? langs= 
+  site_id=1500 sid=d4597537 currency=? langs= 
+  site_id=2000 sid=20635bfd currency=? langs= 
+  site_id=228 sid=888bfa3b currency=? langs= 
+  site_id=253 sid=61041829 currency=? langs= 
+  site_id=259 sid=5b2ac61a currency=? langs= 
+  site_id=371 sid=a771db29 currency=? langs= 
+  site_id=442 sid=7c228bff currency=? langs= 
+  site_id=480 sid=929e0d02 currency=? langs= 
+  site_id=528 sid=3ad1616b currency=? langs= 
+  site_id=587 sid=dccf18dc currency=? langs= 
+  site_id=615 sid=2214c9b6 currency=? langs= 
+  site_id=653 sid=8219bd68 currency=? langs= 
+  site_id=712 sid=3ad02ae0 currency=? langs= 
+  site_id=800 sid=a45c4a99 currency=? langs= 
