@@ -1,0 +1,35 @@
+name: Probe Maxibet
+
+# Diagnostic manuel : dispatch pour identifier techno backend + endpoints Maxibet.
+# Sandbox local est bloque par policy (403), les GH runners peuvent y acceder.
+on:
+  workflow_dispatch:
+    inputs:
+      site_id:
+        description: 'site_id BetConstruct candidat (facultatif)'
+        required: false
+        default: ''
+      swarm_url:
+        description: 'URL SWARM WebSocket a tester (facultatif)'
+        required: false
+        default: ''
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install ws
+        run: npm install ws --no-save
+
+      - name: Run probe Maxibet
+        env:
+          MAXIBET_SITE_ID: ${{ github.event.inputs.site_id }}
+          MAXIBET_SWARM_URL: ${{ github.event.inputs.swarm_url }}
+        run: node scripts/probe-maxibet-endpoint.js
