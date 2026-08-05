@@ -1,155 +1,101 @@
-▶▶▶ PROBE Tenerife vs Tamaraceite — refetch fresh + cross-check
+═══ 1) HOMEPAGES ═══
 
-═══ 1XBET ═══
-[xbet] listPrematch : 232 champs a fetcher (BATCH=40)
-  2 match(s) potentiel(s) trouvé(s) dans 1482 listés
-  → id=741352006 "Eibar" vs "Tenerife" league="Spain. Segunda Division" start=2026-08-16T15:00:00.000Z
-    94 clés refetch fresh :
-      btts_no                      = 1.683
-      btts_yes                     = 2.08
-      h2_btts_no                   = 1.209
-      h2_btts_yes                  = 4
-      h2_match_1                   = 2.2
-      h2_match_2                   = 4.9
-      h2_match_X                   = 2.28
-      h2_over_2.5                  = 5.4
-      h2_over_3.5                  = 15
-      h2_under_2.5                 = 1.1
-      h2_under_3.5                 = 1.03
-      ht_btts_no                   = 1.108
-      ht_btts_yes                  = 5.7
-      ht_match_1                   = 2.38
-      ht_match_2                   = 5.2
-      ht_match_X                   = 2.05
-      ht_over_2.5                  = 8.2
-      ht_over_3.5                  = 29
-      ht_under_2.5                 = 1.03
-      ht_under_3.5                 = 1.01
-      match_1                      = 1.836
-      match_2                      = 4.79
-      match_X                      = 3.465
-      match_over_2.5               = 2.304
-      match_over_3.5               = 3.9
-      match_under_2.5              = 1.646
-      match_under_3.5              = 1.2
-      tt_home_over_2.5             = 4.5
-      tt_home_under_2.5            = 1.16
-    ── COMPARE opps envoyees ──
-      [BTTS] Oui envoye=2.06  refetch=2.08  🔴 DRIFT 0.02
-      [Total 2.5] +2.5 envoye=1.76  refetch=2.304  🔴 DRIFT 0.54
-  → id=741373673 "Tenerife" vs "Tamaraceite" league="Club Friendlies" start=2026-08-04T17:30:00.000Z
-    90 clés refetch fresh :
-      btts_no                      = 1.761
-      btts_yes                     = 1.95
-      h2_btts_no                   = 1.251
-      h2_btts_yes                  = 3.56
-      h2_match_1                   = 1.62
-      h2_match_2                   = 7.22
-      h2_match_X                   = 2.94
-      ht_btts_no                   = 1.135
-      ht_btts_yes                  = 5
-      ht_match_1                   = 1.9
-      ht_match_2                   = 8.15
-      ht_match_X                   = 2.24
-      ht_over_2.5                  = 6
-      ht_over_3.5                  = 11
-      ht_under_2.5                 = 1.111
-      ht_under_3.5                 = 1.02
-      match_1                      = 1.373
-      match_2                      = 8.95
-      match_X                      = 4.4
-      match_over_2.5               = 1.71
-      match_over_3.5               = 2.57
-      match_under_2.5              = 2.1
-      match_under_3.5              = 1.4
-      tt_home_over_2.5             = 2.46
-      tt_home_under_2.5            = 1.51
-    ── COMPARE opps envoyees ──
-      [BTTS] Oui envoye=2.06  refetch=1.95  🔴 DRIFT -0.11
-      [Total 2.5] +2.5 envoye=1.76  refetch=1.71  🔴 DRIFT -0.05
+▶ https://m.maxibet.bet
+  status=403 bytes=0
 
-═══ BETPAWA ═══
-[betpawa:football] UPCOMING : 985 matchs listés (sans startTime)
-  2 match(s) potentiel(s) trouvé(s) dans 985 listés
-  → id=36966232 "Tenerife CD" vs "UD Tamaraceite" league="?" start=?
-    39 clés refetch fresh :
-      btts_no                      = 1.95
-      btts_yes                     = 1.79
-      h2_btts_no                   = 1.26
-      h2_btts_yes                  = 3.09
-      h2_match_1                   = 1.71
-      h2_match_2                   = 5.83
-      h2_match_X                   = 2.91
-      ht_btts_no                   = 1.17
-      ht_btts_yes                  = 3.78
-      ht_match_1                   = 1.78
-      ht_match_2                   = 6.4
-      ht_match_X                   = 2.6
-      match_1                      = 1.39
-      match_2                      = 7.38
-      match_X                      = 4.66
-    ── COMPARE opps envoyees ──
-      [BTTS] Non envoye=2.09  refetch=1.95  🔴 DRIFT -0.14
-  → id=36320490 "SD Eibar" vs "Tenerife CD" league="?" start=?
-    39 clés refetch fresh :
-      btts_no                      = 1.73
-      btts_yes                     = 2.12
-      h2_btts_no                   = 1.2
-      h2_btts_yes                  = 4.07
-      h2_match_1                   = 2.07
-      h2_match_2                   = 4.92
-      h2_match_X                   = 2.41
-      ht_btts_no                   = 1.13
-      ht_btts_yes                  = 5.05
-      ht_match_1                   = 2.2
-      ht_match_2                   = 5.7
-      ht_match_X                   = 2.13
-      match_1                      = 1.7
-      match_2                      = 5.55
-      match_X                      = 3.55
-    ── COMPARE opps envoyees ──
-      [BTTS] Non envoye=2.09  refetch=1.73  🔴 DRIFT -0.36
+▶ https://www.maxibet.bet
+  status=403 bytes=0
 
-═══ YELLOWBET ═══
-  1 match(s) potentiel(s) trouvé(s) dans 218 listés
-  → id=373023670 "Tenerife CD" vs "UD Tamaraceite" league="Club Friendly Games" start=2026-08-04T17:30:00.000Z
-[stealth] https://yellowbet.cg/services/evapi/event/GetEventDetails?id… → 503
-    0 clés refetch fresh :
-    ── COMPARE opps envoyees ──
-      [Total 2.5] -2.5 envoye=2.47  refetch=—  ❌ ABSENTE
-      [BTTS] Non envoye=2.05  refetch=—  ❌ ABSENTE
+▶ https://maxibet.bet
+  status=403 bytes=0
 
-═══ PREMIERBET ═══
-[premierbet] upcoming[2026-08-03]=24 upcoming[2026-08-04]=72 upcoming[2026-08-05]=37 highlights=363 unique=441 kept=179 filtered=(outright:0 virtual:0 horizon:262 noTeams:0 nonFoot:0)
-  1 match(s) potentiel(s) trouvé(s) dans 179 listés
-  → id=7299681 "CD Tenerife" vs "UD Tamaraceite" league="?" start=2026-08-04T17:30:00.000Z
-    67 clés refetch fresh :
-      btts_no                      = 1.92
-      btts_yes                     = 1.76
-      h2_btts_no                   = 1.28
-      h2_btts_yes                  = 3.15
-      h2_match_1                   = 1.72
-      h2_match_2                   = 5.8
-      h2_match_X                   = 2.9
-      ht_btts_no                   = 1.19
-      ht_btts_yes                  = 3.85
-      ht_match_1                   = 1.78
-      ht_match_2                   = 6.4
-      ht_match_X                   = 2.6
-      match_1                      = 1.41
-      match_2                      = 7.2
-      match_X                      = 4.5
-      match_over_2.5               = 1.55
-      match_over_3.5               = 2.33
-      match_under_2.5              = 2.25
-      match_under_3.5              = 1.51
-      tt_away_over_2.5             = 8
-      tt_away_under_2.5            = 1.03
-      tt_home_over_2.5             = 2.26
-      tt_home_over_3.5             = 4
-      tt_home_under_2.5            = 1.52
-      tt_home_under_3.5            = 1.17
-    ── COMPARE opps envoyees ──
-      [BTTS] Non envoye=2.05  refetch=1.92  🔴 DRIFT -0.13
+═══ 2) SCRIPTS BUNDLES ═══
 
-═══ FIN PROBE ═══
+═══ RECAP ═══
+Technologies : aucune
+SWARM URLs   : aucune
+Site IDs     : aucun
+API bases    : aucune
+
+═══ 3) SWARM CONNECT TESTS (wss://eu-swarm-newm.betconstruct.com/) ═══
+  site_id=122 → ✅ sid=1e734845-4cf4-49fc-68ba-9036864817a6-5
+  ✅ SUCCESS site_id=122 → dumping sports list
+  Sports disponibles :
+    id=1 Football (alias=Soccer)
+    id=2 Ice Hockey (alias=IceHockey)
+    id=3 Basketball (alias=Basketball)
+    id=4 Tennis (alias=Tennis)
+    id=5 Volleyball (alias=Volleyball)
+    id=6 American Football (alias=AmericanFootball)
+    id=8 Aussie Rules (alias=AustralianFootball)
+    id=9 Badminton (alias=Badminton)
+    id=11 Baseball (alias=Baseball)
+    id=12 Beach Football (alias=BeachFootball)
+    id=14 Beach Volleyball (alias=BeachVolleyball)
+    id=15 Biathlon (alias=Biathlon)
+    id=17 Boxing (alias=Boxing)
+    id=18 Chess (alias=Chess)
+    id=19 Cricket (alias=Cricket)
+    id=21 Cycling (alias=Cycling)
+    id=22 Darts (alias=Darts)
+    id=24 Floorball (alias=Floorball)
+    id=25 Formula 1 (alias=Formula1)
+    id=26 Futsal (alias=Futsal)
+    id=27 Golf (alias=Golf)
+    id=29 Handball (alias=Handball)
+    id=30 Field Hockey (alias=Hockey)
+    id=31 Horse Racing (alias=HorseRacing)
+    id=32 Motorbike (alias=Motorsport)
+    id=33 NASCAR (alias=Nascar)
+    id=36 Rugby League (alias=RugbyLeague)
+    id=37 Rugby Union (alias=RugbyUnion)
+    id=38 Shooting (alias=PistolHead2Head)
+    id=39 Snooker (alias=Snooker)
+    id=41 Table Tennis (alias=TableTennis)
+    id=42 Water Polo (alias=WaterPolo)
+    id=44 MMA (alias=Mma)
+    id=54 Virtual Horse Racing (alias=VirtualHorseRacing)
+    id=55 Virtual Greyhounds (alias=VirtualGreyhoundRacing)
+    id=69 Gaelic football (alias=GaelicFootball)
+    id=70 Hurling (alias=Hurling)
+    id=71 E-Football (alias=CyberFootball)
+    id=72 Surfing (alias=Surfing)
+    id=73 E-Basketball (alias=EBasketball)
+    id=74 Call of Duty (alias=CallOfDuty)
+    id=75 Counter-Strike 2 (alias=CounterStrike)
+    id=76 Dota 2 (alias=Dota2)
+    id=77 League of Legends (alias=LeagueOfLegends)
+    id=83 StarCraft 2 (alias=StarCraft2)
+    id=87 Speedway (alias=Speedway)
+    id=89 Politics (alias=Politics)
+    id=90 Special Bets (alias=SpecialBets)
+    id=96 Cross-Country Skiing (alias=CrossCountrySkiing)
+    id=101 Auto Racing (alias=AutoRacing)
+    id=102 Alpine Skiing (alias=AlpineSkiing)
+    id=110 Lacrosse (alias=Lacross)
+    id=112 Sailing (alias=Yachting)
+    id=118 Virtual Marble Racing (alias=VirtualMarbleRacing)
+    id=147 TV Shows and Movies (alias=TVShowsAndMovies)
+    id=150 Virtual Cycling (alias=VirtualBicycle)
+    id=157 Rocket League (alias=RocketLeague)
+    id=158 King of Glory (alias=KingOfGlory)
+    id=168 Tekken (alias=Tekken7)
+    id=173 Virtual Football Pro (alias=VirtualFootballPro)
+    id=174 The Penalty Kicks (alias=ThePenaltyKicks)
+    id=180 Future Horse Racing (alias=FutureHorseRacing)
+    id=184 Greyhounds (alias=SISGreyhound)
+    id=185 Rainbow Six (alias=RainbowSix)
+    id=188 Virtual Football League (alias=VirtualFootballLeague)
+    id=190 3x3 Basketball (alias=3x3Basketball)
+    id=208 Valorant (alias=Valorant)
+    id=209 Virtual Drag Racing (alias=VirtualDragRacing)
+    id=215 Mobile Legends (alias=MobileLegends)
+    id=242 Camogie (alias=Camogie)
+    id=280 Pickleball (alias=Pickleball)
+    id=285 Russian Pyramid (alias=RussianPyramid)
+    SS Juve Stabia vs USD Cavese [Club Friendlies] start=2026-08-06T18:30:00.000Z
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies] start=2026-08-06T18:00:00.000Z
+    AS Monaco vs Getafe [Club Friendlies] start=2026-08-06T18:00:00.000Z
+    Malaga CF vs Al Arabi SC Doha [Club Friendlies] start=2026-08-06T18:00:00.000Z
+    Real Jaen vs Cordoba CF [Club Friendlies] start=2026-08-06T18:00:00.000Z
+  Total matchs foot pre-match : 1009
