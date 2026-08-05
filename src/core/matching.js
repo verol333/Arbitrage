@@ -99,6 +99,13 @@ export function matchBook(ref, cands, used, { requireStart = false } = {}) {
   const TIGHT_DT = 3 * 60 * 1000; // ±3 min = kickoff quasi-identique
   const NO_START_MIN_SIM = 0.90;   // seuil strict pour candidat sans startTime
   let best = null, bestScore = -1, bestDt = null;
+  // AMBIGUITE : garder tous les candidats qui passent les filtres. Si a la
+  // fin on a plusieurs candidats "aveugles" (sans startTime ni league) avec
+  // sim identique, on REJETTE — impossible de savoir lequel est le bon match.
+  // Fix bug user (05/08) : BetPawa avait 2 matchs "Dundee (Wom) vs Aberdeen
+  // (Wom)" — un vrai SWPL Cup 19:30, un autre friendly/tournoi different,
+  // tous 2 sans startTime ni league → matchBook prenait "random" → fake arb.
+  const eligibles = [];
   for (const c of cands) {
     if (used.has(c.id)) continue;
     // Candidat sans startTime : en prématch on n'accepte que si les noms
@@ -126,9 +133,40 @@ export function matchBook(ref, cands, used, { requireStart = false } = {}) {
     if (orientation(ref.home, ref.away, c.home, c.away) !== 'same') continue;
     // Score final : avg + petit bonus si kickoff tight (préfère match tight à même score)
     const score = avg + (isTight ? 0.05 : 0);
+    eligibles.push({ c, score, dt });
     const better = score > bestScore + 1e-6
       || (Math.abs(score - bestScore) <= 1e-6 && dt !== null && (bestDt === null || dt < bestDt));
     if (better) { bestScore = score; best = c; bestDt = dt; }
+  }
+  // AMBIGUITE : si >=2 candidats passent les filtres AVEC des scores tres proches
+  // (< 0.02 d'ecart) ET aucun n'a de startTime NI de league, REJET. On ne peut
+  // pas distinguer deux matchs "Dundee vs Aberdeen" sur betpawa sans metadata.
+  // Si l'un a un startTime + kickoff match la ref (± TIGHT_DT), on l'accepte (signal fort).
+  if (eligibles.length >= 2) {
+    const near = eligibles.filter((e) => e.score >= bestScore - 0.02);
+    if (near.length >= 2) {
+      // Un des candidats a un signal fort (kickoff tight OU league proche de ref) ?
+      const withStrongSignal = near.filter((e) => {
+        const c = e.c;
+        // Signal 1 : kickoff tight (< 3min de ref)
+        if (e.dt !== null && e.dt <= TIGHT_DT) return true;
+        // Signal 2 : league proche du ref (chaine similaire)
+        if (ref.league && c.league) {
+          const refL = String(ref.league).toLowerCase();
+          const cL = String(c.league).toLowerCase();
+          if (refL === cL) return true;
+          // Contenance mutuelle : "SWPL Cup" ⊆ "SWPL Cup - Women"
+          if (refL.length >= 4 && (cL.includes(refL) || refL.includes(cL))) return true;
+        }
+        return false;
+      });
+      // Si un SEUL candidat a un signal fort, on le prend.
+      if (withStrongSignal.length === 1) {
+        return withStrongSignal[0].c;
+      }
+      // Sinon : ambigu → rejet, aucun match. Mieux qu'un fake arb.
+      return null;
+    }
   }
   return best;
 }
