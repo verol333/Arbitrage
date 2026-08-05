@@ -25,25 +25,41 @@ async function sendWebhook(payload) {
   } finally { clearTimeout(t); }
 }
 
-async function notifyWebhook(result, { live = false, sport = 'football' } = {}) {
-  if (result.opportunities?.length) {
-    if (live) {
-      const first = result.opportunities[0];
-      log(`  → live sample: score=${first.live_score ?? 'null'} min=${first.live_minute ?? 'null'} period=${first.live_period ?? 'null'} src=${first.live_score_source ?? 'null'} match=${first.match_label}`);
-    }
-    // DIAG : dump structure de la 1ere opp pour verifier le payload (sport, market_family, fields).
+function logSample(result, { live = false, sport = 'football' } = {}) {
+  if (!result.opportunities?.length) return;
+  if (live) {
     const first = result.opportunities[0];
-    log(`  → ${sport} sample opp fields: sport=${first.sport} market_family="${first.market_family}" match_label="${first.match_label}" league="${first.league || ''}" status=${first.status} is_live=${first.is_live}`);
-    await sendWebhook({
-      type: 'arbitrage_alert',
-      scan_type: live ? 'live' : 'prematch',
-      sport,
-      timestamp: new Date().toISOString(),
-      count: result.opportunities.length,
-      opportunities: result.opportunities,
-      stats: result.stats,
-    });
+    log(`  → live sample: score=${first.live_score ?? 'null'} min=${first.live_minute ?? 'null'} period=${first.live_period ?? 'null'} src=${first.live_score_source ?? 'null'} match=${first.match_label}`);
   }
+  const first = result.opportunities[0];
+  log(`  → ${sport} sample opp fields: sport=${first.sport} market_family="${first.market_family}" match_label="${first.match_label}" league="${first.league || ''}" status=${first.status} is_live=${first.is_live}`);
+}
+
+// Envoi FUSIONNE (foot + tennis dans un seul POST) pour eviter que le 2e
+// webhook ecrase les opps du 1er cote backend Mon (bug "un seul sport
+// affiche a la fois"). Marker sport="multi" pour que markStale par sport
+// dans le handler backend ne trouve rien a purger → tous les sports
+// coexistent apres INSERT. Notre persistOpportunities Base44 direct garde
+// deja le markStale scope au sport, donc rien ne se cumule cote base.
+async function notifyWebhookMerged(resultsBySport, { live = false } = {}) {
+  const merged = [];
+  const countsBySport = {};
+  for (const [sport, result] of Object.entries(resultsBySport)) {
+    const opps = result?.opportunities || [];
+    countsBySport[sport] = opps.length;
+    if (opps.length) merged.push(...opps);
+  }
+  if (!merged.length) return;
+  await sendWebhook({
+    type: 'arbitrage_alert',
+    scan_type: live ? 'live' : 'prematch',
+    sport: 'multi',
+    sports: Object.keys(countsBySport),
+    counts_by_sport: countsBySport,
+    timestamp: new Date().toISOString(),
+    count: merged.length,
+    opportunities: merged,
+  });
 }
 
 const mode = process.argv[2] || 'prematch';
@@ -60,7 +76,7 @@ async function doScan({ live, sport }) {
     horizonHours: Number(process.env.HORIZON_HOURS || 72),
   });
   await persistOpportunities(result.opportunities, { live, sport });
-  await notifyWebhook(result, { live, sport });
+  logSample(result, { live, sport });
   return result;
 }
 
@@ -68,11 +84,19 @@ async function doAllSports({ live }) {
   // Foot + tennis en PARALLELE (pas de priorite : les deux sont equivalents).
   const results = await Promise.allSettled(SPORTS.map(sport => doScan({ live, sport })));
   const totals = {};
+  const resultsBySport = {};
   results.forEach((r, i) => {
     const sport = SPORTS[i];
-    if (r.status === 'fulfilled') totals[sport] = r.value.opportunities?.length ?? 0;
-    else { totals[sport] = 'ERR'; log(`  ⚠️ ${sport} scan erreur: ${r.reason?.message || r.reason}`); }
+    if (r.status === 'fulfilled') {
+      totals[sport] = r.value.opportunities?.length ?? 0;
+      resultsBySport[sport] = r.value;
+    } else {
+      totals[sport] = 'ERR';
+      log(`  ⚠️ ${sport} scan erreur: ${r.reason?.message || r.reason}`);
+    }
   });
+  // UN SEUL webhook fusionne pour eviter que le 2e ecrase le 1er cote backend.
+  await notifyWebhookMerged(resultsBySport, { live });
   return totals;
 }
 
