@@ -1,96 +1,111 @@
 #!/usr/bin/env node
-// Probe Maxibet v5 — cible le bundle JS index-*.js avec delay pour bypass Jina rate limit
-// + tente sister sites (cms, affiliates) + patterns Digitain classiques.
+// Probe Maxibet v6 — Maxibet CONFIRME BetConstruct via cms.maxibet.bet.
+// Trouve le site_id via (a) fetch CMS bundle, (b) enum tres large SWARM ids.
+import WebSocket from 'ws';
+
 const JINA = process.env.JINA_API_KEY || '';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-async function fetchJina(url, attempt = 0) {
+async function fetchJina(url) {
   try {
     const r = await fetch(`https://r.jina.ai/${url}`, {
-      headers: {
-        Authorization: JINA ? `Bearer ${JINA}` : '',
-        'X-Return-Format': 'html',
-        'X-Respond-With': 'html',
-        'Accept': 'text/html',
-      },
+      headers: { Authorization: JINA ? `Bearer ${JINA}` : '', 'X-Return-Format': 'html', 'Accept': 'text/html' },
       signal: AbortSignal.timeout(30000),
     });
-    if (r.status === 422 && attempt < 2) {
-      await sleep(6000);
-      return fetchJina(url, attempt + 1);
-    }
     return { status: r.status, text: r.ok ? await r.text() : '' };
   } catch (e) { return { status: 0, err: e.message, text: '' }; }
 }
 
-// 1) Home
-console.log('═══ HOME → extract main bundle url ═══');
-const home = await fetchJina('https://m.maxibet.bet/');
-console.log(`home → ${home.status} ${home.text.length}b`);
-const bundles = [...home.text.matchAll(/["']([^"']*assets\/index-[^"']+\.js)["']/g)].map(m => m[1]);
-console.log(`bundles detectes: ${bundles.join(', ')}`);
-
-// 2) Fetch bundle avec retry
-console.log('\n═══ MAIN JS BUNDLE ═══');
-for (const b of bundles.slice(0, 2)) {
-  const url = b.startsWith('http') ? b : `https://m.maxibet.bet${b.startsWith('/') ? '' : '/'}${b}`;
-  await sleep(5000);
+// ═══════════════════════════════════════════════════════════════
+// 1) CMS bundle — BetConstruct CMS a une config avec site_id
+// ═══════════════════════════════════════════════════════════════
+console.log('═══ 1) CMS BetConstruct bundle ═══');
+const cmsHome = await fetchJina('https://cms.maxibet.bet/');
+const cmsScripts = [...cmsHome.text.matchAll(/src=["']([^"']+\.js[^"']*)["']/gi)].map(m => m[1]);
+console.log(`CMS scripts: ${cmsScripts.join(', ')}`);
+await sleep(3000);
+for (const s of cmsScripts.slice(0, 3)) {
+  const url = s.startsWith('http') ? s : `https://cms.maxibet.bet/${s.replace(/^\//, '')}`;
   const r = await fetchJina(url);
   console.log(`${url} → ${r.status} ${r.text.length}b`);
   if (r.text.length > 500) {
-    // Grep interesting patterns dans le bundle
-    for (const pat of [
-      /["'`]https?:\/\/[a-z0-9.-]+\/[a-z0-9\/._?=&-]*/gi,
-      /wss?:\/\/[a-z0-9.-]+[a-z0-9\/._?=&-]*/gi,
-      /["'`](\/api\/[a-z0-9\/._?=&-]+)/gi,
-      /partnerId[\s:=]+\d+/gi,
-      /siteId[\s:=]+\d+/gi,
-      /brandId[\s:=]+\d+/gi,
-      /baseUrl[\s:=]+["'`][^"'`]+["'`]/gi,
-      /VITE_[A-Z_]+/gi,
+    // Grep site_id, partner_id, swarm URL, apiUrl
+    for (const [label, pat] of [
+      ['site_id', /site[_-]?id[\s:=]+["']?(\d{2,7})/gi],
+      ['partner_id', /partner[_-]?id[\s:=]+["']?(\d{2,7})/gi],
+      ['SWARM_URL', /wss?:\/\/[a-z0-9.-]+swarm[a-z0-9.-]*[a-z0-9\/._?=&-]*/gi],
+      ['betconstruct_url', /https?:\/\/[a-z0-9.-]+betconstruct\.com[a-z0-9\/._?=&-]*/gi],
+      ['apiUrl', /apiUrl[\s:=]+["']([^"']+)["']/gi],
+      ['baseUrl', /baseUrl[\s:=]+["']([^"']+)["']/gi],
+      ['api_url', /["']api[_-]?url["'][\s:=]+["']([^"']+)["']/gi],
+      ['siteConfig', /siteConfig[\s:=]+({[^}]*})/gi],
     ]) {
-      const found = [...new Set([...r.text.matchAll(pat)].map(m => m[0].slice(0, 100)))].slice(0, 10);
+      const found = [...new Set([...r.text.matchAll(pat)].map(m => m[0]))].slice(0, 8);
       if (found.length) {
-        console.log(`  pattern ${pat.source.slice(0,40)} → ${found.length} matches`);
-        for (const f of found) console.log(`    ${f}`);
+        console.log(`  ${label}:`);
+        for (const f of found) console.log(`    ${f.slice(0, 200)}`);
       }
     }
-    // Dump les 5000 premiers chars pour voir la config
-    console.log('  --- bundle head (2500c) ---');
-    console.log(r.text.slice(0, 2500));
+    // Aussi dump les 1500 premiers chars
+    console.log('  head:', r.text.slice(0, 1500).replace(/\s+/g, ' ').slice(0, 1500));
   }
-}
-
-// 3) Sister sites
-console.log('\n═══ SISTER SUBDOMAINS ═══');
-for (const url of ['https://cms.maxibet.bet/', 'https://affiliates.maxibet.bet/', 'https://icons.maxibet.bet/']) {
   await sleep(3000);
-  const r = await fetchJina(url);
-  console.log(`${url} → ${r.status} ${r.text.length}b`);
-  if (r.text && r.text.length < 3000) {
-    console.log('  ' + r.text.slice(0, 500));
-  } else if (r.text) {
-    // Grep pour URLs et signatures
-    const urls = [...new Set([...r.text.matchAll(/https?:\/\/[a-z0-9.-]+[a-z0-9\/._?=&-]*/gi)].map(m => m[0].slice(0, 100)))].filter(u => !u.includes('google') && !u.includes('cloudflare')).slice(0, 15);
-    console.log('  urls:', urls);
-  }
 }
 
-// 4) Digitain API endpoints candidats
-console.log('\n═══ DIGITAIN PATTERN ENDPOINTS ═══');
-const DIG_PATHS = [
-  '/api/v2/prematch/GetMainSports',
-  '/api/v1/prematch/sports',
-  '/api/prematch/sports',
-  '/sportsbook/v1/config',
-  '/sb2/prematch/sports',
-  '/api/frontend/game/getEventsBySport',
-  '/api/get-sports',
+// ═══════════════════════════════════════════════════════════════
+// 2) SWARM enum tres large + multi-endpoints
+// ═══════════════════════════════════════════════════════════════
+const swarmUrls = [
+  'wss://eu-swarm-newm.betconstruct.com/',
+  'wss://eu-swarm.betconstruct.com/',
+  'wss://eu-swarm-ws.betconstruct.com/',
 ];
-for (const path of DIG_PATHS) {
-  await sleep(2000);
-  const r = await fetchJina('https://m.maxibet.bet' + path);
-  const looksLikeJson = r.text.trim().startsWith('{') || r.text.trim().startsWith('[');
-  console.log(`  ${path} → ${r.status} ${r.text.length}b ${looksLikeJson ? '(JSON!)' : '(html)'}`);
-  if (looksLikeJson) console.log('    ' + r.text.slice(0, 500));
+
+// Site_ids : 1-500 (enum dense) + 1000-1500 + 5000-5100
+const ids = [];
+for (let i = 1; i <= 500; i++) ids.push(i);
+for (let i = 1000; i <= 1200; i++) ids.push(i);
+for (let i = 5000; i <= 5100; i++) ids.push(i);
+
+for (const swarmUrl of swarmUrls) {
+  console.log(`\n═══ SWARM ENUM: ${swarmUrl} ═══`);
+  // Test parallel batches de 20
+  const BATCH = 20;
+  let totalHits = 0;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const batch = ids.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(id => probeSite(swarmUrl, id, 4000)));
+    for (let j = 0; j < batch.length; j++) {
+      const info = results[j];
+      if (info && info.match) {
+        totalHits++;
+        console.log(`  🎯 site_id=${batch[j]} MATCH → ${JSON.stringify(info.data).slice(0, 500)}`);
+      }
+    }
+    // Progress log tous les 100
+    if ((i + BATCH) % 100 === 0) process.stdout.write(`    tested up to ${i + BATCH}\n`);
+    if (totalHits >= 3) break; // Enough
+  }
+  if (totalHits === 0) console.log(`  aucun match "maxi" sur ${ids.length} ids testes.`);
+}
+
+async function probeSite(url, siteId, timeoutMs = 4000) {
+  return new Promise((resolve) => {
+    let ws;
+    try { ws = new WebSocket(url); } catch { return resolve(null); }
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; try { ws.close(); } catch {} resolve(v); };
+    const t = setTimeout(() => finish(null), timeoutMs);
+    ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: siteId, language: 'eng' }, rid: 's1' })));
+    ws.on('message', (raw) => {
+      let m; try { m = JSON.parse(raw.toString()); } catch { return; }
+      if (m.rid !== 's1') return;
+      clearTimeout(t);
+      const data = m?.data || {};
+      const dataStr = JSON.stringify(data).toLowerCase();
+      finish({ sid: data.sid, data, match: /maxibet|maxi.?bet/.test(dataStr) });
+    });
+    ws.on('error', () => { clearTimeout(t); finish(null); });
+    ws.on('close', () => { clearTimeout(t); finish(null); });
+  });
 }
