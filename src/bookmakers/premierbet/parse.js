@@ -249,9 +249,12 @@ function parseTennis(markets, odds) {
       case '23':  putTennisHcp(m, '', odds); break;            // Jeux Handicap
       case '64':  putTennisTotal(m, 'match_', odds); break;    // Plus De/Moins De (total games)
       case '33':  putTennisWinner(m, 's1_', odds); break;      // Gagnant 1er Set
-      case '339': putTennisHcp(m, 's1_', odds); break;         // Handicap 1er Set
       case '340': putTennisTotal(m, 's1_', odds); break;       // Total 1er Set
       // IGNORE : 219 (1er Set - Score Exact, granulaire)
+      // DESACTIVE : 339 (Handicap 1er Set) — le marche existe sur guineegames
+      // mais pas sur l'app PremierBet Congo cote user → arbs non-actionnables
+      // + valeurs suspectes (1.78/1.79 sur matchs desequilibres 5.60 vs 1.08
+      // = odds trop hautes). Reactiver seulement apres cross-check PB Congo.
       default: break;
     }
   }
