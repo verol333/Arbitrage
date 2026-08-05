@@ -1,101 +1,89 @@
-═══ 1) HOMEPAGES ═══
+═══ 1) HOMEPAGE FETCH — 3 modes ═══
 
-▶ https://m.maxibet.bet
-  status=403 bytes=0
+▶ https://m.maxibet.bet/
+  direct → status=403 bytes=0
+  cfworker → status=0 bytes=0 err=Failed to parse URL from hidden-pine-7436.veolalex3.workers.dev
+/?url=https%3A%2F%2Fm.maxibet.bet%2F
+  jina → status=200 bytes=7360
 
-▶ https://www.maxibet.bet
-  status=403 bytes=0
+▶ https://www.maxibet.bet/
+  direct → status=403 bytes=0
+  cfworker → status=0 bytes=0 err=Failed to parse URL from hidden-pine-7436.veolalex3.workers.dev
+/?url=https%3A%2F%2Fwww.maxibet.bet%2F
+  jina → status=200 bytes=8103
 
-▶ https://maxibet.bet
-  status=403 bytes=0
+▶ Best HTML captured: 8103 bytes
+  Preview (first 800 chars):
+Se connecter S'inscrire FRA 22:33:54 En Direct Paris Sportifs Casino Casino en ligne E-sports Jeux Crash Powerfull Wheel Sports virtuels Jeux TV Pool Masters Promotions Poker Eventbook Predictstreet MORE 1 / 30 00 JOURS 01 HEURES 56 MIN 05 S 1.27 5.90 6.90 2.72 3.47 2.26 1.30 5.00 7.60 1.42 3.25 10.00 2.07 2.78 3.59 1.85 2.80 5.40 1.05 7.90 19.00 3.59 3.23 1.85 1.60 3.47 4.60 1.47 3.99 5.30 2.88 2.96 2.28 1.42 4.20 5.40 4.90 3.90 1.50 3.21 3.23 1.96 1.95 3.03 3.50 1.09 8.00 13.00 1.82 3.59 4.20 1.85 3.99 3.47 6.70 4.20 1.35 4.40 3.45 1.66 1 / 20 56 JOURS 00 HEURES 26 MIN 05 S 1 / 4 JEUX SÉLECTIONNÉS Football 72 Basketball 10 Tennis 17 Volleyball 2 Baseball 10 Boxe 39 MMA 12 E-Football 3 Ligue Europa - Qualifs Benfica 06 août 19:00 Heart of Midlothian V1 1.05 X 7.90 V2 19.00
 
-═══ 2) SCRIPTS BUNDLES ═══
+═══ 2) SCRIPTS BUNDLES via CF ═══
 
 ═══ RECAP ═══
-Technologies : aucune
-SWARM URLs   : aucune
-Site IDs     : aucun
-API bases    : aucune
+Techs      : aucune
+SWARM URLs : aucune
+Site IDs   : aucun
+Partner IDs: aucun
+API bases  : aucune
+CDNs       : aucune
 
-═══ 3) SWARM CONNECT TESTS (wss://eu-swarm-newm.betconstruct.com/) ═══
-  site_id=122 → ✅ sid=1e734845-4cf4-49fc-68ba-9036864817a6-5
-  ✅ SUCCESS site_id=122 → dumping sports list
-  Sports disponibles :
-    id=1 Football (alias=Soccer)
-    id=2 Ice Hockey (alias=IceHockey)
-    id=3 Basketball (alias=Basketball)
-    id=4 Tennis (alias=Tennis)
-    id=5 Volleyball (alias=Volleyball)
-    id=6 American Football (alias=AmericanFootball)
-    id=8 Aussie Rules (alias=AustralianFootball)
-    id=9 Badminton (alias=Badminton)
-    id=11 Baseball (alias=Baseball)
-    id=12 Beach Football (alias=BeachFootball)
-    id=14 Beach Volleyball (alias=BeachVolleyball)
-    id=15 Biathlon (alias=Biathlon)
-    id=17 Boxing (alias=Boxing)
-    id=18 Chess (alias=Chess)
-    id=19 Cricket (alias=Cricket)
-    id=21 Cycling (alias=Cycling)
-    id=22 Darts (alias=Darts)
-    id=24 Floorball (alias=Floorball)
-    id=25 Formula 1 (alias=Formula1)
-    id=26 Futsal (alias=Futsal)
-    id=27 Golf (alias=Golf)
-    id=29 Handball (alias=Handball)
-    id=30 Field Hockey (alias=Hockey)
-    id=31 Horse Racing (alias=HorseRacing)
-    id=32 Motorbike (alias=Motorsport)
-    id=33 NASCAR (alias=Nascar)
-    id=36 Rugby League (alias=RugbyLeague)
-    id=37 Rugby Union (alias=RugbyUnion)
-    id=38 Shooting (alias=PistolHead2Head)
-    id=39 Snooker (alias=Snooker)
-    id=41 Table Tennis (alias=TableTennis)
-    id=42 Water Polo (alias=WaterPolo)
-    id=44 MMA (alias=Mma)
-    id=54 Virtual Horse Racing (alias=VirtualHorseRacing)
-    id=55 Virtual Greyhounds (alias=VirtualGreyhoundRacing)
-    id=69 Gaelic football (alias=GaelicFootball)
-    id=70 Hurling (alias=Hurling)
-    id=71 E-Football (alias=CyberFootball)
-    id=72 Surfing (alias=Surfing)
-    id=73 E-Basketball (alias=EBasketball)
-    id=74 Call of Duty (alias=CallOfDuty)
-    id=75 Counter-Strike 2 (alias=CounterStrike)
-    id=76 Dota 2 (alias=Dota2)
-    id=77 League of Legends (alias=LeagueOfLegends)
-    id=83 StarCraft 2 (alias=StarCraft2)
-    id=87 Speedway (alias=Speedway)
-    id=89 Politics (alias=Politics)
-    id=90 Special Bets (alias=SpecialBets)
-    id=96 Cross-Country Skiing (alias=CrossCountrySkiing)
-    id=101 Auto Racing (alias=AutoRacing)
-    id=102 Alpine Skiing (alias=AlpineSkiing)
-    id=110 Lacrosse (alias=Lacross)
-    id=112 Sailing (alias=Yachting)
-    id=118 Virtual Marble Racing (alias=VirtualMarbleRacing)
-    id=147 TV Shows and Movies (alias=TVShowsAndMovies)
-    id=150 Virtual Cycling (alias=VirtualBicycle)
-    id=157 Rocket League (alias=RocketLeague)
-    id=158 King of Glory (alias=KingOfGlory)
-    id=168 Tekken (alias=Tekken7)
-    id=173 Virtual Football Pro (alias=VirtualFootballPro)
-    id=174 The Penalty Kicks (alias=ThePenaltyKicks)
-    id=180 Future Horse Racing (alias=FutureHorseRacing)
-    id=184 Greyhounds (alias=SISGreyhound)
-    id=185 Rainbow Six (alias=RainbowSix)
-    id=188 Virtual Football League (alias=VirtualFootballLeague)
-    id=190 3x3 Basketball (alias=3x3Basketball)
-    id=208 Valorant (alias=Valorant)
-    id=209 Virtual Drag Racing (alias=VirtualDragRacing)
-    id=215 Mobile Legends (alias=MobileLegends)
-    id=242 Camogie (alias=Camogie)
-    id=280 Pickleball (alias=Pickleball)
-    id=285 Russian Pyramid (alias=RussianPyramid)
-    SS Juve Stabia vs USD Cavese [Club Friendlies] start=2026-08-06T18:30:00.000Z
-    Fiorentina vs Deportivo de A Coruna [Club Friendlies] start=2026-08-06T18:00:00.000Z
-    AS Monaco vs Getafe [Club Friendlies] start=2026-08-06T18:00:00.000Z
-    Malaga CF vs Al Arabi SC Doha [Club Friendlies] start=2026-08-06T18:00:00.000Z
-    Real Jaen vs Cordoba CF [Club Friendlies] start=2026-08-06T18:00:00.000Z
-  Total matchs foot pre-match : 1009
+═══ 3) SWARM PARTNER DETAIL (wss://eu-swarm-newm.betconstruct.com/) ═══
+  site_id=100 sid=42ea1f12-ccd6-47b7-491f-dc20f4448be1-6 title="" partner=?
+  site_id=101 sid=acec59ca-e6cb-4596-4d65-dd4a24d6e7d7-2 title="" partner=?
+  site_id=102 sid=b027a271-fcb3-48b2-417f-871c8158ab68-6 title="" partner=?
+  site_id=103 sid=c00a0d30-7001-4676-489f-d461a7c1f9b0-2 title="" partner=?
+  site_id=104 sid=a72c426f-6ae6-4756-77cf-90306057ac56-6 title="" partner=?
+  site_id=105 sid=a582ca6d-1d94-4b9b-7424-2041594cfaf9-4 title="" partner=?
+  site_id=106 sid=db4b6ddf-746f-4d94-59a1-ecaf34b0b35f-4 title="" partner=?
+  site_id=107 sid=a8a4de54-2806-4e97-620e-3a8994bc7691-4 title="" partner=?
+  site_id=108 sid=c8557261-543f-4e42-5823-3574e6e7837c-6 title="" partner=?
+  site_id=109 sid=673c595c-875b-43f6-4fca-a7d69f30b913-2 title="" partner=?
+  site_id=110 sid=a3622945-dafd-4853-4856-88738403d9f6-4 title="" partner=?
+  site_id=111 sid=62a88a52-ab94-41ce-61bb-d83c5f350f43-3 title="" partner=?
+  site_id=112 sid=4275f7a6-363f-43c2-4cc7-2f6676266a3f-1 title="" partner=?
+  site_id=113 sid=830f80d5-8884-4fb2-47ef-5696be042842-6 title="" partner=?
+  site_id=114 sid=38aca978-e045-469f-4e2c-73cf87f5d252-6 title="" partner=?
+  site_id=115 sid=c372e61a-e681-4c3d-5ce3-cc07633224ac-2 title="" partner=?
+  site_id=116 sid=460c52e6-bf74-4e10-500d-cfcaf1d4b608-2 title="" partner=?
+  site_id=117 sid=fbf21225-1ffb-48ca-6c41-34080aa9e6b9-6 title="" partner=?
+  site_id=118 sid=814d5463-f51a-460b-6086-08387613e702-2 title="" partner=?
+  site_id=119 sid=4acd08bd-9532-4dc4-695b-0ecabd8c488c-1 title="" partner=?
+  site_id=120 sid=7aa31e23-6ee0-4784-5574-096977bed96d-4 title="" partner=?
+  site_id=121 sid=d3da7e16-3c6d-487c-7a3b-6aa7b05d1b13-1 title="" partner=?
+  site_id=122 sid=bc5070ef-0492-462d-7be3-6f32f692b068-3 title="" partner=?
+  site_id=123 sid=bfe9443b-695b-4408-543f-e42e7af52ccc-3 title="" partner=?
+  site_id=124 sid=729c9b9a-d729-42ba-69c3-5e58020a470c-2 title="" partner=?
+  site_id=125 sid=0e4a11e1-7a2f-4900-71e7-7e205a9cd397-6 title="" partner=?
+  site_id=126 sid=506aac22-caca-4b7a-42fa-d37d6e89e3f7-3 title="" partner=?
+  site_id=127 sid=f2429cca-766f-45e0-7ec6-8486c9812cd3-2 title="" partner=?
+  site_id=128 sid=ab65e892-991b-44f4-4404-b495f6dea25a-1 title="" partner=?
+  site_id=129 sid=418d5897-9fdb-4f32-4723-c94402948e85-2 title="" partner=?
+  site_id=130 sid=38ec492c-77d8-44ad-409d-5bff4906b2f2-3 title="" partner=?
+  site_id=150 sid=4a4bbdb1-7c1b-4f4e-7bf2-3e733a4e0dca-1 title="" partner=?
+  site_id=151 sid=86ebc952-aa16-463a-5b6a-494bf017bf82-3 title="" partner=?
+  site_id=152 sid=4313993b-b209-48cc-4188-484587b7a662-6 title="" partner=?
+  site_id=153 sid=2d740831-637c-4caa-4e28-f3b7427dcba4-6 title="" partner=?
+  site_id=154 sid=5a0c402b-6725-45bb-419f-50225c5396a5-6 title="" partner=?
+  site_id=155 sid=84069b8b-05f1-4624-489a-d06fe6c787c4-4 title="" partner=?
+  site_id=156 sid=ec898acb-6c5f-415b-5072-cd217f502889-4 title="" partner=?
+  site_id=157 sid=eff788c3-cbaa-43b8-69c0-b16a5bc60303-6 title="" partner=?
+  site_id=158 sid=3a9c3c46-3f92-4c19-7c8b-2c3d6dd6af0c-6 title="" partner=?
+  site_id=159 sid=724816b5-988a-4889-6d29-c87f26c8aed8-5 title="" partner=?
+  site_id=160 sid=539df153-b3f9-4a00-7a08-1c8a28ade64f-4 title="" partner=?
+  site_id=161 sid=20592698-3796-44a6-6d05-83ed2a8ed1cc-2 title="" partner=?
+  site_id=162 sid=2fda5a2f-b9e7-4331-6ba1-cd41c2b930ef-3 title="" partner=?
+  site_id=163 sid=0c50c9dc-dffa-41aa-7342-714b2f8df7f3-6 title="" partner=?
+  site_id=164 sid=3298aaf3-91bf-4185-7f9c-7ece0e35c09e-1 title="" partner=?
+  site_id=165 sid=68038fe8-0938-40a2-4a10-6be72da2c3dc-4 title="" partner=?
+  site_id=166 sid=d11e3969-be29-41f0-51d2-5d7b8c23caa0-1 title="" partner=?
+  site_id=167 sid=160a5658-8b4f-46d7-7fd2-e63e66d642d8-1 title="" partner=?
+  site_id=168 sid=b6853421-d3b3-4a32-54d2-fd38ff8990fc-4 title="" partner=?
+  site_id=169 sid=0d33e189-9b77-4918-5888-a23a48e0fbab-2 title="" partner=?
+  site_id=170 sid=a7b82332-f36e-494a-6ad0-79526228f47e-4 title="" partner=?
+  site_id=171 sid=edea006d-df93-4262-4fd4-df71ca2cf422-3 title="" partner=?
+  site_id=172 sid=63c1d7d5-8fb6-42ff-7de9-31b1e83f77bb-4 title="" partner=?
+  site_id=173 sid=099a0f94-3ca1-43bf-5bed-5118f465d643-1 title="" partner=?
+  site_id=174 sid=00b29d90-cf0e-468c-5d37-d4844e24bca8-1 title="" partner=?
+  site_id=175 sid=7fd5128b-2f8a-458d-7875-fb7f7546d8cc-4 title="" partner=?
+  site_id=176 sid=4bfd34ca-49e5-435b-4d29-4e5aec1b31cd-4 title="" partner=?
+  site_id=177 sid=234a99e0-9657-4ee7-78ac-805a7387e82e-2 title="" partner=?
+  site_id=178 sid=ac0bb5ec-2291-4161-43d0-d1f3f6fc62b9-5 title="" partner=?
