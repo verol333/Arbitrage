@@ -1,42 +1,38 @@
-═══ HOME → extract main bundle url ═══
-home → 200 266561b
-bundles detectes: /assets/index-BQjAN_CE.js, /assets/index-BEZr8LQd.js
+═══ 1) CMS BetConstruct bundle ═══
+CMS scripts: build/js/main.js?version=19629, https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496
+https://cms.maxibet.bet/build/js/main.js?version=19629 → 422 0b
+https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496 → 200 35086b
+  head: <html><head><meta name="color-scheme" content="light dark"></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">(()=&gt;{var t={173:function(t,e){!function(t){"use strict";class e{t;o=0;i=[];u(t){if(t.hadRecentInput)return;const e=this.i[0],n=this.i.at(-1);this.o&amp;&amp;e&amp;&amp;n&amp;&amp;t.startTime-n.startTime&lt;1e3&amp;&amp;t.startTime-e.startTime&lt;5e3?(this.o+=t.value,this.i.push(t)):(this.o=t.value,this.i=[t]),this.t?.(t)}}const n=()=&gt;{const t=performance.getEntriesByType("navigation")[0];if(t&amp;&amp;t.responseStart&gt;0&amp;&amp;t.responseStart<performance.now())return t},r="t=">{if("loading"===document.readyState)return"loading";const e=n();if(e){if(t<e.dominteractive)return"loading";if(0===e.domcontentloadedeventstart||t<e.domcontentloadedeventstart)return"dom-interactive";if(0===e.domcomplete||t<e.domcomplete)return"dom-content-loaded"}return"complete"},i=t=>{const e=t.nodeName;return 1===t.nodeType?e.toLowerCase():e.toUpperCase().replace(/^#/,"")},o=t=&gt;{let e="";try{for(;9!==t?.nodeType;){const n=t,r=n.id?"#"+n.id:[i(n),...Array.from(n.classList).sort()].join(".");if(e.length+r.length&gt;99)return e||r;if(e=e?r+"&gt;"+e:r,n.id)break;t=n.parentNode}}catch{}return e},s=new WeakMap;function a(t,e){let n=s.get(e);return n||(n=new WeakMap,s.set(e,n)),n.get(t)||n.set(t,new e),n.get(t)}let c=-1;const l=()=&gt;c,u=t=&gt;{addEventListener("pageshow",e=&gt;{e.persisted&amp;&amp;(c=e.timeStamp,t(e))},!0)},d=(t,e,n,r)=&gt;{let i,o;return s=&gt
 
-═══ MAIN JS BUNDLE ═══
-https://m.maxibet.bet/assets/index-BQjAN_CE.js → 422 0b
-https://m.maxibet.bet/assets/index-BEZr8LQd.js → 422 0b
+═══ SWARM ENUM: wss://eu-swarm-newm.betconstruct.com/ ═══
+    tested up to 100
+    tested up to 200
+    tested up to 300
+    tested up to 400
+    tested up to 500
+    tested up to 600
+    tested up to 700
+    tested up to 800
+  aucun match "maxi" sur 802 ids testes.
 
-═══ SISTER SUBDOMAINS ═══
-https://cms.maxibet.bet/ → 200 1436b
-  <html lang="en">
+═══ SWARM ENUM: wss://eu-swarm.betconstruct.com/ ═══
+    tested up to 100
+    tested up to 200
+    tested up to 300
+    tested up to 400
+    tested up to 500
+    tested up to 600
+    tested up to 700
+    tested up to 800
+  aucun match "maxi" sur 802 ids testes.
 
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <link rel="stylesheet" href="assets/ui/css/cms.css?version=19629">
-
-
-    <script src="build/js/main.js?version=19629"></script>
-
-
-    <title>CMS BetConstruct</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.pn
-https://affiliates.maxibet.bet/ → 200 7160b
-  urls: []
-https://icons.maxibet.bet/ → 200 553b
-  <html>
-<head><title>403 Forbidden</title></head>
-<body>
-<center><h1>403 Forbidden</h1></center>
-<hr><center>nginx</center>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;1ff6c4e678214265bf2e1adfc56ffd91&quot;,&quot;r&quot;:1
-
-═══ DIGITAIN PATTERN ENDPOINTS ═══
-  /api/v2/prematch/GetMainSports → 200 4659b (html)
-  /api/v1/prematch/sports → 200 4659b (html)
-  /api/prematch/sports → 200 4659b (html)
-  /sportsbook/v1/config → 200 4659b (html)
-  /sb2/prematch/sports → 200 4659b (html)
-  /api/frontend/game/getEventsBySport → 200 4659b (html)
-  /api/get-sports → 200 4659b (html)
+═══ SWARM ENUM: wss://eu-swarm-ws.betconstruct.com/ ═══
+    tested up to 100
+    tested up to 200
+    tested up to 300
+    tested up to 400
+    tested up to 500
+    tested up to 600
+    tested up to 700
+    tested up to 800
+  aucun match "maxi" sur 802 ids testes.
