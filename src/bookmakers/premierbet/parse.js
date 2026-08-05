@@ -211,6 +211,13 @@ function putTennisWinner(m, pfx, odds) {
   if (p['1']) odds[`${pfx}match_1`] = p['1'];
   if (p['2']) odds[`${pfx}match_2`] = p['2'];
 }
+// FIX fake arb tennis 40% : ne PAS flipper le signe pour l'outcome "2".
+// PB fournit deja les 2 outcomes complementaires avec leurs signes propres :
+// "1" home h=-1.5 (home -1.5) + "2" away h=+1.5 (away +1.5). Le flip
+// `${-h}` ancien stockait away sous la meme polarite que home → l'arb
+// pairait home_-2.5 (Tirante -2.5) avec away_+2.5 KEY (qui contenait en
+// realite Fritz -2.5) → 2 paris identiques marches comme complementaires.
+// Convention identique au parseur foot putHcpMultiLine (${line} sans flip).
 function putTennisHcp(m, pfx, odds) {
   for (const o of (m.outcomes || [])) {
     const v = Number(o.value);
@@ -219,7 +226,7 @@ function putTennisHcp(m, pfx, odds) {
     if (h == null || !isHalfLine(Math.abs(h))) continue;
     const nm = cleanName(o.name);
     if (nm === '1') odds[`${pfx}hcp_home_${h}`] = v;
-    else if (nm === '2') odds[`${pfx}hcp_away_${-h}`] = v;
+    else if (nm === '2') odds[`${pfx}hcp_away_${h}`] = v;
   }
 }
 function putTennisTotal(m, pfx, odds) {
