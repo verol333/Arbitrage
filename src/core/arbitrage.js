@@ -414,24 +414,30 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
     pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
   }
 
-  // Marches par set : Vainqueur, Handicap Jeux, Total Jeux
+  // Marches par set : Vainqueur, Handicap (sur les jeux du set), Total Jeux
+  // Labels ordinaux FR clairs : "1er Set" / "2e Set" etc. Handicap ici = handicap
+  // sur les jeux gagnes DANS le set (different de "Handicap Sets" qui porte sur
+  // le nombre total de sets du match). Ancien "Handicap Jeux Set N" ambigu →
+  // renomme "Handicap 1er Set" (jeux implicite, plus court, plus clair FR).
+  const ORDINAL = ['1er', '2e', '3e', '4e', '5e'];
   for (const n of ['1', '2', '3', '4', '5']) {
     const pfx = `s${n}_`;
-    // Vainqueur Set N
-    pushArb(out, `Vainqueur Set ${n}`, 'J1', oa[`${pfx}match_1`], bookA, 'J2', ob[`${pfx}match_2`], bookB);
-    pushArb(out, `Vainqueur Set ${n}`, 'J1', ob[`${pfx}match_1`], bookB, 'J2', oa[`${pfx}match_2`], bookA);
-    // Handicap Jeux Set N
+    const ord = ORDINAL[parseInt(n, 10) - 1];
+    // Vainqueur du Set
+    pushArb(out, `Vainqueur ${ord} Set`, 'J1', oa[`${pfx}match_1`], bookA, 'J2', ob[`${pfx}match_2`], bookB);
+    pushArb(out, `Vainqueur ${ord} Set`, 'J1', ob[`${pfx}match_1`], bookB, 'J2', oa[`${pfx}match_2`], bookA);
+    // Handicap DANS le set (sur les jeux gagnes de ce set)
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
       const lNum = parseFloat(l);
       const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
       const sign = lNum > 0 ? '+' + l : l;
-      const fam = `Handicap Jeux Set ${n} ${sign}`;
+      const fam = `Handicap ${ord} Set ${sign}`;
       pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
       pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
     }
-    // Total Jeux Set N
+    // Total jeux du set
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
-      const fam = `Total Jeux Set ${n} ${l}`;
+      const fam = `Total Jeux ${ord} Set ${l}`;
       pushArb(out, fam, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB);
       pushArb(out, fam, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA);
     }

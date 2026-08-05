@@ -34,13 +34,47 @@ export function orientation(refHome, refAway, cHome, cAway) {
   return 'ambiguous';
 }
 
-// Détecte les modifieurs (w, femmes, u17, u21, youth, reserves, etc.). Un match
-// avec modifieur ne doit JAMAIS s'apparier à un match sans modifieur (women vs
-// senior, jeunes vs pro).
-const MODIFIER_RE = /\b(w|women|femmes|feminin|dames|u1[5-9]|u2[0-3]|youth|junior|jrs?|reserves?|2nd|ii|iii|b|c|amateur)\b/i;
+// Détecte les modifieurs (w, femmes, u17, u21, youth, reserves, WFC/LFC, (F),
+// etc.). Un match avec modifieur ne doit JAMAIS s'apparier à un match sans
+// modifieur (women vs senior, jeunes vs pro).
+// Fix bug user (05/08) : "Dundee WFC vs Aberdeen LFC" (Women's Cup) etait
+// apparie a "Dundee vs Aberdeen" (Premiership masculine) car \bw\b/\bl\b ne
+// matchaient pas WFC/LFC (W/L colle a FC). Ajout : suffixes féminins compacts
+// (WFC, LFC, WF, LF), marqueurs entre parenthèses (F), (W), (Femmes), et
+// "ladies" comme mot entier. Feminin unifié sur clé "w".
+const GENDER_YOUTH_TOKENS = [
+  // Feminin : mots entiers
+  'women', 'femmes', 'feminin', 'dames', 'ladies',
+  // Feminin : suffixes club (WFC, LFC, WF, LF, WSC, LSC)
+  'wfc', 'lfc', 'wf', 'lf', 'wsc', 'lsc',
+  // Jeunes
+  'u15', 'u16', 'u17', 'u18', 'u19', 'u20', 'u21', 'u22', 'u23',
+  'youth', 'junior', 'jr', 'jrs',
+  // Equipe reserve / seconde
+  'reserves', 'reserve', '2nd', 'ii', 'iii',
+  // Amateur
+  'amateur',
+];
+// Regex : matche l'un de ces tokens comme mot entier (bornes de mots ou séparateurs).
+const MODIFIER_RE = new RegExp(`(?:^|[\\s()\\[\\]/.-])(${GENDER_YOUTH_TOKENS.join('|')})(?:$|[\\s()\\[\\]/.-])`, 'i');
+// Regex parenthèses solo : (F), (W), (Fem), (Wom) — marqueurs compacts
+const PAREN_GENDER_RE = /\(\s*(f|w|fem(?:mes)?|wom(?:en)?)\s*\)/i;
+// Suffixes feminins qui doivent être normalisés vers "w"
+const FEMININ_KEYS = new Set(['women', 'femmes', 'feminin', 'dames', 'ladies', 'wfc', 'lfc', 'wf', 'lf', 'wsc', 'lsc']);
+
 function modifierKey(s) {
-  const m = (s || '').match(MODIFIER_RE);
-  return m ? m[1].toLowerCase() : '';
+  const str = String(s || '');
+  const m = str.match(MODIFIER_RE);
+  if (m) {
+    const t = m[1].toLowerCase();
+    // Unifie tous les tokens féminins sur "w" : Dundee WFC et Aberdeen LFC
+    // sont tous "féminins" — un même club peut avoir plusieurs suffixes.
+    if (FEMININ_KEYS.has(t)) return 'w';
+    return t;
+  }
+  const p = str.match(PAREN_GENDER_RE);
+  if (p) return 'w';  // (F), (W), (Fem), (Wom) → féminin
+  return '';
 }
 function modifiersMatch(refHome, refAway, cHome, cAway) {
   return modifierKey(refHome) === modifierKey(cHome) && modifierKey(refAway) === modifierKey(cAway);
