@@ -1,2 +1,13 @@
 ═══ Etape 1 : find game_id ═══
-game_id = null
+  found: SL Benfica vs Heart of Midlothian FC [UEFA Europa League Qualification] id=30449696
+game_id = 30449696
+
+═══ Etape 2 : cotes 1X2 par site_id ═══
+  Reference maxibet.bet home : V1=1.05  X=7.90  V2=19.00
+
+  site_id=211 → V1=1.13 X=13 V2=21 
+  site_id=613 → V1=1.08 X=8.3 V2=12 
+  site_id=894 → V1=1.08 X=8.7 V2=13 
+  site_id=509 → V1=1.08 X=8.7 V2=13 
+  site_id=968 → V1=1.08 X=8.7 V2=13 
+  site_id=122 → V1=1.08 X=8.7 V2=13 
