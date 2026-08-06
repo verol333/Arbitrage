@@ -142,6 +142,15 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         if (a.profit_pct < minP) continue;
         const legAlive = matches[a.leg_a_book]?.live || null;
         const legBlive = matches[a.leg_b_book]?.live || null;
+        // Coupon data : resolve les raw IDs par leg via _ids emis par le parseur
+        // (voir sportybet/parse.js, betmomo/parse.js, congobet/odds.js).
+        // Backend Base44 utilisera ces IDs pour appeler SaveCoupon du bookmaker
+        // et generer le code partageable dans l'app.
+        const keys = marketKeyFromOpp(a);
+        const oddsA = oddsPerBook[a.leg_a_book];
+        const oddsB = oddsPerBook[a.leg_b_book];
+        const legACouponData = keys?.a && oddsA?._ids?.[keys.a] ? oddsA._ids[keys.a] : null;
+        const legBCouponData = keys?.b && oddsB?._ids?.[keys.b] ? oddsB._ids[keys.b] : null;
         all.push({
           ...a, scan_id: scanId, sport, is_live: live,
           match_label: shortMatchLabel(ref.home, ref.away),
@@ -150,6 +159,12 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
           league: ref.league,
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
+          // Match IDs par leg (accessible aussi via {book}_match_id) — copie
+          // directe pour simplifier le lookup cote backend coupon.
+          leg_a_match_id: matches[a.leg_a_book]?.id ? String(matches[a.leg_a_book].id) : null,
+          leg_b_match_id: matches[a.leg_b_book]?.id ? String(matches[a.leg_b_book].id) : null,
+          leg_a_coupon_data: legACouponData,
+          leg_b_coupon_data: legBCouponData,
           status: 'live',
           ...(live ? {
             live_score: liveSnapshot?.score || null,

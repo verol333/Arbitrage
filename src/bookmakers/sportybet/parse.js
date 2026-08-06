@@ -1,160 +1,141 @@
 // Parseur football SportyBet — mapping par MARKET ID (déterministe).
-// Structure : match.markets[].{id, name, specifier, outcomes[].desc/odds}
+// Structure : match.markets[].{id, name, specifier, outcomes[].desc/odds/id}
 // IDs vérifiés via F12 sur /api/ng/factsCenter/event?eventId=...&productId=3.
+//
+// COUPON CODES : chaque cle emise dans `odds` a un pendant dans `odds._ids`
+// avec { eventId, marketId, outcomeId, specifier? } — permet au backend
+// d'appeler POST /api/ng/orders/share pour generer un shareCode.
+// eventId doit venir de l'appelant (match.id) ; on l'injecte via optsMatchId.
 import { isHalfLine } from '../../core/markets.js';
 
-// SportyBet market IDs (FullTime) :
-//   1  = 1X2                     (desc: Home / Draw / Away)
-//   18 = Total Over/Under        (specifier: "total=X.X", desc: "Over X.X" / "Under X.X")
-//   10 = Double Chance           (desc: "Home or Draw" / "Home or Away" / "Away or Draw")
-//   29 = GG/NG                   (desc: Yes / No)
-//   11 = Draw No Bet             (desc: Home / Away)
-//   26 = Odd/Even Total          (desc: Odd / Even)
-//   16 = Asian Handicap          (specifier: "hcp=-0.5", desc: "Home (-0.5)" / "Away (+0.5)")
-//
-// 1st Half :
-//   60 = 1st Half - 1X2          (desc: Home / Draw / Away)
-//   68 = 1st Half - Over/Under   (specifier: "total=X.X")
-//
-// ⚠️ NE PAS mapper 60100, 60200, 60210 : variantes "2UP / 1UP / Never Down" (Early Payout)
-// dont les cotes divergent du 1X2 standard → produisent des fake arbs.
-// ⚠️ NE PAS mapper 14 : Handicap score-based (specifier "hcp=0:1"), pas un Asian HCP.
-
-export function sportybetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
-  if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
+export function sportybetFlatOdds(markets, { live = false, sport = 'football', matchId = null } = {}) {
+  if (sport === 'tennis') return sportybetTennisFlatOdds(markets, matchId);
   const odds = {};
+  odds._ids = {};
+  const eventId = matchId ? (String(matchId).startsWith('sr:match:') ? String(matchId) : `sr:match:${matchId}`) : null;
   if (!Array.isArray(markets)) return odds;
+
+  const emit = (key, value, marketId, outcomeId, specifier) => {
+    odds[key] = value;
+    if (eventId) odds._ids[key] = { eventId, marketId: String(marketId), outcomeId: String(outcomeId), ...(specifier ? { specifier: String(specifier) } : {}) };
+  };
 
   for (const m of markets) {
     const id = String(m?.id ?? '');
     const outcomes = Array.isArray(m?.outcomes) ? m.outcomes : [];
     if (!outcomes.length) continue;
+    const specifier = m.specifier || undefined;
 
     switch (id) {
-      // ─── 1X2 fulltime ─────────────────────────────────────────────
-      case '1': {
+      case '1': {  // 1X2 fulltime
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.match_1 = v;
-          else if (d === 'draw' || d === 'x') odds.match_X = v;
-          else if (d === 'away' || d === '2') odds.match_2 = v;
+          const ocId = String(o?.id || '');
+          if (d === 'home' || d === '1') emit('match_1', v, id, ocId, specifier);
+          else if (d === 'draw' || d === 'x') emit('match_X', v, id, ocId, specifier);
+          else if (d === 'away' || d === '2') emit('match_2', v, id, ocId, specifier);
         }
         break;
       }
-
-      // ─── Total Over/Under (ligne dans specifier "total=X.X") ─────
-      case '18': putTotal(odds, m, 'match_'); break;
-
-      // ─── Double Chance ────────────────────────────────────────────
-      case '10': {
+      case '18': putTotal(odds, m, 'match_', emit); break;
+      case '10': {  // Double Chance
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home or draw' || d === '1x') odds.dc_1X = v;
-          else if (d === 'home or away' || d === '12') odds.dc_12 = v;
-          else if (d === 'away or draw' || d === 'x2') odds.dc_X2 = v;
+          const ocId = String(o?.id || '');
+          if (d === 'home or draw' || d === '1x') emit('dc_1X', v, id, ocId, specifier);
+          else if (d === 'home or away' || d === '12') emit('dc_12', v, id, ocId, specifier);
+          else if (d === 'away or draw' || d === 'x2') emit('dc_X2', v, id, ocId, specifier);
         }
         break;
       }
-
-      // ─── BTTS ─────────────────────────────────────────────────────
-      case '29': {
+      case '29': {  // BTTS
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'yes' || d === 'oui') odds.btts_yes = v;
-          else if (d === 'no' || d === 'non') odds.btts_no = v;
+          const ocId = String(o?.id || '');
+          if (d === 'yes' || d === 'oui') emit('btts_yes', v, id, ocId, specifier);
+          else if (d === 'no' || d === 'non') emit('btts_no', v, id, ocId, specifier);
         }
         break;
       }
-
-      // ─── Draw No Bet ──────────────────────────────────────────────
-      case '11': {
+      case '11': {  // DNB
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.dnb_1 = v;
-          else if (d === 'away' || d === '2') odds.dnb_2 = v;
+          const ocId = String(o?.id || '');
+          if (d === 'home' || d === '1') emit('dnb_1', v, id, ocId, specifier);
+          else if (d === 'away' || d === '2') emit('dnb_2', v, id, ocId, specifier);
         }
         break;
       }
-
-      // ─── Odd/Even Total ───────────────────────────────────────────
-      case '26': {
+      case '26': {  // Odd/Even
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'odd' || d === 'impair') odds.odd = v;
-          else if (d === 'even' || d === 'pair') odds.even = v;
+          const ocId = String(o?.id || '');
+          if (d === 'odd' || d === 'impair') emit('odd', v, id, ocId, specifier);
+          else if (d === 'even' || d === 'pair') emit('even', v, id, ocId, specifier);
         }
         break;
       }
-
-      // ─── Asian Handicap FT (specifier "hcp=X.X") ─────────────────
-      case '16': putAsianHcp(odds, m, ''); break;
-
-      // ─── 1MT 1X2 (vrai ID = 60, pas 60100 qui est une variante 2UP) ──
-      case '60': {
+      case '16': putAsianHcp(odds, m, '', emit); break;
+      case '60': {  // 1MT 1X2
         for (const o of outcomes) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.ht_match_1 = v;
-          else if (d === 'draw' || d === 'x') odds.ht_match_X = v;
-          else if (d === 'away' || d === '2') odds.ht_match_2 = v;
+          const ocId = String(o?.id || '');
+          if (d === 'home' || d === '1') emit('ht_match_1', v, id, ocId, specifier);
+          else if (d === 'draw' || d === 'x') emit('ht_match_X', v, id, ocId, specifier);
+          else if (d === 'away' || d === '2') emit('ht_match_2', v, id, ocId, specifier);
         }
         break;
       }
-
-      // ─── 1MT Over/Under (specifier "total=X.X") ──────────────────
-      case '68': putTotal(odds, m, 'ht_'); break;
-
-      default: break;  // Autres marchés ignorés (combos, spécifiques, variantes Early Payout).
+      case '68': putTotal(odds, m, 'ht_', emit); break;
+      default: break;
     }
   }
   return odds;
 }
 
-// Total O/U : ligne extraite du specifier "total=X.X".
-function putTotal(odds, m, pfx) {
+function putTotal(odds, m, pfx, emit) {
   const line = extractLine(m.specifier, 'total');
   if (!isHalfLine(line)) return;
+  const specifier = m.specifier;
+  const id = String(m.id);
   for (const o of m.outcomes || []) {
     const v = Number(o?.odds);
     if (!Number.isFinite(v) || v <= 1) continue;
     const d = String(o?.desc || '').toLowerCase();
-    if (/^over/.test(d) || /plus/.test(d)) odds[`${pfx}over_${line}`] = v;
-    else if (/^under/.test(d) || /moins/.test(d)) odds[`${pfx}under_${line}`] = v;
+    const ocId = String(o?.id || '');
+    if (/^over/.test(d) || /plus/.test(d)) emit(`${pfx}over_${line}`, v, id, ocId, specifier);
+    else if (/^under/.test(d) || /moins/.test(d)) emit(`${pfx}under_${line}`, v, id, ocId, specifier);
   }
 }
 
-// Handicap Asian : specifier "hcp=X.X" (signé). Home prend ligne l, Away prend -l.
-// BUG CRITIQUE FIX : les regex /home|\b1\b/ et /away|\b2\b/ matchaient le "1" ou
-// "2" dans les nombres du desc (ex: "Away (+1.5)" contient "1" → \b1\b match).
-// Résultat : cote Away ÉCRASAIT cote Home sur hcp_home_${line}, produisant des
-// fake arbs handicap systématiques (user report : Sagarejo +1.5 @ 5.40 = fake).
-// Fix : extraction du team key (mot avant parenthèse) et match exact.
-function putAsianHcp(odds, m, pfx) {
+function putAsianHcp(odds, m, pfx, emit) {
   const line = extractLine(m.specifier, 'hcp');
   if (line == null || !isHalfLine(Math.abs(line))) return;
+  const specifier = m.specifier;
+  const id = String(m.id);
   for (const o of m.outcomes || []) {
     const v = Number(o?.odds);
     if (!Number.isFinite(v) || v <= 1) continue;
     const d = String(o?.desc || '').toLowerCase();
-    // Extraire uniquement la partie AVANT la parenthèse ou espace
+    const ocId = String(o?.id || '');
     const teamKey = d.split(/[\s(]/)[0].trim();
-    if (teamKey === 'home' || teamKey === '1') odds[`${pfx}hcp_home_${line}`] = v;
-    else if (teamKey === 'away' || teamKey === '2') odds[`${pfx}hcp_away_${-line}`] = v;
+    if (teamKey === 'home' || teamKey === '1') emit(`${pfx}hcp_home_${line}`, v, id, ocId, specifier);
+    else if (teamKey === 'away' || teamKey === '2') emit(`${pfx}hcp_away_${-line}`, v, id, ocId, specifier);
   }
 }
 
-// Extrait la valeur numérique après "key=" dans "specifier" ex: "total=2.5" → 2.5.
 function extractLine(specifier, key) {
   if (!specifier) return null;
   const m = String(specifier).match(new RegExp(`${key}=(-?\\d+(?:\\.\\d+)?)`));
@@ -164,15 +145,17 @@ function extractLine(specifier, key) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PARSEUR TENNIS (SportRadar UOF standard).
-// Verifie via dict-sportybet-tennis probe : 24 marketIds distincts, 12 utiles.
-// Structure outcomes : id=4=Home, id=5=Away, id=12=Over, id=13=Under,
-// id=1714=Home hcp, id=1715=Away hcp, id=70=Odd, id=72=Even.
-// Specifier peut combiner : "setnr=1|hcp=-2.5" ou "setnr=1|total=9.5".
+// PARSEUR TENNIS SportyBet — meme convention _ids.
 // ═══════════════════════════════════════════════════════════════
-function sportybetTennisFlatOdds(markets) {
+function sportybetTennisFlatOdds(markets, matchId) {
   const odds = {};
+  odds._ids = {};
+  const eventId = matchId ? (String(matchId).startsWith('sr:match:') ? String(matchId) : `sr:match:${matchId}`) : null;
   if (!Array.isArray(markets)) return odds;
+  const emit = (key, value, marketId, outcomeId, specifier) => {
+    odds[key] = value;
+    if (eventId) odds._ids[key] = { eventId, marketId: String(marketId), outcomeId: String(outcomeId), ...(specifier ? { specifier: String(specifier) } : {}) };
+  };
   for (const mk of markets) {
     const id = String(mk?.id || '');
     const outcomes = Array.isArray(mk?.outcomes) ? mk.outcomes : [];
@@ -187,70 +170,66 @@ function sportybetTennisFlatOdds(markets) {
       if (!Number.isFinite(v) || v <= 1) continue;
       const ocId = String(oc?.id || '');
       switch (id) {
-        case '186': // Winner
-          if (ocId === '4') odds.match_1 = v;
-          else if (ocId === '5') odds.match_2 = v;
+        case '186':
+          if (ocId === '4') emit('match_1', v, id, ocId, spec);
+          else if (ocId === '5') emit('match_2', v, id, ocId, spec);
           break;
-        case '187': // Game handicap
+        case '187':
           if (hcp != null && isHalfLine(Math.abs(hcp))) {
-            if (ocId === '1714') odds[`hcp_home_${hcp}`] = v;
-            else if (ocId === '1715') odds[`hcp_away_${-hcp}`] = v;
+            if (ocId === '1714') emit(`hcp_home_${hcp}`, v, id, ocId, spec);
+            else if (ocId === '1715') emit(`hcp_away_${-hcp}`, v, id, ocId, spec);
           }
           break;
-        case '188': // Set handicap (±1.5)
+        case '188':
           if (hcp != null) {
-            if (ocId === '1714') odds[`hcp_sets_home_${hcp}`] = v;
-            else if (ocId === '1715') odds[`hcp_sets_away_${-hcp}`] = v;
+            if (ocId === '1714') emit(`hcp_sets_home_${hcp}`, v, id, ocId, spec);
+            else if (ocId === '1715') emit(`hcp_sets_away_${-hcp}`, v, id, ocId, spec);
           }
           break;
-        case '189': // Total games
+        case '189':
           if (total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`match_over_${total}`] = v;
-            else if (ocId === '13') odds[`match_under_${total}`] = v;
+            if (ocId === '12') emit(`match_over_${total}`, v, id, ocId, spec);
+            else if (ocId === '13') emit(`match_under_${total}`, v, id, ocId, spec);
           }
           break;
-        case '190': // Player 1 (home) total games
+        case '190':
           if (total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`tt_home_over_${total}`] = v;
-            else if (ocId === '13') odds[`tt_home_under_${total}`] = v;
+            if (ocId === '12') emit(`tt_home_over_${total}`, v, id, ocId, spec);
+            else if (ocId === '13') emit(`tt_home_under_${total}`, v, id, ocId, spec);
           }
           break;
-        case '191': // Player 2 (away) total games
+        case '191':
           if (total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`tt_away_over_${total}`] = v;
-            else if (ocId === '13') odds[`tt_away_under_${total}`] = v;
+            if (ocId === '12') emit(`tt_away_over_${total}`, v, id, ocId, spec);
+            else if (ocId === '13') emit(`tt_away_under_${total}`, v, id, ocId, spec);
           }
           break;
-        case '196': // Exact sets (2 or 3)
-          if (String(oc.id).includes(':32')) odds.total_sets_2 = v;
-          else if (String(oc.id).includes(':33')) odds.total_sets_3 = v;
+        case '198':
+          if (ocId === '70') emit('odd', v, id, ocId, spec);
+          else if (ocId === '72') emit('even', v, id, ocId, spec);
           break;
-        case '198': // Odd/Even games
-          if (ocId === '70') odds.odd = v;
-          else if (ocId === '72') odds.even = v;
-          break;
-        case '202': // Set N winner (setnr=1 or 2)
+        case '202':
           if (setnr) {
-            if (ocId === '4') odds[`${setPfx}match_1`] = v;
-            else if (ocId === '5') odds[`${setPfx}match_2`] = v;
+            if (ocId === '4') emit(`${setPfx}match_1`, v, id, ocId, spec);
+            else if (ocId === '5') emit(`${setPfx}match_2`, v, id, ocId, spec);
           }
           break;
-        case '203': // Set N game handicap
+        case '203':
           if (setnr && hcp != null && isHalfLine(Math.abs(hcp))) {
-            if (ocId === '1714') odds[`${setPfx}hcp_home_${hcp}`] = v;
-            else if (ocId === '1715') odds[`${setPfx}hcp_away_${-hcp}`] = v;
+            if (ocId === '1714') emit(`${setPfx}hcp_home_${hcp}`, v, id, ocId, spec);
+            else if (ocId === '1715') emit(`${setPfx}hcp_away_${-hcp}`, v, id, ocId, spec);
           }
           break;
-        case '204': // Set N total games
+        case '204':
           if (setnr && total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`${setPfx}over_${total}`] = v;
-            else if (ocId === '13') odds[`${setPfx}under_${total}`] = v;
+            if (ocId === '12') emit(`${setPfx}over_${total}`, v, id, ocId, spec);
+            else if (ocId === '13') emit(`${setPfx}under_${total}`, v, id, ocId, spec);
           }
           break;
-        case '314': // Total sets 2.5
+        case '314':
           if (total != null) {
-            if (ocId === '12') odds[`total_sets_over_${total}`] = v;
-            else if (ocId === '13') odds[`total_sets_under_${total}`] = v;
+            if (ocId === '12') emit(`total_sets_over_${total}`, v, id, ocId, spec);
+            else if (ocId === '13') emit(`total_sets_under_${total}`, v, id, ocId, spec);
           }
           break;
         default: break;

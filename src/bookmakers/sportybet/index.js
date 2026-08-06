@@ -24,18 +24,18 @@ export default {
     if (sport === 'tennis') {
       const evt = await sbFetchEvent(match.id, { live });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
-      return markets.length ? sportybetFlatOdds(markets, { live, sport: 'tennis' }) : {};
+      return markets.length ? sportybetFlatOdds(markets, { matchId: match.id, live, sport: 'tennis' }) : {};
     }
     if (live) {
       const evt = await sbFetchEvent(match.id, { live: true });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
-      return markets.length ? sportybetFlatOdds(markets, { live: true }) : {};
+      return markets.length ? sportybetFlatOdds(markets, { matchId: match.id, live: true }) : {};
     }
     if (noCache) {
       const evt = await sbFetchEvent(match.id, { live: false });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
-      if (markets.length) return sportybetFlatOdds(markets, { live: false });
+      if (markets.length) return sportybetFlatOdds(markets, { matchId: match.id, live: false });
     }
-    return sportybetFlatOdds(match.__raw?.markets || [], { live: false });
+    return sportybetFlatOdds(match.__raw?.markets || [], { matchId: match.id, live: false });
   },
 };
