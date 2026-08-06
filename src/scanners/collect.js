@@ -539,14 +539,16 @@ function marketKeyFromOpp(o) {
     const n = ORD_TO_N[vainSetOrd[1]];
     return { a: `s${n}_match_1`, b: `s${n}_match_2` };
   }
-  // Handicap Jeux (match complet)
-  const hcpJeux = fam.match(/^Handicap Jeux\s*([+-]?\d+(?:\.\d+)?)$/);
+  // Handicap Jeux Match (whole match games) — nouveau label explicite "Match".
+  // Ancien "Handicap Jeux X" (sans Match) reste aussi accepte pour retro-compat.
+  const hcpJeux = fam.match(/^Handicap Jeux(?: Match)?\s*([+-]?\d+(?:\.\d+)?)$/);
   if (hcpJeux) {
     const l = parseFloat(hcpJeux[1]);
     return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
   }
-  // Handicap 1er/2e/... Set (jeux implicite au sein du set)
-  const hcpSetOrd = fam.match(/^Handicap (1er|2e|3e|4e|5e) Set\s*([+-]?\d+(?:\.\d+)?)$/);
+  // Handicap Jeux Nieme Set — nouveau label "Handicap Jeux 1er Set" (explicite).
+  // Ancien "Handicap 1er Set X" (sans "Jeux") reste accepte pour retro-compat.
+  const hcpSetOrd = fam.match(/^Handicap(?: Jeux)? (1er|2e|3e|4e|5e) Set\s*([+-]?\d+(?:\.\d+)?)$/);
   if (hcpSetOrd) {
     const n = ORD_TO_N[hcpSetOrd[1]];
     const l = parseFloat(hcpSetOrd[2]);
@@ -572,14 +574,14 @@ function marketKeyFromOpp(o) {
     const l = parseFloat(totJeuxJ[2]);
     return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
   }
-  // Total Sets
-  const totSets = fam.match(/^Total Sets\s*(\d+(?:\.\d+)?)$/);
+  // Total Nombre de Sets — nouveau label explicite. Ancien "Total Sets" garde retro-compat.
+  const totSets = fam.match(/^Total (?:Nombre de )?Sets\s*(\d+(?:\.\d+)?)$/);
   if (totSets) {
     const l = parseFloat(totSets[1]);
     return { a: `total_sets_over_${l}`, b: `total_sets_under_${l}` };
   }
-  // Handicap Sets
-  const hcpSets = fam.match(/^Handicap Sets\s*([+-]?\d+(?:\.\d+)?)$/);
+  // Handicap Nombre de Sets — nouveau label explicite. Ancien "Handicap Sets" garde retro-compat.
+  const hcpSets = fam.match(/^Handicap (?:Nombre de )?Sets\s*([+-]?\d+(?:\.\d+)?)$/);
   if (hcpSets) {
     const l = parseFloat(hcpSets[1]);
     return { a: `hcp_sets_home_${l}`, b: `hcp_sets_away_${-l}` };

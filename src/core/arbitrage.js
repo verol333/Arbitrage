@@ -343,17 +343,28 @@ function flipTennisOdds(odds) {
 }
 
 // Comparateur TENNIS 2-way (pas de nul → pas de DC, pas de BTTS, pas de DNB).
-// Marches supportes :
-// - Vainqueur du Match       (match_1 vs match_2, croisé cross-book)
-// - Handicap Jeux X          (hcp_home_X vs hcp_away_-X)
-// - Total Jeux Match X       (match_over_X vs match_under_X)
-// - Total Jeux J1/J2 X       (tt_home/tt_away over/under)
-// - Total Sets X             (total_sets_over/under)
-// - Handicap Sets X          (hcp_sets_home_X vs hcp_sets_away_-X)
-// - Vainqueur Set N          (sN_match_1 vs sN_match_2)
-// - Handicap Jeux Set N X    (sN_hcp_home_X vs sN_hcp_away_-X)
-// - Total Jeux Set N X       (sN_over_X vs sN_under_X)
-// - Pair/Impair Jeux         (odd vs even)
+// Labels EXPLICITES pour eviter la confusion utilisateur ("Handicap Jeux Match"
+// vs "Handicap Jeux 1er Set" vs "Handicap Nombre de Sets" — 3 marches distincts).
+// Guards sur les lignes IMPOSSIBLES (ex: handicap set 1 sur ±7.5 → PB ne l'offre
+// pas, autres books peuvent → arb non-actionnable). Bornes calibrees tennis reel :
+//   - Handicap Jeux Match      : max ±12.5 (rare au-dela)
+//   - Handicap Nombre de Sets  : max ±2.5  (BO5 = gap max 2 sets)
+//   - Handicap Jeux N-eme Set  : max ±5.5  (set fini a 7-0 max = gap 6)
+//   - Total Nombre de Sets     : entre 2.5 et 4.5 (BO3=2-3, BO5=3-5)
+// Ces bornes filtrent les lignes exotiques que certains books (1win) exposent
+// mais qui ne matchent pas ce que le user voit sur PB/BetPawa/Sportybet.
+const TENNIS_LIMITS = {
+  hcpMatchGames: 12.5,   // ±12.5 max sur jeux du match complet
+  hcpSets: 2.5,          // ±2.5 max sur nb de sets
+  hcpSetGames: 5.5,      // ±5.5 max sur jeux d'un set
+  totalMatchGamesMin: 12.5, totalMatchGamesMax: 46.5,
+  totalSetsMin: 2.5, totalSetsMax: 4.5,
+  totalSetGamesMin: 6.5, totalSetGamesMax: 14.5,
+  totalPlayerGamesMin: 4.5, totalPlayerGamesMax: 22.5,
+};
+const inRange = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
+const inAbsRange = (v, max) => Number.isFinite(v) && Math.abs(v) <= max;
+
 export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, matchB = null) {
   const oa = normalizeAliases(rawA);
   let ob = normalizeAliases(rawB);
@@ -370,26 +381,34 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
   pushArb(out, 'Vainqueur du Match', 'Joueur 1', oa.match_1, bookA, 'Joueur 2', ob.match_2, bookB);
   pushArb(out, 'Vainqueur du Match', 'Joueur 1', ob.match_1, bookB, 'Joueur 2', oa.match_2, bookA);
 
-  // Handicap Jeux (games handicap) — signe positif = avantage
+  // Handicap Jeux MATCH (whole match games) — label explicite "Match" pour
+  // distinguer du handicap set-specifique. Sanity : ±12.5 max.
   for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
     const lNum = parseFloat(l);
+    if (!inAbsRange(lNum, TENNIS_LIMITS.hcpMatchGames)) continue;
     const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
     const sign = lNum > 0 ? '+' + l : l;
-    const fam = `Handicap Jeux ${sign}`;
-    pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
-    pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
+    const opp = -lNum;
+    const oppSign = opp > 0 ? '+' + opp : String(opp);
+    const fam = `Handicap Jeux Match ${sign}`;
+    pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${oppSign}`, ob[ak], bookB);
+    pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${oppSign}`, oa[ak], bookA);
   }
 
-  // Total Jeux du match
+  // Total Jeux Match — sanity : entre 12.5 et 46.5 (BO3 = ~20, BO5 = ~30-40).
   for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    if (!inRange(lNum, TENNIS_LIMITS.totalMatchGamesMin, TENNIS_LIMITS.totalMatchGamesMax)) continue;
     const fam = `Total Jeux Match ${l}`;
     pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB);
     pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA);
   }
 
-  // Total Jeux par joueur (tt_home = J1, tt_away = J2)
+  // Total Jeux par joueur (tt_home = J1, tt_away = J2) — sanity : 4.5 a 22.5.
   for (const [side, lbl] of [['home', 'J1'], ['away', 'J2']]) {
     for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const lNum = parseFloat(l);
+      if (!inRange(lNum, TENNIS_LIMITS.totalPlayerGamesMin, TENNIS_LIMITS.totalPlayerGamesMax)) continue;
       const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
       const fam = `Total Jeux ${lbl} ${l}`;
       pushArb(out, fam, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB);
@@ -397,28 +416,32 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
     }
   }
 
-  // Total Sets (nombre de sets du match)
+  // Total Nombre de Sets — label explicite, sanity : 2.5-4.5 (BO3 ou BO5).
   for (const l of linesOf(oa, ob, /^total_sets_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
-    const fam = `Total Sets ${l}`;
+    const lNum = parseFloat(l);
+    if (!inRange(lNum, TENNIS_LIMITS.totalSetsMin, TENNIS_LIMITS.totalSetsMax)) continue;
+    const fam = `Total Nombre de Sets ${l}`;
     pushArb(out, fam, `+${l}`, oa[`total_sets_over_${l}`], bookA, `−${l}`, ob[`total_sets_under_${l}`], bookB);
     pushArb(out, fam, `+${l}`, ob[`total_sets_over_${l}`], bookB, `−${l}`, oa[`total_sets_under_${l}`], bookA);
   }
 
-  // Handicap Sets
+  // Handicap Nombre de Sets — label explicite, sanity : ±2.5 max.
   for (const l of linesOf(oa, ob, /^hcp_sets_home_(-?\d+(?:\.\d+)?)$/)) {
     const lNum = parseFloat(l);
+    if (!inAbsRange(lNum, TENNIS_LIMITS.hcpSets)) continue;
     const hk = `hcp_sets_home_${l}`, ak = `hcp_sets_away_${-lNum}`;
     const sign = lNum > 0 ? '+' + l : l;
-    const fam = `Handicap Sets ${sign}`;
-    pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
-    pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
+    const opp = -lNum;
+    const oppSign = opp > 0 ? '+' + opp : String(opp);
+    const fam = `Handicap Nombre de Sets ${sign}`;
+    pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${oppSign}`, ob[ak], bookB);
+    pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${oppSign}`, oa[ak], bookA);
   }
 
-  // Marches par set : Vainqueur, Handicap (sur les jeux du set), Total Jeux
-  // Labels ordinaux FR clairs : "1er Set" / "2e Set" etc. Handicap ici = handicap
-  // sur les jeux gagnes DANS le set (different de "Handicap Sets" qui porte sur
-  // le nombre total de sets du match). Ancien "Handicap Jeux Set N" ambigu →
-  // renomme "Handicap 1er Set" (jeux implicite, plus court, plus clair FR).
+  // Marches par set : Vainqueur, Handicap (sur les jeux du set), Total Jeux.
+  // Label EXPLICITE "Handicap Jeux 1er Set" (au lieu de l'ambigu "Handicap 1er Set")
+  // pour clarifier vs "Handicap Nombre de Sets". Sanity ±5.5 (max gap possible dans
+  // un set = 7-0). Elimine les fake opps 1win@±7.5 vs PB qui n'offre que ±2.5.
   const ORDINAL = ['1er', '2e', '3e', '4e', '5e'];
   for (const n of ['1', '2', '3', '4', '5']) {
     const pfx = `s${n}_`;
@@ -426,17 +449,22 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
     // Vainqueur du Set
     pushArb(out, `Vainqueur ${ord} Set`, 'J1', oa[`${pfx}match_1`], bookA, 'J2', ob[`${pfx}match_2`], bookB);
     pushArb(out, `Vainqueur ${ord} Set`, 'J1', ob[`${pfx}match_1`], bookB, 'J2', oa[`${pfx}match_2`], bookA);
-    // Handicap DANS le set (sur les jeux gagnes de ce set)
+    // Handicap DANS le set (sur les jeux gagnes de ce set) — sanity ±5.5.
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
       const lNum = parseFloat(l);
+      if (!inAbsRange(lNum, TENNIS_LIMITS.hcpSetGames)) continue;
       const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
       const sign = lNum > 0 ? '+' + l : l;
-      const fam = `Handicap ${ord} Set ${sign}`;
-      pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB);
-      pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA);
+      const opp = -lNum;
+      const oppSign = opp > 0 ? '+' + opp : String(opp);
+      const fam = `Handicap Jeux ${ord} Set ${sign}`;
+      pushArb(out, fam, `J1 ${sign}`, oa[hk], bookA, `J2 ${oppSign}`, ob[ak], bookB);
+      pushArb(out, fam, `J1 ${sign}`, ob[hk], bookB, `J2 ${oppSign}`, oa[ak], bookA);
     }
-    // Total jeux du set
+    // Total jeux du set — sanity : 6.5-14.5 (7-6 = 13 jeux max).
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const lNum = parseFloat(l);
+      if (!inRange(lNum, TENNIS_LIMITS.totalSetGamesMin, TENNIS_LIMITS.totalSetGamesMax)) continue;
       const fam = `Total Jeux ${ord} Set ${l}`;
       pushArb(out, fam, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB);
       pushArb(out, fam, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA);
