@@ -1,494 +1,73 @@
-═══ Maxibet (site_id=211) — Benfica vs Heart of Midlothian ═══
+▶▶▶ PROBE Tenerife vs Tamaraceite — refetch fresh + cross-check
 
-► SL Benfica vs Heart of Midlothian FC
-  [UEFA Europa League Qualification]
-  Kickoff: 2026-08-06T19:00:00.000Z
-  Game ID: 30449696
+═══ 1XBET ═══
+[xbet] listPrematch : 318 champs a fetcher (BATCH=40)
+  1 match(s) potentiel(s) trouvé(s) dans 1996 listés
+  → id=741442284 "Eibar" vs "Tenerife" league="Spain. Segunda Division" start=2026-08-16T15:00:00.000Z
+    96 clés refetch fresh :
+      btts_no                      = 1.74
+      btts_yes                     = 1.98
+      h2_btts_no                   = 1.22
+      h2_btts_yes                  = 3.84
+      h2_match_1                   = 2.14
+      h2_match_2                   = 4.55
+      h2_match_X                   = 2.39
+      h2_over_2.5                  = 5.15
+      h2_over_3.5                  = 17
+      h2_under_2.5                 = 1.098
+      h2_under_3.5                 = 1.025
+      ht_btts_no                   = 1.126
+      ht_btts_yes                  = 5.2
+      ht_match_1                   = 2.38
+      ht_match_2                   = 5.2
+      ht_match_X                   = 2.03
+      ht_over_2.5                  = 7.9
+      ht_over_3.5                  = 29
+      ht_under_2.5                 = 1.022
+      ht_under_3.5                 = 1.01
+      match_1                      = 1.822
+      match_2                      = 4.68
+      match_X                      = 3.58
+      match_over_2.5               = 2.202
+      match_over_3.5               = 3.78
+      match_under_2.5              = 1.702
+      match_under_3.5              = 1.193
+      tt_home_over_2.5             = 4.3
+      tt_home_over_3.5             = 9.6
+      tt_home_under_2.5            = 1.182
+      tt_home_under_3.5            = 1.006
+    ── COMPARE opps envoyees ──
+      [BTTS] Oui envoye=2.06  refetch=1.98  🔴 DRIFT -0.08
+      [Total 2.5] +2.5 envoye=1.76  refetch=2.202  🔴 DRIFT 0.44
 
-═══ 465 marches disponibles ═══
+═══ BETPAWA ═══
+[betpawa:football] UPCOMING : 1185 matchs listés (0 enrichis)
+  1 match(s) potentiel(s) trouvé(s) dans 1185 listés
+  → id=36320490 "SD Eibar" vs "Tenerife CD" league="?" start=?
+    39 clés refetch fresh :
+      btts_no                      = 1.74
+      btts_yes                     = 2.11
+      h2_btts_no                   = 1.2
+      h2_btts_yes                  = 4.06
+      h2_match_1                   = 2.18
+      h2_match_2                   = 4.54
+      h2_match_X                   = 2.38
+      ht_btts_no                   = 1.13
+      ht_btts_yes                  = 5.07
+      ht_match_1                   = 2.35
+      ht_match_2                   = 5.27
+      ht_match_X                   = 2.06
+      match_1                      = 1.81
+      match_2                      = 4.89
+      match_X                      = 3.43
+    ── COMPARE opps envoyees ──
+      [BTTS] Non envoye=2.09  refetch=1.74  🔴 DRIFT -0.35
 
+═══ YELLOWBET ═══
+  0 match(s) potentiel(s) trouvé(s) dans 655 listés
 
-━━━━━━ Halves (136) ━━━━━━
-  1st Half Goals Asian Handicap (base=0.25)          Away@0.25=3.9  |  Home@-0.25=1.24
-  1st Half Total Goals (base=1)                      Under@1=3.45  |  Over@1=1.29
-  1st Half Total Goals Asian (base=0.75)             Under@0.75=4.15  |  Over@0.75=1.22
-  1st Half Goals Asian Handicap (base=1.25)          Away@1.25=1.73  |  Home@-1.25=2.09
-  1st Half Result                                    X=3.79  |  W1=1.41  |  W2=13
-  1st Half Goals Asian Handicap (base=0.75)          Home@-0.75=1.52  |  Away@0.75=2.45
-  1st Half Goals Handicap (base=1)                   Away@1=2.08  |  Home@-1=1.74
-  1st Half Total Goals (base=1.5)                    Over@1.5=1.86  |  Under@1.5=1.95
-  1st Half Goals Handicap (base=0.5)                 Home@-0.5=1.4  |  Away@0.5=2.8
-  1st Half Total Goals Asian (base=1.75)             Over@1.75=2.13  |  Under@1.75=1.7
-  1st Half Total Goals Asian (base=1.25)             Over@1.25=1.57  |  Under@1.25=2.35
-  Both Halves Less Than 1.5 Goals                    Yes=4.42  |  No=1.17
-  Both Halves More Than 1.5 Goals                    Yes=2.75  |  No=1.39
-  First Half Total Goals Vs Second Half Total Goals Handicap (base=-1.5) FirstHalf({-h})@1.5=1.31  |  SecondHalf({h})@-1.5=3.15
-  First Half Total Goals Vs Second Half Total Goals Handicap (base=-0.5) FirstHalf({-h})@0.5=1.77  |  SecondHalf({h})@-0.5=1.95
-  First Half Total Goals Vs Second Half Total Goals Handicap (base=0.5) FirstHalf({-h})@-0.5=2.8  |  SecondHalf({h})@0.5=1.38
-  Goal in Second Half                                No=6  |  Yes=1.095
-  2nd Half Both Teams To Score                       Yes=3.4  |  No=1.27
-  2nd Half Total Goals (base=4.5)                    Under@4.5=1.035  |  Over@4.5=8.7
-  2nd Half Total Goals (base=4)                      Under@4=1.045  |  Over@4=8.2
-  2nd Half Total Goals (base=3.5)                    Under@3.5=1.15  |  Over@3.5=4.75
-  2nd Half Total Goals (base=3)                      Under@3=1.2  |  Over@3=4.05
-  2nd Half Total Goals (base=2.5)                    Under@2.5=1.46  |  Over@2.5=2.52
-  2nd Half Total Goals (base=2)                      Under@2=1.81  |  Over@2=1.89
-  2nd Half Total Goals (base=1.5)                    Under@1.5=2.39  |  Over@1.5=1.51
-  2nd Half Total Goals (base=1)                      Under@1=4.9  |  Over@1=1.14
-  2nd Half Total Goals (base=0.5)                    Under@0.5=6  |  Over@0.5=1.095
-  2nd Half Correct Score                             Home-Away=14  |  Home-Away=6  |  Home-Away=301  |  Home-Away=61  |  Home-Away=8.7  |  Home-Away=3.67  |  Home-Away=226  |  Home-Away=36  |  Home-Away=9.7  |  Home-Away=4.1  |  Home-Away=176  |  Home-Away=41  |  Home-Away=15  |  Home-Away=6.5  |  Home-Away=401  |  Home-Away=67
-  2nd Half Goals Handicap (base=2.5)                 Away@2.5=1.21  |  Home@-2.5=3.9
-  2nd Half Goals Handicap (base=2)                   Away@2=1.31  |  Home@-2=3.15
-  2nd Half Goals Handicap (base=1.5)                 Away@1.5=1.67  |  Home@-1.5=2.07
-  2nd Half Goals Handicap (base=1)                   Away@1=2.37  |  Home@-1=1.52
-  2nd Half Goals Handicap (base=0)                   Away@0=7.3  |  Home@0=1.06
-  2nd Half Double Chance                             12=1.2  |  1X=1.04  |  X2=3.14
-  2nd Half Result                                    W1=1.3  |  W2=12  |  X=4.1
-  2nd Half Goals Handicap 3 Way (base=1)             Tie@1=3.04  |  Home@-1=2.07  |  Away@1=3.14
-  2nd Half: Outcome And Both Teams To Score          W1AndYes=4.6  |  DrawAndYes=6.9  |  W1AndNo=1.6  |  W2AndYes=26  |  DrawAndNo=6.7  |  W2AndNo=11
-  2nd Half Team 2 Total Goals (Extended Bands)       1-2=2.93  |  1-4=2.95  |  1-3=2.88  |  2-4=14  |  2-3=14  |  AnyOther=1.35  |  3-4=101
-  2nd Half Team 1 Total Goals (Extended Bands)       1-3=1.3  |  1-2=1.62  |  2-3=2.09  |  1-4=1.2  |  3-4=3.63  |  2-4=1.83  |  AnyOther=4
-  2nd Half Total Goals (Extended Bands)              1-2=1.74  |  1-4=1.17  |  1-3=1.32  |  2-4=1.64  |  2-3=1.85  |  AnyOther=4.4  |  3-4=2.93
-  1st Half Team 2 Total Goals (Exact)                1=4.1  |  0=1.2  |  2+=29
-  1st Half Team 1 Total Goals (Exact)                0=3.71  |  2+=2.09  |  1=2.76
-  1st Half Total Goals (Exact)                       0=4.7  |  1=2.89  |  3=4.4  |  2=3.34  |  4+=6.4
-  Goal in First Half                                 Yes=1.18  |  No=4.7
-  Team 2 Score in First Half                         Yes=3.83  |  No=1.22
-  Team 1 Score in First Half                         Yes=1.25  |  No=3.57
-  1st Half Both Teams To Score                       Yes=4.9  |  No=1.14
-  1st Half Team 2 Total Goals Asian (base=0.75)      Over@0.75=5.55  |  Under@0.75=1.11
-  1st Half Team 2 Total Goals (base=0.5)             Over@0.5=3.83  |  Under@0.5=1.22
-  1st Half Team 1 Total Goals Asian (base=2.25)      Over@2.25=3.9  |  Under@2.25=1.21
-  1st Half Team 1 Total Goals Asian (base=1.75)      Over@1.75=2.5  |  Under@1.75=1.47
-  1st Half Team 1 Total Goals Asian (base=1.25)      Over@1.25=1.78  |  Under@1.25=1.92
-  1st Half Team 1 Total Goals Asian (base=0.75)      Over@0.75=1.33  |  Under@0.75=3.05
-  1st Half Team 1 Total Goals (base=2)               Over@2=3.4  |  Under@2=1.27
-  1st Half Team 1 Total Goals (base=1.5)             Over@1.5=2.1  |  Under@1.5=1.65
-  1st Half Team 1 Total Goals (base=1)               Over@1=1.46  |  Under@1=2.52
-  1st Half Team 1 Total Goals (base=0.5)             Over@0.5=1.25  |  Under@0.5=3.57
-  1st Half Correct Score                             Home-Away=4.7  |  Home-Away=91  |  Home-Away=13  |  Home-Away=3.29  |  Home-Away=401  |  Home-Away=56  |  Home-Away=12  |  Home-Away=4  |  Home-Away=401  |  Home-Away=96  |  Home-Away=15  |  Home-Away=7.8  |  Home-Away=401  |  Home-Away=176  |  Home-Away=26  |  Home-Away=401
-  1st Half Goals Asian Handicap (base=1.75)          Home@-1.75=2.95  |  Away@1.75=1.37
-  1st Half Double Chance                             1X=1.05  |  X2=2.8  |  12=1.26
-  1st Half Goals Handicap 3 Way (base=1)             Tie@1=3.05  |  Home@-1=2.43  |  Away@1=2.8
-  1st Half: Outcome And Both Teams To Score          W1AndYes=7.1  |  DrawAndYes=9.1  |  W1AndNo=1.56  |  W2AndYes=36  |  DrawAndNo=4.6  |  W2AndNo=9.1
-  1st Half Team 2 Total Goals (Extended Bands)       1-2=3.78  |  1-4=3.83  |  1-3=3.75  |  2-4=25  |  2-3=25  |  AnyOther=1.22  |  3-4=226
-  1st Half Team 1 Total Goals (Extended Bands)       1-3=1.34  |  1-2=1.59  |  2-3=2.34  |  1-4=1.27  |  3-4=4.8  |  2-4=2.12  |  AnyOther=3.3
-  1st Half Total Goals (Extended Bands)              1-2=1.61  |  1-4=1.21  |  1-3=1.3  |  2-4=1.87  |  2-3=2.08  |  AnyOther=3.93  |  3-4=3.8
-  1st Half Total Goals (base=2)                      Under@2=1.43  |  Over@2=2.7
-  1st Half Goals Handicap (base=1.5)                 Away@1.5=1.53  |  Home@-1.5=2.43
-  1st Half Goals Handicap (base=0)                   Away@0=7.7  |  Home@0=1.08
-  1st Half Team 1 Total Goals (base=2.5)             Under@2.5=1.17  |  Over@2.5=4.42
-  1st Half Goals Handicap (base=2)                   Home@-2=4.25  |  Away@2=1.21
-  1st Half Goals Asian Handicap (base=2.25)          Home@-2.25=4.9  |  Away@2.25=1.19
-  1st Half Total Goals Asian (base=2.25)             Over@2.25=3.15  |  Under@2.25=1.33
-  1st Half Total Goals 3 Way (base=2)                Over@2=3.6  |  Under@2=1.96  |  Exactly@2=3.34
-  1st Half Goals Handicap (base=2.5)                 Away@2.5=1.15  |  Home@-2.5=5.3
-  1st Half Team 1 Total Goals Asian (base=2.75)      Over@2.75=5.55  |  Under@2.75=1.11
-  1st Half Total Goals (base=2.5)                    Over@2.5=3.5  |  Under@2.5=1.28
-  Each Half Will Be Won By A Different Team          No=1.07  |  Yes=6.9
-  1st Half/2nd Half Both To Score                    Yes/Yes=19  |  No/Yes=4  |  Yes/No=6.6  |  No/No=1.47
-  2nd Half Team 2 Total Goals (Bands)                0or1=1.027  |  4ormore=401  |  2or3=7.8
-  2nd Half Team 1 Total Goals (Bands)                2or3=2.13  |  0or1=1.94  |  4ormore=8.1
-  2nd Half Team 2 Total Goals (Exact)                0=1.35  |  2+=17  |  1=3.37
-  2nd Half Team 1 Total Goals (Exact)                1=2.94  |  0=5.1  |  2+=1.76
-  2nd Half Total Goals (Exact)                       0=6  |  2=2.8  |  1=2.93  |  4+=4.75  |  3=3.69
-  2nd Half Total Goals (Bands)                       2or3=1.82  |  0or1=2.39  |  7ormore=26  |  4to6=4.3
-  Team 2 Score in Second Half                        No=1.35  |  Yes=2.95
-  Team 1 Score in Second Half                        No=4.57  |  Yes=1.16
-  2nd Half Team 2 Total Goals (base=1.5)             Under@1.5=1.027  |  Over@1.5=9.3
-  2nd Half Team 2 Total Goals (base=1)               Under@1=1.04  |  Over@1=8.5
-  2nd Half Team 2 Total Goals (base=0.5)             Under@0.5=1.35  |  Over@0.5=2.95
-  2nd Half Team 1 Total Goals (base=3.5)             Under@3.5=1.075  |  Over@3.5=6.7
-  2nd Half Team 1 Total Goals (base=3)               Under@3=1.095  |  Over@3=6
-  2nd Half Team 1 Total Goals (base=2.5)             Under@2.5=1.29  |  Over@2.5=3.25
-  2nd Half Team 1 Total Goals (base=2)               Under@2=1.47  |  Over@2=2.5
-  2nd Half Team 1 Total Goals (base=1.5)             Under@1.5=1.94  |  Over@1.5=1.76
-  2nd Half Team 1 Total Goals (base=1)               Under@1=3.47  |  Over@1=1.26
-  2nd Half Team 1 Total Goals (base=0.5)             Under@0.5=4.57  |  Over@0.5=1.16
-  2nd Half Goals Handicap (base=3.5)                 Away@3.5=1.055  |  Home@-3.5=7.5
-  2nd Half Goals Handicap (base=3)                   Away@3=1.065  |  Home@-3=7.1
-  2nd Half Goals Handicap 3 Way (base=3)             Tie@3=5.6  |  Home@-3=8.6  |  Away@3=1.21
-  2nd Half Goals Handicap 3 Way (base=2)             Home@-2=3.9  |  Away@2=1.67  |  Tie@2=3.66
-  2nd Half Goals Handicap 3 Way (base=0)             Tie@0=4.1  |  Home@0=1.3  |  Away@0=12
-  2nd Half Team 2 To Win To Nil                      Yes=9.5  |  No=1.025
-  2nd Half Team 1 To Win To Nil                      Yes=1.6  |  No=2.2
-  2nd Half Last Team to Score                        Home=1.28  |  NoGoal=6.7  |  Away=5.5
-  2nd Half First Team to Score                       Away=5.5  |  Home=1.28  |  NoGoal=6.7
-  1st Half Team 2 Total Goals (Bands)                0or1=1.008  |  4ormore=401  |  2or3=8.8
-  1st Half Team 1 Total Goals (Bands)                2or3=2.37  |  0or1=1.65  |  4ormore=8.7
-  1st Half Total Goals (Bands)                       0or1=1.96  |  4to6=6.5  |  2or3=1.97  |  7ormore=26
-  1st Half Team 1 Total Goals Asian (base=3.75)      Over@3.75=10.3  |  Under@3.75=1.017
-  1st Half Team 1 Total Goals Asian (base=3.25)      Over@3.25=8.7  |  Under@3.25=1.035
-  1st Half Team 1 Total Goals (base=3.5)             Over@3.5=8.7  |  Under@3.5=1.035
-  1st Half Team 1 Total Goals (base=3)               Over@3=8.2  |  Under@3=1.045
-  1st Half Total Goals Asian (base=3.75)             Over@3.75=10.5  |  Under@3.75=1.045
-  1st Half Total Goals Asian (base=3.25)             Over@3.25=7.2  |  Under@3.25=1.09
-  1st Half Goals Asian Handicap (base=3.25)          Home@-3.25=12  |  Away@3.25=1.035
-  1st Half Goals Handicap (base=3)                   Home@-3=11.5  |  Away@3=1.037
-  1st Half Goals Asian Handicap (base=-0.25)         Home@0.25=1.06  |  Away@-0.25=9
-  1st Half Goals Handicap 3 Way (base=3)             Home@-3=15  |  Away@3=1.15  |  Tie@3=7.5
-  1st Half Goals Handicap 3 Way (base=2)             Tie@2=3.98  |  Home@-2=5.6  |  Away@2=1.54
-  1st Half Goals Handicap 3 Way (base=0)             Home@0=1.4  |  Away@0=12  |  Tie@0=3.61
-  1st Half Team 2 To Win To Nil                      No=1.035  |  Yes=8.7
-  1st Half Team 1 To Win To Nil                      No=2.27  |  Yes=1.56
-  1st Half Last Team to Score                        Away=6.7  |  Home=1.34  |  NoGoal=4.6
-  1st Half First Team to Score                       Home=1.34  |  NoGoal=4.6  |  Away=6.7
-  1st Half Team 1 Win By Exact  Goal (base=3)        No@3=1.075  |  Yes@3=6.7
-  1st Half Team 1 Win By Exact  Goal (base=2)        No@2=1.23  |  Yes@2=3.75
-  1st Half Team 2 Win By Exact  Goal (base=1)        No@1=1.035  |  Yes@1=8.7
-  1st Half Team 1 Win By Exact  Goal (base=1)        No@1=1.36  |  Yes@1=2.87
-  1st Half Total Goals Asian (base=2.75)             Under@2.75=1.19  |  Over@2.75=4.5
-  1st Half Total Goals (base=3.5)                    Under@3.5=1.08  |  Over@3.5=7.7
-  1st Half Total Goals (base=3)                      Under@3=1.1  |  Over@3=7
-  1st Half Total Goals (base=0.5)                    Under@0.5=4.7  |  Over@0.5=1.18
-  1st Half Goals Handicap (base=3.5)                 Away@3.5=1.035  |  Home@-3.5=12
-  1st Half Goals Asian Handicap (base=2.75)          Away@2.75=1.09  |  Home@-2.75=7.2
-  1st Half Goals Handicap (base=-0.5)                Away@-0.5=10  |  Home@0.5=1.05
-  1st Half Total Goals 3 Way (base=1)                Over@1=1.85  |  Exactly@1=2.89  |  Under@1=4.7
+═══ PREMIERBET ═══
+[premierbet] upcoming[2026-08-06]=104 upcoming[2026-08-07]=182 upcoming[2026-08-08]=329 highlights=320 unique=831 kept=600 filtered=(outright:0 virtual:0 horizon:0 noTeams:0 nonFoot:0)
+  0 match(s) potentiel(s) trouvé(s) dans 600 listés
 
-━━━━━━ Totals (57) ━━━━━━
-  Total Goals Asian (base=3.25)                      Under@3.25=2.38  |  Over@3.25=1.65
-  Total Goals Asian (base=2.75)                      Under@2.75=3.25  |  Over@2.75=1.38
-  Total Goals (base=4)                               Under@4=1.7  |  Over@4=2.28
-  Total Goals (base=3)                               Under@3=2.9  |  Over@3=1.45
-  Total Goals Asian (base=3.75)                      Under@3.75=1.9  |  Over@3.75=2.04
-  Total Goals (base=3.5)                             Over@3.5=1.85  |  Under@3.5=2.09
-  Total Goals (base=2.5)                             Over@2.5=1.33  |  Under@2.5=3.6
-  At Least One Team Will Score Over  Goals (base=3.5) No@3.5=1.57  |  Yes@3.5=2.25
-  At Least One Team Will Score Over  Goals (base=2.5) No@2.5=2.45  |  Yes@2.5=1.48
-  At Least One Team Will Score Over  Goals (base=1.5) No@1.5=5.55  |  Yes@1.5=1.11
-  Team 2 Total Goals (Exact)                         0=1.71  |  2=7.5  |  1=2.63  |  4ormore=41  |  3=31
-  Team 1 Total Goals (Exact)                         1=6.6  |  0=17  |  3=3.67  |  2=3.85  |  4ormore=2.27
-  Total Goals (Exact)                                0=29  |  2=5  |  1=9  |  3=4  |  4=4.2  |  5=4.85  |  6ormore=4.6
-  Team 2 Total Goals (Bands)                         0or1=1.11  |  4to6=126  |  2or3=6.2  |  7ormore=401
-  Team 1 Total Goals (Bands)                         2or3=2.02  |  0or1=4.9  |  7ormore=17  |  4to6=2.46
-  Total Goals (Bands)                                2or3=2.4  |  0or1=7.2  |  7ormore=8.9  |  4to6=2.01
-  Total Goals (Extended Bands)                       1-2=2.65  |  1-4=1.34  |  1-3=1.73  |  1-6=1.06  |  1-5=1.14  |  2-4=1.48  |  2-3=2  |  2-6=1.14  |  2-5=1.24  |  3-5=1.47  |  3-4=1.87  |  4-5=2.02  |  3-6=1.33  |  5-6=2.57  |  4-6=1.73  |  AnyOther=4.7
-  Total Goals 3 Way (base=6)                         Exactly@6=8.3  |  Over@6=8.9  |  Under@6=1.15
-  Total Goals 3 Way (base=5)                         Over@5=4.85  |  Under@5=1.47  |  Exactly@5=5.1
-  Total Goals 3 Way (base=4)                         Exactly@4=4.5  |  Over@4=2.82  |  Under@4=2.09
-  Total Goals 3 Way (base=3)                         Over@3=1.85  |  Under@3=3.33  |  Exactly@3=4.3
-  Total Goals 3 Way (base=2)                         Over@2=1.27  |  Under@2=7.7  |  Exactly@2=5
-  Team 2 Total Goals Asian (base=1.25)               Over@1.25=5.1  |  Under@1.25=1.13
-  Team 2 Total Goals Asian (base=0.75)               Under@0.75=1.45  |  Over@0.75=2.55
-  Team 2 Total Goals (base=1)                        Under@1=1.18  |  Over@1=4.3
-  Team 2 Total Goals (base=0.5)                      Under@0.5=1.71  |  Over@0.5=2.01
-  Team 1 Total Goals Asian (base=3.75)               Over@3.75=2.62  |  Under@3.75=1.43
-  Team 1 Total Goals Asian (base=3.25)               Over@3.25=2.02  |  Under@3.25=1.7
-  Team 1 Total Goals Asian (base=2.75)               Over@2.75=1.61  |  Under@2.75=2.17
-  Team 1 Total Goals Asian (base=2.25)               Under@2.25=2.95  |  Over@2.25=1.35
-  Team 1 Total Goals Asian (base=1.75)               Under@1.75=4.57  |  Over@1.75=1.16
-  Team 1 Total Goals (base=4)                        Over@4=3.25  |  Under@4=1.29
-  Team 1 Total Goals (base=3.5)                      Over@3.5=2.27  |  Under@3.5=1.56
-  Team 1 Total Goals (base=3)                        Over@3=1.79  |  Under@3=1.91
-  Team 1 Total Goals (base=2.5)                      Over@2.5=1.5  |  Under@2.5=2.4
-  Team 1 Total Goals (base=2)                        Over@2=1.2  |  Under@2=4.05
-  Team 1 Total Goals (base=1.5)                      Over@1.5=1.14  |  Under@1.5=4.9
-  Team 2 Total Goals (Extended Bands)                1-2=2.08  |  1-4=1.98  |  1-3=1.99  |  2-4=6.2  |  2-3=6.4  |  AnyOther=1.68  |  3-4=26
-  Team 1 Total Goals (Extended Bands)                1-2=2.61  |  1-4=1.27  |  1-3=1.64  |  2-4=1.48  |  2-3=2.03  |  AnyOther=3.3  |  3-4=2.15
-  Total Goals Asian (base=4.75)                      Under@4.75=1.35  |  Over@4.75=3.45
-  Total Goals Asian (base=4.25)                      Under@4.25=1.57  |  Over@4.25=2.54
-  Total Goals Asian (base=2.25)                      Under@2.25=4.7  |  Over@2.25=1.23
-  Total Goals (base=4.5)                             Under@4.5=1.47  |  Over@4.5=2.82
-  Total Goals (base=5.5)                             Over@5.5=5.4  |  Under@5.5=1.19
-  Total Goals (base=1.5)                             Over@1.5=1.11  |  Under@1.5=8.4
-  Team 1 Total Goals (base=4.5)                      Under@4.5=1.21  |  Over@4.5=3.9
-  Total Goals (base=6.5)                             Under@6.5=1.08  |  Over@6.5=10.5
-  Total Goals (base=5)                               Under@5=1.24  |  Over@5=4.6
-  Total Goals (base=2)                               Under@2=7.3  |  Over@2=1.13
-  Total Goals Asian (base=5.75)                      Under@5.75=1.14  |  Over@5.75=6.9
-  Total Goals Asian (base=5.25)                      Under@5.25=1.22  |  Over@5.25=4.85
-  Total Goals Asian (base=1.75)                      Over@1.75=1.12  |  Under@1.75=7.7
-  Total Goals (base=6)                               Over@6=9.5  |  Under@6=1.09
-  Total Goals Asian (base=6.25)                      Under@6.25=1.09  |  Over@6.25=9.5
-  Total Goals (base=7)                               Over@7=22  |  Under@7=1.03
-  Total Goals Asian (base=6.75)                      Under@6.75=1.06  |  Over@6.75=13.5
-  Total Goals Asian (base=1.25)                      Under@1.25=13.5  |  Over@1.25=1.06
-
-━━━━━━ Handicaps (31) ━━━━━━
-  Goals Asian Handicap (base=1.25)                   Away@1.25=4.25  |  Home@-1.25=1.26
-  Goals Asian Handicap (base=2.25)                   Away@2.25=2.18  |  Home@-2.25=1.77
-  Goals Handicap (base=2.5)                          Away@2.5=1.93  |  Home@-2.5=2.01
-  Goals Handicap (base=1)                            Away@1=6.5  |  Home@-1=1.15
-  Goals Asian Handicap (base=1.75)                   Home@-1.75=1.43  |  Away@1.75=2.95
-  Goals Handicap (base=1.5)                          Home@-1.5=1.37  |  Away@1.5=3.3
-  Goals Handicap (base=2)                            Home@-2=1.55  |  Away@2=2.59
-  Goals Asian Handicap (base=3.75)                   Home@-3.75=3.85  |  Away@3.75=1.3
-  Goals Asian Handicap (base=3.25)                   Home@-3.25=2.9  |  Away@3.25=1.45
-  Goals Handicap 3 Way (base=3)                      Tie@3=4.5  |  Home@-3=2.95  |  Away@3=1.83
-  Goals Handicap 3 Way (base=2)                      Home@-2=1.88  |  Away@2=3.12  |  Tie@2=4
-  Goals Handicap 3 Way (base=1)                      Tie@1=4.9  |  Home@-1=1.37  |  Away@1=7.1
-  Goals Asian Handicap (base=2.75)                   Away@2.75=1.74  |  Home@-2.75=2.23
-  Goals Asian Handicap (base=0.75)                   Away@0.75=6.9  |  Home@-0.75=1.14
-  Goals Asian Handicap (base=0.25)                   Away@0.25=10.5  |  Home@-0.25=1.08
-  Goals Handicap (base=3.5)                          Away@3.5=1.38  |  Home@-3.5=3.25
-  Goals Handicap (base=3)                            Away@3=1.55  |  Home@-3=2.59
-  Goals Handicap (base=0.5)                          Away@0.5=7.7  |  Home@-0.5=1.12
-  Goals Handicap (base=0)                            Away@0=18  |  Home@0=1.04
-  Goals Handicap (base=4)                            Away@4=1.2  |  Home@-4=5.2
-  Goals Handicap (base=4.5)                          Away@4.5=1.16  |  Home@-4.5=6.3
-  Goals Handicap (base=-0.5)                         Home@0.5=1.04  |  Away@-0.5=18
-  Goals Handicap (base=5)                            Away@5=1.07  |  Home@-5=11.5
-  Goals Handicap (base=5.5)                          Away@5.5=1.06  |  Home@-5.5=13.5
-  Goals Asian Handicap (base=4.25)                   Away@4.25=1.18  |  Home@-4.25=5.6
-  Goals Handicap 3 Way (base=4)                      Home@-4=5.4  |  Away@4=1.35  |  Tie@4=5.9
-  Goals Asian Handicap (base=4.75)                   Away@4.75=1.11  |  Home@-4.75=8.4
-  Goals Asian Handicap (base=5.25)                   Away@5.25=1.06  |  Home@-5.25=13.5
-  Goals Asian Handicap (base=5.75)                   Away@5.75=1.04  |  Home@-5.75=18
-  Goals Handicap 3 Way (base=5)                      Home@-5=11  |  Away@5=1.13  |  Tie@5=8.3
-  Goals Asian Handicap (base=-0.25)                  Home@0.25=1.04  |  Away@-0.25=18
-
-━━━━━━ Match (54) ━━━━━━
-  Match Result                                       W1=1.13  |  W2=21  |  X=13
-  Match Result (Early Payout)                        X=13  |  W1=1.1  |  W2=17
-  To Qualify                                         W1=1.07  |  W2=11.5
-  Team 1 Half With Most Goals                        1>2=2.8  |  1<2=2.08  |  1=2=3.83
-  Both Teams To Score 2 or More Goals                No=1.09  |  Yes=6.15
-  Team 2 Half With Most Goals                        1=2=1.64  |  1>2=4.9  |  1<2=3.5
-  Team 1 Win By Two or Three Goals                   Yes=2.17  |  No=1.61
-  Team 2 Win By One Goal or Draw                     Yes=6.5  |  No=1.08
-  Team 1 Win By One Goal or Draw                     Yes=3.47  |  No=1.26
-  Team 2 To Score                                    No=1.71  |  Yes=2.01
-  Team 1 To Score                                    No=10  |  Yes=1.02
-  Both Teams To Score                                No=1.7  |  Yes=2.15
-  Correct Score                                      Home-Away=31  |  Home-Away=101  |  Home-Away=29  |  Home-Away=401  |  Home-Away=401  |  Home-Away=12  |  Home-Away=8.3  |  Home-Away=41  |  Home-Away=10  |  Home-Away=401  |  Home-Away=401  |  Home-Away=19  |  Home-Away=11  |  Home-Away=251  |  Home-Away=61  |  Home-Away=6.9  |  Home-Away=176  |  Home-Away=401  |  Home-Away=401  |  Home-Away=126  |  Home-Away=46  |  Home-Away=401  |  Home-Away=301  |  Home-Away=11  |  Home-Away=401  |  Home-Away=46  |  Home-Away=17  |  Home-Away=401  |  Home-Away=201  |  Home-Away=6.6  |  Home-Away=401  |  Home-Away=31  |  Home-Away=11  |  Home-Away=401  |  Home-Away=111  |  Home-Away=401
-  Double Chance                                      1X=1.04  |  X2=7.7  |  12=1.07
-  Match Score Draw (Except for 0-0)                  Yes=9.7  |  No=1.04
-  Team 2 To Win To Nil                               Yes=16  |  No=1.005
-  Team 1 To Win To Nil                               Yes=1.77  |  No=1.93
-  Last Team to Score                                 Away=4.9  |  Home=1.16  |  NoGoal=31
-  First Team to Score                                Home=1.16  |  NoGoal=31  |  Away=4.9
-  Exact Number Of Goals                              NoGoal=29  |  Exactly2=5  |  Exactly1=9  |  Exactly4=4.2  |  Exactly3=4  |  Exactly6ormore=4.6  |  Exactly5=4.85
-  Anytime Correct Score                              Home-Away=67  |  Home-Away=14  |  Home-Away=401  |  Home-Away=301  |  Home-Away=6.2  |  Home-Away=3.41  |  Home-Away=19  |  Home-Away=4.2  |  Home-Away=401  |  Home-Away=401  |  Home-Away=11  |  Home-Away=6.2  |  Home-Away=151  |  Home-Away=34  |  Home-Away=2.14  |  Home-Away=91  |  Home-Away=276  |  Home-Away=401  |  Home-Away=29  |  Home-Away=5.2  |  Home-Away=401  |  Home-Away=176  |  Home-Away=1.18  |  Home-Away=401  |  Home-Away=15  |  Home-Away=3.53  |  Home-Away=401  |  Home-Away=81  |  Home-Away=1.51  |  Home-Away=401  |  Home-Away=13  |  Home-Away=3.41  |  Home-Away=401  |  Home-Away=61  |  Home-Away=401
-  Team 1 No Bet                                      X=1.49  |  Away=2.44
-  Both Teams To Score In Both Halves                 Yes=10.3  |  No=1.017
-  Draw at Least in One of The Halves                 No=1.57  |  Yes=2.25
-  Half With Most Goals: Double Chance                1>2or1<2=1.2  |  1>2or1=2=1.71  |  1=2or1<2=1.36
-  Half With Most Goals                               1=2=4.2  |  1>2=2.85  |  1<2=1.95
-  1st Half Or Match Result                           W1=1.08  |  W2=8.6  |  X=3.04
-  Team 2 Will Win at Least in One of The Halves      No=1.11  |  Yes=5.55
-  Team 1 Will Win at Least in One of The Halves      No=7.3  |  Yes=1.06
-  Team 1 Win Both Halves                             No=1.83  |  Yes=1.87
-  Team 2 Score in Both Halves                        Yes=8.7  |  No=1.035
-  Team 1 Score in Both Halves                        Yes=1.49  |  No=2.44
-  Half Time/Full-time                                W1/W1=1.42  |  W1/W2=176  |  W1/Draw=36  |  Draw/Draw=15  |  Draw/W1=4.8  |  W2/W1=25  |  Draw/W2=41  |  W2/W2=34  |  W2/Draw=36
-  Goals In Both Halves                               No=3.15  |  Yes=1.35
-  An Own Goal in the Match                           No=1.06  |  Yes=8.5
-  Team 2 Winning Margin                              1=17  |  3=201  |  2=51  |  4+=401
-  Team 1 Winning Margin                              1=4.4  |  3=4.5  |  2=4  |  4+=2.95
-  Score Combinations                                 1-0/2-0/3-0=2.24  |  2-1/3-1/4-1=2.88  |  4-0/5-0/6-0=3.09  |  0-1/0-2/0-3=15  |  3-2/4-2/4-3=5.5  |  1-2/1-3/1-4=17  |  0-4/0-5/0-6=401  |  2-3/2-4/3-4=34
-  Team 2 No Bet                                      X=8.2  |  Home=1.045
-  Team 1 Win By Exact  Goal (base=4)                 No@4=1.11  |  Yes@4=5.55
-  Team 1 Win By Exact  Goal (base=3)                 No@3=1.19  |  Yes@3=4.15
-  Team 1 Win By Exact  Goal (base=2)                 No@2=1.23  |  Yes@2=3.75
-  Team 1 Win By Exact  Goal (base=1)                 No@1=1.16  |  Yes@1=4.57
-  Team 2 To Score First Half/Second Half             Yes/Yes=11  |  Yes/No=5.2  |  No/Yes=3.61  |  No/No=1.71
-  Team 1 To Score First Half/Second Half             Yes/Yes=1.48  |  Yes/No=6.2  |  No/Yes=4.2  |  No/No=17
-  1st Half Score/Match score                         1-3/3-3=401  |  0-1/0-1=91  |  2-0/4-0=19  |  1-4/3-4=401  |  2-2/4-2=501  |  2-1/4-1=71  |  2-4/4-4=401  |  2-3/4-3=401  |  0-1/2-2=141  |  0-0/2-1=51  |  0-3/2-4=401  |  0-2/2-3=401  |  1-0/3-1=36  |  1-2/3-2=276  |  1-3/3-4=401  |  1-2/3-3=401  |  2-1/4-2=176  |  2-0/4-1=46  |  2-3/4-4=401  |  2-2/4-3=401  |  0-1/2-3=401  |  0-0/2-2=226  |  1-0/3-2=176  |  0-2/2-4=401  |  1-1/3-2=141  |  1-1/3-3=501  |  1-1/3-1=56  |  1-2/3-4=401  |  1-1/2-3=501  |  0-4/2-4=401  |  2-0/3-2=201  |  1-2/2-4=401  |  2-2/3-4=401  |  2-1/3-3=401  |  3-1/4-3=401  |  3-0/4-2=401  |  0-0/1-3=401  |  3-2/4-4=401  |  1-0/2-3=401  |  0-1/1-4=401  |  1-1/2-4=401  |  1-0/3-0=15  |  3-0/4-3=401  |  2-1/3-4=401  |  0-0/1-4=401  |  3-1/4-4=401  |  2-0/3-4=401  |  1-0/2-4=401  |  0-0/2-0=21  |  3-0/4-4=401  |  0-2/2-2=401  |  0-1/2-1=56  |  2-0/3-3=401  |  0-3/2-3=401  |  2-1/4-3=401  |  2-0/4-2=226  |  0-2/3-4=401  |  2-2/4-4=401  |  1-1/4-3=401  |  1-0/4-2=276  |  0-0/3-3=401  |  1-2/4-4=401  |  1-0/4-3=401  |  0-1/3-4=401  |  0-0/3-4=401  |  1-1/4-4=401  |  0-0/4-0=67  |  1-0/4-4=401  |  0-1/4-1=176  |  0-1/3-3=401  |  0-4/4-4=401  |  0-3/4-3=401  |  0-1/4-2=501  |  0-0/4-1=176  |  0-3/4-4=401  |  0-2/4-3=401  |  0-1/4-3=401  |  0-0/4-2=401  |  0-0/4-3=401  |  0-2/4-4=401  |  0-2/4-2=401  |  0-1/4-4=401  |  1-3/4-4=401  |  0-0/3-2=351  |  0-0/2-3=401  |  1-2/4-3=401  |  1-0/3-3=401  |  0-1/2-4=401  |  2-0/4-3=401  |  1-1/3-4=401  |  0-0/2-4=401  |  2-1/4-4=401  |  2-0/4-4=401  |  1-0/3-4=401  |  0-1/3-1=91  |  0-0/3-0=34  |  0-3/3-3=401  |  0-2/3-2=401  |  1-0/4-0=25  |  0-4/3-4=401  |  1-2/4-2=401  |  1-1/4-1=91  |  1-4/4-4=401  |  1-3/4-3=401  |  0-1/3-2=226  |  0-0/3-1=81  |  0-3/3-4=401  |  0-2/3-3=401  |  1-1/4-2=226  |  1-0/4-1=61  |  0-0/0-0=31  |  1-0/2-2=151  |  0-0/1-2=201  |  0-2/1-4=401  |  1-2/1-3=401  |  1-1/1-2=201  |  2-0/2-1=71  |  1-3/1-4=401  |  2-2/2-3=401  |  2-1/2-2=276  |  3-0/3-1=141  |  2-3/2-4=401  |  3-2/3-3=401  |  3-1/3-2=401  |  1-0/1-1=56  |  3-3/3-4=401  |  4-2/4-3=401  |  4-0/4-1=351  |  0-0/0-2=351  |  4-3/4-4=401  |  0-2/0-4=401  |  0-1/0-3=401  |  1-1/1-3=401  |  1-0/1-2=276  |  2-0/2-2=351  |  1-2/1-4=401  |  2-2/2-4=401  |  2-1/2-3=401  |  3-0/3-2=401  |  4-1/4-2=401  |  0-1/0-2=226  |  0-3/0-4=401  |  0-3/0-3=401  |  0-2/0-2=401  |  1-0/1-0=23  |  0-4/0-4=401  |  1-2/1-2=401  |  1-1/1-1=86  |  1-4/1-4=401  |  1-3/1-3=401  |  2-1/2-1=111  |  2-0/2-0=29  |  0-2/0-3=401  |  2-2/2-2=401  |  3-0/3-0=56  |  2-3/2-3=401  |  3-2/3-2=401  |  3-1/3-1=201  |  3-4/3-4=401  |  3-3/3-3=401  |  4-1/4-1=401  |  4-0/4-0=141  |  4-3/4-3=401  |  4-2/4-2=401  |  0-0/0-1=76  |  4-4/4-4=401  |  3-1/3-3=401  |  2-4/2-4=401  |  4-0/4-2=401  |  3-2/3-4=401  |  2-3/3-3=401  |  2-2/3-2=401  |  3-0/4-0=34  |  2-4/3-4=401  |  3-2/4-2=401  |  3-1/4-1=111  |  3-4/4-4=401  |  3-3/4-3=401  |  0-1/1-2=126  |  0-0/1-1=46  |  2-1/3-1=67  |  0-2/1-3=401  |  1-1/2-2=126  |  0-3/1-4=401  |  1-3/2-4=401  |  1-2/2-3=401  |  2-1/3-2=151  |  2-0/3-1=41  |  2-3/3-4=401  |  2-2/3-3=401  |  3-1/4-2=301  |  3-0/4-1=86  |  3-3/4-4=401  |  3-2/4-3=401  |  2-0/3-0=17  |  1-0/2-1=34  |  1-3/2-3=401  |  1-4/2-4=401  |  4-2/4-4=401  |  4-1/4-3=401  |  0-1/0-4=401  |  0-0/0-3=401  |  1-1/1-4=401  |  1-0/1-3=401  |  2-1/2-4=401  |  2-0/2-3=401  |  3-1/3-4=401  |  3-0/3-3=401  |  4-1/4-4=401  |  4-0/4-3=401  |  1-0/1-4=401  |  0-0/0-4=401  |  3-0/3-4=401  |  2-0/2-4=401  |  0-0/1-0=19  |  4-0/4-4=401  |  0-2/1-2=401  |  0-1/1-1=51  |  0-4/1-4=401  |  0-3/1-3=401  |  1-1/2-1=51  |  1-0/2-0=14  |  0-0/4-4=401  |  1-2/2-2=251  |  0-1/1-3=401
-  2nd Half Team 1 Win By Exact  Goal (base=4)        Yes@4=9.3  |  No@4=1.027
-  2nd Half Team 1 Win By Exact  Goal (base=3)        Yes@3=5.85  |  No@3=1.1
-  2nd Half Team 1 Win By Exact  Goal (base=2)        Yes@2=3.75  |  No@2=1.23
-  2nd Half Team 2 Win By Exact  Goal (base=1)        Yes@1=9  |  No@1=1.03
-  2nd Half Team 1 Win By Exact  Goal (base=1)        Yes@1=3.05  |  No@1=1.33
-  Total Goals Odd/Even                               Odd=1.86  |  Even=1.84
-  Draw No Bet                                        Team1=1.04  |  Team2=18
-  First Goal Method                                  ByOtherMethod=1.32  |  ByHeader=4.9  |  ByPenaltyKick=7.4  |  ByFreeKick=31  |  NoGoal=34  |  OwnGoal=26
-
-━━━━━━ Minutes (40) ━━━━━━
-  1-75 Min. Both Teams to Score                      No=1.53  |  Yes=2.35
-  1-75 Min. Team 2 Total Goals (base=1)              Under@1=1.12  |  Over@1=5.35
-  1-75 Min. Team 2 Total Goals (base=0.5)            Over@0.5=2.21  |  Under@0.5=1.59
-  1-75 Min. Team 1 Total Goals (base=2.5)            Under@2.5=1.84  |  Over@2.5=1.86
-  1-75 Min. Total Goals (base=3)                     Under@3=1.88  |  Over@3=1.82
-  1-75 Min. Winner                                   W1=1.17  |  W2=14  |  X=5.8
-  1-60 Min. Both Teams to Score                      No=1.34  |  Yes=3
-  1-60 Min. Team 2 Total Goals (base=1)              Under@1=1.06  |  Over@1=7.3
-  1-60 Min. Team 2 Total Goals (base=0.5)            Under@0.5=1.42  |  Over@0.5=2.65
-  1-60 Min. Team 1 Total Goals (base=2)              Under@2=1.72  |  Over@2=2
-  1-60 Min. Team 1 Total Goals (base=1.5)            Over@1.5=1.55  |  Under@1.5=2.3
-  1-60 Min. Total Goals (base=2.5)                   Over@2.5=2.05  |  Under@2.5=1.68
-  1-60 Min. Total Goals (base=2)                     Over@2=1.57  |  Under@2=2.25
-  1-60 Min. Winner                                   W1=1.26  |  X=4.4  |  W2=13
-  1-30 Min. Both Teams to Score                      Yes=6.7  |  No=1.075
-  1-30 Min. Team 2 Total Goals (base=0.5)            Over@0.5=4.57  |  Under@0.5=1.16
-  1-30 Min. Team 1 Total Goals (base=1)              Under@1=1.49  |  Over@1=2.44
-  1-30 Min. Team 1 Total Goals (base=0.5)            Over@0.5=1.57  |  Under@0.5=2.25
-  1-30 Min. Total Goals (base=0.5)                   Over@0.5=1.41  |  Under@0.5=2.68
-  1-30 Min. Total Goals (base=1)                     Over@1=1.93  |  Under@1=1.77
-  1-30 Min. Goals Handicap (base=1)                  Home@-1=2.95  |  Away@1=1.35
-  1-30 Min. Winner                                   W1=1.8  |  X=2.16  |  W2=12
-  1-15 Min. Both Teams to Score                      No=1.01  |  Yes=11
-  1-15 Min. Team 2 Total Goals (base=0.5)            Under@0.5=1.06  |  Over@0.5=7.3
-  1-15 Min. Team 1 Total Goals (base=1)              Under@1=1.07  |  Over@1=6.9
-  1-15 Min. Team 1 Total Goals (base=0.5)            Under@0.5=1.46  |  Over@0.5=2.52
-  1-15 Min. Total Goals (base=1)                     Under@1=1.12  |  Over@1=5.35
-  1-15 Min. Total Goals (base=0.5)                   Under@0.5=1.59  |  Over@0.5=2.21
-  1-15 Min. Goals Handicap (base=0)                  Home@0=1.12  |  Away@0=5.35
-  1-15 Min. Winner                                   W1=2.98  |  W2=17  |  X=1.42
-  1-60 Min. Goals Handicap (base=1.5)                Home@-1.5=1.84  |  Away@1.5=1.86
-  1-75 Min. Goals Handicap (base=2)                  Home@-2=1.84  |  Away@2=1.86
-  1-75 Min. Total Goals (base=3.5)                   Over@3.5=2.3  |  Under@3.5=1.55
-  1-75 Min. Team 1 Total Goals (base=3)              Over@3=2.52  |  Under@3=1.46
-  First 10 Minutes (00:00 – 09:59) Corners (base=1.5) Under@1.5=1.33  |  Over@1.5=3.05
-  First 10 Minutes (00:00 – 09:59) Corners (base=0.5) Under@0.5=2.52  |  Over@0.5=1.46
-  Team 2 1st Goal Time (10 min. Interval)            1-10=7.6  |  21-30=12  |  11-20=12  |  41-50=11  |  31-40=13  |  61-70=13  |  51-60=13  |  81-90=11  |  71-80=13  |  NoGoal=1.52
-  1st Goal Time (15 min. Interval)                   1-15=2.16  |  31-45=4.75  |  16-30=3.21  |  46-60=8.5  |  61-75=17  |  NoGoal=31  |  76-90=26
-  1st Goal Time (10 min. Interval)                   1-10=2.87  |  11-20=3.68  |  31-40=7.3  |  21-30=5.1  |  41-50=9.6  |  51-60=15  |  71-80=36  |  61-70=23  |  NoGoal=12  |  81-90=41
-  Team 1 1st Goal Time (10 min. Interval)            1-10=2.84  |  21-30=4.5  |  11-20=3.61  |  41-50=7  |  31-40=5.8  |  61-70=14  |  51-60=10  |  81-90=23  |  71-80=21  |  NoGoal=8.5
-
-━━━━━━ Combos (40) ━━━━━━
-  Double Chance and Total Goals (Extended Bands)     12and3-5=1.69  |  1Xand1-2=3.76  |  12and4-5=2.57  |  12and3-6=1.48  |  12and5-6=3.41  |  12and4-6=2.1  |  X2and1-2=14  |  12andAnyOther=9  |  X2and1-4=8.9  |  X2and1-3=11  |  X2and1-5=8.4  |  12and3-4=2.33  |  X2and2-4=10  |  X2and2-3=14  |  X2and2-6=9.2  |  X2and2-5=9.7  |  X2and3-5=17  |  X2and3-4=19  |  X2and4-5=26  |  X2and3-6=15  |  X2and1-6=8  |  X2and4-6=23  |  12and2-5=1.4  |  12and2-6=1.26  |  1Xand1-3=2.17  |  12and2-4=1.8  |  1Xand1-5=1.25  |  1Xand1-4=1.54  |  1Xand2-3=2.57  |  1Xand1-6=1.13  |  1Xand2-5=1.36  |  1Xand2-4=1.72  |  1Xand3-4=2.34  |  1Xand2-6=1.22  |  1Xand3-6=1.49  |  1Xand3-5=1.71  |  1Xand4-6=2.06  |  1Xand4-5=2.52  |  1XandAnyOther=7.4  |  1Xand5-6=3.45  |  12and1-3=2.16  |  12and1-2=3.98  |  12and1-5=1.26  |  12and1-4=1.57  |  12and2-3=2.65  |  12and1-6=1.14  |  X2andAnyOther=29  |  X2and5-6=61
-  Both Teams To Score And Total Goals 3.5            YesandOver3.5=2.43  |  NoandOver3.5=3.4  |  YesandUnder3.5=5.4  |  NoandUnder3.5=2.27
-  Both Teams To Score And Total Goals 2.5            YesandOver2.5=2.03  |  NoandOver2.5=2.35  |  YesandUnder2.5=15  |  NoandUnder2.5=3.17
-  Outcome And Total Goals 4.5                        W1andOver4.5=2.69  |  XandOver4.5=126  |  W1andUnder4.5=1.59  |  W2andOver4.5=76  |  XAndUnder4.5=11  |  1XandOver4.5=2.65  |  W2andUnder4.5=14  |  12andOver4.5=2.68  |  1XandUnder4.5=1.49  |  X2andOver4.5=51  |  12andUnder4.5=1.57  |  X2andUnder4.5=7.3
-  Outcome And Total Goals 3.5                        W1andOver3.5=1.83  |  XandOver3.5=31  |  W1andUnder3.5=2.17  |  W2andOver3.5=56  |  XAndUnder3.5=14  |  1XandOver3.5=1.76  |  W2andUnder3.5=15  |  12andOver3.5=1.79  |  1XandUnder3.5=2.07  |  X2andOver3.5=21  |  12andUnder3.5=2.16  |  X2andUnder3.5=8.7
-  Outcome And Total Goals 2.5                        W1andOver2.5=1.37  |  XandOver2.5=31  |  W1andUnder2.5=3.8  |  W2andOver2.5=26  |  XAndUnder2.5=14  |  1XandOver2.5=1.33  |  W2andUnder2.5=25  |  12andOver2.5=1.32  |  1XandUnder2.5=3.47  |  X2andOver2.5=15  |  12andUnder2.5=3.98  |  X2andUnder2.5=10
-  Outcome And Total Goals 1.5                        W1andOver1.5=1.18  |  XandOver1.5=14  |  W1andUnder1.5=11  |  W2andOver1.5=23  |  XAndUnder1.5=31  |  1XandOver1.5=1.11  |  W2andUnder1.5=51  |  12andOver1.5=1.13  |  1XandUnder1.5=8.5  |  X2andOver1.5=9.3  |  12andUnder1.5=9.3  |  X2andUnder1.5=21
-  Outcome And Total Goals (Extended Bands)           Xand6=96  |  W1and1-2=3.8  |  W2and1-2=25  |  XandAnyOther=23  |  W2and1-4=14  |  W2and1-3=15  |  W2and1-6=13  |  W2and1-5=13  |  W2and2-3=23  |  Xand4-6=23  |  W2and2-6=17  |  W2and2-5=17  |  W2and3-5=21  |  W2and3-4=26  |  W2and4-5=46  |  W2and3-6=19  |  W2and2-4=21  |  W2and4-6=41  |  Xand4=29  |  W2and5-6=61  |  W1and1-3=2.17  |  Xand2-4=12  |  W1and1-5=1.29  |  W1and1-4=1.59  |  W1and2-3=2.56  |  W1and1-6=1.18  |  W1and2-5=1.41  |  W1and2-4=1.77  |  W1and2-6=1.27  |  Xand2-6=11  |  W1and3-6=1.48  |  W1and3-5=1.67  |  W1and4-6=2.01  |  W1and4-5=2.42  |  W1andAnyOther=7.5  |  W1and5-6=3.14  |  W1and3-4=2.25  |  Xand2=15  |  W2andAnyOther=276
-  Double Chance And Both To Score                    1XAnd(BothToScore-Yes)=2.21  |  12And(BothToScore-Yes)=2.32  |  1XAnd(BothToScore-No)=1.71  |  X2And(BothToScore-Yes)=10  |  12And(BothToScore-No)=1.69  |  X2And(BothToScore-No)=17
-  Outcome And Team 2 Total Goals  (base=3.5)         W1andOver@3.5=351  |  DrawandOver@3.5=351  |  W1andUnder@3.5=1.09  |  W2andOver@3.5=151  |  DrawandUnder@3.5=9.3  |  W2andUnder@3.5=14
-  Outcome And Team 2 Total Goals  (base=2.5)         W1andOver@2.5=56  |  DrawandOver@2.5=111  |  W1andUnder@2.5=1.1  |  W2andOver@2.5=41  |  DrawandUnder@2.5=9.6  |  W2andUnder@2.5=17
-  Outcome And Team 2 Total Goals  (base=1.5)         W1andOver@1.5=8.8  |  DrawandOver@1.5=26  |  W1andUnder@1.5=1.17  |  W2andOver@1.5=19  |  DrawandUnder@1.5=12  |  W2andUnder@1.5=41
-  Outcome And Team 1 Total Goals  (base=3.5)         W1andOver@3.5=2.13  |  DrawandOver@3.5=351  |  W1andUnder@3.5=1.82  |  W2andOver@3.5=351  |  DrawandUnder@3.5=9.1  |  W2andUnder@3.5=14
-  Outcome And Team 1 Total Goals  (base=2.5)         W1andOver@2.5=1.47  |  DrawandOver@2.5=101  |  W1andUnder@2.5=3.06  |  W2andOver@2.5=251  |  DrawandUnder@2.5=9.5  |  W2andUnder@2.5=15
-  Outcome And Team 1 Total Goals  (base=1.5)         W1andOver@1.5=1.17  |  W1andUnder@1.5=10  |  DrawandOver@1.5=29  |  W2andOver@1.5=61  |  DrawandUnder@1.5=12  |  W2andUnder@1.5=15
-  Outcome And Both To Score                          W1And(BothToScore-Yes)=2.46  |  XAnd(BothToScore-Yes)=14  |  W1And(BothToScore-No)=1.75  |  W2And(BothToScore-Yes)=29  |  XAnd(BothToScore-No)=31  |  W2And(BothToScore-No)=34
-  First Team To Score And Match Result               Team1andW1=1.2  |  Team1andW2=56  |  Team1andX=23  |  Team2andX=23  |  Team2andW1=7.6  |  NoGoal=31  |  Team2andW2=15
-  Team 2 Will Win 1st Half and Won't Win The Match   Yes=9.7  |  No=1.023
-  Team 1 Will Win 1st Half and Won't Win The Match   Yes=16  |  No=1.005
-  Double Chance Combo                                1Xand2-3Goals=2.54  |  1XandOver(2.5)Goals=1.32  |  12andOver(1.5)Goals=1.14  |  12andUnder(1.5)Goals=9  |  X2andOver(1.5)Goals=9.1  |  X2andUnder(1.5)Goals=19  |  1XandOver(1.5)Goals=1.11  |  1XandUnder(1.5)Goals=8.3  |  12andOver(3.5)Goals=1.77  |  12andUnder(3.5)Goals=2.16  |  X2andOver(3.5)Goals=21  |  X2andUnder(3.5)Goals=8.8  |  1XandUnder(3.5)Goals=2.06  |  12and2-3Goals=2.63  |  12andBothTeamstoScore=2.3  |  Team1orTeam2ToWinToNil=1.68  |  X2andBothTeamstoScore=9.7  |  Team2ToWinToNilorCorrectScore0-0=17  |  1XandBothTeamstoScore=2.16  |  Team1ToWinToNilorCorrectScore0-0=1.68  |  12andOver(2.5)Goals=1.31  |  12andUnder(2.5)Goals=3.94  |  X2andOver(2.5)Goals=15  |  X2andUnder(2.5)Goals=10  |  1XandOver(3.5)Goals=1.74  |  1XandUnder(2.5)Goals=3.45  |  X2and2-3Goals=14
-  First Half/Second Half Result                      W1/Draw=3.81  |  W1/W1=1.61  |  Draw/W1=3.32  |  W1/W2=8.3  |  Draw/W2=17  |  Draw/Draw=7.9  |  W2/Draw=19  |  W2/W1=8  |  W2/W2=41
-  Half Time/Full-time and Total Goals  (base=5.5)    W1/W1andOver@5.5=4.6  |  W2/DrawandOver@5.5=226  |  W2/DrawandUnder@5.5=31  |  W2/W1andOver@5.5=71  |  W2/W1andUnder@5.5=25  |  Draw/W2andOver@5.5=401  |  Draw/W2andUnder@5.5=34  |  Draw/DrawandOver@5.5=251  |  Draw/DrawandUnder@5.5=13  |  Draw/W1andOver@5.5=34  |  Draw/W1andUnder@5.5=4.6  |  W1/W2andOver@5.5=401  |  W1/W2andUnder@5.5=141  |  W1/DrawandOver@5.5=201  |  W1/DrawandUnder@5.5=31  |  W2/W2andOver@5.5=351  |  W1/W1andUnder@5.5=1.76  |  W2/W2andUnder@5.5=26
-  Half Time/Full-time and Total Goals  (base=4.5)    W2/DrawandUnder@4.5=29  |  W1/W1andOver@4.5=2.91  |  W2/W1andUnder@4.5=31  |  W2/DrawandOver@4.5=201  |  Draw/W2andUnder@4.5=34  |  W2/W1andOver@4.5=36  |  Draw/DrawandUnder@4.5=13  |  Draw/W2andOver@4.5=201  |  Draw/W1andUnder@4.5=5.1  |  Draw/DrawandOver@4.5=251  |  W1/W2andUnder@4.5=176  |  Draw/W1andOver@4.5=17  |  W1/DrawandUnder@4.5=29  |  W1/W2andOver@4.5=276  |  W1/W1andUnder@4.5=2.22  |  W1/DrawandOver@4.5=201  |  W2/W2andUnder@4.5=29  |  W2/W2andOver@4.5=126
-  Half Time/Full-time and Total Goals  (base=3.5)    W2/DrawandUnder@3.5=46  |  W1/W1andOver@3.5=2.04  |  W2/W1andUnder@3.5=51  |  W2/DrawandOver@3.5=56  |  Draw/W2andUnder@3.5=36  |  W2/W1andOver@3.5=29  |  Draw/DrawandUnder@3.5=15  |  Draw/W2andOver@3.5=176  |  Draw/W1andUnder@3.5=6.2  |  Draw/DrawandOver@3.5=56  |  W1/W2andUnder@3.5=201  |  Draw/W1andOver@3.5=11  |  W1/DrawandUnder@3.5=46  |  W1/W2andOver@3.5=251  |  W1/W1andUnder@3.5=3.26  |  W1/DrawandOver@3.5=56  |  W2/W2andUnder@3.5=34  |  W2/W2andOver@3.5=91
-  Outcome or Total Goals  (base=4.5)                 W1orOver@4.5=1.07  |  DraworOver@4.5=2  |  W1orUnder@4.5=1.001  |  W2orOver@4.5=2.14  |  DraworUnder@4.5=1.36  |  W2orUnder@4.5=1.36
-  Outcome or Total Goals  (base=3.5)                 W1orOver@3.5=1.06  |  DraworOver@3.5=1.5  |  W1orUnder@3.5=1.006  |  W2orOver@3.5=1.55  |  DraworUnder@3.5=1.74  |  W2orUnder@3.5=1.77
-  Outcome or Total Goals  (base=2.5)                 W1orOver@2.5=1.04  |  DraworOver@2.5=1.18  |  W1orUnder@2.5=1.02  |  W2orOver@2.5=1.23  |  DraworUnder@2.5=2.67  |  W2orUnder@2.5=2.63
-  Outcome or Correct Score                           W1or0-0:Yes=1.07  |  W2or0-0:Yes=12  |  W1or0-0:No=8.2  |  W1or1-1:Yes=1.06  |  W2or0-0:No=1.04  |  W2or1-1:Yes=10  |  W1or1-1:No=9  |  W1or0-1:Yes=1.08  |  W2or1-1:No=1.05  |  W2or1-0:Yes=7  |  W1or0-1:No=7.6  |  W2or1-0:No=1.09
-  Team 2 To Score and Match Result                   NoandW1=1.77  |  YesandW1=2.22  |  NoandDraw=29  |  YesandDraw=10  |  YesandW2=12
-  Team 1 To Score and Match Result                   YesandW1=1.12  |  NoandDraw=31  |  YesandDraw=9.7  |  NoandW2=31  |  YesandW2=26
-  Outcome And Total Goals (Exact)                    W1and2=6.5  |  W1and1=11  |  W1and4+=1.81  |  W1and3=4.4  |  Drawand2=21  |  Drawand0=31  |  Drawand6+=141  |  Drawand4=41  |  W2and2=111  |  W2and1=51  |  W2and4+=56  |  W2and3=46
-  Team 1 Will Win and Score Exact  Goal (base=4)     No@4=1.17  |  Yes@4=4.42
-  Team 1 Will Win and Score Exact  Goal (base=3)     No@3=1.26  |  Yes@3=3.83
-  Team 1 Will Win and Score Exact  Goal (base=2)     No@2=1.19  |  Yes@2=4.15
-  Team 1 Will Win and Score Exact  Goal (base=1)     No@1=1.04  |  Yes@1=8.5
-  Halves Total Goals Combination                     Over0.5Goalsin1stHalfandOver1.5Goalsin2ndHalf=1.66  |  Over0.5Goalsin1stHalfandOver2.5Goalsin2ndHalf=2.6  |  Over1.5Goalsin1stHalfandOver0.5Goalsin2ndHalf=1.85  |  Over1.5Goalsin1stHalfandOver2.5Goalsin2ndHalf=3.8  |  Over1.5Goalsin1stHalfandOver1.5Goalsin2ndHalf=2.43  |  Over0.5Goalsin1stHalfandOver1.5GoalsintheMatch=1.19  |  Over0.5Goalsin1stHalfandOver3.5GoalsintheMatch=1.69  |  Over0.5Goalsin1stHalfandOver2.5GoalsintheMatch=1.34  |  Over1.5Goalsin1stHalfandOver2.5GoalsintheMatch=1.76  |  Over0.5Goalsin1stHalfandOver4.5GoalsintheMatch=2.38  |  Over1.5Goalsin1stHalfandOver4.5GoalsintheMatch=2.72  |  Over1.5Goalsin1stHalfandOver3.5GoalsintheMatch=2.06  |  Over2.5Goalsin1stHalfandOver4.5GoalsintheMatch=3.8  |  Over2.5Goalsin1stHalfandOver3.5GoalsintheMatch=3.18
-  Half Time/Full-time and Total Goals  (base=2.5)    W1/W1andOver@2.5=1.61  |  W2/DrawandOver@2.5=56  |  W2/DrawandUnder@2.5=46  |  W2/W1andOver@2.5=25  |  Draw/W2andOver@2.5=61  |  Draw/W2andUnder@2.5=56  |  Draw/DrawandOver@2.5=56  |  Draw/DrawandUnder@2.5=15  |  Draw/W1andOver@2.5=6.6  |  Draw/W1andUnder@2.5=9.2  |  W1/W2andOver@2.5=176  |  W1/DrawandOver@2.5=56  |  W1/DrawandUnder@2.5=46  |  W2/W2andOver@2.5=41  |  W1/W1andUnder@2.5=6.5  |  W2/W2andUnder@2.5=51
-  Half Time/Full-time and Total Goals  (base=1.5)    W1/W1andOver@1.5=1.44  |  W2/DrawandOver@1.5=36  |  W2/W1andOver@1.5=25  |  Draw/W2andOver@1.5=56  |  Draw/W2andUnder@1.5=61  |  Draw/DrawandOver@1.5=19  |  Draw/DrawandUnder@1.5=26  |  Draw/W1andOver@1.5=5.2  |  Draw/W1andUnder@1.5=15  |  W1/W2andOver@1.5=176  |  W1/DrawandOver@1.5=36  |  W2/W2andOver@1.5=36  |  W1/W1andUnder@1.5=19  |  W2/W2andUnder@1.5=71
-  First Team To Score in Match And 2nd Half Result   Team1andW1=1.45  |  Team1andX=4.85  |  Team1andW2=13  |  Team2andW1=7.1  |  Team2andX=17  |  Team2andW2=29  |  NoGoal=26
-  First Team To Score in Match And 1st Half Result   Team1andW1=1.39  |  Team1andX=4.6  |  Team1andW2=126  |  Team2andW1=23  |  Team2andX=11  |  Team2andW2=9.8  |  NoGoal=26
-
-━━━━━━ Corners (62) ━━━━━━
-  Corners: 1st Half Total (base=5.5)                 Over@5.5=2.33  |  Under@5.5=1.54
-  Corners: Total (base=10.5)                         Over@10.5=2.04  |  Under@10.5=1.69
-  Corners: 1st Half Total (base=4.5)                 Over@4.5=1.74  |  Under@4.5=1.96
-  Corners: Total (Bands)                             6-8=2.85  |  5orless=8.5  |  12-14=3.32  |  9-11=2.24  |  15ormore=6.3
-  Corners: Total (base=9.5)                          Over@9.5=1.63  |  Under@9.5=2.13
-  Corners: Total (base=10)                           Over@10=1.84  |  Under@10=1.86
-  Corners: Handicap (base=4.5)                       Home@-4.5=1.58  |  Away@4.5=2.23
-  Corners: Total 3 Way (base=12)                     Over@12=3.65  |  Exactly@12=8.3  |  Under@12=1.41
-  Corners: Total 3 Way (base=11)                     Over@11=2.68  |  Exactly@11=7.3  |  Under@11=1.69
-  Corners: Total 3 Way (base=10)                     Over@10=2.07  |  Exactly@10=6.9  |  Under@10=2.08
-  Corners: Total 3 Way (base=9)                      Over@9=1.64  |  Exactly@9=6.9  |  Under@9=2.82
-  Corners: Total 3 Way (base=8)                      Over@8=1.36  |  Exactly@8=7.6  |  Under@8=4.2
-  Corners: Odd/Even                                  Even=1.85  |  Odd=1.85
-  Corners: Handicap (base=5)                         Home@-5=1.75  |  Away@5=1.95
-  Corners: Team 1 Total (base=7)                     Over@7=1.63  |  Under@7=2.13
-  Corners: 1st Half Team 2 Total (base=1.5)          Over@1.5=2.62  |  Under@1.5=1.43
-  Corners: 1st Half Team 1 Total (base=3.5)          Over@3.5=1.77  |  Under@3.5=1.93
-  Corners: 1st Half Result                           W1=1.19  |  W2=8.4  |  X=7.3
-  Corners: Team 2 Total (base=2.5)                   Over@2.5=2.04  |  Under@2.5=1.69
-  Corners: Team 1 Total (base=7.5)                   Over@7.5=1.88  |  Under@7.5=1.82
-  Corners: Result                                    X=12  |  W1=1.06  |  W2=10
-  Corners: Handicap (base=4)                         Home@-4=1.49  |  Away@4=2.44
-  Corners: 1st Half Team 2 Total (base=1)            Over@1=1.84  |  Under@1=1.86
-  Corners: 1st Half Team 1 Total (base=4)            Over@4=2.15  |  Under@4=1.62
-  Corners: Team 2 Total (base=3)                     Over@3=2.95  |  Under@3=1.35
-  Corners: Total (base=11)                           Over@11=2.45  |  Under@11=1.48
-  Corners: Handicap (base=5.5)                       Home@-5.5=2.13  |  Away@5.5=1.63
-  Corners: Team 1 Total (base=8)                     Over@8=2.08  |  Under@8=1.66
-  Corners: Total (base=8.5)                          Over@8.5=1.36  |  Under@8.5=2.87
-  Corners: Total (base=11.5)                         Over@11.5=2.7  |  Under@11.5=1.4
-  Corners: Handicap (base=3.5)                       Home@-3.5=1.33  |  Away@3.5=3.05
-  Half With The Most Corners                         1>2=2.6  |  1=2=7.9  |  1<2=1.7
-  Corners: Handicap (base=6)                         Home@-6=2.52  |  Away@6=1.46
-  Corners: Team 1 Total (base=8.5)                   Over@8.5=2.39  |  Under@8.5=1.51
-  Corners: Team 1 Total (base=6.5)                   Over@6.5=1.48  |  Under@6.5=2.45
-  Corners: Handicap (base=3)                         Home@-3=1.21  |  Away@3=3.9
-  Corners: Total (base=9)                            Over@9=1.45  |  Under@9=2.55
-  Corners: 1st Half Total (base=4)                   Over@4=1.48  |  Under@4=2.45
-  Corners: 1st Half Total (base=5)                   Over@5=2.01  |  Under@5=1.71
-  Team 1 First 10 Minutes (00:00 – 09:59) Corners (base=1.5) Under@1.5=1.2  |  Over@1.5=4.05
-  Team 2 First 10 Minutes (00:00 – 09:59) Corners (base=0.5) Under@0.5=1.23  |  Over@0.5=3.75
-  Team 1 First 10 Minutes (00:00 – 09:59) Corners (base=0.5) Under@0.5=2.05  |  Over@0.5=1.68
-  Corners: 2nd Half Total (base=4.5)                 Over@4.5=1.63  |  Under@4.5=2.13
-  Corners: 2nd Half Total (base=5.5)                 Over@5.5=2.23  |  Under@5.5=1.58
-  Corners: 1st Half Total (base=3.5)                 Under@3.5=3.2  |  Over@3.5=1.3
-  Corners: First Corner                              Team1=1.21  |  Team2=3.9
-  Corners: Last Corner                               Team1=1.29  |  Team2=3.25
-  Corners: Race To  (base=5)                         Home@5=1.23  |  Neither@5=6.2  |  Away@5=8.2
-  Corners: Race To  (base=3)                         Away@3=5.2  |  Home@3=1.13  |  Neither@3=41
-  Corners: Race To  (base=9)                         Home@9=2.62  |  Neither@9=1.44  |  Away@9=41
-  Corners: Race To  (base=7)                         Away@7=19  |  Home@7=1.62  |  Neither@7=2.32
-  Corners: 2nd Half Total (base=6.5)                 Over@6.5=3.3  |  Under@6.5=1.28
-  Team 2 First 10 Minutes (00:00 – 09:59) Corners (base=1.5) Under@1.5=1.02  |  Over@1.5=10
-  Corners: Team 2 Total (base=2)                     Over@2=1.48  |  Under@2=2.45
-  Corners: Team 2 Total (base=1.5)                   Over@1.5=1.3  |  Under@1.5=3.2
-  Corners: Team 2 Total (base=3.5)                   Over@3.5=3.65  |  Under@3.5=1.24
-  Corners: Handicap (base=6.5)                       Home@-6.5=2.59  |  Away@6.5=1.44
-  Corners: Handicap (base=7)                         Home@-7=3.2  |  Away@7=1.3
-  Corners: Total (base=12)                           Over@12=3.4  |  Under@12=1.27
-  Corners: 1st Half Handicap (base=2.5)              Home@-2.5=1.77  |  Away@2.5=1.93
-  Corners: 1st Half Handicap (base=3)                Home@-3=2.2  |  Away@3=1.6
-  Corners: 1st Half Handicap (base=2)                Home@-2=1.55  |  Away@2=2.3
-
-━━━━━━ Cards (24) ━━━━━━
-  Both Teams to Receive 2 or More Cards              No=1.54  |  Yes=2.33
-  Both Teams to Receive a Card                       No=3.4  |  Yes=1.27
-  Cards: 1st Half Total Points (base=1.5)            Over@1.5=2.05  |  Under@1.5=1.68
-  Cards: Team 2 Total Points (base=2.5)              Over@2.5=1.89  |  Under@2.5=1.81
-  Cards: Team 1 Total Points (base=1.5)              Over@1.5=1.9  |  Under@1.5=1.8
-  Cards: Points Handicap (base=-0.5)                 Home@0.5=2.27  |  Away@-0.5=1.56
-  Cards: Total Points (base=4.5)                     Over@4.5=2.17  |  Under@4.5=1.61
-  Total Red Cards (base=0.5)                         Over@0.5=4.05  |  Under@0.5=1.2
-  Total Red Cards (base=1.5)                         Under@1.5=1.009  |  Over@1.5=12
-  Yellow Cards: Total (base=4.5)                     Under@4.5=1.49  |  Over@4.5=2.44
-  Yellow Cards: Total (base=3.5)                     Under@3.5=2.1  |  Over@3.5=1.65
-  Yellow Cards: Handicap (base=-1.5)                 Away@-1.5=2.33  |  Home@1.5=1.54
-  Yellow Cards: 1st Half Total (base=1.5)            Under@1.5=1.55  |  Over@1.5=2.3
-  Yellow Cards: Last Yellow Card                     Team1=2.4  |  Team2=1.5
-  Yellow Cards: First Yellow Card                    Team1=2.4  |  Team2=1.5
-  Yellow Cards: Handicap (base=-1)                   Home@1=1.81  |  Away@-1=1.89
-  Yellow Cards: Handicap (base=-0.5)                 Home@0.5=2.23  |  Away@-0.5=1.58
-  Yellow Cards: Total (base=4)                       Over@4=2  |  Under@4=1.72
-  Yellow Cards: Double Chance                        1X=2.19  |  X2=1.22  |  12=1.17
-  Yellow Cards: Result                               X=4.6  |  W1=3.9  |  W2=1.55
-  Yellow Cards: Team 2 Total (base=2.5)              Over@2.5=2.01  |  Under@2.5=1.71
-  Yellow Cards: Team 1 Total (base=1.5)              Over@1.5=2.08  |  Under@1.5=1.66
-  Yellow Cards: Total (base=3)                       Over@3=1.35  |  Under@3=2.95
-  Yellow Cards: Team 2 Total (base=2)                Over@2=1.53  |  Under@2=2.35
-
-━━━━━━ Players (19) ━━━━━━
-  Player To Score 4 Or More                          Jordi Altena=1501  |  Josh Mcpake=1501  |  Leandro Barreiro=201  |  Manu Silva=1251  |  Oisin McEntee=1501  |  Pierre Landry Kabore=1501  |  Rafa Silva=61  |  Rogers Mato=1501  |  Richard Rios=401  |  Sabah Kerjota=1501  |  Stephen Kingsley=1501  |  Samuel Dahl=1501  |  Stuart Findlay=1501  |  Tom Renaud=1501  |  Tiago Gouveia=96  |  Tomas Araujo=1501  |  Jhon Duran=41  |  Jamie McCart=1501  |  Jakub Kaminski=101  |  James Wilson=1501  |  Alexander Bah=1501  |  Alexandros Kyziridis=1501  |  Amar Dedic=1501  |  Andreas Schjelderup=141  |  Blair Spittal=1501  |  Christian Borchgrevink=1501  |  Calvin Miller=1501  |  Clement Lenglet=1501  |  Claudio Braga=1501  |  Craig Halkett=1501  |  Elton Kabangu=1501  |  Dodi Lukebakio=111  |  Finlay Pollock=1501  |  Enzo Barrenechea=1001  |  Fredrik Aursnes=401  |  Franjo Ivanovic=46  |  Georgiy Sudakov=141  |  Gianluca Prestianni=141  |  Vangelis Pavlidis=11
-  Player To Score and Assist                         Jhon Duran=6.6  |  James Wilson=101  |  Jose Neto=46  |  Joao Rego=8.5  |  Leandro Barreiro=14  |  Josh  McPake=46  |  Oisin  McEntee=101  |  Manu Silva=23  |  Jakub Kaminski=6.5  |  Pierre Landry Kabore=67  |  Rogers  Mato=46  |  Rafa  Silva=4.75  |  Sabri  Guendouz=71  |  Sabah  Kerjota=41  |  Sander Kartum=101  |  Samuel Dahl=31  |  Tiago Gouveia=7.2  |  Stephen Kingsley=101  |  Tomas Bent Magnusson=101  |  Tom  Renaud=101  |  Vangelis Pavlidis=4.33  |  Richard Rios=17  |  Georgiy Sudakov=6.7  |  Harry  Milne=101  |  Alexandros  Kyziridis=46  |  Alexander Bah=31  |  Amar Dedic=25  |  Amadou  Ba-Sy=101  |  Anisio Cabral=8.3  |  Andreas Schjelderup=6.4  |  Bruma=7.7  |  Blair Spittal=76  |  Gianluca Prestianni=6.5  |  Calvin  Miller=61  |  Craig Halkett=101  |  Christian  Borchgrevink=101  |  Dodi Lukebakio=6.6  |  Daniel Banjaqui=51  |  Elton Kabangu=101  |  Eduardo  Ageu Almeida Santos=61  |  Finlay  Pollock=101  |  Enzo Barrenechea=29  |  Fredrik Aursnes=19  |  Franjo Ivanovic=6.4  |  Yan Dhanda=91  |  Claudio  Braga=51
-  Player Will Score and Match Will End Draw          Alexandros Kyziridis=56  |  Josh Mcpake=36  |  Manu Silva=201  |  Leandro Barreiro=76  |  Pierre Landry Kabore=36  |  Oisin McEntee=126  |  Jordi Altena=91  |  Rafa Silva=46  |  Sabah Kerjota=41  |  Richard Rios=111  |  Samuel Dahl=226  |  Stuart Findlay=126  |  Stephen Kingsley=141  |  Tom Renaud=86  |  Tiago Gouveia=61  |  Tomas Araujo=226  |  Alexander Bah=201  |  Rogers Mato=34  |  James Wilson=36  |  Amar Dedic=251  |  Andreas Schjelderup=67  |  Calvin Miller=41  |  Blair Spittal=51  |  Claudio Braga=36  |  Christian Borchgrevink=151  |  Vangelis Pavlidis=29  |  Craig Halkett=151  |  Enzo Barrenechea=151  |  Dodi Lukebakio=61  |  Franjo Ivanovic=46  |  Finlay Pollock=61  |  Georgiy Sudakov=67  |  Fredrik Aursnes=111  |  Gianluca Prestianni=67  |  Jakub Kaminski=61  |  Jhon Duran=36  |  Elton Kabangu=41
-  Player Will Score and The Opponent Team Will Win   Alexandros Kyziridis=11  |  Josh Mcpake=8.8  |  Manu Silva=201  |  Leandro Barreiro=81  |  Pierre Landry Kabore=8.8  |  Oisin McEntee=26  |  Richard Rios=111  |  Rafa Silva=46  |  Sabah Kerjota=10  |  Rogers Mato=9  |  Samuel Dahl=226  |  Stuart Findlay=23  |  Stephen Kingsley=34  |  Tom Renaud=19  |  Tiago Gouveia=61  |  Tomas Araujo=226  |  Alexander Bah=201  |  Jordi Altena=23  |  Jamie McCart=36  |  Amar Dedic=201  |  Andreas Schjelderup=71  |  Calvin Miller=9.5  |  Blair Spittal=13  |  Claudio Braga=7.8  |  Christian Borchgrevink=29  |  Dodi Lukebakio=67  |  Craig Halkett=26  |  Enzo Barrenechea=176  |  Elton Kabangu=9.5  |  Finlay Pollock=14  |  Franjo Ivanovic=46  |  Georgiy Sudakov=71  |  Fredrik Aursnes=111  |  Gianluca Prestianni=71  |  Jakub Kaminski=61  |  Vangelis Pavlidis=31  |  James Wilson=9  |  Jhon Duran=46
-  Player Will Score and His Team Will Win            Jordi Altena=96  |  Josh Mcpake=46  |  Manu Silva=5.1  |  Leandro Barreiro=3.73  |  Oisin McEntee=151  |  Rafa Silva=1.93  |  Pierre Landry Kabore=41  |  Jhon Duran=1.86  |  Rogers Mato=41  |  Sabah Kerjota=46  |  Samuel Dahl=6.8  |  Stuart Findlay=151  |  Stephen Kingsley=176  |  Tom Renaud=101  |  Tiago Gouveia=2.38  |  Richard Rios=3.98  |  Tomas Araujo=6.9  |  James Wilson=46  |  Alexander Bah=6.9  |  Alexandros Kyziridis=51  |  Andreas Schjelderup=2.57  |  Amar Dedic=6.5  |  Blair Spittal=61  |  Christian Borchgrevink=201  |  Calvin Miller=51  |  Clement Lenglet=7.3  |  Claudio Braga=34  |  Craig Halkett=176  |  Elton Kabangu=51  |  Dodi Lukebakio=2.58  |  Finlay Pollock=71  |  Enzo Barrenechea=5.5  |  Fredrik Aursnes=4.5  |  Franjo Ivanovic=1.88  |  Georgiy Sudakov=2.45  |  Gianluca Prestianni=2.65  |  Vangelis Pavlidis=1.35  |  Jakub Kaminski=2.43
-  Anytime Goalscorer                                 Vangelis Pavlidis=1.38  |  Franjo Ivanovic=1.67  |  Jakub Kaminski=2.55  |  Georgiy Sudakov=2.55  |  Andreas Schjelderup=2.5  |  Gianluca Prestianni=2.65  |  Leandro Barreiro=2.8  |  Richard Rios=4  |  Fredrik Aursnes=4.1  |  Manu Silva=6.4  |  Enzo Barrenechea=5.4  |  Pierre Landry Kabore=4.6  |  Tomas Araujo=8  |  Samuel Dahl=7.7  |  Alexander Bah=6.4  |  Amar Dedic=7.4  |  Clement Lenglet=9.1  |  Blair Spittal=10  |  Yan Dhanda=11
-  Anytime Goalscorer Triple Chance                   Franjo Ivanovic or Jakub Kaminski or Vangelis Pavlidis=1.07  |  Franjo Ivanovic or Georgiy Sudakov or Vangelis Pavlidis=1.07  |  Andreas Schjelderup or Franjo Ivanovic or Vangelis Pavlidis=1.07  |  Franjo Ivanovic or Gianluca Prestianni or Vangelis Pavlidis=1.07  |  Franjo Ivanovic or Leandro Barreiro or Vangelis Pavlidis=1.08  |  Georgiy Sudakov or Jakub Kaminski or Vangelis Pavlidis=1.11  |  Franjo Ivanovic or Richard Rios or Vangelis Pavlidis=1.09  |  Andreas Schjelderup or Jakub Kaminski or Vangelis Pavlidis=1.11  |  Franjo Ivanovic or Fredrik Aursnes or Vangelis Pavlidis=1.09  |  Franjo Ivanovic or Manu Silva or Vangelis Pavlidis=1.1  |  Enzo Barrenechea or Franjo Ivanovic or Vangelis Pavlidis=1.1  |  Franjo Ivanovic or Pierre Landry Kabore or Vangelis Pavlidis=1.09  |  Alexander Bah or Franjo Ivanovic or Vangelis Pavlidis=1.1  |  Amar Dedic or Franjo Ivanovic or Vangelis Pavlidis=1.11  |  Franjo Ivanovic or Samuel Dahl or Vangelis Pavlidis=1.11  |  Franjo Ivanovic or Tomas Araujo or Vangelis Pavlidis=1.11  |  Andreas Schjelderup or Georgiy Sudakov or Vangelis Pavlidis=1.11  |  Clement Lenglet or Franjo Ivanovic or Vangelis Pavlidis=1.11  |  Blair Spittal or Franjo Ivanovic or Vangelis Pavlidis=1.11  |  Georgiy Sudakov or Gianluca Prestianni or Vangelis Pavlidis=1.12  |  Gianluca Prestianni or Jakub Kaminski or Vangelis Pavlidis=1.12  |  Andreas Schjelderup or Gianluca Prestianni or Vangelis Pavlidis=1.12  |  Franjo Ivanovic or Vangelis Pavlidis or Yan Dhanda=1.11  |  Andreas Schjelderup or Leandro Barreiro or Vangelis Pavlidis=1.12  |  Georgiy Sudakov or Leandro Barreiro or Vangelis Pavlidis=1.12  |  Jakub Kaminski or Leandro Barreiro or Vangelis Pavlidis=1.12  |  Gianluca Prestianni or Leandro Barreiro or Vangelis Pavlidis=1.12  |  Andreas Schjelderup or Richard Rios or Vangelis Pavlidis=1.14  |  Georgiy Sudakov or Richard Rios or Vangelis Pavlidis=1.14  |  Jakub Kaminski or Richard Rios or Vangelis Pavlidis=1.14  |  Andreas Schjelderup or Fredrik Aursnes or Vangelis Pavlidis=1.14  |  Fredrik Aursnes or Georgiy Sudakov or Vangelis Pavlidis=1.15  |  Fredrik Aursnes or Jakub Kaminski or Vangelis Pavlidis=1.15  |  Gianluca Prestianni or Richard Rios or Vangelis Pavlidis=1.15  |  Fredrik Aursnes or Gianluca Prestianni or Vangelis Pavlidis=1.15  |  Andreas Schjelderup or Pierre Landry Kabore or Vangelis Pavlidis=1.15  |  Georgiy Sudakov or Pierre Landry Kabore or Vangelis Pavlidis=1.15  |  Jakub Kaminski or Pierre Landry Kabore or Vangelis Pavlidis=1.15  |  Gianluca Prestianni or Pierre Landry Kabore or Vangelis Pavlidis=1.15  |  Leandro Barreiro or Richard Rios or Vangelis Pavlidis=1.15  |  Fredrik Aursnes or Leandro Barreiro or Vangelis Pavlidis=1.16  |  Andreas Schjelderup or Enzo Barrenechea or Vangelis Pavlidis=1.16  |  Enzo Barrenechea or Georgiy Sudakov or Vangelis Pavlidis=1.16  |  Enzo Barrenechea or Jakub Kaminski or Vangelis Pavlidis=1.16  |  Leandro Barreiro or Pierre Landry Kabore or Vangelis Pavlidis=1.16  |  Andreas Schjelderup or Franjo Ivanovic or Georgiy Sudakov=1.17  |  Andreas Schjelderup or Franjo Ivanovic or Jakub Kaminski=1.17  |  Franjo Ivanovic or Georgiy Sudakov or Jakub Kaminski=1.17  |  Enzo Barrenechea or Gianluca Prestianni or Vangelis Pavlidis=1.16  |  Alexander Bah or Andreas Schjelderup or Vangelis Pavlidis=1.16  |  Alexander Bah or Georgiy Sudakov or Vangelis Pavlidis=1.16  |  Alexander Bah or Jakub Kaminski or Vangelis Pavlidis=1.16  |  Andreas Schjelderup or Manu Silva or Vangelis Pavlidis=1.16  |  Georgiy Sudakov or Manu Silva or Vangelis Pavlidis=1.16  |  Jakub Kaminski or Manu Silva or Vangelis Pavlidis=1.16  |  Andreas Schjelderup or Franjo Ivanovic or Gianluca Prestianni=1.18  |  Franjo Ivanovic or Georgiy Sudakov or Gianluca Prestianni=1.18  |  Franjo Ivanovic or Gianluca Prestianni or Jakub Kaminski=1.18  |  Alexander Bah or Gianluca Prestianni or Vangelis Pavlidis=1.17  |  Amar Dedic or Andreas Schjelderup or Vangelis Pavlidis=1.17  |  Amar Dedic or Georgiy Sudakov or Vangelis Pavlidis=1.17  |  Amar Dedic or Jakub Kaminski or Vangelis Pavlidis=1.17  |  Enzo Barrenechea or Leandro Barreiro or Vangelis Pavlidis=1.17  |  Gianluca Prestianni or Manu Silva or Vangelis Pavlidis=1.17  |  Andreas Schjelderup or Samuel Dahl or Vangelis Pavlidis=1.17  |  Georgiy Sudakov or Samuel Dahl or Vangelis Pavlidis=1.17  |  Jakub Kaminski or Samuel Dahl or Vangelis Pavlidis=1.17  |  Andreas Schjelderup or Tomas Araujo or Vangelis Pavlidis=1.17  |  Georgiy Sudakov or Tomas Araujo or Vangelis Pavlidis=1.17  |  Jakub Kaminski or Tomas Araujo or Vangelis Pavlidis=1.17  |  Amar Dedic or Gianluca Prestianni or Vangelis Pavlidis=1.17  |  Andreas Schjelderup or Clement Lenglet or Vangelis Pavlidis=1.17  |  Clement Lenglet or Georgiy Sudakov or Vangelis Pavlidis=1.18  |  Clement Lenglet or Jakub Kaminski or Vangelis Pavlidis=1.18  |  Gianluca Prestianni or Samuel Dahl or Vangelis Pavlidis=1.18  |  Gianluca Prestianni or Tomas Araujo or Vangelis Pavlidis=1.18  |  Alexander Bah or Leandro Barreiro or Vangelis Pavlidis=1.18  |  Andreas Schjelderup or Blair Spittal or Vangelis Pavlidis=1.17  |  Blair Spittal or Georgiy Sudakov or Vangelis Pavlidis=1.18  |  Blair Spittal or Jakub Kaminski or Vangelis Pavlidis=1.18  |  Leandro Barreiro or Manu Silva or Vangelis Pavlidis=1.18  |  Andreas Schjelderup or Vangelis Pavlidis or Yan Dhanda=1.18  |  Georgiy Sudakov or Vangelis Pavlidis or Yan Dhanda=1.18  |  Jakub Kaminski or Vangelis Pavlidis or Yan Dhanda=1.18  |  Clement Lenglet or Gianluca Prestianni or Vangelis Pavlidis=1.18  |  Amar Dedic or Leandro Barreiro or Vangelis Pavlidis=1.18  |  Blair Spittal or Gianluca Prestianni or Vangelis Pavlidis=1.18  |  Fredrik Aursnes or Richard Rios or Vangelis Pavlidis=1.19  |  Gianluca Prestianni or Vangelis Pavlidis or Yan Dhanda=1.19  |  Leandro Barreiro or Samuel Dahl or Vangelis Pavlidis=1.18  |  Leandro Barreiro or Tomas Araujo or Vangelis Pavlidis=1.18  |  Clement Lenglet or Leandro Barreiro or Vangelis Pavlidis=1.19  |  Blair Spittal or Leandro Barreiro or Vangelis Pavlidis=1.19  |  Pierre Landry Kabore or Richard Rios or Vangelis Pavlidis=1.19  |  Leandro Barreiro or Vangelis Pavlidis or Yan Dhanda=1.19  |  Fredrik Aursnes or Pierre Landry Kabore or Vangelis Pavlidis=1.19  |  Andreas Schjelderup or Franjo Ivanovic or Leandro Barreiro=1.18  |  Franjo Ivanovic or Georgiy Sudakov or Leandro Barreiro=1.19  |  Franjo Ivanovic or Jakub Kaminski or Leandro Barreiro=1.19  |  Franjo Ivanovic or Gianluca Prestianni or Leandro Barreiro=1.19
-  Anytime Goalscorer Double Chance                   Franjo Ivanovic or Vangelis Pavlidis=1.12  |  Jakub Kaminski or Vangelis Pavlidis=1.2  |  Georgiy Sudakov or Vangelis Pavlidis=1.2  |  Andreas Schjelderup or Vangelis Pavlidis=1.2  |  Gianluca Prestianni or Vangelis Pavlidis=1.21  |  Leandro Barreiro or Vangelis Pavlidis=1.22  |  Richard Rios or Vangelis Pavlidis=1.26  |  Fredrik Aursnes or Vangelis Pavlidis=1.26  |  Manu Silva or Vangelis Pavlidis=1.3  |  Enzo Barrenechea or Vangelis Pavlidis=1.29  |  Pierre Landry Kabore or Vangelis Pavlidis=1.27  |  Alexander Bah or Vangelis Pavlidis=1.3  |  Amar Dedic or Vangelis Pavlidis=1.31  |  Clement Lenglet or Vangelis Pavlidis=1.33  |  Samuel Dahl or Vangelis Pavlidis=1.32  |  Tomas Araujo or Vangelis Pavlidis=1.32  |  Blair Spittal or Vangelis Pavlidis=1.33  |  Vangelis Pavlidis or Yan Dhanda=1.33  |  Franjo Ivanovic or Jakub Kaminski=1.32  |  Franjo Ivanovic or Georgiy Sudakov=1.32  |  Andreas Schjelderup or Franjo Ivanovic=1.32  |  Franjo Ivanovic or Gianluca Prestianni=1.33  |  Franjo Ivanovic or Leandro Barreiro=1.35  |  Franjo Ivanovic or Richard Rios=1.43  |  Franjo Ivanovic or Fredrik Aursnes=1.44  |  Franjo Ivanovic or Pierre Landry Kabore=1.46  |  Enzo Barrenechea or Franjo Ivanovic=1.49  |  Alexander Bah or Franjo Ivanovic=1.51  |  Franjo Ivanovic or Manu Silva=1.51  |  Amar Dedic or Franjo Ivanovic=1.53  |  Franjo Ivanovic or Samuel Dahl=1.54  |  Franjo Ivanovic or Tomas Araujo=1.54  |  Georgiy Sudakov or Jakub Kaminski=1.59  |  Andreas Schjelderup or Georgiy Sudakov=1.57  |  Andreas Schjelderup or Jakub Kaminski=1.57  |  Clement Lenglet or Franjo Ivanovic=1.56  |  Blair Spittal or Franjo Ivanovic=1.56  |  Franjo Ivanovic or Yan Dhanda=1.57  |  Andreas Schjelderup or Gianluca Prestianni=1.6  |  Georgiy Sudakov or Gianluca Prestianni=1.61  |  Gianluca Prestianni or Jakub Kaminski=1.61  |  Andreas Schjelderup or Leandro Barreiro=1.63  |  Georgiy Sudakov or Leandro Barreiro=1.64  |  Jakub Kaminski or Leandro Barreiro=1.64  |  Gianluca Prestianni or Leandro Barreiro=1.67  |  Andreas Schjelderup or Richard Rios=1.82  |  Georgiy Sudakov or Richard Rios=1.84  |  Jakub Kaminski or Richard Rios=1.84  |  Andreas Schjelderup or Fredrik Aursnes=1.83  |  Fredrik Aursnes or Georgiy Sudakov=1.85  |  Fredrik Aursnes or Jakub Kaminski=1.85  |  Gianluca Prestianni or Richard Rios=1.88  |  Fredrik Aursnes or Gianluca Prestianni=1.89  |  Andreas Schjelderup or Pierre Landry Kabore=1.88  |  Georgiy Sudakov or Pierre Landry Kabore=1.9  |  Jakub Kaminski or Pierre Landry Kabore=1.9  |  Leandro Barreiro or Richard Rios=1.93  |  Gianluca Prestianni or Pierre Landry Kabore=1.95  |  Fredrik Aursnes or Leandro Barreiro=1.95  |  Andreas Schjelderup or Enzo Barrenechea=1.96  |  Enzo Barrenechea or Georgiy Sudakov=1.98  |  Enzo Barrenechea or Jakub Kaminski=1.98  |  Leandro Barreiro or Pierre Landry Kabore=2.01  |  Enzo Barrenechea or Gianluca Prestianni=2.03  |  Alexander Bah or Andreas Schjelderup=2.03  |  Alexander Bah or Georgiy Sudakov=2.05  |  Alexander Bah or Jakub Kaminski=2.05  |  Andreas Schjelderup or Manu Silva=2.03  |  Georgiy Sudakov or Manu Silva=2.05  |  Jakub Kaminski or Manu Silva=2.05  |  Alexander Bah or Gianluca Prestianni=2.11  |  Gianluca Prestianni or Manu Silva=2.11  |  Amar Dedic or Andreas Schjelderup=2.08  |  Amar Dedic or Georgiy Sudakov=2.11  |  Amar Dedic or Jakub Kaminski=2.11  |  Enzo Barrenechea or Leandro Barreiro=2.1  |  Andreas Schjelderup or Samuel Dahl=2.09  |  Georgiy Sudakov or Samuel Dahl=2.12  |  Jakub Kaminski or Samuel Dahl=2.12  |  Andreas Schjelderup or Tomas Araujo=2.11  |  Georgiy Sudakov or Tomas Araujo=2.14  |  Jakub Kaminski or Tomas Araujo=2.14  |  Amar Dedic or Gianluca Prestianni=2.17  |  Andreas Schjelderup or Clement Lenglet=2.15  |  Clement Lenglet or Georgiy Sudakov=2.18  |  Clement Lenglet or Jakub Kaminski=2.18  |  Gianluca Prestianni or Samuel Dahl=2.18  |  Gianluca Prestianni or Tomas Araujo=2.2  |  Alexander Bah or Leandro Barreiro=2.19  |  Leandro Barreiro or Manu Silva=2.19  |  Andreas Schjelderup or Blair Spittal=2.17  |  Blair Spittal or Georgiy Sudakov=2.21  |  Blair Spittal or Jakub Kaminski=2.21  |  Andreas Schjelderup or Yan Dhanda=2.2  |  Georgiy Sudakov or Yan Dhanda=2.24  |  Jakub Kaminski or Yan Dhanda=2.24  |  Clement Lenglet or Gianluca Prestianni=2.24  |  Blair Spittal or Gianluca Prestianni=2.27  |  Amar Dedic or Leandro Barreiro=2.25  |  Leandro Barreiro or Samuel Dahl=2.27
-  Anytime Goalscorer Three Players To Score          Franjo Ivanovic and Jakub Kaminski and Vangelis Pavlidis=5.9  |  Franjo Ivanovic and Georgiy Sudakov and Vangelis Pavlidis=5.9  |  Andreas Schjelderup and Franjo Ivanovic and Vangelis Pavlidis=5.8  |  Franjo Ivanovic and Gianluca Prestianni and Vangelis Pavlidis=6.2  |  Georgiy Sudakov and Jakub Kaminski and Vangelis Pavlidis=9  |  Andreas Schjelderup and Jakub Kaminski and Vangelis Pavlidis=8.8  |  Gianluca Prestianni and Jakub Kaminski and Vangelis Pavlidis=9.3  |  Andreas Schjelderup and Georgiy Sudakov and Vangelis Pavlidis=8.8  |  Franjo Ivanovic and Leandro Barreiro and Vangelis Pavlidis=6.5  |  Franjo Ivanovic and Richard Rios and Vangelis Pavlidis=9.2  |  Georgiy Sudakov and Gianluca Prestianni and Vangelis Pavlidis=9.3  |  Andreas Schjelderup and Gianluca Prestianni and Vangelis Pavlidis=9.1  |  Franjo Ivanovic and Fredrik Aursnes and Vangelis Pavlidis=9.4  |  Andreas Schjelderup and Leandro Barreiro and Vangelis Pavlidis=9.7  |  Georgiy Sudakov and Leandro Barreiro and Vangelis Pavlidis=9.8  |  Jakub Kaminski and Leandro Barreiro and Vangelis Pavlidis=9.8  |  Gianluca Prestianni and Leandro Barreiro and Vangelis Pavlidis=10  |  Franjo Ivanovic and Pierre Landry Kabore and Vangelis Pavlidis=10  |  Andreas Schjelderup and Franjo Ivanovic and Georgiy Sudakov=11  |  Andreas Schjelderup and Franjo Ivanovic and Jakub Kaminski=11  |  Franjo Ivanovic and Georgiy Sudakov and Jakub Kaminski=11  |  Andreas Schjelderup and Franjo Ivanovic and Gianluca Prestianni=11  |  Franjo Ivanovic and Georgiy Sudakov and Gianluca Prestianni=11  |  Franjo Ivanovic and Gianluca Prestianni and Jakub Kaminski=11  |  Andreas Schjelderup and Franjo Ivanovic and Leandro Barreiro=12  |  Franjo Ivanovic and Georgiy Sudakov and Leandro Barreiro=12  |  Franjo Ivanovic and Jakub Kaminski and Leandro Barreiro=12  |  Franjo Ivanovic and Gianluca Prestianni and Leandro Barreiro=12  |  Enzo Barrenechea and Franjo Ivanovic and Vangelis Pavlidis=12  |  Andreas Schjelderup and Richard Rios and Vangelis Pavlidis=14  |  Georgiy Sudakov and Richard Rios and Vangelis Pavlidis=14  |  Jakub Kaminski and Richard Rios and Vangelis Pavlidis=14  |  Andreas Schjelderup and Fredrik Aursnes and Vangelis Pavlidis=14  |  Fredrik Aursnes and Georgiy Sudakov and Vangelis Pavlidis=14  |  Fredrik Aursnes and Jakub Kaminski and Vangelis Pavlidis=14  |  Gianluca Prestianni and Richard Rios and Vangelis Pavlidis=15  |  Fredrik Aursnes and Gianluca Prestianni and Vangelis Pavlidis=15  |  Alexander Bah and Franjo Ivanovic and Vangelis Pavlidis=15  |  Franjo Ivanovic and Manu Silva and Vangelis Pavlidis=15  |  Leandro Barreiro and Richard Rios and Vangelis Pavlidis=15  |  Fredrik Aursnes and Leandro Barreiro and Vangelis Pavlidis=15  |  Andreas Schjelderup and Pierre Landry Kabore and Vangelis Pavlidis=15  |  Georgiy Sudakov and Pierre Landry Kabore and Vangelis Pavlidis=17  |  Jakub Kaminski and Pierre Landry Kabore and Vangelis Pavlidis=17  |  Andreas Schjelderup and Georgiy Sudakov and Jakub Kaminski=17  |  Gianluca Prestianni and Pierre Landry Kabore and Vangelis Pavlidis=17  |  Andreas Schjelderup and Franjo Ivanovic and Richard Rios=17  |  Andreas Schjelderup and Georgiy Sudakov and Gianluca Prestianni=17  |  Andreas Schjelderup and Gianluca Prestianni and Jakub Kaminski=17  |  Franjo Ivanovic and Georgiy Sudakov and Richard Rios=17  |  Franjo Ivanovic and Jakub Kaminski and Richard Rios=17  |  Georgiy Sudakov and Gianluca Prestianni and Jakub Kaminski=17  |  Andreas Schjelderup and Franjo Ivanovic and Fredrik Aursnes=17  |  Franjo Ivanovic and Fredrik Aursnes and Georgiy Sudakov=17  |  Franjo Ivanovic and Fredrik Aursnes and Jakub Kaminski=17  |  Amar Dedic and Franjo Ivanovic and Vangelis Pavlidis=17  |  Franjo Ivanovic and Gianluca Prestianni and Richard Rios=17  |  Leandro Barreiro and Pierre Landry Kabore and Vangelis Pavlidis=17  |  Franjo Ivanovic and Fredrik Aursnes and Gianluca Prestianni=19  |  Andreas Schjelderup and Georgiy Sudakov and Leandro Barreiro=17  |  Andreas Schjelderup and Jakub Kaminski and Leandro Barreiro=17  |  Georgiy Sudakov and Jakub Kaminski and Leandro Barreiro=19  |  Franjo Ivanovic and Samuel Dahl and Vangelis Pavlidis=17  |  Andreas Schjelderup and Gianluca Prestianni and Leandro Barreiro=19  |  Franjo Ivanovic and Leandro Barreiro and Richard Rios=19  |  Georgiy Sudakov and Gianluca Prestianni and Leandro Barreiro=19  |  Gianluca Prestianni and Jakub Kaminski and Leandro Barreiro=19  |  Franjo Ivanovic and Tomas Araujo and Vangelis Pavlidis=19  |  Andreas Schjelderup and Enzo Barrenechea and Vangelis Pavlidis=19  |  Enzo Barrenechea and Georgiy Sudakov and Vangelis Pavlidis=19  |  Enzo Barrenechea and Jakub Kaminski and Vangelis Pavlidis=19  |  Franjo Ivanovic and Fredrik Aursnes and Leandro Barreiro=19  |  Andreas Schjelderup and Franjo Ivanovic and Pierre Landry Kabore=19  |  Franjo Ivanovic and Georgiy Sudakov and Pierre Landry Kabore=19  |  Franjo Ivanovic and Jakub Kaminski and Pierre Landry Kabore=19  |  Enzo Barrenechea and Gianluca Prestianni and Vangelis Pavlidis=19  |  Franjo Ivanovic and Gianluca Prestianni and Pierre Landry Kabore=21  |  Enzo Barrenechea and Leandro Barreiro and Vangelis Pavlidis=21  |  Clement Lenglet and Franjo Ivanovic and Vangelis Pavlidis=21  |  Franjo Ivanovic and Leandro Barreiro and Pierre Landry Kabore=21  |  Fredrik Aursnes and Richard Rios and Vangelis Pavlidis=23  |  Alexander Bah and Andreas Schjelderup and Vangelis Pavlidis=23  |  Alexander Bah and Georgiy Sudakov and Vangelis Pavlidis=23  |  Alexander Bah and Jakub Kaminski and Vangelis Pavlidis=23  |  Andreas Schjelderup and Manu Silva and Vangelis Pavlidis=23  |  Georgiy Sudakov and Manu Silva and Vangelis Pavlidis=23  |  Jakub Kaminski and Manu Silva and Vangelis Pavlidis=23  |  Andreas Schjelderup and Enzo Barrenechea and Franjo Ivanovic=23  |  Enzo Barrenechea and Franjo Ivanovic and Georgiy Sudakov=23  |  Enzo Barrenechea and Franjo Ivanovic and Jakub Kaminski=23  |  Blair Spittal and Franjo Ivanovic and Vangelis Pavlidis=23  |  Alexander Bah and Gianluca Prestianni and Vangelis Pavlidis=23  |  Gianluca Prestianni and Manu Silva and Vangelis Pavlidis=23  |  Enzo Barrenechea and Franjo Ivanovic and Gianluca Prestianni=23  |  Franjo Ivanovic and Vangelis Pavlidis and Yan Dhanda=25  |  Pierre Landry Kabore and Richard Rios and Vangelis Pavlidis=25  |  Alexander Bah and Leandro Barreiro and Vangelis Pavlidis=25  |  Leandro Barreiro and Manu Silva and Vangelis Pavlidis=25  |  Andreas Schjelderup and Georgiy Sudakov and Richard Rios=26  |  Enzo Barrenechea and Franjo Ivanovic and Leandro Barreiro=25
-  Anytime Goalscorer Both Players To Score           Franjo Ivanovic and Vangelis Pavlidis=2.31  |  Jakub Kaminski and Vangelis Pavlidis=3.52  |  Georgiy Sudakov and Vangelis Pavlidis=3.52  |  Andreas Schjelderup and Vangelis Pavlidis=3.45  |  Gianluca Prestianni and Vangelis Pavlidis=3.66  |  Franjo Ivanovic and Jakub Kaminski=4.3  |  Franjo Ivanovic and Georgiy Sudakov=4.3  |  Leandro Barreiro and Vangelis Pavlidis=3.86  |  Andreas Schjelderup and Franjo Ivanovic=4.2  |  Franjo Ivanovic and Gianluca Prestianni=4.4  |  Richard Rios and Vangelis Pavlidis=5.5  |  Fredrik Aursnes and Vangelis Pavlidis=5.7  |  Georgiy Sudakov and Jakub Kaminski=6.5  |  Andreas Schjelderup and Jakub Kaminski=6.4  |  Gianluca Prestianni and Jakub Kaminski=6.8  |  Andreas Schjelderup and Georgiy Sudakov=6.4  |  Georgiy Sudakov and Gianluca Prestianni=6.8  |  Manu Silva and Vangelis Pavlidis=8.8  |  Andreas Schjelderup and Gianluca Prestianni=6.6  |  Franjo Ivanovic and Leandro Barreiro=4.7  |  Enzo Barrenechea and Vangelis Pavlidis=7.5  |  Franjo Ivanovic and Richard Rios=6.7  |  Pierre Landry Kabore and Vangelis Pavlidis=6.3  |  Franjo Ivanovic and Fredrik Aursnes=6.8  |  Jakub Kaminski and Leandro Barreiro=7.1  |  Andreas Schjelderup and Leandro Barreiro=7  |  Georgiy Sudakov and Leandro Barreiro=7.1  |  Gianluca Prestianni and Leandro Barreiro=7.4  |  Franjo Ivanovic and Pierre Landry Kabore=7.6  |  Alexander Bah and Vangelis Pavlidis=8.8  |  Enzo Barrenechea and Franjo Ivanovic=9  |  Andreas Schjelderup and Richard Rios=10  |  Georgiy Sudakov and Richard Rios=10  |  Jakub Kaminski and Richard Rios=10  |  Andreas Schjelderup and Fredrik Aursnes=10  |  Fredrik Aursnes and Georgiy Sudakov=10  |  Fredrik Aursnes and Jakub Kaminski=10  |  Amar Dedic and Vangelis Pavlidis=10  |  Gianluca Prestianni and Richard Rios=11  |  Fredrik Aursnes and Gianluca Prestianni=11  |  Alexander Bah and Franjo Ivanovic=11  |  Franjo Ivanovic and Manu Silva=11  |  Samuel Dahl and Vangelis Pavlidis=11  |  Leandro Barreiro and Richard Rios=11  |  Tomas Araujo and Vangelis Pavlidis=11  |  Fredrik Aursnes and Leandro Barreiro=11  |  Andreas Schjelderup and Pierre Landry Kabore=11  |  Georgiy Sudakov and Pierre Landry Kabore=12  |  Jakub Kaminski and Pierre Landry Kabore=12  |  Gianluca Prestianni and Pierre Landry Kabore=12  |  Amar Dedic and Franjo Ivanovic=12  |  Clement Lenglet and Vangelis Pavlidis=13  |  Leandro Barreiro and Pierre Landry Kabore=13  |  Franjo Ivanovic and Samuel Dahl=13  |  Franjo Ivanovic and Tomas Araujo=13  |  Andreas Schjelderup and Enzo Barrenechea=14  |  Enzo Barrenechea and Georgiy Sudakov=14  |  Enzo Barrenechea and Jakub Kaminski=14  |  Blair Spittal and Vangelis Pavlidis=14  |  Enzo Barrenechea and Gianluca Prestianni=14  |  Vangelis Pavlidis and Yan Dhanda=15  |  Enzo Barrenechea and Leandro Barreiro=15  |  Clement Lenglet and Franjo Ivanovic=15  |  Fredrik Aursnes and Richard Rios=17  |  Alexander Bah and Andreas Schjelderup=17  |  Alexander Bah and Georgiy Sudakov=17  |  Alexander Bah and Jakub Kaminski=17  |  Andreas Schjelderup and Manu Silva=17  |  Georgiy Sudakov and Manu Silva=17  |  Jakub Kaminski and Manu Silva=17  |  Blair Spittal and Franjo Ivanovic=17  |  Alexander Bah and Gianluca Prestianni=17  |  Gianluca Prestianni and Manu Silva=17  |  Franjo Ivanovic and Yan Dhanda=19  |  Pierre Landry Kabore and Richard Rios=19  |  Alexander Bah and Leandro Barreiro=17  |  Leandro Barreiro and Manu Silva=17  |  Fredrik Aursnes and Pierre Landry Kabore=19  |  Amar Dedic and Andreas Schjelderup=19  |  Amar Dedic and Georgiy Sudakov=19  |  Amar Dedic and Jakub Kaminski=19  |  Amar Dedic and Gianluca Prestianni=19  |  Andreas Schjelderup and Samuel Dahl=19  |  Georgiy Sudakov and Samuel Dahl=19  |  Jakub Kaminski and Samuel Dahl=19  |  Andreas Schjelderup and Tomas Araujo=21  |  Georgiy Sudakov and Tomas Araujo=21  |  Jakub Kaminski and Tomas Araujo=21  |  Gianluca Prestianni and Samuel Dahl=21  |  Amar Dedic and Leandro Barreiro=21  |  Gianluca Prestianni and Tomas Araujo=21  |  Enzo Barrenechea and Richard Rios=21  |  Enzo Barrenechea and Fredrik Aursnes=23  |  Leandro Barreiro and Samuel Dahl=21  |  Leandro Barreiro and Tomas Araujo=23  |  Andreas Schjelderup and Clement Lenglet=23  |  Clement Lenglet and Georgiy Sudakov=23  |  Clement Lenglet and Jakub Kaminski=23  |  Enzo Barrenechea and Pierre Landry Kabore=25  |  Clement Lenglet and Gianluca Prestianni=25
-  First Goalscorer                                   Vangelis Pavlidis=3.05  |  Franjo Ivanovic=4.1  |  Jakub Kaminski=6.9  |  Andreas Schjelderup=6.6  |  Georgiy Sudakov=7  |  Gianluca Prestianni=6.9  |  Leandro Barreiro=7.6  |  Richard Rios=11  |  Fredrik Aursnes=11  |  Enzo Barrenechea=14  |  Manu Silva=17  |  Alexander Bah=19  |  Amar Dedic=21  |  Clement Lenglet=25  |  Pierre Landry Kabore=12  |  Samuel Dahl=21  |  Tomas Araujo=19  |  Blair Spittal=25  |  Yan Dhanda=23
-  Player To Score in First Half                      Vangelis Pavlidis=2.06  |  Dodi Lukebakio=3.55  |  Georgiy Sudakov=3.6  |  Claudio  Braga=6.3  |  Alexandros  Kyziridis=8.2  |  Sabri  Guendouz=9.4
-  First Player Gets Card                             Yan Dhanda=11  |  Blair Spittal=11  |  Clement Lenglet=17  |  Pierre Landry Kabore=12  |  Enzo Barrenechea=17  |  Richard Rios=14  |  Leandro Barreiro=17  |  Amar Dedic=21  |  Manu Silva=12  |  Georgiy Sudakov=17  |  Gianluca Prestianni=14  |  Jakub Kaminski=15  |  Alexander Bah=21  |  Andreas Schjelderup=17  |  Tomas Araujo=19  |  Vangelis Pavlidis=19  |  Franjo Ivanovic=15  |  Fredrik Aursnes=19  |  Samuel Dahl=23
-  Player Gets Card                                   Yan Dhanda=3.6  |  Blair Spittal=3.75  |  Clement Lenglet=5.4  |  Pierre Landry Kabore=3.9  |  Enzo Barrenechea=5.2  |  Richard Rios=4.5  |  Leandro Barreiro=5.2  |  Amar Dedic=6.4  |  Manu Silva=3.85  |  Georgiy Sudakov=5.3  |  Gianluca Prestianni=4.4  |  Jakub Kaminski=4.75  |  Alexander Bah=6.6  |  Andreas Schjelderup=5  |  Tomas Araujo=5.9  |  Vangelis Pavlidis=6  |  Franjo Ivanovic=4.7  |  Fredrik Aursnes=6  |  Samuel Dahl=7.3
-  To Be Sent Off                                     Harry Milne=26  |  Oisin McEntee=29  |  Alexandros Kyziridis=26  |  Pierre Landry Kabore=21  |  Calvin Miller=26  |  Josh Mcpake=19  |  Sabri Guendouz=19  |  Yan Dhanda=34  |  Sabah Kerjota=29  |  Claudio Braga=26  |  Jamie McCart=36  |  Stuart Findlay=31  |  Blair Spittal=34  |  Clement Lenglet=56  |  Enzo Barrenechea=67  |  Richard Rios=51  |  Jordi Altena=21  |  Gianluca Prestianni=41  |  Leandro Barreiro=67  |  Amar Dedic=71  |  Beau Reus=81  |  Alexander Bah=76  |  Rafa Silva=71  |  Vangelis Pavlidis=76  |  Fredrik Aursnes=76  |  Franjo Ivanovic=51  |  Andreas Schjelderup=51  |  Tomas Araujo=71  |  Jakub Kaminski=41  |  Samuel Dahl=81  |  Anatoliy Trubin=81  |  Malachi Fagan-Walcott=26
-  Player To Score 2 Or More                          Vangelis Pavlidis=2.9  |  Franjo Ivanovic=4.33  |  Jakub Kaminski=9.7  |  Georgiy Sudakov=10  |  Andreas Schjelderup=9.7  |  Gianluca Prestianni=10  |  Leandro Barreiro=12  |  Richard Rios=23  |  Fredrik Aursnes=21  |  Manu Silva=56  |  Enzo Barrenechea=36  |  Pierre Landry Kabore=31  |  Samuel Dahl=81  |  Amar Dedic=67  |  Tomas Araujo=81  |  Alexander Bah=56  |  Clement Lenglet=91  |  Blair Spittal=86  |  Yan Dhanda=91
-  Player To Score 3 Or More                          Vangelis Pavlidis=7.4  |  Franjo Ivanovic=14  |  Georgiy Sudakov=46  |  Jakub Kaminski=41  |  Gianluca Prestianni=46  |  Andreas Schjelderup=41  |  Leandro Barreiro=61  |  Richard Rios=126  |  Manu Silva=126  |  Fredrik Aursnes=126
-  Last Goalscorer                                    Vangelis Pavlidis=3.05  |  Franjo Ivanovic=4.1  |  Rafa Silva=5.8  |  Gianluca Prestianni=5.8  |  Andreas Schjelderup=6.3  |  Georgiy Sudakov=6.5  |  Jakub Kaminski=6.9  |  Leandro Barreiro=7.1  |  Amadou Ba-Sy=11  |  Claudio Braga=11  |  Fredrik Aursnes=11  |  Pierre Landry Kabore=11  |  Richard Rios=11  |  Enzo Barrenechea=13  |  Josh Mcpake=13  |  Miguel Figueiredo=13  |  Alexander Bah=15  |  Manu Silva=15  |  Sabri Guendouz=19  |  Tomas Araujo=17  |  Samuel Dahl=19  |  Alexandros Kyziridis=21  |  Blair Spittal=23  |  Amar Dedic=23  |  Calvin Miller=26  |  Sabah Kerjota=23  |  Clement Lenglet=26  |  Yan Dhanda=31  |  Stuart Findlay=34  |  Oisin McEntee=46  |  Harry Milne=56  |  Jamie McCart=61  |  Jordi Altena=61  |  Malachi Fagan-Walcott=61
-  Player Gets Yellow Card                            Jordi Altena=2.9  |  Oisin McEntee=3.25  |  Harry Milne=3.35  |  Malachi Fagan-Walcott=3.4  |  Josh Mcpake=3.65  |  Sabri Guendouz=3.65  |  Yan Dhanda=3.7  |  Amadou Ba-Sy=3.75  |  Blair Spittal=3.85  |  Manu Silva=3.9  |  Stuart Findlay=3.9  |  Jamie McCart=4.2  |  Pierre Landry Kabore=4.2  |  Calvin Miller=4.2  |  Gianluca Prestianni=4.6  |  Miguel Figueiredo=4.6  |  Richard Rios=4.6  |  Alexandros Kyziridis=4.6  |  Claudio Braga=4.6  |  Sabah Kerjota=4.7  |  Franjo Ivanovic=4.8  |  Jakub Kaminski=4.85  |  Andreas Schjelderup=5.1  |  Enzo Barrenechea=5.3  |  Leandro Barreiro=5.3  |  Georgiy Sudakov=5.4  |  Clement Lenglet=5.5  |  Rafa Silva=6  |  Tomas Araujo=6  |  Fredrik Aursnes=6.2  |  Vangelis Pavlidis=6.2  |  Amar Dedic=6.6  |  Alexander Bah=6.8  |  Beau Reus=7.1  |  Samuel Dahl=7.5  |  Anatoliy Trubin=21
-
-━━━━━━ Fouls (2) ━━━━━━
-  Two Penalties in the Match                         Yes=4.4
-  A Penalty in the Match                             No=1.41  |  Yes=2.68
+═══ FIN PROBE ═══
