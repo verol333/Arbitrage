@@ -36,13 +36,17 @@ const gameId = await swarmSession(211, async (send) => {
   const to = now + 5 * 86400;
   const data = await send(
     { sport: ['id'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name'] },
-    { sport: { id: 1 }, game: { start_ts: { '@gt': now, '@lt': to }, is_live: 0, team1_name: { '@like': '%Benfica%' } } },
+    { sport: { id: 1 }, game: { start_ts: { '@gt': now, '@lt': to }, is_live: 0 } },
   );
   for (const s of Object.values(data?.sport || {})) {
     for (const r of Object.values(s.region || {})) {
       for (const c of Object.values(r.competition || {})) {
         for (const g of Object.values(c.game || {})) {
-          if (/heart of mid/i.test(g.team2_name)) return g.id;
+          const label = `${g.team1_name || ''} ${g.team2_name || ''}`.toLowerCase();
+          if (label.includes('benfica') && label.includes('heart of mid')) {
+            console.log(`  found: ${g.team1_name} vs ${g.team2_name} [${c.name}] id=${g.id}`);
+            return g.id;
+          }
         }
       }
     }
