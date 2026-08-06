@@ -38,6 +38,7 @@ async function readOddsSafe(book, matches, opts) {
                 : /^(betpawa|sportybet)$/.test(book.key) ? 150
                 : book.key === 'premierbet' ? 100
                 : book.key === 'yellowbet' ? 12
+                : /^(betmomo|maxibet)$/.test(book.key) ? 40
                 : 40;
     for (let i = 0; i < matches.length; i += BATCH) {
       const chunk = matches.slice(i, i + BATCH);
@@ -655,7 +656,7 @@ function idFields(matches) {
   const idKeyMap = {
     '1xbet': 'onexbet_match_id', '1win': 'onewin_match_id', congobet: 'congobet_match_id',
     yellowbet: 'yellowbet_match_id', apollo: 'apollo_match_id', betmomo: 'betmomo_match_id',
-    premierbet: 'premierbet_match_id',
+    premierbet: 'premierbet_match_id', maxibet: 'maxibet_match_id',
   };
   const out = {};
   for (const [k, m] of Object.entries(matches)) {
