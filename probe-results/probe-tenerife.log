@@ -1,73 +1,27 @@
-▶▶▶ PROBE Tenerife vs Tamaraceite — refetch fresh + cross-check
+▶ PROBE COUPON CODES — generate real codes for user verification
 
-═══ 1XBET ═══
-[xbet] listPrematch : 318 champs a fetcher (BATCH=40)
-  1 match(s) potentiel(s) trouvé(s) dans 1996 listés
-  → id=741442284 "Eibar" vs "Tenerife" league="Spain. Segunda Division" start=2026-08-16T15:00:00.000Z
-    96 clés refetch fresh :
-      btts_no                      = 1.74
-      btts_yes                     = 1.98
-      h2_btts_no                   = 1.22
-      h2_btts_yes                  = 3.84
-      h2_match_1                   = 2.14
-      h2_match_2                   = 4.55
-      h2_match_X                   = 2.39
-      h2_over_2.5                  = 5.15
-      h2_over_3.5                  = 17
-      h2_under_2.5                 = 1.098
-      h2_under_3.5                 = 1.025
-      ht_btts_no                   = 1.126
-      ht_btts_yes                  = 5.2
-      ht_match_1                   = 2.38
-      ht_match_2                   = 5.2
-      ht_match_X                   = 2.03
-      ht_over_2.5                  = 7.9
-      ht_over_3.5                  = 29
-      ht_under_2.5                 = 1.022
-      ht_under_3.5                 = 1.01
-      match_1                      = 1.822
-      match_2                      = 4.68
-      match_X                      = 3.58
-      match_over_2.5               = 2.202
-      match_over_3.5               = 3.78
-      match_under_2.5              = 1.702
-      match_under_3.5              = 1.193
-      tt_home_over_2.5             = 4.3
-      tt_home_over_3.5             = 9.6
-      tt_home_under_2.5            = 1.182
-      tt_home_under_3.5            = 1.006
-    ── COMPARE opps envoyees ──
-      [BTTS] Oui envoye=2.06  refetch=1.98  🔴 DRIFT -0.08
-      [Total 2.5] +2.5 envoye=1.76  refetch=2.202  🔴 DRIFT 0.44
+
+═══ SPORTYBET ═══
+  Match : Queens Park Rangers vs Millwall FC [EFL Cup]
+  Selection : 1X2 Home @ 3.18
+  IDs : eventId=sr:match:72348782 marketId=1 outcomeId=1
+  → HTTP 400
+  ⚠️  {"bizCode":19000,"isAvailable":false,"innerMsg":"Invalid","message":"Invalid"}
+
+═══ CONGOBET ═══
+  ❌ Pas de match avec 1X2
+
+═══ BETMOMO ═══
+  ❌ pas de match
 
 ═══ BETPAWA ═══
-[betpawa:football] UPCOMING : 1185 matchs listés (0 enrichis)
-  1 match(s) potentiel(s) trouvé(s) dans 1185 listés
-  → id=36320490 "SD Eibar" vs "Tenerife CD" league="?" start=?
-    39 clés refetch fresh :
-      btts_no                      = 1.74
-      btts_yes                     = 2.11
-      h2_btts_no                   = 1.2
-      h2_btts_yes                  = 4.06
-      h2_match_1                   = 2.18
-      h2_match_2                   = 4.54
-      h2_match_X                   = 2.38
-      ht_btts_no                   = 1.13
-      ht_btts_yes                  = 5.07
-      ht_match_1                   = 2.35
-      ht_match_2                   = 5.27
-      ht_match_X                   = 2.06
-      match_1                      = 1.81
-      match_2                      = 4.89
-      match_X                      = 3.43
-    ── COMPARE opps envoyees ──
-      [BTTS] Non envoye=2.09  refetch=1.74  🔴 DRIFT -0.35
+  Endpoint : POST https://cg.betpawa.com/api/sportsbook/v3/booking-number
+  Body attendu : {selections:[{...}]} (format precis a valider avec F12 avant test)
+  ⚠️  Test skip : besoin d'un exemple de body BetPawa exact — probe suivante
 
 ═══ YELLOWBET ═══
-  0 match(s) potentiel(s) trouvé(s) dans 655 listés
+  Endpoint : POST https://yellowbet.cg/services/clapi/api/Bet/placebetsport
+  Body : {isBooking:true, selections:[{key:"E{eventId}B{betTypeId}O{oddKey}X", ...}], rows:[{amount:0, selectionKeys:[...]}]}
+  ⚠️  Test skip : YellowBet est protege Cloudflare stealth, requiert workflow avec proxy config
 
-═══ PREMIERBET ═══
-[premierbet] upcoming[2026-08-06]=104 upcoming[2026-08-07]=182 upcoming[2026-08-08]=329 highlights=320 unique=831 kept=600 filtered=(outright:0 virtual:0 horizon:0 noTeams:0 nonFoot:0)
-  0 match(s) potentiel(s) trouvé(s) dans 600 listés
-
-═══ FIN PROBE ═══
+═══ FIN — copie-colle les codes dans les apps pour verifier ═══
