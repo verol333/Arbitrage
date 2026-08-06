@@ -1,21 +1,22 @@
-[22:06:42] ▶▶▶ SCAN TENNIS ONLY (validation avant branchement prod)
-[premierbet] upcoming[2026-08-05]=6 upcoming[2026-08-06]=113 upcoming[2026-08-07]=15 highlights=25 unique=134 kept=134 filtered=(outright:0 virtual:0 horizon:0 noTeams:0 nonFoot:0)
-[betpawa:tennis] UPCOMING : 86 matchs listés (0 enrichis)
-[xbet] listPrematch : 59 champs a fetcher (BATCH=40)
-[sportybet:tennis] UPCOMING : 246 matchs listés
-[22:06:47]   ⏱️ tennis listMatches done: +5120ms
-[22:06:47] 📋 TENNIS PRÉMATCH — 1xbet:320 | 1win:263 | congobet:56 | yellowbet:0 | apollo:94 | betmomo:104 | premierbet:134 | betpawa:86 | sportybet:246
-[22:06:59]   ⏱️ tennis alignCatalogs done: +11208ms (304 entrées)
-[22:06:59] 🔗 304/304 matchs exploitables (≥2 books)
-[22:07:26]   ⏱️ tennis readOdds done: +43277ms
-[22:07:26] ⏱️ readOdds par book (trié par lenteur) — 1win:26947ms/208 | apollo:13322ms/94 | 1xbet:13079ms/228 | congobet:8305ms/56 | sportybet:6832ms/220 | premierbet:1267ms/134 | betpawa:1084ms/32 | betmomo:282ms/94 | yellowbet:274ms/0
-[22:07:26] 💰 cotes lues — 1xbet:228 | 1win:207 | congobet:56 | yellowbet:0 | apollo:94 | betmomo:89 | premierbet:134 | betpawa:32 | sportybet:220
-[22:07:28] 🎯 1 opportunités candidates ≥ 0.5% | 45897ms
-[22:07:28] 📊 distribution candidates par book — 1xbet:1(scope:228) | 1win:0(scope:207) | congobet:0(scope:56) | yellowbet:0(scope:0) | apollo:0(scope:94) | betmomo:0(scope:89) | premierbet:0(scope:134) | betpawa:0(scope:32) | sportybet:1(scope:220)
-[22:07:34]   ❌ rejets confirm (1): missingFresh:1
-[22:07:34]   ⏱️ tennis confirm+freshLive done: +51450ms
-[22:07:34] ✅ 0/1 opportunités confirmées après re-fetch | 51450ms
-[22:07:34] 📊 distribution confirmed par book — 1xbet:0 | 1win:0 | congobet:0 | yellowbet:0 | apollo:0 | betmomo:0 | premierbet:0 | betpawa:0 | sportybet:0
-[22:07:34] 
-▶▶▶ TERMINE en 51452ms — 0 opportunites TENNIS confirmees
-[22:07:34]   (aucune opportunite tennis trouvee)
+[14:17:30] ▶▶▶ SCAN TENNIS ONLY (validation avant branchement prod)
+[premierbet] upcoming[2026-08-06]=58 upcoming[2026-08-07]=74 upcoming[2026-08-08]=0 highlights=32 unique=132 kept=132 filtered=(outright:0 virtual:0 horizon:0 noTeams:0 nonFoot:0)
+[betpawa:tennis] UPCOMING : 89 matchs listés (0 enrichis)
+[xbet] listPrematch : 54 champs a fetcher (BATCH=40)
+[sportybet:tennis] UPCOMING : 166 matchs listés
+[14:17:34]   ⏱️ tennis listMatches done: +3738ms
+[14:17:34] 📋 TENNIS PRÉMATCH — 1xbet:223 | 1win:221 | congobet:80 | yellowbet:0 | apollo:93 | betmomo:105 | premierbet:132 | betpawa:89 | sportybet:166
+[14:17:42]   ⏱️ tennis alignCatalogs done: +8717ms (237 entrées)
+[14:17:42] 🔗 237/237 matchs exploitables (≥2 books)
+[14:18:01]   ⏱️ tennis readOdds done: +30661ms
+[14:18:01] ⏱️ readOdds par book (trié par lenteur) — 1win:18203ms/150 | apollo:7725ms/93 | 1xbet:6956ms/182 | congobet:3805ms/79 | sportybet:2139ms/159 | betpawa:890ms/36 | premierbet:752ms/132 | betmomo:294ms/84 | yellowbet:290ms/0
+[14:18:01] 💰 cotes lues — 1xbet:182 | 1win:150 | congobet:79 | yellowbet:0 | apollo:93 | betmomo:74 | premierbet:132 | betpawa:36 | sportybet:158
+[14:18:03] 🎯 2 opportunités candidates ≥ 0.5% | 33250ms
+[14:18:03] 📊 distribution candidates par book — 1xbet:2(scope:182) | 1win:1(scope:150) | congobet:0(scope:79) | yellowbet:0(scope:0) | apollo:0(scope:93) | betmomo:0(scope:74) | premierbet:0(scope:132) | betpawa:0(scope:36) | sportybet:1(scope:158)
+[14:18:09]   ❌ rejets confirm (2): missingFresh:2
+[14:18:09]      - 1xbet (2 rejets): missingFresh:2
+[14:18:09]   ⏱️ tennis confirm+freshLive done: +39202ms
+[14:18:09] ✅ 0/2 opportunités confirmées après re-fetch | 39202ms
+[14:18:09] 📊 distribution confirmed par book — 1xbet:0 | 1win:0 | congobet:0 | yellowbet:0 | apollo:0 | betmomo:0 | premierbet:0 | betpawa:0 | sportybet:0
+[14:18:09] 
+▶▶▶ TERMINE en 39203ms — 0 opportunites TENNIS confirmees
+[14:18:09]   (aucune opportunite tennis trouvee)
