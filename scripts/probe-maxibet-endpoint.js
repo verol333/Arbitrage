@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Probe Maxibet v10 — dump les cotes 1X2 de Benfica vs Heart of Midlothian
-// sur chaque site_id candidat. La signature maxibet.bet home = V1=1.05 X=7.90 V2=19.00.
+// Probe Maxibet CONFIRM — fetch tous les marches Benfica vs Heart of Midlothian
+// depuis site_id=211 pour comparer avec le screenshot user.
 import WebSocket from 'ws';
 
 const SWARM = 'wss://eu-swarm-newm.betconstruct.com/';
-const CANDIDATES = [211, 613, 894, 509, 968, 122]; // + BetMomo pour comparaison
+const SITE_ID = 211;
 
-async function swarmSession(siteId, cb, timeoutMs = 20000) {
+async function swarmSession(cb, timeoutMs = 25000) {
   return new Promise((resolve, reject) => {
     let done = false; const ws = new WebSocket(SWARM);
     const finish = (fn) => { if (!done) { done = true; try { ws.close(); } catch {} fn(); } };
@@ -16,7 +16,7 @@ async function swarmSession(siteId, cb, timeoutMs = 20000) {
       const rid = 'r' + (++ridN); pending[rid] = res;
       ws.send(JSON.stringify({ command: 'get', params: { source: 'betting', what, where }, rid }));
     });
-    ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: siteId, language: 'eng' }, rid: 's1' })));
+    ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: SITE_ID, language: 'eng' }, rid: 's1' })));
     ws.on('message', async (raw) => {
       let m; try { m = JSON.parse(raw.toString()); } catch { return; }
       if (m.rid === 's1') {
@@ -29,63 +29,66 @@ async function swarmSession(siteId, cb, timeoutMs = 20000) {
   });
 }
 
-// Etape 1 : trouve le game_id de Benfica vs Heart of Midlothian sur site 211
-console.log('═══ Etape 1 : find game_id ═══');
-const gameId = await swarmSession(211, async (send) => {
+console.log(`═══ Maxibet (site_id=${SITE_ID}) — Benfica vs Heart of Midlothian ═══`);
+
+const result = await swarmSession(async (send) => {
   const now = Math.floor(Date.now() / 1000);
-  const to = now + 5 * 86400;
-  const data = await send(
-    { sport: ['id'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name'] },
+  const to = now + 7 * 86400;
+  const list = await send(
+    { sport: ['id'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name', 'start_ts'] },
     { sport: { id: 1 }, game: { start_ts: { '@gt': now, '@lt': to }, is_live: 0 } },
   );
-  for (const s of Object.values(data?.sport || {})) {
+  let target = null;
+  for (const s of Object.values(list?.sport || {})) {
     for (const r of Object.values(s.region || {})) {
       for (const c of Object.values(r.competition || {})) {
         for (const g of Object.values(c.game || {})) {
           const label = `${g.team1_name || ''} ${g.team2_name || ''}`.toLowerCase();
           if (label.includes('benfica') && label.includes('heart of mid')) {
-            console.log(`  found: ${g.team1_name} vs ${g.team2_name} [${c.name}] id=${g.id}`);
-            return g.id;
+            target = { ...g, league: c.name };
+            break;
           }
         }
       }
     }
   }
-  return null;
-}).catch(e => { console.log('  ERR trouve gameId:', e.message); return null; });
-console.log(`game_id = ${gameId}`);
-if (!gameId) process.exit(1);
+  if (!target) return null;
+  console.log(`\n► ${target.team1_name} vs ${target.team2_name}`);
+  console.log(`  [${target.league}]`);
+  console.log(`  Kickoff: ${new Date(target.start_ts * 1000).toISOString()}`);
+  console.log(`  Game ID: ${target.id}\n`);
+  // Fetch tous les markets
+  const odds = await send(
+    { game: ['id'], market: ['name', 'type', 'base', 'col_count', 'group_name'], event: ['name', 'price', 'base', 'type_1', 'type'] },
+    { game: { id: Number(target.id) } },
+  );
+  const g = Object.values(odds?.game || {})[0];
+  return { target, markets: g ? Object.values(g.market || {}) : [] };
+});
 
-// Etape 2 : fetch les cotes 1X2 sur chaque site_id
-console.log('\n═══ Etape 2 : cotes 1X2 par site_id ═══');
-console.log(`  Reference maxibet.bet home : V1=1.05  X=7.90  V2=19.00\n`);
-for (const siteId of CANDIDATES) {
-  try {
-    const odds = await swarmSession(siteId, async (send) => {
-      const data = await send(
-        { game: ['id'], market: ['name', 'type'], event: ['name', 'price', 'type_1', 'type'] },
-        { game: { id: Number(gameId) } },
-      );
-      const g = Object.values(data?.game || {})[0];
-      if (!g) return null;
-      const markets = Object.values(g.market || {});
-      // Cherche marche "Match Winner" (type = 'P1XP2' typiquement)
-      const m1x2 = markets.find(m => m.type === 'P1XP2' || /match winner/i.test(m.name || ''));
-      if (!m1x2) return { markets: markets.map(m => m.name || m.type).slice(0, 8) };
-      const events = Object.values(m1x2.event || {});
-      const map = {};
-      for (const e of events) {
-        const t = e.type_1 || e.type;
-        map[t] = e.price;
-      }
-      return { v1: map.P1 || map.W1 || map['1'], vX: map.X || map.Draw, v2: map.P2 || map.W2 || map['2'] };
-    });
-    if (!odds) console.log(`  site_id=${siteId} → pas de match trouve`);
-    else if (odds.v1) {
-      const match = (Math.abs(odds.v1 - 1.05) < 0.02 && Math.abs(odds.vX - 7.90) < 0.5 && Math.abs(odds.v2 - 19.00) < 2);
-      console.log(`  site_id=${siteId} → V1=${odds.v1} X=${odds.vX} V2=${odds.v2} ${match ? '🎯 MATCH MAXIBET' : ''}`);
-    } else {
-      console.log(`  site_id=${siteId} → pas de 1X2, markets: ${odds.markets?.join(', ')}`);
-    }
-  } catch (e) { console.log(`  site_id=${siteId} ERR ${e.message}`); }
+if (!result) { console.log('Match non trouve'); process.exit(1); }
+
+console.log(`═══ ${result.markets.length} marches disponibles ═══\n`);
+
+// Regroupement pratique par category pour lecture
+const groups = {};
+for (const m of result.markets) {
+  const g = m.group_name || 'Autres';
+  if (!groups[g]) groups[g] = [];
+  groups[g].push(m);
+}
+
+for (const [gname, ms] of Object.entries(groups)) {
+  console.log(`\n━━━━━━ ${gname} (${ms.length}) ━━━━━━`);
+  for (const m of ms) {
+    const events = Object.values(m.event || {}).filter(e => e && e.price != null && Number(e.price) > 1);
+    if (!events.length) continue;
+    const label = `${m.name || m.type}${m.base != null ? ` (base=${m.base})` : ''}`;
+    const eventStr = events.map(e => {
+      const t = e.type_1 || e.type || e.name;
+      const b = e.base != null ? `@${e.base}` : '';
+      return `${t}${b}=${e.price}`;
+    }).join('  |  ');
+    console.log(`  ${label.padEnd(50)} ${eventStr}`);
+  }
 }
