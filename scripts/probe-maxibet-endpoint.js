@@ -1,69 +1,78 @@
 #!/usr/bin/env node
-// Probe Maxibet v8 — enum site_ids avec bon chemin (partner_config.currency).
-// Maxibet opere au Cameroun/Gabon → currency=XAF (Franc CFA BEAC).
-// Egalement collecte tous les operateurs BetConstruct avec devise africaine
-// pour trouver un "sister site" mirror (comme premierbet/guineegames).
+// Probe Maxibet v9 — cross-check 3 candidats XAF (211, 613, 894) avec matchs foot
+// visibles sur maxibet.bet (dump home HTML precedent : Benfica, Heart of Midlothian,
+// Ligue Europa Qualifs). Le vrai Maxibet = celui qui expose les memes matchs.
 import WebSocket from 'ws';
 
 const SWARM = 'wss://eu-swarm-newm.betconstruct.com/';
-// XAF = Cameroon, Gabon, Chad, Congo Brazza (BEAC franc)
-// XOF = Cotes, Senegal, Mali, Burkina (BCEAO franc)
-// NGN, ZAR, KES, GHS, TZS = autres africains
-const AFRICAN_CCY = new Set(['XAF', 'XOF', 'NGN', 'ZAR', 'KES', 'GHS', 'TZS', 'UGX', 'RWF', 'ETB', 'MAD', 'DZD', 'TND', 'EGP', 'SLL', 'MZN', 'AOA']);
+const CANDIDATES = [211, 613, 894, 509, 968]; // XAF+CFA operators
 
-async function probeSite(siteId, timeoutMs = 5000) {
-  return new Promise((resolve) => {
-    let ws;
-    try { ws = new WebSocket(SWARM); } catch { return resolve(null); }
-    let done = false;
-    const finish = (v) => { if (done) return; done = true; try { ws.close(); } catch {} resolve(v); };
-    const t = setTimeout(() => finish(null), timeoutMs);
-    ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: siteId, language: 'eng' }, rid: 's1' })));
-    ws.on('message', (raw) => {
-      let m; try { m = JSON.parse(raw.toString()); } catch { return; }
-      if (m.rid !== 's1') return;
-      clearTimeout(t);
-      const d = m?.data || {};
-      const pc = d.partner_config || {};
-      finish({
-        siteId,
-        sid: d.sid,
-        partnerId: pc.partner_id || pc.id,
-        currency: pc.currency,
-        supportedCurrencies: pc.supported_currencies || [],
-        maxPayout: pc.max_payout,
-      });
+async function swarmSession(siteId, cb, timeoutMs = 30000) {
+  return new Promise((resolve, reject) => {
+    let done = false; let ws;
+    const finish = (fn) => { if (!done) { done = true; try { ws.close(); } catch {} fn(); } };
+    ws = new WebSocket(SWARM);
+    const t = setTimeout(() => finish(() => reject(new Error('timeout'))), timeoutMs);
+    const pending = {}; let ridN = 0;
+    const send = (what, where) => new Promise((res) => {
+      const rid = 'r' + (++ridN); pending[rid] = res;
+      ws.send(JSON.stringify({ command: 'get', params: { source: 'betting', what, where }, rid }));
     });
-    ws.on('error', () => { clearTimeout(t); finish(null); });
-    ws.on('close', () => { clearTimeout(t); finish(null); });
+    ws.on('open', () => ws.send(JSON.stringify({ command: 'request_session', params: { site_id: siteId, language: 'eng' }, rid: 's1' })));
+    ws.on('message', async (raw) => {
+      let m; try { m = JSON.parse(raw.toString()); } catch { return; }
+      if (m.rid === 's1') {
+        if (!m?.data?.sid) { clearTimeout(t); return finish(() => reject(new Error('no-sid'))); }
+        try { const out = await cb(send); clearTimeout(t); finish(() => resolve(out)); }
+        catch (e) { clearTimeout(t); finish(() => reject(e)); }
+      } else if (pending[m.rid]) {
+        pending[m.rid](m?.data?.data); delete pending[m.rid];
+      }
+    });
+    ws.on('error', (e) => { clearTimeout(t); finish(() => reject(e)); });
   });
 }
 
-// 1) Enum 1-2500 par batches paralleles, dump africains + XAF particulierement
-console.log('═══ ENUM site_ids 1-2500 → filtre devises africaines ═══');
-const IDS = [];
-for (let i = 1; i <= 2500; i++) IDS.push(i);
-const BATCH = 25;
-const africans = [];
-let total = 0;
-for (let i = 0; i < IDS.length; i += BATCH) {
-  const batch = IDS.slice(i, i + BATCH);
-  const results = await Promise.all(batch.map(id => probeSite(id, 4000)));
-  for (const r of results) {
-    if (!r || !r.currency) continue;
-    total++;
-    const isAfrican = AFRICAN_CCY.has(r.currency);
-    const supportedAfrican = (r.supportedCurrencies || []).some(c => AFRICAN_CCY.has(c));
-    if (isAfrican || supportedAfrican) {
-      africans.push(r);
-      const marker = r.currency === 'XAF' ? '🎯 XAF (CM/GA/TD/CG)' : (r.currency === 'XOF' ? '🎯 XOF (CI/SN/ML/BF)' : `[${r.currency}]`);
-      console.log(`  site_id=${r.siteId} partner=${r.partnerId} ccy=${r.currency} supp=${r.supportedCurrencies.join(',')} max=${r.maxPayout} ${marker}`);
-    }
-  }
-  if ((i + BATCH) % 250 === 0) process.stdout.write(`  ... tested ${i + BATCH}/${IDS.length}, ${total} responded, ${africans.length} african\n`);
-}
+const now = Math.floor(Date.now() / 1000);
+const to = now + 5 * 86400; // 5 jours d'horizon
 
-console.log(`\n═══ RECAP ═══`);
-console.log(`Total responses: ${total}/${IDS.length}`);
-console.log(`African operators: ${africans.length}`);
-console.log(`XAF operators (CM/GA/TD/CG): ${africans.filter(a => a.currency === 'XAF').map(a => `site=${a.siteId}(partner=${a.partnerId})`).join(', ') || 'aucun'}`);
+for (const siteId of CANDIDATES) {
+  console.log(`\n═══ site_id=${siteId} — dump foot matchs (prematch, next 5 days) ═══`);
+  try {
+    const data = await swarmSession(siteId, async (send) => {
+      const foot = await send(
+        { sport: ['id', 'name'], region: ['name'], competition: ['name'], game: ['id', 'team1_name', 'team2_name', 'start_ts'] },
+        { sport: { id: 1 }, game: { start_ts: { '@gt': now, '@lt': to }, is_live: 0 } },
+      );
+      const matches = [];
+      for (const s of Object.values(foot?.sport || {})) {
+        for (const r of Object.values(s.region || {})) {
+          for (const c of Object.values(r.competition || {})) {
+            for (const g of Object.values(c.game || {})) {
+              matches.push({ team1: g.team1_name, team2: g.team2_name, league: c.name, start: g.start_ts });
+            }
+          }
+        }
+      }
+      return matches;
+    });
+    console.log(`  ${data.length} matchs foot`);
+    // Print 15 samples
+    for (const m of data.slice(0, 15)) {
+      const dt = new Date(m.start * 1000).toISOString().slice(0, 16);
+      console.log(`    ${m.team1} vs ${m.team2} [${m.league}] ${dt}`);
+    }
+    // Chercher matchs "signatures" maxibet.bet home
+    const known = ['Benfica', 'Heart of Midlothian', 'Fiorentina', 'Deportivo', 'AS Monaco', 'Getafe'];
+    const matches_known = data.filter(m => {
+      const s = `${m.team1} ${m.team2} ${m.league}`.toLowerCase();
+      return known.some(k => s.includes(k.toLowerCase()));
+    });
+    if (matches_known.length) {
+      console.log(`  🎯 ${matches_known.length} matchs "signature" trouves :`);
+      for (const m of matches_known.slice(0, 5)) console.log(`    ${m.team1} vs ${m.team2} [${m.league}]`);
+    }
+  } catch (e) {
+    console.log(`  ERR ${e.message}`);
+  }
+}
