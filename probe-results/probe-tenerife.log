@@ -1,137 +1,120 @@
-═══ ENUM site_ids 1-2500 → filtre devises africaines ═══
-  site_id=4 partner=4 ccy=USD supp=AMD,BDT,CAD,EUR,FTN,GEL,GHS,IDR,KZT,KES,MYR,RUB,KRW,THB,USD,UZS,VND,UAH,CLP,INR,XOF max=200200 [USD]
-  site_id=9 partner=9 ccy=USD supp=EUR,USD,LBP,XOF,KHR,AED,NSP max=30000 [USD]
-  site_id=23 partner=23 ccy=USD supp=NGN max=1600000 [USD]
-  site_id=33 partner=33 ccy=AMD supp=AMD,RUB,USD,EUR,UAH,TND,ZAR,MXN,GMD,BRL,GBP,IRT,RON,ZMW,FTN,SEK max=400000 [AMD]
-  site_id=58 partner=58 ccy=NGN supp= max=0 [NGN]
-  site_id=63 partner=63 ccy=USD supp=XAF,RUB,USD max=20000 [USD]
-  site_id=77 partner=77 ccy=GHS supp=GHS max=20000 [GHS]
-  site_id=126 partner=126 ccy=NGN supp=NGN max=20000000 [NGN]
-  site_id=133 partner=133 ccy=NGN supp=NGN max=5000000 [NGN]
-  site_id=146 partner=146 ccy=EUR supp=TZS max=7000000 [EUR]
-  site_id=163 partner=163 ccy=TRY supp=EUR,TRY,GBP,USD,NOK,SEK,AUD,CNY,IDR,JPY,MYR,THB,ZAR,RUB,PLN,INR max=2000000 [TRY]
-  site_id=205 partner=205 ccy=NGN supp= max=0 [NGN]
-  site_id=207 partner=207 ccy=NGN supp=CFA,EUR,GHS,NGN,GBP,USD max=10000000 [NGN]
-  site_id=211 partner=211 ccy=XAF supp=XOF,XAF,CFA,GNF,USDT max=1000000000 🎯 XAF (CM/GA/TD/CG)
-  site_id=226 partner=226 ccy=RUB supp=USD,RUB,EUR,UAH,KZT,TJS,SLL,ZAR,RWF,GEL,AZN,TRY,UGX,AMD,KGS,CZK,PEN,NGN,CLP,ARS,BOB,VEF,BRL,GHS,PYG,HTG,DOP,ZMW,INR,KES,COP,CDF,MXN,TZS,XAF,CHF,GMD max=1500000 [RUB]
-  site_id=232 partner=232 ccy=EUR supp=AZN,CNY,EUR,GHS,HKD,NGN,GBP,TRY,USD max=7500 [EUR]
-  site_id=249 partner=249 ccy=EUR supp=AUD,CAD,DKK,GBP,NOK,NZD,SEK,USD,EUR,NGN,PLN,VND,MXN,IDR,INR,ZPT,ARS,BRL,TND max=30000 [EUR]
-  ... tested 250/2500, 161 responded, 17 african
-  site_id=274 partner=274 ccy=NGN supp= max=0 [NGN]
-  site_id=329 partner=329 ccy=RUB supp=USD,AMD,ARS,AUD,AZN,BGN,BOB,BRL,BYR,CAD,CDF,CHF,CLP,CZK,COP,CNY,DKK,DOP,EUR,GBP,GEL,GHS,GMD,HTG,INR,IQD,JPY,KES,KGS,KRW,KZT,MDL,MXN,NGN,NOK,PEN,PHP,PLN,PYG,RUB,RON,SEK,SGD,SLL,TJS,TRY,TZS,UYU,UZS,XAF,ZAR,ZMW,ZWL,SYP,UAH,XOF max=250000 [RUB]
-  site_id=332 partner=332 ccy=KES supp= max=1000000 [KES]
-  site_id=337 partner=337 ccy=IQD supp=IQD,USD,EGP,EUR max=20000000 [IQD]
-  site_id=364 partner=364 ccy=NGN supp=NGN max=20000000 [NGN]
-  site_id=378 partner=378 ccy=NGN supp=NGN max=10000000 [NGN]
-  site_id=391 partner=391 ccy=USD supp=AUD,EUR,GBP,USD,KES,XAF,UGX,NGN,GHS,TZS max=25000 [USD]
-  site_id=402 partner=402 ccy=NGN supp= max=0 [NGN]
-  site_id=419 partner=419 ccy=NGN supp=NGN max=50000000 [NGN]
-  site_id=438 partner=438 ccy=NGN supp=USD,NGN max=1 [NGN]
-  site_id=466 partner=466 ccy=NGN supp=NGN max=5000000 [NGN]
-  site_id=477 partner=477 ccy=EUR supp=EUR,USD,TRY,GEL,HUF,NGN,BAM,ILS max=55000 [EUR]
-  site_id=499 partner=499 ccy=EUR supp=ARS,BRL,CAD,CLP,COP,EUR,GHS,INR,IDR,KES,MYR,MXN,MAD,NGN,PEN,PLN,RUB,ZAR,KRW,CHF,TZS,THB,TRY,UAH,USD,VND max=7500 [EUR]
-  ... tested 500/2500, 334 responded, 30 african
-  site_id=509 partner=509 ccy=CFA supp=XAF max=10000000 [CFA]
-  site_id=518 partner=518 ccy=GHS supp=GHS max=20000 [GHS]
-  site_id=526 partner=526 ccy=KES supp=KES max=500000 [KES]
-  site_id=537 partner=537 ccy=KES supp= max=10000000 [KES]
-  site_id=538 partner=538 ccy=KES supp=BIF,KES max=50000 [KES]
-  site_id=544 partner=544 ccy=EUR supp=AUD,AZN,BRL,CAD,EUR,KES,NOK,PLN,GBP,RUB,ZAR,SEK,TRY,USD,VEB max=5000 [EUR]
-  site_id=548 partner=548 ccy=EUR supp=AUD,BRL,CAD,CNY,EUR,INR,JPY,MXN,GBP,ZAR,SEK,CHF,TRY,USD max=5000 [EUR]
-  site_id=567 partner=567 ccy=HKD supp=AUD,BRL,BGN,CAD,DKK,EUR,HKD,HUF,INR,JPY,MYR,MXN,MAD,TWD,NGN,NOK,PLN,GBP,RON,RUB,SGD,ZAR,SEK,CHF,TND,AED,USD max=100000 [HKD]
-  site_id=582 partner=582 ccy=AOA supp=AOA max=3000000 [AOA]
-  site_id=597 partner=597 ccy=USD supp=AED,AMD,AOA,ARS,AUD,AZN,BAM,BGN,BRL,BSD,BTC,BYR,CAD,CDF,CFA,CHF,CLP,CNY,COP,CPI,CZK,DKK,EUR,GBP,GEL,GHS,HKD,HRK,HUF,IDR,ILS,INR,IQD,IRR,JOD,JPY,KES,KGS,KRW,KZT,LKR,LTC,LTL,LVL,MBTC,MDL,MKD,MXN,MYR,NGN,NOK,NZD,PEN,PLN,PRB,PYG,RON,RSD,RUB,SAO,SEK,SGD,SSP,THB,TJS,TOM,TRY,TWD,TZS,UAH,UGX,USD,UYU,VC ,VEB,VND,XAF,ZAR max=0 [USD]
-  site_id=608 partner=608 ccy=EUR supp=EUR,USD,GBP,NZD,PLN,CZK,SEK,NOK,INR,MXN,BRL,JPY,CAD,ZAR max=100000000 [EUR]
-  site_id=609 partner=609 ccy=EUR supp=GBP,EUR,USD,INR,NZD,PLN,CZK,SEK,NOK,MXN,BRL,JPY,CAD,ZAR max=25025 [EUR]
-  site_id=613 partner=613 ccy=XAF supp=AOA,XAF,CDF,KES,UGX max=10000000 🎯 XAF (CM/GA/TD/CG)
-  site_id=626 partner=626 ccy=UGX supp=UGX max=100000000 [UGX]
-  site_id=628 partner=628 ccy=EUR supp=AUD,AZN,BRL,BGN,CAD,CNY,CZK,DKK,EUR,GEL,HUF,INR,ILS,KES,MXN,NGN,NOK,PLN,GBP,RON,RUB,ZAR,KRW,SEK,CHF,TRY,UAH,USD,VEB max=5000 [EUR]
-  site_id=632 partner=632 ccy=TZS supp=TZS max=50000000 [TZS]
-  site_id=655 partner=655 ccy=NGN supp=NGN max=2000000 [NGN]
-  site_id=658 partner=658 ccy=KES supp=KES max=1000000 [KES]
-  site_id=659 partner=659 ccy=UGX supp=EUR,UGX max=5000000 [UGX]
-  site_id=673 partner=673 ccy=NGN supp=NGN max=50000000 [NGN]
-  site_id=682 partner=682 ccy=TZS supp=TZS max=50000000 [TZS]
-  site_id=684 partner=684 ccy=RUB supp=RUB,AMD,AUD,AZN,BGN,BRL,BYR,CAD,CHF,CNY,COP,CZK,DKK,EUR,GBP,GEL,GHS,INR,IQD,JPY,KGS,KRW,KZT,MDL,NGN,NOK,PEN,PHP,PLN,PYG,RON,SEK,SGD,TJS,TRY,TZS,UAH,USD,UYU,XAF,ZAR,CLP,CDF,HTG,UZS,ZMW,ZWL,BOB,SLL,DOP,KES,MXN,ARS,GMD max=1500000 [RUB]
-  site_id=697 partner=697 ccy=NGN supp=KES,GHS,NGN max=5000000 [NGN]
-  site_id=698 partner=698 ccy=MZN supp=USD,MXN max=50000 [MZN]
-  site_id=702 partner=702 ccy=TZS supp=TZS max=200000000 [TZS]
-  site_id=708 partner=708 ccy=NGN supp=EUR,USD,NGN max=5000000 [NGN]
-  site_id=714 partner=714 ccy=EUR supp=USD,EUR,TRY,CLP,ARS,BRL,NGN,PEN,CAD max=50000 [EUR]
-  site_id=715 partner=715 ccy=NGN supp=NGN,USD max=25000000 [NGN]
-  site_id=724 partner=724 ccy=USD supp=EUR,MAD,SAR,AED,USD,QAR,NSP,IQD max=150000 [USD]
-  site_id=733 partner=733 ccy=KES supp=KES max=300000 [KES]
-  ... tested 750/2500, 551 responded, 60 african
-  site_id=851 partner=851 ccy=GHS supp=GHS,EUR,USD,CNY,HKD max=30000 [GHS]
-  site_id=855 partner=855 ccy=KES supp=KES max=1 [KES]
-  site_id=857 partner=857 ccy=KES supp= max=250000 [KES]
-  site_id=894 partner=894 ccy=XAF supp=CFA,XAF max=1000000 🎯 XAF (CM/GA/TD/CG)
-  site_id=895 partner=895 ccy=NGN supp=XAF,GHS,KES,NGN,RWF,ZAR,TZS,UGX,USD max=4000000 [NGN]
-  site_id=900 partner=900 ccy=EUR supp=USD,EUR,INR,ALL,AED,AMD,AOA,ARS,AUD,AZN,BDT,BGN,BIF,BOB,BRL,BSS,BYR,CAD,CDF,CFA,CHF,CLP,CNY,COP,CRC,CZK,DAG,DCP,DKK,DOGE,DOP,EGP,ETB,GBP,GEL,GHS,GMD,GNF,GTQ,HKD,HRK,HTG,IDR,ILS,IQD,IRR,IRT,JOD,JPY,KES,KGS,KHR,KRW,KZT,LBP,LTL,MAD,MDL,MNT,MXN,MYR,NGN,NOK,NZD,PAB,PEN,PHP,PKR,PLN,PYG,QAR,RSD,RUB,RWF,SAR,SEK,SGD,SLL,SSP,SYP,THB,TMT,TND,TOM,TRY,TTD,USDT,TWD,TZS,UAH,UGX,USDC,UYU,UZS,VC ,VEF,VND,XAF,XOF,XRP,ZAR,ZMW,FTN,ZIG max=10000 [EUR]
-  site_id=913 partner=913 ccy=KES supp=KES max=5000000 [KES]
-  site_id=947 partner=947 ccy=EUR supp=TRY,EUR,AUD,BRL,CZK,GBP,GEL,HUF,JPY,NOK,PLN,RUB,SEK,ZAR,USD max=10000 [EUR]
-  site_id=959 partner=959 ccy=EUR supp=BDT,BRL,CAD,EUR,INR,IQD,MAD,NGN,PKR,PHP,TND,TRY,USD,MYR,MXN,THB,EGP,CLP,IDR,VND,ZMW,XOF,NPR,ZAR,KES,XAF,GHS,GNF,ETB max=30000 [EUR]
-  site_id=968 partner=968 ccy=CFA supp=CFA,XAF max=2000000 [CFA]
-  site_id=969 partner=969 ccy=EUR supp=USD,EUR,SEK,GBP,NOK,NGN,NZD,MXN,IDR,VND,INR,TZS max=30000 [EUR]
-  site_id=981 partner=981 ccy=MYR supp=ARS,AUD,BRL,CAD,CLP,COP,HRK,EUR,INR,IDR,IRR,JPY,MYR,GBP,RSD,SGD,ZAR,KRW,THB,USD,VND,CNY max=10000 [MYR]
-  site_id=989 partner=989 ccy=USD supp=BRL,CLP,COP,EUR,INR,IDR,KES,MBTC,MXN,PYG,PEN,USD max=10000 [USD]
-  site_id=991 partner=991 ccy=TRY supp=ARS,BRL,EUR,GHS,INR,KZT,KES,MBTC,NGN,NOK,PLN,RUB,ZAR,TRY,UAH,USD max=220000 [TRY]
-  ... tested 1000/2500, 751 responded, 74 african
-  site_id=1005 partner=1005 ccy=EUR supp=EUR,KES,GRN,USD,USDT,FTN max=20000 [EUR]
-  site_id=1006 partner=1006 ccy=USD supp=MAD,TND,USD,IQD,CAD,AUD,SYP,NSP,INR,PKR,AED max=15500 [USD]
-  site_id=1019 partner=1019 ccy=EUR supp=EUR,USD,ALL,DZD,AOA,USDT,ETH,FTN,BTC,MTH,MBTC,BNB,XRP,USDC,ADA,DOGE,TRX,DAI,LTC,BCH max=2000000 [EUR]
-  site_id=1025 partner=1025 ccy=USD supp=USD,TRY,AED,EUR,V01,UAH,MAD max=500000 [USD]
-  site_id=1033 partner=1033 ccy=USD supp=USD,MAD max=100000 [USD]
-  site_id=1048 partner=1048 ccy=TRY supp=EUR,IRT,GBP,TND,TRY,USD max=30100 [TRY]
-  site_id=1059 partner=1059 ccy=EUR supp=XOF,XAF,GHS,QAR,ZAR max=20000 [EUR]
-  site_id=1070 partner=1070 ccy=USD supp=USD,MXN,PEN,BTC,MBTC,ARS,DOP,COP,HTG,TRY,TND,UYU,BOB,BDT,EUR max=5000 [USD]
-  site_id=1077 partner=1077 ccy=EUR supp=BRL,EUR,GTQ,ZAR,GBP max=10000 [EUR]
-  site_id=1087 partner=1087 ccy=NGN supp=EUR,NGN max=10000000 [NGN]
-  site_id=1089 partner=1089 ccy=EUR supp=USD,EUR,GBP,CAD,CHF,JPY,NZD,SEK,RUB,UAH,GHS max=10000 [EUR]
-  site_id=1124 partner=1124 ccy=USD supp=EUR,MAD,TND,USD,MYR,SYP,NSP,INR,PKR,AED,SEK,IQD max=15500 [USD]
-  site_id=1126 partner=1126 ccy=TRY supp=EUR,MAD,TND,USD max=350000 [TRY]
-  site_id=1141 partner=1141 ccy=GMD supp=EUR,GMD,USD,CFA,KES,UGX max=2500000 [GMD]
-  site_id=1143 partner=1143 ccy=USD supp=ARS,BOB,BRL,CLP,CNY,COP,EUR,JPY,MXN,PEN,ZAR,USD,UYU max=100000 [USD]
-  site_id=1147 partner=1147 ccy=RUB supp=AUD,BYR,BYN,CZK,EUR,GEL,IDR,KZT,NGN,RUB,TRY,UAH,USD,UZS,FTN max=1000000 [RUB]
-  site_id=1234 partner=1234 ccy=RWF supp=RWF max=20000000 [RWF]
-  ... tested 1250/2500, 965 responded, 91 african
-  site_id=1271 partner=1271 ccy=ETB supp=ETB max=2000000 [ETB]
-  site_id=1280 partner=1280 ccy=MYR supp=AUD,BRL,CNY,FTN,INR,IDR,JPY,MYR,NGN,PHP,SGD,KRW,THB,TRY,USD,VND max=180000 [MYR]
-  site_id=1284 partner=1284 ccy=USD supp=TND,USD max=10000 [USD]
-  site_id=1292 partner=1292 ccy=TND supp=TND max=100000 [TND]
-  site_id=1293 partner=1293 ccy=XOF supp=XOF,EUR max=10000000 🎯 XOF (CI/SN/ML/BF)
-  site_id=1309 partner=1309 ccy=GHS supp=GHS max=180000 [GHS]
-  site_id=1314 partner=1314 ccy=XAF supp=XAF,EUR,USD max=10000000 🎯 XAF (CM/GA/TD/CG)
-  site_id=1325 partner=1325 ccy=XAF supp=XOF,XAF max=10000000 🎯 XAF (CM/GA/TD/CG)
-  site_id=1330 partner=1330 ccy=ZAR supp=ZAR max=2000000 [ZAR]
-  site_id=1334 partner=1334 ccy=RWF supp=RWF max=50000000 [RWF]
-  site_id=1335 partner=1335 ccy=USD supp=GEL,TOM,IQD,TRY,USD,TND,EUR max=3000 [USD]
-  site_id=1358 partner=1358 ccy=MYR supp=ARS,BRL,BTC,CAD,CLP,CNY,COP,EUR,HRK,IDR,INR,IRR,JPY,KRW,MYR,RSD,SGD,THB,USD,VND,ZAR max=100000 [MYR]
-  site_id=1381 partner=1381 ccy=TRY supp=ARS,BRL,KHR,EUR,TND,AED,USD max=200000 [TRY]
-  site_id=1409 partner=1409 ccy=USD supp=EUR,FTN,MAD,TND,USD max=40100 [USD]
-  site_id=1420 partner=1420 ccy=NGN supp=XAF,GHS,KES,NGN,RWF,ZAR,UGX,USD max=6414326 [NGN]
-  site_id=1421 partner=1421 ccy=TZS supp=TZS max=50000000 [TZS]
-  site_id=1484 partner=1484 ccy=XOF supp=XOF,CFA max=10000000 🎯 XOF (CI/SN/ML/BF)
-  site_id=1485 partner=1485 ccy=EGP supp=CNY,EGP,SEK,TRY,UAH,USD max=250000 [EGP]
-  ... tested 1500/2500, 1157 responded, 109 african
-  site_id=1517 partner=1517 ccy=CNY supp=AUD,BDT,BRL,CNY,INR,IDR,JPY,MYR,MXN,MMK,PKR,PHP,GBP,SGD,THB,USD,VND,NGN max=1300000 [CNY]
-  site_id=1522 partner=1522 ccy=GHS supp=GHS max=15000 [GHS]
-  site_id=1526 partner=1526 ccy=TZS supp=TZS max=35000000 [TZS]
-  site_id=1536 partner=1536 ccy=UGX supp=UGX max=50000000 [UGX]
-  site_id=1542 partner=1542 ccy=TRY supp=EUR,IRR,NOK,TND,TRY,UAH max=0 [TRY]
-  site_id=1588 partner=1588 ccy=XAF supp=CFA max=10000000 🎯 XAF (CM/GA/TD/CG)
-  site_id=1589 partner=1589 ccy=MYR supp=ARS,AUD,BRL,CAD,CLP,COP,EUR,INR,IDR,IRR,KES,MYR,NZD,PLN,SGD,ZAR,KRW,THB,TND,TRY,USD,VND,CNY max=200100 [MYR]
-  site_id=1593 partner=1593 ccy=USD supp=ZMW,NGN,KES,USD,EUR,TZS,GHS,BTC,RWF,GBP max=100000000 [USD]
-  site_id=1606 partner=1606 ccy=EUR supp=AUD,CAD,DKK,ARS,BRL,GBP,IDR,INR,MXN,NGN,NOK,NZD,PLN,SEK,USD,VND,ZPT,EUR max=20200 [EUR]
-  site_id=1644 partner=1644 ccy=CDF supp=CDF,CFA,XAF max=45500000 [CDF]
-  site_id=1706 partner=1706 ccy=TND supp= max=70000 [TND]
-  ... tested 1750/2500, 1220 responded, 120 african
-  site_id=1777 partner=1777 ccy=TND supp=ARS,AZN,BDT,CDF,ETB,EUR,ILS,MXN,PYG,RUB,SLL,ZAR,SEK,TND,TRY,USD,LBP,IQD,VES max=100000 [TND]
-  ... tested 2000/2500, 1225 responded, 121 african
-  ... tested 2250/2500, 1225 responded, 121 african
-  ... tested 2500/2500, 1225 responded, 121 african
 
-═══ RECAP ═══
-Total responses: 1225/2500
-African operators: 121
-XAF operators (CM/GA/TD/CG): site=211(partner=211), site=613(partner=613), site=894(partner=894), site=1314(partner=1314), site=1325(partner=1325), site=1588(partner=1588)
+═══ site_id=211 — dump foot matchs (prematch, next 5 days) ═══
+  825 matchs foot
+    SS Juve Stabia vs USD Cavese [Club Friendlies] 2026-08-06T18:30
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies] 2026-08-06T18:00
+    AS Monaco vs Getafe [Club Friendlies] 2026-08-06T18:00
+    Malaga CF vs Al Arabi SC Doha [Club Friendlies] 2026-08-06T18:00
+    Real Jaen vs Cordoba CF [Club Friendlies] 2026-08-06T18:00
+    Lorca Deportiva vs Aguilas FC [Club Friendlies] 2026-08-06T18:30
+    UD Lanzarote vs Arenas Club de Getxo [Club Friendlies] 2026-08-06T18:00
+    Real Zaragoza vs FC Andorra [Club Friendlies] 2026-08-06T16:30
+    Aris Limassol FC vs Al Sadd SC Doha [Club Friendlies] 2026-08-06T15:00
+    US Pergolettese 1932 vs Club Milano [Club Friendlies] 2026-08-06T16:00
+    CD Villacanas vs CF Talavera de la Reina [Club Friendlies] 2026-08-06T18:30
+    Dos Hermanas CF 1971 vs CA Antoniano [Club Friendlies] 2026-08-06T18:30
+    ASD Pavonese vs Desenzano Calvina [Club Friendlies] 2026-08-06T15:30
+    Bayern Munich vs Aston Villa [Club Friendlies] 2026-08-07T12:00
+    Melbourne City vs Palermo [Club Friendlies] 2026-08-07T11:00
+  🎯 18 matchs "signature" trouves :
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies]
+    AS Monaco vs Getafe [Club Friendlies]
+    SL Benfica vs Heart of Midlothian FC [UEFA Europa League Qualification]
+    Estudiantes de Caseros vs CS Deportivo Madryn [Primera Nacional]
+    CA General Lamadrid vs Deportivo Espanol [Primera C]
+
+═══ site_id=613 — dump foot matchs (prematch, next 5 days) ═══
+  825 matchs foot
+    SS Juve Stabia vs USD Cavese [Club Friendlies] 2026-08-06T18:30
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies] 2026-08-06T18:00
+    AS Monaco vs Getafe [Club Friendlies] 2026-08-06T18:00
+    Malaga CF vs Al Arabi SC Doha [Club Friendlies] 2026-08-06T18:00
+    Real Jaen vs Cordoba CF [Club Friendlies] 2026-08-06T18:00
+    Lorca Deportiva vs Aguilas FC [Club Friendlies] 2026-08-06T18:30
+    UD Lanzarote vs Arenas Club de Getxo [Club Friendlies] 2026-08-06T18:00
+    Real Zaragoza vs FC Andorra [Club Friendlies] 2026-08-06T16:30
+    Aris Limassol FC vs Al Sadd SC Doha [Club Friendlies] 2026-08-06T15:00
+    US Pergolettese 1932 vs Club Milano [Club Friendlies] 2026-08-06T16:00
+    CD Villacanas vs CF Talavera de la Reina [Club Friendlies] 2026-08-06T18:30
+    Dos Hermanas CF 1971 vs CA Antoniano [Club Friendlies] 2026-08-06T18:30
+    ASD Pavonese vs Desenzano Calvina [Club Friendlies] 2026-08-06T15:30
+    Bayern Munich vs Aston Villa [Club Friendlies] 2026-08-07T12:00
+    Melbourne City vs Palermo [Club Friendlies] 2026-08-07T11:00
+  🎯 18 matchs "signature" trouves :
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies]
+    AS Monaco vs Getafe [Club Friendlies]
+    SL Benfica vs Heart of Midlothian FC [UEFA Europa League Qualification]
+    Estudiantes de Caseros vs CS Deportivo Madryn [Primera Nacional]
+    CA General Lamadrid vs Deportivo Espanol [Primera C]
+
+═══ site_id=894 — dump foot matchs (prematch, next 5 days) ═══
+  825 matchs foot
+    SS Juve Stabia vs USD Cavese [Club Friendlies] 2026-08-06T18:30
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies] 2026-08-06T18:00
+    AS Monaco vs Getafe [Club Friendlies] 2026-08-06T18:00
+    Malaga CF vs Al Arabi SC Doha [Club Friendlies] 2026-08-06T18:00
+    Real Jaen vs Cordoba CF [Club Friendlies] 2026-08-06T18:00
+    Lorca Deportiva vs Aguilas FC [Club Friendlies] 2026-08-06T18:30
+    UD Lanzarote vs Arenas Club de Getxo [Club Friendlies] 2026-08-06T18:00
+    Real Zaragoza vs FC Andorra [Club Friendlies] 2026-08-06T16:30
+    Aris Limassol FC vs Al Sadd SC Doha [Club Friendlies] 2026-08-06T15:00
+    US Pergolettese 1932 vs Club Milano [Club Friendlies] 2026-08-06T16:00
+    CD Villacanas vs CF Talavera de la Reina [Club Friendlies] 2026-08-06T18:30
+    Dos Hermanas CF 1971 vs CA Antoniano [Club Friendlies] 2026-08-06T18:30
+    ASD Pavonese vs Desenzano Calvina [Club Friendlies] 2026-08-06T15:30
+    Bayern Munich vs Aston Villa [Club Friendlies] 2026-08-07T12:00
+    Melbourne City vs Palermo [Club Friendlies] 2026-08-07T11:00
+  🎯 18 matchs "signature" trouves :
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies]
+    AS Monaco vs Getafe [Club Friendlies]
+    SL Benfica vs Heart of Midlothian FC [UEFA Europa League Qualification]
+    Estudiantes de Caseros vs CS Deportivo Madryn [Primera Nacional]
+    CA General Lamadrid vs Deportivo Espanol [Primera C]
+
+═══ site_id=509 — dump foot matchs (prematch, next 5 days) ═══
+  825 matchs foot
+    SS Juve Stabia vs USD Cavese [Club Friendlies] 2026-08-06T18:30
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies] 2026-08-06T18:00
+    AS Monaco vs Getafe [Club Friendlies] 2026-08-06T18:00
+    Malaga CF vs Al Arabi SC Doha [Club Friendlies] 2026-08-06T18:00
+    Real Jaen vs Cordoba CF [Club Friendlies] 2026-08-06T18:00
+    Lorca Deportiva vs Aguilas FC [Club Friendlies] 2026-08-06T18:30
+    UD Lanzarote vs Arenas Club de Getxo [Club Friendlies] 2026-08-06T18:00
+    Real Zaragoza vs FC Andorra [Club Friendlies] 2026-08-06T16:30
+    Aris Limassol FC vs Al Sadd SC Doha [Club Friendlies] 2026-08-06T15:00
+    US Pergolettese 1932 vs Club Milano [Club Friendlies] 2026-08-06T16:00
+    CD Villacanas vs CF Talavera de la Reina [Club Friendlies] 2026-08-06T18:30
+    Dos Hermanas CF 1971 vs CA Antoniano [Club Friendlies] 2026-08-06T18:30
+    ASD Pavonese vs Desenzano Calvina [Club Friendlies] 2026-08-06T15:30
+    Bayern Munich vs Aston Villa [Club Friendlies] 2026-08-07T12:00
+    Melbourne City vs Palermo [Club Friendlies] 2026-08-07T11:00
+  🎯 18 matchs "signature" trouves :
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies]
+    AS Monaco vs Getafe [Club Friendlies]
+    SL Benfica vs Heart of Midlothian FC [UEFA Europa League Qualification]
+    Estudiantes de Caseros vs CS Deportivo Madryn [Primera Nacional]
+    CA General Lamadrid vs Deportivo Espanol [Primera C]
+
+═══ site_id=968 — dump foot matchs (prematch, next 5 days) ═══
+  825 matchs foot
+    SS Juve Stabia vs USD Cavese [Club Friendlies] 2026-08-06T18:30
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies] 2026-08-06T18:00
+    AS Monaco vs Getafe [Club Friendlies] 2026-08-06T18:00
+    Malaga CF vs Al Arabi SC Doha [Club Friendlies] 2026-08-06T18:00
+    Real Jaen vs Cordoba CF [Club Friendlies] 2026-08-06T18:00
+    Lorca Deportiva vs Aguilas FC [Club Friendlies] 2026-08-06T18:30
+    UD Lanzarote vs Arenas Club de Getxo [Club Friendlies] 2026-08-06T18:00
+    Real Zaragoza vs FC Andorra [Club Friendlies] 2026-08-06T16:30
+    Aris Limassol FC vs Al Sadd SC Doha [Club Friendlies] 2026-08-06T15:00
+    US Pergolettese 1932 vs Club Milano [Club Friendlies] 2026-08-06T16:00
+    CD Villacanas vs CF Talavera de la Reina [Club Friendlies] 2026-08-06T18:30
+    Dos Hermanas CF 1971 vs CA Antoniano [Club Friendlies] 2026-08-06T18:30
+    ASD Pavonese vs Desenzano Calvina [Club Friendlies] 2026-08-06T15:30
+    Bayern Munich vs Aston Villa [Club Friendlies] 2026-08-07T12:00
+    Melbourne City vs Palermo [Club Friendlies] 2026-08-07T11:00
+  🎯 18 matchs "signature" trouves :
+    Fiorentina vs Deportivo de A Coruna [Club Friendlies]
+    AS Monaco vs Getafe [Club Friendlies]
+    SL Benfica vs Heart of Midlothian FC [UEFA Europa League Qualification]
+    Estudiantes de Caseros vs CS Deportivo Madryn [Primera Nacional]
+    CA General Lamadrid vs Deportivo Espanol [Primera C]
