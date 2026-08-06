@@ -10,9 +10,13 @@ import betmomo from './betmomo/index.js';
 import premierbet from './premierbet/index.js';
 import betpawa from './betpawa/index.js';
 import sportybet from './sportybet/index.js';
-import maxibet from './maxibet/index.js';
+// DESACTIVE : maxibet — les cotes lues depuis notre site_id (BetConstruct SWARM
+// 211) divergent de ce que voit le user sur son app. Zero envoi tant que le
+// mapping n'est pas re-verifie marche par marche. Le code source reste dispo
+// dans src/bookmakers/maxibet/ pour reactivation rapide.
+// import maxibet from './maxibet/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
