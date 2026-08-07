@@ -12,6 +12,6 @@ jobs:
         with:
           node-version: 20
       - name: Install deps
-        run: npm install --no-save ws
+        run: npm install --no-save ws got-scraping
       - name: Run probe
         run: node scripts/probe-basket-ids.js
