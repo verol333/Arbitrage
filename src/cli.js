@@ -1,5 +1,4 @@
 import { runScan, log } from './scanners/collect.js';
-import { persistOpportunities } from './store/base44.js';
 
 async function sendWebhook(payload) {
   const url = process.env.WEBHOOK_URL;
@@ -59,7 +58,6 @@ async function doScan({ live, sport }) {
     minProfit: Number(live ? process.env.MIN_PROFIT_LIVE || 0.5 : process.env.MIN_PROFIT_PREMATCH || 0.5),
     horizonHours: Number(process.env.HORIZON_HOURS || 72),
   });
-  await persistOpportunities(result.opportunities, { live, sport });
   await notifyWebhook(result, { live, sport });
   return result;
 }
