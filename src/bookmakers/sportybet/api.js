@@ -17,14 +17,18 @@ const HDR = {
   'platform': 'web',
 };
 
-// Sport IDs SportyBet (SportRadar) : sr:sport:1 = football, sr:sport:5 = tennis.
+// Sport IDs SportyBet (SportRadar) : sr:sport:1 = football, sr:sport:2 = basket, sr:sport:5 = tennis.
 // Market IDs demandés (utiles pour arbitrage) :
-// 1=1X2, 18=Over/Under, 10=DC, 29=BTTS, 11=DNB, 26=Odd/Even, 14=Handicap Asian,
-// 60100=1MT 1X2, 186=Match Winner (tennis - pas de X), 68=Total Sets, 89=Set 1 Winner.
+// FOOT : 1=1X2, 18=Over/Under, 10=DC, 29=BTTS, 11=DNB, 26=Odd/Even, 14=Handicap Asian, 60100=1MT 1X2.
+// TENNIS : 186=Match Winner (pas de X), 68=Total Sets, 89=Set 1 Winner, 187-190=Games/Hcp.
+// BASKET (incl OT) : 219=Winner, 223=Asian Hcp, 225=Total, 227=Home TT, 228=Away TT, 229=Odd/Even.
+//                    60=1H 1X2, 66=1H Asian Hcp, 68=1H Total, 83=2H 1X2.
+//                    235=Q1-Q4 1X2 (spec.quarternr), 303=Q1-Q4 Hcp, 236=Q1-Q4 Total, 304=Q1-Q4 O/E.
 const MARKET_IDS_FOOTBALL = '1,18,10,29,11,26,36,14,60100';
 const MARKET_IDS_TENNIS = '186,68,89,166,187,189,190,340'; // Winner + Sets + Games + Handicap
-export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5' };
-export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS };
+const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,83,235,236,303,304';
+export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2' };
+export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET };
 
 // Rotation d'user-agents pour eviter les 403 Cloudflare rate-limit.
 // Diag 5books tennis a montre : Chrome 151 marche, autres UAs parfois bloques.

@@ -26,15 +26,18 @@ export const HDR_EVENT = {
 
 // Category IDs BetPawa (base custom, PAS SportRadar) :
 //   2   = Football
+//   3   = Basketball (verifie via probe-basket-ids v4)
 //   452 = Tennis (verifie via F12 utilisateur sur cg.betpawa.com/events?categoryId=452)
-export const CATEGORY_IDS = { football: '2', tennis: '452' };
+export const CATEGORY_IDS = { football: '2', tennis: '452', basket: '3' };
 export const CATEGORY_FOOTBALL = CATEGORY_IDS.football;
 // Market types demandés (protobuf view) - depend du sport :
 //   Football : 3743=1X2, 28000810/850=Total, 3744/45/46=variants
 //   Tennis   : 2043818=Winner (verifie via F12 marketId=12 -> internal 2043818)
+//   Basket   : 4791=Moneyline FT incl OT, 5009=Total O/U, 3777=Asian Hcp, 4839=O/E
 export const MARKET_TYPES_FOOTBALL = ['3743', '28000810', '28000850', '3744', '3745', '3746'];
 export const MARKET_TYPES_TENNIS = ['2043818'];
-export const MARKET_TYPES_BY_SPORT = { football: MARKET_TYPES_FOOTBALL, tennis: MARKET_TYPES_TENNIS };
+export const MARKET_TYPES_BASKET = ['4791', '5009', '3777', '4839'];
+export const MARKET_TYPES_BY_SPORT = { football: MARKET_TYPES_FOOTBALL, tennis: MARKET_TYPES_TENNIS, basket: MARKET_TYPES_BASKET };
 export const MARKET_TYPES = MARKET_TYPES_FOOTBALL; // retro-compat
 
 export function buildEventsListUrl({ eventType = 'UPCOMING', categories = [CATEGORY_FOOTBALL], marketTypes = MARKET_TYPES_FOOTBALL, skip = 0, take = 100 } = {}) {

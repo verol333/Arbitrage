@@ -22,6 +22,7 @@ import { isHalfLine } from '../../core/markets.js';
 
 export function sportybetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
   if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
+  if (sport === 'basket') return sportybetBasketFlatOdds(markets);
   const odds = {};
   if (!Array.isArray(markets)) return odds;
 
@@ -161,6 +162,208 @@ function extractLine(specifier, key) {
   if (!m) return null;
   const n = Number(m[1]);
   return Number.isFinite(n) ? n : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET SportyBet (SportRadar UOF, incl. OT).
+// Market IDs validés via probe-basket-dump v2 (sr:sport:2) sur WNBA :
+//   219 = Winner incl OT           (desc "Home"/"Away")
+//   225 = Total incl OT            (spec.total, desc "Over X"/"Under X")
+//   223 = Asian Handicap incl OT   (spec.hcp, desc "Home (-X)"/"Away (+X)")
+//   227 = Home TT incl OT          (spec.total)
+//   228 = Away TT incl OT          (spec.total)
+//   229 = Odd/Even incl OT         (desc "Odd"/"Even")
+//   60  = 1H 1X2                   → h1_match_1/X/2
+//   68  = 1H Total                 → h1_over/under (spec.total)
+//   66  = 1H Asian Handicap        → h1_hcp_home/away (spec.hcp)
+//   83  = 2H 1X2                   → h2_match_1/X/2
+//   235 = Q1-Q4 1X2                (spec.quarternr) → q{n}_match_1/X/2
+//   303 = Q1-Q4 Asian Handicap     (spec.quarternr+hcp) → q{n}_hcp_home/away
+//   236 = Q1-Q4 Total              (spec.quarternr+total) → q{n}_over/under
+//   304 = Q1-Q4 Odd/Even           (spec.quarternr) → q{n}_odd/even
+// ATTENTION: id=18 (Total sans OT) et id=1 (1X2 sans OT) SKIPPÉS pour éviter
+// mix incl-OT vs reg-time qui produirait faux surbètes.
+// ═══════════════════════════════════════════════════════════════
+function sportybetBasketFlatOdds(markets) {
+  const odds = {};
+  if (!Array.isArray(markets)) return odds;
+
+  for (const m of markets) {
+    const id = String(m?.id ?? '');
+    const spec = String(m.specifier || '');
+    const outcomes = Array.isArray(m?.outcomes) ? m.outcomes : [];
+    if (!outcomes.length) continue;
+    const total = extractLine(spec, 'total');
+    const hcp = extractLine(spec, 'hcp');
+    const qn = extractLine(spec, 'quarternr');
+    const qPfx = qn ? `q${qn}_` : '';
+
+    switch (id) {
+      // ─── FT (incl OT) ─────────────────────────────────────────────
+      case '219': { // Winner incl OT
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase().trim();
+          if (d === 'home' || d === '1') odds.match_1 = v;
+          else if (d === 'away' || d === '2') odds.match_2 = v;
+        }
+        break;
+      }
+      case '225': { // Total FT
+        if (total == null || !isHalfLine(total)) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/^over/.test(d)) odds[`match_over_${total}`] = v;
+          else if (/^under/.test(d)) odds[`match_under_${total}`] = v;
+        }
+        break;
+      }
+      case '223': { // Handicap FT (incl OT)
+        if (hcp == null || !isHalfLine(Math.abs(hcp))) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          const teamKey = d.split(/[\s(]/)[0].trim();
+          if (teamKey === 'home' || teamKey === '1') odds[`hcp_home_${hcp}`] = v;
+          else if (teamKey === 'away' || teamKey === '2') odds[`hcp_away_${-hcp}`] = v;
+        }
+        break;
+      }
+      case '227': { // Home TT FT
+        if (total == null || !isHalfLine(total)) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/^over/.test(d)) odds[`tt_home_over_${total}`] = v;
+          else if (/^under/.test(d)) odds[`tt_home_under_${total}`] = v;
+        }
+        break;
+      }
+      case '228': { // Away TT FT
+        if (total == null || !isHalfLine(total)) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/^over/.test(d)) odds[`tt_away_over_${total}`] = v;
+          else if (/^under/.test(d)) odds[`tt_away_under_${total}`] = v;
+        }
+        break;
+      }
+      case '229': { // O/E FT
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'odd') odds.odd = v;
+          else if (d === 'even') odds.even = v;
+        }
+        break;
+      }
+
+      // ─── Halves ────────────────────────────────────────────────────
+      case '60': { // 1H 1X2 (3-way)
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home' || d === '1') odds.h1_match_1 = v;
+          else if (d === 'draw' || d === 'x') odds.h1_match_X = v;
+          else if (d === 'away' || d === '2') odds.h1_match_2 = v;
+        }
+        break;
+      }
+      case '83': { // 2H 1X2
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home' || d === '1') odds.h2_match_1 = v;
+          else if (d === 'draw' || d === 'x') odds.h2_match_X = v;
+          else if (d === 'away' || d === '2') odds.h2_match_2 = v;
+        }
+        break;
+      }
+      case '68': { // 1H Total
+        if (total == null || !isHalfLine(total)) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/^over/.test(d)) odds[`h1_over_${total}`] = v;
+          else if (/^under/.test(d)) odds[`h1_under_${total}`] = v;
+        }
+        break;
+      }
+      case '66': { // 1H Asian Handicap
+        if (hcp == null || !isHalfLine(Math.abs(hcp))) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          const teamKey = d.split(/[\s(]/)[0].trim();
+          if (teamKey === 'home' || teamKey === '1') odds[`h1_hcp_home_${hcp}`] = v;
+          else if (teamKey === 'away' || teamKey === '2') odds[`h1_hcp_away_${-hcp}`] = v;
+        }
+        break;
+      }
+
+      // ─── Quarters (quarternr in spec) ─────────────────────────────
+      case '235': { // Q{n} 1X2
+        if (!qPfx) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home' || d === '1') odds[`${qPfx}match_1`] = v;
+          else if (d === 'draw' || d === 'x') odds[`${qPfx}match_X`] = v;
+          else if (d === 'away' || d === '2') odds[`${qPfx}match_2`] = v;
+        }
+        break;
+      }
+      case '236': { // Q{n} Total
+        if (!qPfx || total == null || !isHalfLine(total)) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/^over/.test(d)) odds[`${qPfx}over_${total}`] = v;
+          else if (/^under/.test(d)) odds[`${qPfx}under_${total}`] = v;
+        }
+        break;
+      }
+      case '303': { // Q{n} Handicap
+        if (!qPfx || hcp == null || !isHalfLine(Math.abs(hcp))) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          const teamKey = d.split(/[\s(]/)[0].trim();
+          if (teamKey === 'home' || teamKey === '1') odds[`${qPfx}hcp_home_${hcp}`] = v;
+          else if (teamKey === 'away' || teamKey === '2') odds[`${qPfx}hcp_away_${-hcp}`] = v;
+        }
+        break;
+      }
+      case '304': { // Q{n} Odd/Even
+        if (!qPfx) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'odd') odds[`${qPfx}odd`] = v;
+          else if (d === 'even') odds[`${qPfx}even`] = v;
+        }
+        break;
+      }
+      default: break;
+    }
+  }
+  return odds;
 }
 
 // ═══════════════════════════════════════════════════════════════

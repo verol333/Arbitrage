@@ -2,7 +2,7 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTennisTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
@@ -56,13 +56,33 @@ async function readOddsSafe(book, matches, opts) {
 
 // Football : retire les clés per-set (s1_/set_) qui polluent le foot.
 // Tennis : garde les cles per-set (s1_/s2_/set_) car ce sont des marches valides.
+// Basket : garde les préfixes qN_ (quarters) et hN_ (halves), retire per-set foot/tennis.
 function sanitizeForSport(odds, sport = 'football') {
   if (!odds || typeof odds !== 'object') return {};
-  if (sport === 'tennis') return odds; // Tennis : garde tout (s1_, s2_, hcp_sets_, total_sets_).
+  if (sport === 'tennis') return odds;
+  if (sport === 'basket') {
+    // Basket : purge s1_..s5_ et set_ (tennis-only), garde q1_..q4_ / h1_ / h2_.
+    const out = {};
+    for (const [k, v] of Object.entries(odds)) {
+      if (/^s[1-5]_/.test(k)) continue;
+      if (/^set_/.test(k)) continue;
+      // Retire les clés foot spécifiques : btts_, dc_, dnb_, fts_, cor_, ht_, h2_ (half foot),
+      // half_most_. Attention : basket utilise h1_/h2_ (halves basket), pas ht_/h2_.
+      if (/^btts_|^dc_|^dnb_|^fts_|^cor_|^ht_|^half_most_/.test(k)) continue;
+      // h2_ basket (2nd half) vs h2_ foot (2nd half foot) — même préfixe mais
+      // le foot utilise ht_/h2_ pour halves, basket utilise h1_/h2_.
+      // On considère h1_ = basket-only (foot n'a pas h1_), h2_ = ambigu →
+      // on garde h2_ pour basket (le foot ne devrait pas produire h2_ avec ces IDs).
+      out[k] = v;
+    }
+    return out;
+  }
   const out = {};
   for (const [k, v] of Object.entries(odds)) {
     if (/^s[1-5]_/.test(k)) continue;
     if (/^set_/.test(k)) continue;
+    if (/^q[1-4]_/.test(k)) continue; // Purge quarters basket depuis parsers foot.
+    if (/^h1_/.test(k)) continue;      // Purge h1_ (basket-only).
     out[k] = v;
   }
   return out;
@@ -120,7 +140,10 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const oddsFetchedAt = new Date().toISOString();
   // Dispatch comparateur selon sport : tennis a ses propres marches et labels
   // (Handicap Jeux vs Handicap Asiatique, Total Jeux vs Total Buts, s1_/s2_/...).
-  const compare = sport === 'tennis' ? compareTennisTwoBooks : compareTwoBooks;
+  // Basket : marchés Points (incl OT) avec quarters qN_ et halves hN_.
+  const compare = sport === 'tennis' ? compareTennisTwoBooks
+                : sport === 'basket' ? compareBasketTwoBooks
+                : compareTwoBooks;
   const all = [];
   for (const entry of sorted) {
     const { ref, matches } = entry;
@@ -582,6 +605,67 @@ function marketKeyFromOpp(o) {
   if (hcpSets) {
     const l = parseFloat(hcpSets[1]);
     return { a: `hcp_sets_home_${l}`, b: `hcp_sets_away_${-l}` };
+  }
+
+  // ─── BASKET market families ─────────────────────────────────────────────
+  if (fam === 'Vainqueur du Match') return { a: 'match_1', b: 'match_2' };
+  // Handicap Points ±X (basket FT).
+  const hcpPtsMatch = fam.match(/^Handicap Points\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (hcpPtsMatch) {
+    const l = parseFloat(hcpPtsMatch[1]);
+    return { a: `hcp_home_${l}`, b: `hcp_away_${-l}` };
+  }
+  // Total Points Match X (basket FT).
+  const totPtsMatch = fam.match(/^Total Points Match\s*(\d+(?:\.\d+)?)$/);
+  if (totPtsMatch) {
+    const l = parseFloat(totPtsMatch[1]);
+    return { a: `match_over_${l}`, b: `match_under_${l}` };
+  }
+  // Total Points Dom./Ext. X (basket FT).
+  const ttPts = fam.match(/^Total Points (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
+  if (ttPts) {
+    const side = ttPts[1] === 'Dom.' ? 'home' : 'away';
+    const l = parseFloat(ttPts[2]);
+    return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
+  }
+  // Pair/Impair Points (basket FT).
+  if (fam === 'Pair/Impair Points') return { a: 'odd', b: 'even' };
+
+  // Basket par période (Q1..Q4, 1MT/2MT).
+  const LBL_TO_PFX = { Q1: 'q1_', Q2: 'q2_', Q3: 'q3_', Q4: 'q4_', '1MT': 'h1_', '2MT': 'h2_' };
+  // "Q1 Vainqueur" / "1MT Vainqueur"
+  const perVain = fam.match(/^(Q[1-4]|1MT|2MT) Vainqueur$/);
+  if (perVain) {
+    const pfx = LBL_TO_PFX[perVain[1]];
+    return { a: `${pfx}match_1`, b: `${pfx}match_2` };
+  }
+  // "Q1 Total Points X" / "1MT Total Points X"
+  const perTot = fam.match(/^(Q[1-4]|1MT|2MT) Total Points\s*(\d+(?:\.\d+)?)$/);
+  if (perTot) {
+    const pfx = LBL_TO_PFX[perTot[1]];
+    const l = parseFloat(perTot[2]);
+    return { a: `${pfx}over_${l}`, b: `${pfx}under_${l}` };
+  }
+  // "Q1 Handicap ±X" / "1MT Handicap ±X"
+  const perHcp = fam.match(/^(Q[1-4]|1MT|2MT) Handicap\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (perHcp) {
+    const pfx = LBL_TO_PFX[perHcp[1]];
+    const l = parseFloat(perHcp[2]);
+    return { a: `${pfx}hcp_home_${l}`, b: `${pfx}hcp_away_${-l}` };
+  }
+  // "Q1 Pair/Impair" / "1MT Pair/Impair"
+  const perOE = fam.match(/^(Q[1-4]|1MT|2MT) Pair\/Impair$/);
+  if (perOE) {
+    const pfx = LBL_TO_PFX[perOE[1]];
+    return { a: `${pfx}odd`, b: `${pfx}even` };
+  }
+  // "1MT Total Points Dom. X" / "2MT Total Points Ext. X"
+  const perTt = fam.match(/^(1MT|2MT) Total Points (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
+  if (perTt) {
+    const pfx = LBL_TO_PFX[perTt[1]];
+    const side = perTt[2] === 'Dom.' ? 'home' : 'away';
+    const l = parseFloat(perTt[3]);
+    return { a: `${pfx}tt_${side}_over_${l}`, b: `${pfx}tt_${side}_under_${l}` };
   }
 
   return null;

@@ -82,7 +82,55 @@ function parseMainOnly(GE, odds) {
   });
 }
 
-export async function getOdds(matchId, { live = false, noCache = false } = {}) {
+// Parseur BASKET 1xBet (marchés incl. OT).
+// Mapping (G, T, P) validé via probe-basket-dump :
+//   G=101 T=401→match_1, T=402→match_2 (Winner 2-way incl OT)
+//   G=17  T=9→over, T=10→under, P=line (Total match incl OT)
+//   G=2   T=7→hcp_home, T=8→hcp_away, P=line (Handicap incl OT)
+//   G=15  T=11→over, T=12→under, P=line (TT home incl OT)
+//   G=62  T=13→over, T=14→under, P=line (TT away incl OT)
+//   G=91  T=755→q1_match_1, T=757→q1_match_2 (2-way Q1)
+//   G=92  T=766→q2_match_1, T=767→q2_match_2 (2-way Q2)
+// Attention: pas de match_X pour basket incl OT (pas de nul possible).
+function parseBasketGE(GE, odds, prefix = '') {
+  const grp = (gid) => GE.find((x) => x.G === gid);
+  iterate(grp(101), (i, c) => {
+    if (i.T === 401) odds[`${prefix}match_1`] = c;
+    if (i.T === 402) odds[`${prefix}match_2`] = c;
+  });
+  iterate(grp(17), (i, c) => {
+    const p = i.P; if (p == null || !isHalfLine(p)) return;
+    if (i.T === 9) odds[`${prefix}${prefix ? 'over' : 'match_over'}_${p}`] = c;
+    if (i.T === 10) odds[`${prefix}${prefix ? 'under' : 'match_under'}_${p}`] = c;
+  });
+  iterate(grp(2), (i, c) => {
+    if (i.P == null || !isHalfLine(i.P)) return;
+    if (i.T === 7) odds[`${prefix}hcp_home_${i.P}`] = c;
+    if (i.T === 8) odds[`${prefix}hcp_away_${i.P}`] = c;
+  });
+  iterate(grp(15), (i, c) => {
+    const p = i.P; if (p == null || !isHalfLine(p)) return;
+    if (i.T === 11) odds[`${prefix}tt_home_over_${p}`] = c;
+    if (i.T === 12) odds[`${prefix}tt_home_under_${p}`] = c;
+  });
+  iterate(grp(62), (i, c) => {
+    const p = i.P; if (p == null || !isHalfLine(p)) return;
+    if (i.T === 13) odds[`${prefix}tt_away_over_${p}`] = c;
+    if (i.T === 14) odds[`${prefix}tt_away_under_${p}`] = c;
+  });
+  if (!prefix) {
+    iterate(grp(91), (i, c) => {
+      if (i.T === 755) odds.q1_match_1 = c;
+      if (i.T === 757) odds.q1_match_2 = c;
+    });
+    iterate(grp(92), (i, c) => {
+      if (i.T === 766) odds.q2_match_1 = c;
+      if (i.T === 767) odds.q2_match_2 = c;
+    });
+  }
+}
+
+export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
   const feedPath = live ? 'LiveFeed' : 'LineFeed';
   const url = `${FEED}/service-api/${feedPath}/GetGameZip?id=${matchId}&lng=fr&isSubGames=true&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
   // En live ou re-fetch confirm : force noCache pour cotes fraîches (bypass allorigins 5min cache).
@@ -90,6 +138,10 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
   if (!gd?.Value) return null;
   const GE = gd.Value.GE || [];
   const odds = {};
+  if (sport === 'basket') {
+    parseBasketGE(GE, odds, '');
+    return odds;
+  }
   parseGE(GE, odds, '');
   parseMainOnly(GE, odds);
 

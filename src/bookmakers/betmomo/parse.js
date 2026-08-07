@@ -4,6 +4,7 @@ import { isHalfLine } from '../../core/markets.js';
 
 export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
   if (sport === 'tennis') return betmomoTennisFlatOdds(markets);
+  if (sport === 'basket') return betmomoBasketFlatOdds(markets);
   const odds = {};
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);
@@ -142,6 +143,181 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
       }
 
       default: break;
+    }
+  }
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET BetMomo (SWARM/BetConstruct, incl. OT).
+// Validé via probe-basket-dump : ~100 markets par WNBA match.
+// Convention keys : match_/hcp_/tt_ + prefixes q1_/q2_/q3_/q4_/h1_/h2_.
+// Attention: pas de match_X pour basket incl OT (pas de nul possible).
+// L'ordinal du quarter/half est dans market.name ("1st Quarter Total Points").
+// ═══════════════════════════════════════════════════════════════
+function periodPfxFromName(name) {
+  const s = String(name || '').toLowerCase();
+  if (/\b1st quarter\b/.test(s)) return 'q1_';
+  if (/\b2nd quarter\b/.test(s)) return 'q2_';
+  if (/\b3rd quarter\b/.test(s)) return 'q3_';
+  if (/\b4th quarter\b/.test(s)) return 'q4_';
+  if (/\b1st half\b/.test(s)) return 'h1_';
+  if (/\b2nd half\b/.test(s)) return 'h2_';
+  return '';
+}
+
+function betmomoBasketFlatOdds(markets) {
+  const odds = {};
+  if (!Array.isArray(markets) && typeof markets !== 'object') return odds;
+  const list = Array.isArray(markets) ? markets : Object.values(markets || {});
+  const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
+  const price = (e) => Number(e.price);
+  const okEvent = (e) => e && e.price != null && Number(e.price) > 1;
+
+  for (const m of list) {
+    const t = String(m.type || '');
+    const name = String(m.name || '');
+    const events = evs(m).filter(okEvent);
+    if (!events.length) continue;
+
+    // Winner 2-way : type P1P2 + name "Match Winner"
+    if (t === 'P1P2' && /^match winner$/i.test(name)) {
+      for (const e of events) {
+        const et = String(e.type || '').toUpperCase();
+        if (et === 'P1') odds.match_1 = price(e);
+        else if (et === 'P2') odds.match_2 = price(e);
+      }
+      continue;
+    }
+
+    // Total match FT (incl OT) : type MatchTotal + name "Total Points"
+    if (t === 'MatchTotal' && /total points/i.test(name)) {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') odds[`match_over_${base}`] = price(e);
+        else if (et === 'under') odds[`match_under_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // Handicap match : type MatchHandicap + name "Points Handicap"
+    if (t === 'MatchHandicap' && /points handicap/i.test(name)) {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (base == null || !isHalfLine(Math.abs(base))) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'home') odds[`hcp_home_${base}`] = price(e);
+        else if (et === 'away') odds[`hcp_away_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // TT home : type MatchHomeTeamTotal2 + name "Team 1 Total Points"
+    if (t === 'MatchHomeTeamTotal2' && /team 1 total/i.test(name)) {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') odds[`tt_home_over_${base}`] = price(e);
+        else if (et === 'under') odds[`tt_home_under_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // TT away
+    if (t === 'MatchAwayTeamTotal2' && /team 2 total/i.test(name)) {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') odds[`tt_away_over_${base}`] = price(e);
+        else if (et === 'under') odds[`tt_away_under_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // Odd/Even match
+    if (t === 'MatchOddEvenTotal') {
+      for (const e of events) {
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'odd') odds.odd = price(e);
+        else if (et === 'even') odds.even = price(e);
+      }
+      continue;
+    }
+
+    // Quarters/Halves : le prefix est extrait du name
+    const pfx = periodPfxFromName(name);
+    if (!pfx) continue;
+
+    // Winner 2-way par période
+    if (t === 'QuarterWinner2' || t === 'HalfWinner2') {
+      for (const e of events) {
+        const et = String(e.type || '').toUpperCase();
+        if (et === 'P1') odds[`${pfx}match_1`] = price(e);
+        else if (et === 'P2') odds[`${pfx}match_2`] = price(e);
+      }
+      continue;
+    }
+
+    // Total par période
+    if (t === 'QuarterTotal' || t === 'HalfTotal') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') odds[`${pfx}over_${base}`] = price(e);
+        else if (et === 'under') odds[`${pfx}under_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // Handicap par période
+    if (t === 'QuarterHandicap' || t === 'HalfHandicap') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (base == null || !isHalfLine(Math.abs(base))) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'home') odds[`${pfx}hcp_home_${base}`] = price(e);
+        else if (et === 'away') odds[`${pfx}hcp_away_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // TT home par période
+    if (t === 'QuarterHomeTeamTotal2' || t === 'HalfHomeTeamTotal2') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') odds[`${pfx}tt_home_over_${base}`] = price(e);
+        else if (et === 'under') odds[`${pfx}tt_home_under_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // TT away par période
+    if (t === 'QuarterAwayTeamTotal2' || t === 'HalfAwayTeamTotal2') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') odds[`${pfx}tt_away_over_${base}`] = price(e);
+        else if (et === 'under') odds[`${pfx}tt_away_under_${base}`] = price(e);
+      }
+      continue;
+    }
+
+    // Odd/Even par période
+    if (t === 'QuarterOddEvenTotal' || t === 'HalfOddEvenTotal') {
+      for (const e of events) {
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'odd') odds[`${pfx}odd`] = price(e);
+        else if (et === 'even') odds[`${pfx}even`] = price(e);
+      }
+      continue;
     }
   }
   return odds;

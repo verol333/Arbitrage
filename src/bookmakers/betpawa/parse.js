@@ -142,6 +142,64 @@ export function betpawaTennisFlatOdds(eventJson) {
   return odds;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET BetPawa (JSON /events/{id}, incl. OT).
+// Market IDs validés via probe-basket-dump v2 (categoryId=3) :
+//   4791    = Moneyline FT incl OT       (name "1"=home, "2"=away)
+//   5009    = Total Score O/U FT incl OT (row.specifier.total, name "Plus de"/"Moins de")
+//   3777    = Asian Handicap FT incl OT  (row.specifier.hcp, name "1"=home, "2"=away)
+//   4839    = Odd/Even FT incl OT        (name "Impair"/"Pair")
+// IGNORÉS : 4389697 (combo Winner+Total), 1396223 (OT yes/no), 4389687 (Winner 3-way RT)
+// BetPawa basket n'expose PAS quarters/halves/team-totals prématch (limité vs autres books).
+// ═══════════════════════════════════════════════════════════════
+export function betpawaBasketFlatOdds(eventJson) {
+  const odds = {};
+  if (!eventJson?.markets?.length) return odds;
+  for (const market of eventJson.markets) {
+    const marketId = String(market?.marketType?.id ?? '');
+    const rows = Array.isArray(market.row) ? market.row : [];
+    if (!rows.length) continue;
+
+    for (const row of rows) {
+      const spec = row?.specifier || {};
+      const hcpStr = spec.hcp;
+      const totalStr = spec.total;
+      for (const p of (row.prices || [])) {
+        const name = String(p?.name || '').trim();
+        const v = Number(p?.odds);
+        if (!Number.isFinite(v) || v <= 1) continue;
+
+        switch (marketId) {
+          case '4791': // Moneyline 2-way
+            if (name === '1') odds.match_1 = v;
+            else if (name === '2') odds.match_2 = v;
+            break;
+          case '5009': { // Total FT
+            const line = Number(totalStr);
+            if (!Number.isFinite(line) || !isHalfLine(line)) break;
+            if (/plus/i.test(name)) odds[`match_over_${line}`] = v;
+            else if (/moins/i.test(name)) odds[`match_under_${line}`] = v;
+            break;
+          }
+          case '3777': { // Asian Handicap FT
+            const hcp = Number(hcpStr);
+            if (!Number.isFinite(hcp) || !isHalfLine(Math.abs(hcp))) break;
+            if (name === '1') odds[`hcp_home_${hcp}`] = v;
+            else if (name === '2') odds[`hcp_away_${-hcp}`] = v;
+            break;
+          }
+          case '4839': // Odd/Even
+            if (/impair/i.test(name)) odds.odd = v;
+            else if (/pair/i.test(name)) odds.even = v;
+            break;
+          default: break;
+        }
+      }
+    }
+  }
+  return odds;
+}
+
 export function betpawaFlatOdds(eventJson) {
   const odds = {};
   if (!eventJson?.markets?.length) return odds;
