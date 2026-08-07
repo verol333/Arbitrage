@@ -117,6 +117,146 @@ export function winTennisFlatOdds(groups, names) {
   return odds;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET 1win (WebSocket oddsGroups, incl. OT).
+// Group names validés via probe-basket-dump v2 (sportId=23) :
+//   "Winner (incl. OT)"                       → match_1 / match_2
+//   "Total (incl. OT)"                        → match_over/under (name "Over X" / "Under X")
+//   "Handicap (incl. OT)"                     → hcp_home/away (name "<team> ±X")
+//   "Odd/Even (incl. OT)"                     → odd / even
+//   "<home team> total (incl. OT)"            → tt_home_over/under
+//   "<away team> total (incl. OT)"            → tt_away_over/under
+//   "Nth quarter. Result"                     → q{n}_match_1/X/2 (3-way parfois)
+//   "Nth quarter. Handicap"                   → q{n}_hcp_home/away
+//   "Nth quarter. Total"                      → q{n}_over/under
+//   "Nth quarter. Odd/Even"                   → q{n}_odd/even
+// ATTENTION : "Result (reg. time)" est un 3-way SANS OT — on skip pour ne pas
+// mélanger avec Winner (incl. OT) qui est le marché principal cross-book.
+// ═══════════════════════════════════════════════════════════════
+export function winBasketFlatOdds(groups, names) {
+  const odds = {};
+  if (!groups) return odds;
+  const isHome = (n) => tokenOverlap(n, names.home) >= 0.5;
+  const isAway = (n) => tokenOverlap(n, names.away) >= 0.5;
+  const active = (list) => (list || []).filter((o) => o?.status === 1 && Number(o.cf) > 1);
+  const num = (o) => Number(o.cf);
+
+  // Extraction du prefix période depuis le nom du groupe.
+  // "3rd quarter. Total" → { pfx: "q3_", base: "total" }
+  // "Winner (incl. OT)"  → { pfx: "",    base: "winner (incl. ot)" }
+  function stripPeriod(rawName) {
+    const s = String(rawName || '').trim();
+    const low = s.toLowerCase();
+    const qm = low.match(/^(1st|2nd|3rd|4th)\s+quarter\.\s+(.+)$/);
+    if (qm) {
+      const n = qm[1] === '1st' ? '1' : qm[1] === '2nd' ? '2' : qm[1] === '3rd' ? '3' : '4';
+      return { pfx: `q${n}_`, base: qm[2], rawBase: s.slice(s.indexOf('.') + 1).trim() };
+    }
+    const hm = low.match(/^(1st|2nd)\s+half\.\s+(.+)$/);
+    if (hm) {
+      const n = hm[1] === '1st' ? '1' : '2';
+      return { pfx: `h${n}_`, base: hm[2], rawBase: s.slice(s.indexOf('.') + 1).trim() };
+    }
+    return { pfx: '', base: low, rawBase: s };
+  }
+
+  for (const [rawName, rawList] of Object.entries(groups)) {
+    const list = active(rawList);
+    if (!list.length) continue;
+    const { pfx, base, rawBase } = stripPeriod(rawName);
+
+    // Winner (incl. OT) : 2-way
+    if (/^winner\s*\(incl\.\s*ot\)$/.test(base) || (pfx && base === 'result')) {
+      for (const o of list) {
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const n = String(o.name || '').toLowerCase();
+        // Result (Nth quarter) peut être 3-way avec draw. Skip draw pour basket.
+        if (oc === '1' || oc === 'w1' || oc === 'home') odds[`${pfx}match_1`] = num(o);
+        else if (oc === '2' || oc === 'w2' || oc === 'away') odds[`${pfx}match_2`] = num(o);
+        else if (oc === 'x' || oc === 'draw') odds[`${pfx}match_X`] = num(o);
+        else if (isHome(n) && !isAway(n)) odds[`${pfx}match_1`] = num(o);
+        else if (isAway(n) && !isHome(n)) odds[`${pfx}match_2`] = num(o);
+      }
+      continue;
+    }
+
+    // Total (incl. OT) ou "Nth quarter. Total"
+    if (/^total\s*(?:\(incl\.\s*ot\))?$/.test(base)) {
+      for (const o of list) {
+        const n = String(o.name || '');
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const m = n.match(/(-?\d+(?:\.\d+)?)/);
+        if (!m || !isHalfLine(m[1])) continue;
+        const line = parseFloat(m[1]);
+        const isOver = oc === 'over' || /over/i.test(n);
+        const isUnder = oc === 'under' || /under/i.test(n);
+        if (pfx) {
+          if (isOver) odds[`${pfx}over_${line}`] = num(o);
+          else if (isUnder) odds[`${pfx}under_${line}`] = num(o);
+        } else {
+          if (isOver) odds[`match_over_${line}`] = num(o);
+          else if (isUnder) odds[`match_under_${line}`] = num(o);
+        }
+      }
+      continue;
+    }
+
+    // Handicap (incl. OT) ou "Nth quarter. Handicap"
+    if (/^handicap\s*(?:\(incl\.\s*ot\))?$/.test(base)) {
+      for (const o of list) {
+        const n = String(o.name || '');
+        const mLine = n.match(/(-?\d+(?:\.\d+)?)/);
+        if (!mLine) continue;
+        const line = parseFloat(mLine[1]);
+        if (!isHalfLine(line)) continue;
+        const teamPart = n.replace(/-?\d+(?:\.\d+)?/g, '').trim();
+        const sH = tokenOverlap(teamPart, names.home);
+        const sA = tokenOverlap(teamPart, names.away);
+        if (sH === 0 && sA === 0) continue;
+        if (sH >= sA) odds[`${pfx}hcp_home_${line}`] = num(o);
+        else odds[`${pfx}hcp_away_${line}`] = num(o);
+      }
+      continue;
+    }
+
+    // Odd/Even (incl. OT) ou "Nth quarter. Odd/Even"
+    if (/^odd\/even\s*(?:\(incl\.\s*ot\))?$/.test(base)) {
+      for (const o of list) {
+        const oc = String(o.outcome || '').toLowerCase().trim();
+        const n = String(o.name || '').toLowerCase();
+        if (oc === 'odd' || /odd/.test(n)) odds[`${pfx}odd`] = num(o);
+        else if (oc === 'even' || /even/.test(n)) odds[`${pfx}even`] = num(o);
+      }
+      continue;
+    }
+
+    // "<home team> total (incl. OT)" ou "<away team> total (incl. OT)"
+    // Match seulement en absence de préfixe période (match_TT).
+    if (!pfx && /\btotal\s*(?:\(incl\.\s*ot\))?$/i.test(rawBase)) {
+      const teamPart = rawBase.replace(/\btotal\s*(?:\(incl\.\s*ot\))?$/i, '').trim();
+      if (!teamPart) continue;
+      const sH = tokenOverlap(teamPart, names.home);
+      const sA = tokenOverlap(teamPart, names.away);
+      if (sH === 0 && sA === 0) continue;
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side === null) continue;
+      for (const o of list) {
+        const n = String(o.name || '');
+        const oc = String(o.outcome || '').toLowerCase();
+        const m = n.match(/(-?\d+(?:\.\d+)?)/);
+        if (!m || !isHalfLine(m[1])) continue;
+        const line = parseFloat(m[1]);
+        const isOver = oc === 'over' || /over/i.test(n);
+        const isUnder = oc === 'under' || /under/i.test(n);
+        if (isOver) odds[`tt_${side}_over_${line}`] = num(o);
+        else if (isUnder) odds[`tt_${side}_under_${line}`] = num(o);
+      }
+      continue;
+    }
+  }
+  return odds;
+}
+
 export function winFlatOdds(groups, names) {
   const odds = {};
   if (!groups) return odds;

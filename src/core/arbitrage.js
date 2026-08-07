@@ -450,6 +450,104 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
   return out;
 }
 
+// Comparateur BASKET 2-way (marchés incl. OT majoritaires).
+// Convention keys : match_/hcp_/tt_ + prefixes q1_/q2_/q3_/q4_/h1_/h2_.
+// Pas de flip home/away (basket a des équipes home/away claires, contrairement
+// au tennis où J1/J2 est arbitraire par book).
+// Marchés supportés :
+//   - Vainqueur du Match          (match_1 vs match_2)
+//   - Handicap Points X           (hcp_home_X vs hcp_away_-X)
+//   - Total Points Match X        (match_over_X vs match_under_X)
+//   - Total Points Dom./Ext. X    (tt_home/away over/under)
+//   - Pair/Impair Points          (odd vs even)
+//   Par quarter Q1..Q4 (qN_)      : Vainqueur, Total, Handicap, Odd/Even
+//   Par mi-temps H1/H2 (hN_)      : Vainqueur, Total, Handicap, Odd/Even, TT
+export function compareBasketTwoBooks(rawA, bookA, rawB, bookB) {
+  const oa = normalizeAliases(rawA);
+  const ob = normalizeAliases(rawB);
+  const out = [];
+
+  // Vainqueur du Match : 2-way.
+  pushArb(out, 'Vainqueur du Match', 'Dom.', oa.match_1, bookA, 'Ext.', ob.match_2, bookB);
+  pushArb(out, 'Vainqueur du Match', 'Dom.', ob.match_1, bookB, 'Ext.', oa.match_2, bookA);
+
+  // Handicap Points (asian handicap sur points, ±L).
+  for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
+    const sign = lNum > 0 ? '+' + l : l;
+    const fam = `Handicap Points ${sign}`;
+    const aL = `Dom. ${sign}`;
+    const bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
+    pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB);
+    pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA);
+  }
+
+  // Total Points match.
+  for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Points Match ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB);
+    pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA);
+  }
+
+  // Total Points individuel (Dom./Ext.).
+  for (const [side, lbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
+    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
+      const fam = `Total Points ${lbl} ${l}`;
+      pushArb(out, fam, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB);
+      pushArb(out, fam, `${lbl} +${l}`, ob[ok], bookB, `${lbl} −${l}`, oa[uk], bookA);
+    }
+  }
+
+  // Pair/Impair Points (match).
+  pushArb(out, 'Pair/Impair Points', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB);
+  pushArb(out, 'Pair/Impair Points', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA);
+
+  // ─── Par quarter (Q1..Q4) et par mi-temps (H1/H2) ────────────────
+  const PERIODS = [
+    ['q1_', 'Q1'], ['q2_', 'Q2'], ['q3_', 'Q3'], ['q4_', 'Q4'],
+    ['h1_', '1MT'], ['h2_', '2MT'],
+  ];
+  for (const [pfx, lbl] of PERIODS) {
+    // Vainqueur
+    pushArb(out, `${lbl} Vainqueur`, 'Dom.', oa[`${pfx}match_1`], bookA, 'Ext.', ob[`${pfx}match_2`], bookB);
+    pushArb(out, `${lbl} Vainqueur`, 'Dom.', ob[`${pfx}match_1`], bookB, 'Ext.', oa[`${pfx}match_2`], bookA);
+    // Total Points
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const fam = `${lbl} Total Points ${l}`;
+      pushArb(out, fam, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB);
+      pushArb(out, fam, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA);
+    }
+    // Handicap
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
+      const lNum = parseFloat(l);
+      const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
+      const sign = lNum > 0 ? '+' + l : l;
+      const fam = `${lbl} Handicap ${sign}`;
+      const aL = `Dom. ${sign}`;
+      const bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
+      pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB);
+      pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA);
+    }
+    // Pair/Impair
+    pushArb(out, `${lbl} Pair/Impair`, 'Impair', oa[`${pfx}odd`], bookA, 'Pair', ob[`${pfx}even`], bookB);
+    pushArb(out, `${lbl} Pair/Impair`, 'Impair', ob[`${pfx}odd`], bookB, 'Pair', oa[`${pfx}even`], bookA);
+    // TT (half only — pas de TT quarter dans les données observées)
+    if (/^h[12]_$/.test(pfx)) {
+      for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
+        for (const l of linesOf(oa, ob, new RegExp(`^${pfx}tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+          const ok = `${pfx}tt_${side}_over_${l}`, uk = `${pfx}tt_${side}_under_${l}`;
+          const fam = `${lbl} Total Points ${teamLbl} ${l}`;
+          pushArb(out, fam, `${teamLbl} +${l}`, oa[ok], bookA, `${teamLbl} −${l}`, ob[uk], bookB);
+          pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 export function dedupeOpportunities(opps) {
   const seen = new Set();
   const out = [];

@@ -7,7 +7,7 @@ export default {
   label: 'BetMomo',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (sport !== 'football' && sport !== 'tennis') return [];
+    if (!['football', 'tennis', 'basket'].includes(sport)) return [];
     return listMatches({ live, horizonHours, sport });
   },
   // getOdds : par défaut on utilise les cotes capturées au listMatches (rapide).

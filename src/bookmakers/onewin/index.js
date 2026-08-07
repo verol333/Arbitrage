@@ -1,20 +1,22 @@
 import { listPrematch, listLive } from './list.js';
 import { fetchOddsWS } from './ws.js';
-import { winFlatOdds, winTennisFlatOdds } from './parse.js';
+import { winFlatOdds, winTennisFlatOdds, winBasketFlatOdds } from './parse.js';
 
 export default {
   key: '1win',
   label: '1win',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (sport !== 'football' && sport !== 'tennis') return [];
+    if (!['football', 'tennis', 'basket'].includes(sport)) return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match, opts = {}) {
     const map = await fetchOddsWS([match.id]);
     const groups = map.get(match.id) || map.get(String(match.id));
     if (!groups) return {};
-    const flat = opts.sport === 'tennis' ? winTennisFlatOdds : winFlatOdds;
+    const flat = opts.sport === 'tennis' ? winTennisFlatOdds
+               : opts.sport === 'basket' ? winBasketFlatOdds
+               : winFlatOdds;
     return flat(groups, { home: match.home, away: match.away });
   },
   async getOddsBatch(matches, opts = {}) {
@@ -29,7 +31,9 @@ export default {
       for (const [k, v] of part) raw.set(k, v);
     }
     const out = new Map();
-    const flat = opts.sport === 'tennis' ? winTennisFlatOdds : winFlatOdds;
+    const flat = opts.sport === 'tennis' ? winTennisFlatOdds
+               : opts.sport === 'basket' ? winBasketFlatOdds
+               : winFlatOdds;
     for (const m of matches) {
       const g = raw.get(m.id) || raw.get(String(m.id)) || raw.get(Number(m.id));
       out.set(m.id, g ? flat(g, { home: m.home, away: m.away }) : {});

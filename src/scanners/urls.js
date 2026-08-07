@@ -20,6 +20,10 @@ export function matchUrl(bookKey, m) {
       return `https://betmomo.com/en/sportsbook/event/${m.id}`;
     case 'premierbet':
       return `https://premierbetzone.com/sports/soccer/event/${m.id}`;
+    case 'betpawa':
+      return `https://cg.betpawa.com/event/${m.id}`;
+    case 'sportybet':
+      return `https://www.sportybet.com/ng/sport/basketball/sr:match:${m.id}`;
     default:
       return null;
   }
