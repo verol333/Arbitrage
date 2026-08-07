@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// PROBE COUPON CODES v4 — fix majeur 1xBet (via megapari.africa + x-app-n headers)
-// exactement comme le code Base44 prod du user.
-// Autres books : corrections + dump structure pour investigation.
+// PROBE COUPON CODES v5 — payloads EXACTS F12 user
+// BetPawa: {selections:{selections:[{type:COMBO,selections:[NUM_IDS]}]}}
+// SportyBet: cookies session + sporty-referer
+// 1win: {coupons:[{oddId:STRING, matchId:NUM}]}
+// YellowBet: oddPrice number + hasTCO + sourceModule
 import WebSocket from 'ws';
 import { gotScraping } from 'got-scraping';
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.0.0 Safari/537.36';
 const results = {};
 
 async function fetchRaw(url, opts = {}) {
@@ -46,18 +48,20 @@ const record = (book, ok, info) => {
   const code = info.code ? `CODE=${info.code}` : `HTTP ${info.status || '?'} ${info.err || ''}`;
   const suffix = info.match ? ` | ${info.match} | ${info.selection}` : '';
   console.log(`  ${icon} ${book.toUpperCase().padEnd(11)} ${code}${suffix}`);
-  if (info.raw) console.log(`     raw: ${String(info.raw).slice(0, 350)}`);
+  if (info.raw) console.log(`     raw: ${String(info.raw).slice(0, 300)}`);
   if (info.url) console.log(`     url: ${info.url}`);
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 1) SPORTYBET — endpoint public confirme + headers minimum
+// 1) SPORTYBET — headers EXACTS F12 user (avec cookies session + sporty-referer)
 // ═══════════════════════════════════════════════════════════════
 const SB_HDR = {
   Accept: '*/*', 'Accept-Language': 'en',
-  Referer: 'https://www.sportybet.com/ng/sport/football/today',
+  Referer: 'https://www.sportybet.com/ng/',
   Origin: 'https://www.sportybet.com',
   clientid: 'web', operid: '2', platform: 'web',
+  'sporty-referer': 'utm_source=https://www.google.com/',
+  Cookie: 'locale=en; device-id=1918057d-2b3a-4f8a-90c3-083dd139d39b; sb_country=ng',
 };
 async function testSportybet() {
   console.log('\n─── SPORTYBET ───');
@@ -67,17 +71,18 @@ async function testSportybet() {
     { headers: SB_HDR }
   );
   const events = list.json?.data?.tournaments?.flatMap(t => t.events || []) || [];
-  // Le F12 user montre : eventId + marketId + outcomeId suffit. Prendre n'importe quel match futur
+  // Prendre un match avec cote raisonnable (1.5-3.0) pour éviter rejets bookmaker
   const pick = events.find(e => {
     const m = e.markets?.find(mk => String(mk.id) === '1');
-    return m?.outcomes?.length > 0;
-  });
-  if (!pick) return record('sportybet', false, { err: `${events.length} evts, aucun avec market 1` });
+    const home = m?.outcomes?.find(o => String(o.desc).toLowerCase() === 'home');
+    return home && Number(home.odds) > 1.5 && Number(home.odds) < 3.5;
+  }) || events.find(e => e.markets?.find(mk => String(mk.id) === '1')?.outcomes?.length);
+  if (!pick) return record('sportybet', false, { err: 'no event' });
   const market = pick.markets.find(m => String(m.id) === '1');
   const home = market.outcomes.find(o => String(o.desc).toLowerCase() === 'home') || market.outcomes[0];
   const body = JSON.stringify([{ eventId: pick.eventId, marketId: '1', outcomeId: String(home.id) }]);
   const r = await fetchRaw('https://www.sportybet.com/api/ng/orders/share', {
-    method: 'POST', headers: { ...SB_HDR, 'Content-Type': 'application/json' }, body,
+    method: 'POST', headers: { ...SB_HDR, 'Content-Type': 'application/json;charset=UTF-8' }, body,
   });
   const code = r.json?.data?.shareCode;
   record('sportybet', !!code, {
@@ -122,7 +127,7 @@ async function testCongobet() {
     }
     if (pick) break;
   }
-  if (!pick) return record('congobet', false, { err: 'no event with 1X2 valid' });
+  if (!pick) return record('congobet', false, { err: 'no event' });
   const body = JSON.stringify({
     totalOdds: Number(home.odds),
     eventBetTypeItemIds: [Number(home.id)],
@@ -140,13 +145,11 @@ async function testCongobet() {
     match: `${pick.homeTeamName} vs ${pick.awayTeamName}`,
     selection: `1X2 "1" @ ${home.odds}`,
     url: code ? `https://congobet.net/betting/booking/${code}` : null,
-    raw: code ? null : r.text.slice(0, 250),
   });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 3) 1XBET — FIX MAJEUR : passe via megapari.africa (miroir Base44 prod)
-// Headers x-app-n + x-svc-source OBLIGATOIRES, CheckCf:1, PlayersDuel, PV:null
+// 3) 1XBET — via megapari.africa, GetGameZip pour cote reelle
 // ═══════════════════════════════════════════════════════════════
 const MP_HEADERS = {
   accept: 'application/json, text/plain, */*',
@@ -160,20 +163,37 @@ const MP_HEADERS = {
 };
 async function testOnexbet() {
   console.log('\n─── 1XBET (via megapari.africa) ───');
-  // Fetch 1 match football via megapari LineFeed
   const line = await fetchRaw(
     'https://megapari.africa/service-api/LineFeed/Get1x2_VZip?sports=1&count=50&lng=fr&mode=4&country=93&partner=192',
     { headers: MP_HEADERS }
   );
   const evts = line?.json?.Value || [];
-  const pick = evts.find(e => e.E > 1.4 && e.E < 4 && e.O1 && e.O2 && (e.CI || e.I));
-  if (!pick) return record('1xbet', false, { err: `${evts.length} evts megapari, aucun valide`, status: line.status, raw: line.text.slice(0, 200) });
-  const gameId = pick.CI || pick.I;
-  // Payload EXACT du prod Base44
+  // Get1x2_VZip retourne matchs SANS cotes → utiliser GetGameZip pour cote fresh
+  const evtWithId = evts.find(e => e.CI || e.I);
+  if (!evtWithId) return record('1xbet', false, { err: `${evts.length} evts, aucun avec ID` });
+  const gameId = evtWithId.CI || evtWithId.I;
+  // GetGameZip pour recuperer les cotes 1X2
+  const gameZip = await fetchRaw(
+    `https://megapari.africa/service-api/LineFeed/GetGameZip?id=${gameId}&lng=fr&isSubGames=true&GroupEvents=true&countevents=500&grMode=4&country=93&marketType=1&isNewBuilder=true`,
+    { headers: MP_HEADERS }
+  );
+  let cote = null;
+  const ge = gameZip.json?.Value?.GE || [];
+  for (const g of ge) {
+    if (!g?.E) continue;
+    for (const sub of g.E) {
+      for (const it of (Array.isArray(sub) ? sub : [sub])) {
+        if (it?.T === 1 && it?.C) { cote = parseFloat(it.C); break; }
+      }
+      if (cote) break;
+    }
+    if (cote) break;
+  }
+  if (!cote) return record('1xbet', false, { err: `pas de cote T=1 pour game ${gameId}` });
   const body = JSON.stringify({
     notWait: true, CheckCf: 1, partner: 192, Summ: 500,
     Events: [{
-      GameId: gameId, Type: 1, Coef: pick.E, Param: 0,
+      GameId: gameId, Type: 1, Coef: cote, Param: 0,
       PV: null, PlayerId: 0, Kind: 3,
       InstrumentId: 0, Seconds: 0, Price: 0, Expired: 0,
       PlayersDuel: { Team1Ids: null, Team2Ids: null },
@@ -187,15 +207,15 @@ async function testOnexbet() {
   const success = r.json?.Success !== false && !!code;
   record('1xbet', success, {
     code, status: r.status,
-    match: `${pick.O1} vs ${pick.O2}`,
-    selection: `1X2 "1" @ ${pick.E} (GameId=${gameId})`,
+    match: `${evtWithId.O1 || '?'} vs ${evtWithId.O2 || '?'}`,
+    selection: `1X2 "1" @ ${cote} (GameId=${gameId})`,
     url: code ? `https://megapari.africa/fr/list/coupon/${code}` : null,
     raw: code ? null : r.text.slice(0, 300),
   });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 4) BETMOMO — SWARM WS pour trouver un event, puis image-creator/share-booking
+// 4) BETMOMO — SWARM query elargie
 // ═══════════════════════════════════════════════════════════════
 async function findBetmomoMatch() {
   return new Promise((resolve) => {
@@ -215,17 +235,15 @@ async function findBetmomoMatch() {
       if (m.rid === 's1') {
         if (!m.data?.sid) { clearTimeout(hard); return finish(null); }
         const now = Math.floor(Date.now() / 1000);
-        // Query TOUS les events P1XP2, prendre le premier
+        // Query TRES elargie : tout foot upcoming avec markets
         const games = await send('get', {
           source: 'betting',
           what: { game: ['id', 'team1_name', 'team2_name'], market: ['id', 'type'], event: ['id', 'price', 'type_1', 'type', 'name'] },
           where: {
             sport: { id: 1 },
-            game: { start_ts: { '@gt': now + 1800, '@lt': now + 172800 }, is_live: 0 },
-            market: { type: 'P1XP2' },
+            game: { start_ts: { '@gt': now + 1800 }, is_live: 0 },
           },
         });
-        // Take FIRST event with valid price (peu importe home/away)
         let pick = null;
         for (const s of Object.values(games?.data?.sport || {})) {
           for (const rg of Object.values(s.region || {})) {
@@ -255,53 +273,30 @@ async function findBetmomoMatch() {
 async function testBetmomo() {
   console.log('\n─── BETMOMO ───');
   const pick = await findBetmomoMatch();
-  if (!pick) return record('betmomo', false, { err: 'no match via SWARM' });
-  // Body BetConstruct image-creator/share-booking (extrait F12 user)
-  // Le body minimal contient siteId, events avec eventId+gameId+price+type
-  const bodies = [
-    {
-      siteId: 211, lang: 'fra',
-      events: [{ eventId: Number(pick.event.id), gameId: Number(pick.game.id), price: Number(pick.event.price), type: pick.event.type_1 || '1' }],
-      betType: 1,
-    },
-    {
-      site_id: 211, lang: 'fra',
-      events: [{ event_id: Number(pick.event.id), game_id: Number(pick.game.id), price: Number(pick.event.price) }],
-    },
-    // Format observé dans réponse F12 : {betslip: {events: [...]}}
-    {
-      siteId: 211, lang: 'fra', currencyName: '₣',
-      betslip: {
-        events: [{ eventId: Number(pick.event.id), gameId: Number(pick.game.id), price: Number(pick.event.price), team1Name: pick.game.team1_name, team2Name: pick.game.team2_name }],
-        betType: 1,
-      },
-    },
-  ];
-  for (let i = 0; i < bodies.length; i++) {
-    const r = await fetchRaw('https://winners.bcapps.org/image-creator/share-booking/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'https://www.betmomo.com', Referer: 'https://www.betmomo.com/',
-      },
-      body: JSON.stringify(bodies[i]),
-    });
-    const bookId = r.json?.share?.bookId || r.json?.bookId || r.json?.book_id;
-    const link = r.json?.share?.bookingLink;
-    if (bookId) return record('betmomo', true, {
-      code: String(bookId), status: r.status,
-      match: `${pick.game.team1_name} vs ${pick.game.team2_name}`,
-      selection: `1X2 @ ${pick.event.price} (body variant ${i + 1})`,
-      url: link || `https://www.betmomo.com?bookingId${bookId}`,
-    });
-    if (i === bodies.length - 1) return record('betmomo', false, {
-      status: r.status, err: `${bodies.length} body variants failed`, raw: r.text.slice(0, 300),
-    });
-  }
+  if (!pick) return record('betmomo', false, { err: 'no match via SWARM (elargie)' });
+  const body = JSON.stringify({
+    siteId: 211, lang: 'fra',
+    events: [{ eventId: Number(pick.event.id), gameId: Number(pick.game.id), price: Number(pick.event.price) }],
+    betType: 1,
+  });
+  const r = await fetchRaw('https://winners.bcapps.org/image-creator/share-booking/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://www.betmomo.com', Referer: 'https://www.betmomo.com/' },
+    body,
+  });
+  const bookId = r.json?.share?.bookId || r.json?.bookId;
+  const link = r.json?.share?.bookingLink;
+  record('betmomo', !!bookId, {
+    code: bookId ? String(bookId) : null, status: r.status,
+    match: `${pick.game.team1_name} vs ${pick.game.team2_name}`,
+    selection: `1X2 @ ${pick.event.price}`,
+    url: link || (bookId ? `https://www.betmomo.com?bookingId${bookId}` : null),
+    raw: bookId ? null : r.text.slice(0, 300),
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 5) BETPAWA — dump structure prices pour voir les IDs
+// 5) BETPAWA — FORMAT EXACT F12 : {selections:{selections:[{type:COMBO, selections:[NUM_IDS]}]}}
 // ═══════════════════════════════════════════════════════════════
 const BP_HDR_LIST = {
   Accept: 'application/x-protobuf', 'Accept-Language': 'fr-FR,fr;q=0.7',
@@ -321,42 +316,47 @@ async function testBetpawa() {
     if (b >= 32 && b <= 126) cur += String.fromCharCode(b);
     else { if (cur.length > 2) strings.push(cur); cur = ''; }
   }
-  const ids = [...new Set(strings.filter(s => /^\d{7,10}$/.test(s) && s !== '3743'))].slice(0, 5);
+  const ids = [...new Set(strings.filter(s => /^\d{7,10}$/.test(s) && s !== '3743'))].slice(0, 10);
   if (!ids.length) return record('betpawa', false, { err: 'no ids' });
-  // Dump 1er event pour voir structure exacte des prices
-  const detail = await fetchRaw(`https://cg.betpawa.com/api/sportsbook/v4/events/${ids[0]}`, { headers: BP_HDR_EVENT });
-  const ev = detail.json;
-  const market = ev?.markets?.find(m => String(m.marketType?.id) === '3743');
-  const price = market?.row?.[0]?.prices?.[0];
-  console.log(`     dump structure price: ${JSON.stringify(price).slice(0, 300)}`);
-  if (!price?.id) return record('betpawa', false, { err: 'no price.id — voir dump' });
-  // Vraie observation F12 user : POST booking-number renvoie {code:"65FNKJA"}
-  // Body probable inclut priceId + eventId + selectionAdd/isProposed
-  const bodies = [
-    { selections: [{ id: price.id, price: String(price.odds) }] },
-    { selections: [{ priceId: price.id, price: String(price.odds) }] },
-    { selections: [{ id: price.id, price: price.odds }], stake: 100 },
-    { selections: [{ eventId: ids[0], marketTypeId: 3743, priceId: price.id, price: String(price.odds) }] },
-  ];
-  for (let i = 0; i < bodies.length; i++) {
+  // Trouver un event valide avec price.id numerique
+  for (const id of ids) {
+    const detail = await fetchRaw(`https://cg.betpawa.com/api/sportsbook/v4/events/${id}`, { headers: BP_HDR_EVENT });
+    const ev = detail.json;
+    const market = ev?.markets?.find(m => String(m.marketType?.id) === '3743');
+    const price = market?.row?.[0]?.prices?.find(p => String(p.name).trim() === '1');
+    if (!price?.id) continue;
+    // FORMAT EXACT F12 : {selections:{selections:[{type:"COMBO", selections:[NUM_ID]}]}}
+    const body = JSON.stringify({
+      selections: {
+        selections: [{
+          type: 'COMBO',
+          selections: [Number(price.id)],
+        }],
+      },
+    });
     const r = await fetchRaw('https://cg.betpawa.com/api/sportsbook/v3/booking-number', {
       method: 'POST',
-      headers: { ...BP_HDR_EVENT, 'Content-Type': 'application/json', Origin: 'https://cg.betpawa.com' },
-      body: JSON.stringify(bodies[i]),
+      headers: {
+        ...BP_HDR_EVENT, 'Content-Type': 'application/json',
+        Origin: 'https://cg.betpawa.com', devicetype: 'web',
+      },
+      body,
     });
-    const code = r.json?.code || r.json?.bookingNumber;
+    const code = r.json?.code;
     if (code) return record('betpawa', true, {
-      code, status: r.status, match: ev.name || `event ${ids[0]}`,
-      selection: `1X2 @ ${price.odds}`,
+      code, status: r.status,
+      match: ev.name || `event ${id}`,
+      selection: `1X2 "1" @ ${price.odds} (priceId=${price.id})`,
       url: `https://cg.betpawa.com/booking/${code}`,
     });
-    if (i === 0) console.log(`     variant ${i+1} → HTTP ${r.status}: ${r.text.slice(0, 150)}`);
+    // Log premier échec pour diag
+    console.log(`     event ${id}: HTTP ${r.status}, body: ${r.text.slice(0, 150)}`);
   }
-  record('betpawa', false, { err: 'all bodies failed — need F12 exact body from user' });
+  record('betpawa', false, { err: 'all events failed' });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 6) YELLOWBET — dump 3 bts pour voir les vrais names
+// 6) YELLOWBET — oddPrice number + hasTCO + sourceModule
 // ═══════════════════════════════════════════════════════════════
 const YB_HDR = { brandid: '122', channelid: '4', language: 'fr', terminal: 'yellowbet.cg' };
 async function testYellowbet() {
@@ -366,70 +366,75 @@ async function testYellowbet() {
   const events = Array.isArray(list.json?.data) ? list.json.data : [];
   const candidates = events.filter(e => !e.lv);
   if (!candidates.length) return record('yellowbet', false, { err: 'catalog vide' });
-  // Prendre 1er event et DUMP toutes les bts pour comprendre les names
-  const ev = candidates[0];
-  const det = await stealthRaw(`https://yellowbet.cg/services/evapi/event/GetEventDetails?id=${encodeURIComponent(ev.id)}`, { headers: YB_HDR });
-  const bts = Array.isArray(det.json?.data?.bts) ? det.json.data.bts : [];
-  console.log(`     Event : ${ev.h} vs ${ev.a}, ${bts.length} bts`);
-  for (const bt of bts.slice(0, 5)) {
-    console.log(`       bt id=${bt.id} n="${bt.n}" odds_keys=[${(bt.odds || bt.oc || []).slice(0, 3).map(o => o.k || o.oddkey || o.n).join(',')}]`);
+  for (const ev of candidates.slice(0, 15)) {
+    const det = await stealthRaw(`https://yellowbet.cg/services/evapi/event/GetEventDetails?id=${encodeURIComponent(ev.id)}`, { headers: YB_HDR });
+    const bts = Array.isArray(det.json?.data?.bts) ? det.json.data.bts : [];
+    // Chercher un bt avec 3 outcomes (probable 1X2) et name containing 1x2/result
+    const bt1x2 = bts.find(b => /1x2|match\s*result|full\s*time|resultat|résultat/i.test((b.n || '').trim())
+      && (b.odds || b.oc || []).length >= 2)
+      || bts.find(b => (b.odds || b.oc || []).length === 3);
+    if (!bt1x2) continue;
+    const odds = bt1x2.odds || bt1x2.oc || [];
+    const home = odds.find(o => (o.k || o.oddkey || '').trim() === '1' || (o.n || '').trim() === '1') || odds[0];
+    if (!home) continue;
+    const oddKey = home.k || home.oddkey || '1';
+    const key = `E${ev.id}B${bt1x2.id}O${oddKey}`;
+    // Payload EXACT F12 user
+    const body = JSON.stringify({
+      language: 'fr', acceptOddsChanges: true, isBooking: true,
+      bonusIds: [], BetBuilderModel: { BetBuilderEvents: [] },
+      rows: [{ amount: 0, selectionKeys: [key] }],
+      selections: [{
+        key, eventId: Number(ev.id), eventStatus: 0,
+        homeName: ev.h, awayName: ev.a,
+        betStatus: 0, betTypeId: Number(bt1x2.id),
+        betTypeName: bt1x2.n || 'FT 1X2',
+        gameTime: ev.d || ev.gt || new Date(Date.now() + 3_600_000).toISOString(),
+        hasTCO: true,
+        isLive: false, isVirtual: false,
+        oddDisplayName: oddKey, oddKey, oddName: oddKey,
+        oddPrice: Number(home.p || home.price || home.odd),
+        oldOddPrice: null,
+        order: 1,
+        sourceModule: 'popular_event_carousel',
+      }],
+      source: '', sourceRef: '', totalStake: 0,
+    });
+    const r = await stealthRaw('https://yellowbet.cg/services/clapi/api/Bet/placebetsport', {
+      method: 'POST', headers: { ...YB_HDR, 'Content-Type': 'application/json' }, body,
+    });
+    const code = r.json?.code || r.json?.data?.code;
+    return record('yellowbet', !!code, {
+      code, status: r.status,
+      match: `${ev.h} vs ${ev.a}`,
+      selection: `${bt1x2.n} "${oddKey}" @ ${home.p || home.price || home.odd}`,
+      url: code ? `https://yellowbet.cg/booking/${code}` : null,
+      raw: code ? null : (r.text || '').slice(0, 350),
+    });
   }
-  // Chercher un bt qui ressemble à 1X2/résultat
-  const bt1x2 = bts.find(b => /^(ft\s*1x2|1x2|match\s*result|résultat|resultat)$/i.test((b.n || '').trim()))
-    || bts.find(b => (b.odds || b.oc || []).length === 3);
-  if (!bt1x2) return record('yellowbet', false, { err: `${bts.length} bts mais aucun 1X2 identifie` });
-  const odds = bt1x2.odds || bt1x2.oc || [];
-  const home = odds[0]; // premier outcome
-  const oddKey = home.k || home.oddkey || '1';
-  const key = `E${ev.id}B${bt1x2.id}O${oddKey}X`;
-  const body = JSON.stringify({
-    language: 'fr', acceptOddsChanges: true, isBooking: true,
-    bonusIds: [], BetBuilderModel: { BetBuilderEvents: [] },
-    rows: [{ amount: 0, selectionKeys: [key] }],
-    selections: [{
-      key, eventId: Number(ev.id), betTypeId: Number(bt1x2.id),
-      betTypeName: bt1x2.n || 'FT 1X2', oddKey, oddName: oddKey, oddDisplayName: oddKey,
-      oddPrice: String(home.p || home.price || home.odd),
-      oldOddPrice: null,
-      gameTime: ev.d || ev.gt || new Date(Date.now() + 3_600_000).toISOString(),
-      homeName: ev.h, awayName: ev.a,
-      isLive: false, isVirtual: false, eventStatus: 0, betStatus: 0, order: 1,
-    }],
-    source: '', sourceRef: '', totalStake: 0,
-  });
-  const r = await stealthRaw('https://yellowbet.cg/services/clapi/api/Bet/placebetsport', {
-    method: 'POST', headers: { ...YB_HDR, 'Content-Type': 'application/json' }, body,
-  });
-  const code = r.json?.code || r.json?.data?.code;
-  record('yellowbet', !!code, {
-    code, status: r.status,
-    match: `${ev.h} vs ${ev.a}`,
-    selection: `${bt1x2.n} "${oddKey}" @ ${home.p || home.price || home.odd}`,
-    url: code ? `https://yellowbet.cg/booking/${code}` : null,
-    raw: code ? null : (r.text || '').slice(0, 300),
-  });
+  record('yellowbet', false, { err: `${candidates.length} candidats, 0 avec bt 1X2` });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 7) 1WIN — WS push-server-v2 avec messageType correct
+// 7) 1WIN — WS pour trouver oddId string + matchId
+// Format oddId : "10:UNIQUEID:1" (10=Winner group, 1=Home outcome)
 // ═══════════════════════════════════════════════════════════════
-async function fetchOnewinData() {
+async function fetchOnewinOdds() {
   return new Promise((resolve) => {
     const url = 'wss://api-gateway.top-parser.com/push-server-v2/?Language=en-001&externalPartnerId=44ba10e5-7df2-47ab-a44d-dc93803c7a6e&EIO=4&transport=websocket';
     const ws = new WebSocket(url);
-    let done = false;
+    let done = false; let subscribed = false; let last = Date.now();
     const finish = (v) => { if (done) return; done = true; try { ws.close(); } catch { /* ignore */ } resolve(v); };
-    const hard = setTimeout(() => finish(null), 15_000);
+    const hard = setTimeout(() => finish(null), 20_000);
+    const foundOdds = [];
     ws.on('error', () => finish(null));
-    const matches = new Map();
     ws.on('message', (raw) => {
       const m = raw.toString();
       if (m.startsWith('0')) { ws.send('40'); return; }
       if (m.startsWith('40')) {
-        // Try multiple subscribe types
-        ws.send('42' + JSON.stringify(['subscribe', { messageType: 'subscribe-line', data: { sportId: 18 } }]));
-        ws.send('42' + JSON.stringify(['subscribe', { messageType: 'subscribe-line-matches', data: { sportId: 18 } }]));
-        ws.send('42' + JSON.stringify(['subscribe', { messageType: 'subscribe-sport', data: { sportId: 18 } }]));
+        // Subscribe to sport 18 (football) matches with odds
+        ws.send('42' + JSON.stringify(['subscribe', { messageType: 'subscribe-sport-matches', data: { sportId: 18, isLive: false, isBaseOddsGroups: true } }]));
+        subscribed = true;
         return;
       }
       if (m === '2') { ws.send('3'); return; }
@@ -437,12 +442,31 @@ async function fetchOnewinData() {
         try {
           const p = JSON.parse(m.slice(2));
           const b = p[1];
-          if (b?.data) {
-            const items = b.data.matches || b.data.events || b.data.items || b.data;
-            if (Array.isArray(items)) {
-              for (const it of items) if (it.id) matches.set(it.id, it);
+          const data = b?.data;
+          // Peut être matches: [...] avec chacun ses oddsGroups
+          const items = data?.matches || data?.events || (Array.isArray(data) ? data : null);
+          if (Array.isArray(items)) {
+            for (const it of items) {
+              const gs = it.oddsGroups || it.groups || [];
+              for (const g of gs) {
+                for (const o of (g.oddsList || g.odds || [])) {
+                  if (String(o.outcome) === '1' && Number(o.cf) > 1.4 && Number(o.cf) < 3.5) {
+                    foundOdds.push({
+                      matchId: it.id,
+                      oddId: o.id,
+                      cf: Number(o.cf),
+                      team1: it.team1?.name || it.homeName || it.team1Name,
+                      team2: it.team2?.name || it.awayName || it.team2Name,
+                    });
+                  }
+                }
+              }
             }
-            if (matches.size > 0) { clearTimeout(hard); setTimeout(() => finish([...matches.values()]), 2000); }
+            last = Date.now();
+            if (foundOdds.length > 0) {
+              clearTimeout(hard);
+              setTimeout(() => finish(foundOdds), 2000);
+            }
           }
         } catch { /* ignore */ }
       }
@@ -451,16 +475,35 @@ async function fetchOnewinData() {
 }
 async function testOnewin() {
   console.log('\n─── 1WIN ───');
-  const matches = await fetchOnewinData();
-  if (!matches?.length) return record('1win', false, { err: 'no matches from WS (all subscribes failed)' });
-  console.log(`     Got ${matches.length} matches, sample: ${JSON.stringify(matches[0]).slice(0, 200)}`);
-  record('1win', false, { err: 'endpoint list OK mais generation code non implementee sans F12 exact' });
+  const odds = await fetchOnewinOdds();
+  if (!odds?.length) return record('1win', false, { err: 'no odds from WS' });
+  const pick = odds[0];
+  // FORMAT EXACT F12 : {coupons:[{oddId:"10:XXX:1", matchId:NUM}]}
+  const body = JSON.stringify({
+    coupons: [{ oddId: String(pick.oddId), matchId: Number(pick.matchId) }],
+  });
+  const r = await fetchRaw('https://api-gateway.top-parser.com/shared-bets/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'https://1win.ng', Referer: 'https://1win.ng/',
+    },
+    body,
+  });
+  const code = r.json?.result?.code || r.json?.code;
+  record('1win', !!code, {
+    code, status: r.status,
+    match: `${pick.team1 || '?'} vs ${pick.team2 || '?'}`,
+    selection: `Winner "1" @ ${pick.cf} (oddId=${pick.oddId})`,
+    url: code ? `https://1win.ng/betting?shareCode=${code}` : null,
+    raw: code ? null : r.text.slice(0, 300),
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN
 // ═══════════════════════════════════════════════════════════════
-console.log('▶ PROBE COUPON CODES v4 — 1xBet via megapari.africa + fixes autres books\n');
+console.log('▶ PROBE COUPON CODES v5 — payloads EXACTS F12 user\n');
 const tests = [
   ['sportybet', testSportybet],
   ['congobet', testCongobet],
