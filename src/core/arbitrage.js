@@ -168,6 +168,40 @@ function twoWaySane(oddA, oddB) {
   return sum <= 1.20;
 }
 
+// Cross-book coherence sur marche 2-way : verifie que les probabilites
+// IMPLICITES (Yes/No, Over/Under, Home/Away FT, etc.) convergent entre les 2
+// books. Si l'un des books est stale (cote figee d'un state anterieur du live),
+// sa probabilite implicite divergera massivement de l'autre → SKIP l'arb.
+//
+// Bug decouvert 2026-08-08 sur Santiago Wanderers BTTS live (0-1 79') :
+//   SB.btts_yes = 3.25 → prob Yes SB ~31% (real, Home doit marquer en 11min)
+//   1win.btts_no = 5.87 → prob No 1win ~17% (impossible !)
+//   → 1/3.25 + 1/5.87 = 0.478 → 'arb +52%'
+// Si 1win expose AUSSI btts_yes (parseur 1win lit les 2 sides quand groupe
+// present), on peut reconstruire la prob implicite 1win.Yes et voir qu'elle
+// diverge de SB.Yes de ~50 pts → cotes stale des 2 cotes chez 1win.
+//
+// Retourne true si les 2 books convergent (< 25% divergence sur prob Yes) OU
+// si l'un des 2 books n'expose PAS les 2 sides (impossible de valider). Le
+// mode 'strict' (false) impose que les 2 books exposent les 2 sides ET
+// convergent — plus safe mais reduit les detections.
+function crossBookImpliedProbOK(oa, ob, keyYes, keyNo, tolerance = 0.25) {
+  const aYes = oa[keyYes], aNo = oa[keyNo];
+  const bYes = ob[keyYes], bNo = ob[keyNo];
+  // Book A a les 2 sides ? → prob Yes fair
+  const probA = (aYes && aNo && aYes > 1 && aNo > 1)
+    ? (1 / aYes) / (1 / aYes + 1 / aNo)
+    : null;
+  const probB = (bYes && bNo && bYes > 1 && bNo > 1)
+    ? (1 / bYes) / (1 / bYes + 1 / bNo)
+    : null;
+  // Si un des 2 books n'expose pas les 2 sides, on ne peut pas cross-checker.
+  // On laisse passer (le check same-book twoWaySane reste actif sur pushArb).
+  if (probA == null || probB == null) return true;
+  // Les 2 books ont les 2 sides : verifier convergence.
+  return Math.abs(probA - probB) <= tolerance;
+}
+
 // Compare deux jeux de cotes plates 3-way (foot) entre 2 books quelconques.
 // Traite : Total, 1X2+DC, DNB, Handicap, Total indiv., BTTS, Mi-temps, Corners,
 // Pair/Impair, 1ère équipe à marquer, Mi-temps la plus prolifique.
@@ -237,9 +271,14 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
       pushArb(out, fam, `${lbl} +${l}`, ob[ok], bookB, `${lbl} −${l}`, oa[uk], bookA);
     }
   }
-  // BTTS.
-  pushArb(out, 'BTTS', 'Oui', oa.btts_yes, bookA, 'Non', ob.btts_no, bookB);
-  pushArb(out, 'BTTS', 'Oui', ob.btts_yes, bookB, 'Non', oa.btts_no, bookA);
+  // BTTS — cross-book coherence check (fix bug 2026-08-08 Santiago Wanderers
+  // 0-1 79' fake +52%). Si les 2 books exposent Yes+No, leurs probas Yes
+  // implicites doivent converger < 25% de divergence — sinon un book a des
+  // cotes stale (typiquement en live quand le state du match a change).
+  if (crossBookImpliedProbOK(oa, ob, 'btts_yes', 'btts_no')) {
+    pushArb(out, 'BTTS', 'Oui', oa.btts_yes, bookA, 'Non', ob.btts_no, bookB);
+    pushArb(out, 'BTTS', 'Oui', ob.btts_yes, bookB, 'Non', oa.btts_no, bookA);
+  }
   // Totaux mi-temps et corners.
   for (const [pfx, lbl] of [['ht_', '1MT Total Buts'], ['h2_', '2MT Total Buts'], ['cor_', 'Corners Total']]) {
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
@@ -261,10 +300,12 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
       if (dcAhalf[dk]) pushArb(out, `${lbl} 1X2 — ${aL}`, aL, ob[`${pfx}${sk}`], bookB, bL, oa[`${pfx}${dk}`], bookA);
     }
   }
-  // BTTS par mi-temps.
+  // BTTS par mi-temps — meme cross-book coherence check.
   for (const [pfx, lbl] of [['ht_', '1MT BTTS'], ['h2_', '2MT BTTS']]) {
-    pushArb(out, lbl, 'Oui', oa[`${pfx}btts_yes`], bookA, 'Non', ob[`${pfx}btts_no`], bookB);
-    pushArb(out, lbl, 'Oui', ob[`${pfx}btts_yes`], bookB, 'Non', oa[`${pfx}btts_no`], bookA);
+    if (crossBookImpliedProbOK(oa, ob, `${pfx}btts_yes`, `${pfx}btts_no`)) {
+      pushArb(out, lbl, 'Oui', oa[`${pfx}btts_yes`], bookA, 'Non', ob[`${pfx}btts_no`], bookB);
+      pushArb(out, lbl, 'Oui', ob[`${pfx}btts_yes`], bookB, 'Non', oa[`${pfx}btts_no`], bookA);
+    }
   }
   // DNB par mi-temps — meme cross-check.
   const dnbAht = dnbCoherence(oa, 'ht_'), dnbBht = dnbCoherence(ob, 'ht_');
