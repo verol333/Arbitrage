@@ -16,7 +16,16 @@ async function sendWebhook(payload) {
     });
     let respText = '';
     try { respText = (await res.text()).slice(0, 500); } catch {}
-    console.log(`[webhook] sport=${payload.sport} status=${res.status} count=${payload.count} bodySize=${bodyStr.length}B resp="${respText}"`);
+    // Détecte les rejets soft du backend (HTTP 200 mais body ok:false / blocked:true).
+    // Sinon un webhook en "reconstruction" qui rejette tout est invisible dans les logs.
+    let parsedOk = null;
+    try {
+      const j = JSON.parse(respText);
+      if (j && typeof j === 'object' && j.ok === false) parsedOk = false;
+      else if (j && j.ok === true) parsedOk = true;
+    } catch { /* ignore */ }
+    const alertPrefix = parsedOk === false ? '⚠️ REJET BACKEND — ' : '';
+    console.log(`[webhook] ${alertPrefix}sport=${payload.sport} status=${res.status} count=${payload.count} bodySize=${bodyStr.length}B resp="${respText}"`);
   } catch (e) {
     console.warn(`[webhook] sport=${payload.sport} erreur: ${e.message}`);
   } finally { clearTimeout(t); }
