@@ -92,12 +92,35 @@ function parseMainOnly(GE, odds) {
 //   G=91  T=755→q1_match_1, T=757→q1_match_2 (2-way Q1)
 //   G=92  T=766→q2_match_1, T=767→q2_match_2 (2-way Q2)
 // Attention: pas de match_X pour basket incl OT (pas de nul possible).
+//
+// SANITY GUARD (fix bug 2026-08-08) : 1xBet retourne parfois les 2 outcomes
+// d'un marche 2-way avec la MEME cote (placeholder pretmatch "marche
+// disponible mais cotes non finalisees" — probe raw Chicago Sky WNBA
+// confirme G=91 T=755=1.87 T=757=1.87). Ces valeurs identiques provoquaient
+// des fake arbs cross-book quand un autre book cotait ce marche normalement.
+// readWinner2Way skip le mapping quand les 2 outcomes sont egaux.
+function readWinner2Way(g, tHome, tAway, homeKey, awayKey, odds) {
+  if (!g?.E) return;
+  let h = null, a = null;
+  for (const sub of g.E) {
+    for (const it of (Array.isArray(sub) ? sub : [sub])) {
+      const c = parseFloat(it?.C);
+      if (!Number.isFinite(c) || c <= 1) continue;
+      if (it.T === tHome) h = c;
+      if (it.T === tAway) a = c;
+    }
+  }
+  // Skip si l'un des 2 manque OU si egales (placeholder xbet non-cote).
+  if (h == null || a == null) return;
+  if (h === a) return;
+  odds[homeKey] = h;
+  odds[awayKey] = a;
+}
+
 function parseBasketGE(GE, odds, prefix = '') {
   const grp = (gid) => GE.find((x) => x.G === gid);
-  iterate(grp(101), (i, c) => {
-    if (i.T === 401) odds[`${prefix}match_1`] = c;
-    if (i.T === 402) odds[`${prefix}match_2`] = c;
-  });
+  // Winner 2-way FT (incl OT) — via readWinner2Way (sanity guard cotes egales).
+  readWinner2Way(grp(101), 401, 402, `${prefix}match_1`, `${prefix}match_2`, odds);
   iterate(grp(17), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
     if (i.T === 9) odds[`${prefix}${prefix ? 'over' : 'match_over'}_${p}`] = c;
@@ -118,18 +141,14 @@ function parseBasketGE(GE, odds, prefix = '') {
     if (i.T === 13) odds[`${prefix}tt_away_over_${p}`] = c;
     if (i.T === 14) odds[`${prefix}tt_away_under_${p}`] = c;
   });
-  // DESACTIVE : le mapping T=755/757 (Q1) et T=766/767 (Q2) est FAUX.
-  // Probe basket-verify 2026-08-08 sur 6 matchs distincts (WNBA, Philippines
-  // Governors Cup, Argentina W, Taiwan Friendly, Chicago Sky) : q1_match_1 et
-  // q1_match_2 renvoyaient SYSTEMATIQUEMENT la meme valeur (ex 1.87/1.87,
-  // 1.79/1.79, 1.837/1.837). Impossible en vrai marche 2-way.
-  // → Cause : les T=755/757 pointent probablement vers 2 outcomes d'un MEME
-  //   marche (ex: Home Over + Home Under) et non Home/Away winner 2-way.
-  //   Le parseur ecrasait sur q1_match_1/2 en boucle, produisant des fake arbs
-  //   Q1 Vainqueur / Q2 Vainqueur systematiques cross-book.
-  // Prochaine etape : probe-xbet-basket-raw pour identifier les VRAIS T de
-  //   G=91/92 (Q1/Q2 winner 2-way), puis rebrancher avec le bon mapping.
-  // En attendant : Q1/Q2 xbet basket omis du parseur → plus de fake arbs.
+  if (!prefix) {
+    // Q1/Q2 winner 2-way — reactive avec sanity guard : quand les cotes
+    // sont placeholders (T_home = T_away), readWinner2Way skip
+    // silencieusement. Quand 1xBet ouvre les vraies cotes (typiquement
+    // juste avant ou pendant le match), le mapping fonctionne.
+    readWinner2Way(grp(91), 755, 757, 'q1_match_1', 'q1_match_2', odds);
+    readWinner2Way(grp(92), 766, 767, 'q2_match_1', 'q2_match_2', odds);
+  }
 }
 
 export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
