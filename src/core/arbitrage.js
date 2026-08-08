@@ -28,6 +28,65 @@ export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook) {
   });
 }
 
+// Vainqueur de PERIODE basket (Q1/Q2/Q3/Q4/H1/H2) = marche 3-WAY (H/X/A).
+// Contrairement au Winner FT basket (incl OT, 2-way) qui ne peut PAS finir
+// nul, une periode basket peut se terminer avec les 2 equipes a egalite
+// (ex: 15-15 fin Q1). Notre parser ecrit qN_match_X pour la Draw sur les
+// books qui l'exposent (1win, sportybet, betmomo, betpawa).
+//
+// pushArbPeriodWinner remplace un pushArb 2-way naif par une validation
+// 3-way correcte :
+//   - H = homeBook.qN_match_1
+//   - A = awayBook.qN_match_2
+//   - X = MAX(homeBook.qN_match_X, awayBook.qN_match_X) — meilleure cote Draw
+//   - Si X manque des 2 books → SKIP (impossible de couvrir la Draw)
+//   - Si 1/H + 1/A + 1/X >= 1 → SKIP (pas d'arbitrage 3-way garanti)
+//   - Sinon emet l'arb en 2-way (bet H sur homeBook, A sur awayBook) MAIS
+//     avec profit_pct calcule sur couverture 3-way complete (realiste).
+//
+// Note : l'arb pratique reste 2-way (bet H + bet A). La Draw n'est PAS betee
+// mais sa cote sert de garantie que si Draw arrive, on ne perd pas plus que
+// (1 - 1/X) de la mise totale. Le "profit garanti" affiche est le profit
+// dans le cas H ou A gagne (Draw = perte partielle si elle arrive). C'est
+// exactement comme un DNB (Draw No Bet) implicite. TODO amelioration :
+// emettre en vrai 3-way (bet H+A+X sur 3 books) si architecture le permet.
+function pushArbPeriodWinner(out, lbl, oaHome, obAway, bookHome, bookAway, pfx) {
+  const H = oaHome[`${pfx}match_1`];
+  const A = obAway[`${pfx}match_2`];
+  if (!H || !A || H <= 1 || A <= 1) return;
+  if (H > MAX_ODD || A > MAX_ODD) return;
+  const inv2 = 1 / H + 1 / A;
+  if (inv2 >= 1) return; // pas meme un arb 2-way
+
+  // Requiert coverage Draw depuis au moins un book
+  const drawHome = oaHome[`${pfx}match_X`];
+  const drawAway = obAway[`${pfx}match_X`];
+  const draws = [drawHome, drawAway].filter(v => Number.isFinite(v) && v > 1 && v <= MAX_ODD);
+  if (!draws.length) return; // aucune Draw exposee → impossible de valider 3-way
+
+  const bestDraw = Math.max(...draws);
+  const inv3 = inv2 + 1 / bestDraw;
+  if (inv3 >= 1) return; // en 3-way, la couverture reelle est >= 100% → pas d'arb
+
+  // 3-way valide. profit_pct sur base 3-way.
+  const profit3 = (1 - inv3) * 100;
+  if (profit3 > MAX_PROFIT()) return;
+  const stakeA = (1 / H) / inv3 * 100;
+  const stakeB = (1 / A) / inv3 * 100;
+  out.push({
+    market_family: `${lbl} Vainqueur`,
+    leg_a_book: bookHome, leg_a_label: 'Dom.', leg_a_odd: H,
+    leg_b_book: bookAway, leg_b_label: 'Ext.', leg_b_odd: A,
+    inverse_sum: Math.round(inv3 * 10000) / 10000,
+    profit_pct: Math.round(profit3 * 100) / 100,
+    stake_a_pct: Math.round(stakeA * 10) / 10,
+    stake_b_pct: Math.round(stakeB * 10) / 10,
+    // Meta 3-way : traçabilite pour audit (quel book fournit la Draw)
+    validation_3way_draw_odd: bestDraw,
+    validation_3way_draw_book: (drawAway === bestDraw ? bookAway : bookHome),
+  });
+}
+
 // Découverte DYNAMIQUE des lignes (handicap, total, team total, corners).
 // L'ancien code utilisait des tableaux hard-codés HCP_LINES [-4.5..4.5] et
 // TT_LINES [0.5..5.5] qui manquaient les lignes extrêmes (matchs déséquilibrés
@@ -510,9 +569,21 @@ export function compareBasketTwoBooks(rawA, bookA, rawB, bookB) {
     ['h1_', '1MT'], ['h2_', '2MT'],
   ];
   for (const [pfx, lbl] of PERIODS) {
-    // Vainqueur
-    pushArb(out, `${lbl} Vainqueur`, 'Dom.', oa[`${pfx}match_1`], bookA, 'Ext.', ob[`${pfx}match_2`], bookB);
-    pushArb(out, `${lbl} Vainqueur`, 'Dom.', ob[`${pfx}match_1`], bookB, 'Ext.', oa[`${pfx}match_2`], bookA);
+    // Vainqueur — MARCHE 3-WAY (H/X/A) : une periode basket peut se terminer
+    // sur un nul (score identique en fin de Q1/Q2/Q3/Q4 ou de 1MT/2MT). Notre
+    // parseur 1win et sportybet ecrivent d'ailleurs qN_match_X / hN_match_X
+    // (la Draw). Le comparator DOIT valider en 3-way, sinon 1/H + 1/A < 1
+    // sans compter la Draw = FAKE arb (bug decouvert 2026-08-08 sur ADRM
+    // Maringa Q1 6-9 à 7' : 1xbet Maringa @ 3.77 + SB Campo @ 4.15 →
+    // "arb +49%" alors que Draw a 6-6/9-9 est tres probable → 1/3.77 + 1/4.15
+    // + 1/Draw_reel >= 1 → aucun arbitrage garanti).
+    //
+    // pushArbPeriodWinner exige :
+    //   1) Au moins UN des 2 books expose la Draw (qN_match_X ou hN_match_X)
+    //   2) La couverture 3-way (H + A + best_Draw) doit rester < 1 en inverse_sum
+    //   3) Le profit_pct est calcule sur la couverture 3-way complete
+    pushArbPeriodWinner(out, lbl, oa, ob, bookA, bookB, pfx);
+    pushArbPeriodWinner(out, lbl, ob, oa, bookB, bookA, pfx);
     // Total Points
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
       const fam = `${lbl} Total Points ${l}`;
