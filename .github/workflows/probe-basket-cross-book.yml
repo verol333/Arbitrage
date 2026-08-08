@@ -1,0 +1,22 @@
+name: Probe Basket Cross-Book
+on:
+  workflow_dispatch:
+    inputs:
+      match_search:
+        description: 'Nom equipe (ex: "Fu Jen", "Chicago", "Argentina")'
+        required: true
+        type: string
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm init -y && npm install --no-audit --no-fund ws got-scraping
+      - env:
+          MATCH_SEARCH: ${{ inputs.match_search }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+        run: node scripts/probe-basket-cross-book.js
