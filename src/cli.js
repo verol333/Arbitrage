@@ -1,5 +1,16 @@
 import { runScan, log } from './scanners/collect.js';
 
+// Filet de securite CRITIQUE : depuis Node 15, une unhandledRejection tue
+// le process (exit code 1 ou 13). Ca a killed le run #119 le 2026-08-08 15:24
+// (cron 14:00) apres seulement 59min, laissant un trou de 1h46 sans POST
+// live jusqu'au cron 18:00. Handler global : on log, on continue.
+process.on('unhandledRejection', (reason) => {
+  console.error(`[unhandledRejection] ${reason?.stack || reason?.message || String(reason)}`);
+});
+process.on('uncaughtException', (err) => {
+  console.error(`[uncaughtException] ${err?.stack || err?.message || String(err)}`);
+});
+
 async function sendWebhook(payload) {
   const url = process.env.WEBHOOK_URL;
   const secret = process.env.WEBHOOK_SECRET;
@@ -18,14 +29,20 @@ async function sendWebhook(payload) {
     try { respText = (await res.text()).slice(0, 500); } catch {}
     // Détecte les rejets soft du backend (HTTP 200 mais body ok:false / blocked:true).
     // Sinon un webhook en "reconstruction" qui rejette tout est invisible dans les logs.
-    let parsedOk = null;
+    // Log explicite de received/inserted (demande dev pour trancher POST-vide vs stopped-scanner).
+    let parsedOk = null; let received = null; let inserted = null;
     try {
       const j = JSON.parse(respText);
-      if (j && typeof j === 'object' && j.ok === false) parsedOk = false;
-      else if (j && j.ok === true) parsedOk = true;
+      if (j && typeof j === 'object') {
+        if (j.ok === false) parsedOk = false;
+        else if (j.ok === true) parsedOk = true;
+        if (typeof j.received === 'number') received = j.received;
+        if (typeof j.inserted === 'number') inserted = j.inserted;
+      }
     } catch { /* ignore */ }
     const alertPrefix = parsedOk === false ? '⚠️ REJET BACKEND — ' : '';
-    console.log(`[webhook] ${alertPrefix}sport=${payload.sport} status=${res.status} count=${payload.count} bodySize=${bodyStr.length}B resp="${respText}"`);
+    const ackFields = (received != null || inserted != null) ? ` ack=received:${received}/inserted:${inserted}` : '';
+    console.log(`[webhook] ${alertPrefix}sport=${payload.sport} status=${res.status} count=${payload.count}${ackFields} bodySize=${bodyStr.length}B resp="${respText}"`);
   } catch (e) {
     console.warn(`[webhook] sport=${payload.sport} erreur: ${e.message}`);
   } finally { clearTimeout(t); }
