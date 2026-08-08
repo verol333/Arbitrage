@@ -93,13 +93,22 @@ function parseMainOnly(GE, odds) {
 //   G=92  T=766→q2_match_1, T=767→q2_match_2 (2-way Q2)
 // Attention: pas de match_X pour basket incl OT (pas de nul possible).
 //
-// SANITY GUARD (fix bug 2026-08-08) : 1xBet retourne parfois les 2 outcomes
-// d'un marche 2-way avec la MEME cote (placeholder pretmatch "marche
-// disponible mais cotes non finalisees" — probe raw Chicago Sky WNBA
-// confirme G=91 T=755=1.87 T=757=1.87). Ces valeurs identiques provoquaient
-// des fake arbs cross-book quand un autre book cotait ce marche normalement.
-// readWinner2Way skip le mapping quand les 2 outcomes sont egaux.
-function readWinner2Way(g, tHome, tAway, homeKey, awayKey, odds) {
+// SANITY GUARD (fix bug 2026-08-08, v2 tolerance absolue) : 1xBet retourne
+// parfois les 2 outcomes d'un marche 2-way avec des cotes QUASI-IDENTIQUES
+// (placeholder pretmatch "marche disponible mais cotes non finalisees").
+// Cas observes via probe raw :
+//   - Chicago Sky WNBA G=91 : T=755=1.87 T=757=1.87 (identique strict)
+//   - Argentina W        G=91 : T=755=1.809 T=757=1.811 (bruit 0.002 !!)
+//   - Argentina W        G=92 : T=766=1.81  T=767=1.81  (identique strict)
+// Le v1 utilisait '===' strict, ce qui laissait passer le cas Argentina Q1
+// (1.809 != 1.811). Le v2 utilise une TOLERANCE ABSOLUE de 0.02 :
+//   → un vrai marche 2-way asymetrique a par definition |h-a| >= 0.02
+//     (meme un match ultra-equilibre 1.90 vs 1.95 → 0.05 delta).
+//   → un placeholder a par nature |h-a| < 0.02 (bruit sur cote centrale).
+// C'est un invariant semantique defensif : on n'accepte QUE les marches
+// clairement asymetriques, ce qui elimine tous les faux placeholders en
+// une seule regle.
+function readWinner2Way(g, tHome, tAway, homeKey, awayKey, odds, groupTag) {
   if (!g?.E) return;
   let h = null, a = null;
   for (const sub of g.E) {
@@ -110,17 +119,22 @@ function readWinner2Way(g, tHome, tAway, homeKey, awayKey, odds) {
       if (it.T === tAway) a = c;
     }
   }
-  // Skip si l'un des 2 manque OU si egales (placeholder xbet non-cote).
+  // Skip si l'un des 2 manque OU si delta absolu < 0.02 (placeholder xbet).
   if (h == null || a == null) return;
-  if (h === a) return;
+  if (Math.abs(h - a) < 0.02) {
+    // Log peu bruyant : uniquement quand le guard fire, pour visibilite.
+    // Utile pour tracker si 1xBet change ses placeholders (delta evolue).
+    if (groupTag) console.log(`[xbet basket] skip placeholder ${groupTag}: h=${h} a=${a} delta=${(h-a).toFixed(4)}`);
+    return;
+  }
   odds[homeKey] = h;
   odds[awayKey] = a;
 }
 
 function parseBasketGE(GE, odds, prefix = '') {
   const grp = (gid) => GE.find((x) => x.G === gid);
-  // Winner 2-way FT (incl OT) — via readWinner2Way (sanity guard cotes egales).
-  readWinner2Way(grp(101), 401, 402, `${prefix}match_1`, `${prefix}match_2`, odds);
+  // Winner 2-way FT (incl OT) — via readWinner2Way (sanity guard delta <0.02).
+  readWinner2Way(grp(101), 401, 402, `${prefix}match_1`, `${prefix}match_2`, odds, `${prefix}FT`);
   iterate(grp(17), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
     if (i.T === 9) odds[`${prefix}${prefix ? 'over' : 'match_over'}_${p}`] = c;
@@ -146,8 +160,8 @@ function parseBasketGE(GE, odds, prefix = '') {
     // sont placeholders (T_home = T_away), readWinner2Way skip
     // silencieusement. Quand 1xBet ouvre les vraies cotes (typiquement
     // juste avant ou pendant le match), le mapping fonctionne.
-    readWinner2Way(grp(91), 755, 757, 'q1_match_1', 'q1_match_2', odds);
-    readWinner2Way(grp(92), 766, 767, 'q2_match_1', 'q2_match_2', odds);
+    readWinner2Way(grp(91), 755, 757, 'q1_match_1', 'q1_match_2', odds, 'Q1');
+    readWinner2Way(grp(92), 766, 767, 'q2_match_1', 'q2_match_2', odds, 'Q2');
   }
 }
 
