@@ -12,7 +12,7 @@
 // direction over/under est inversee, ou home/away est confondu).
 //
 // Usage : node scripts/probe-basket-verify.js [TOP_N=8]
-import bookmakers from '../src/bookmakers/index.js';
+import { bookmakers } from '../src/bookmakers/index.js';
 import { runScan } from '../src/scanners/collect.js';
 
 const TOP_N = Number(process.argv[2] || 8);
