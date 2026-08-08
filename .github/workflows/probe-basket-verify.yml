@@ -17,12 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install deps
-        working-directory: arbitrage-service
-        run: npm install --no-audit --no-fund
+      - name: Install deps (root level for ESM)
+        run: npm init -y && npm install --no-audit --no-fund ws got-scraping
       - name: Run basket verify probe
         env:
-          NODE_PATH: arbitrage-service/node_modules
           MIN_PROFIT_PREMATCH: '0.5'
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
         run: node scripts/probe-basket-verify.js ${{ inputs.top_n }}
