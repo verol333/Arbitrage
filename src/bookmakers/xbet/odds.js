@@ -118,16 +118,18 @@ function parseBasketGE(GE, odds, prefix = '') {
     if (i.T === 13) odds[`${prefix}tt_away_over_${p}`] = c;
     if (i.T === 14) odds[`${prefix}tt_away_under_${p}`] = c;
   });
-  if (!prefix) {
-    iterate(grp(91), (i, c) => {
-      if (i.T === 755) odds.q1_match_1 = c;
-      if (i.T === 757) odds.q1_match_2 = c;
-    });
-    iterate(grp(92), (i, c) => {
-      if (i.T === 766) odds.q2_match_1 = c;
-      if (i.T === 767) odds.q2_match_2 = c;
-    });
-  }
+  // DESACTIVE : le mapping T=755/757 (Q1) et T=766/767 (Q2) est FAUX.
+  // Probe basket-verify 2026-08-08 sur 6 matchs distincts (WNBA, Philippines
+  // Governors Cup, Argentina W, Taiwan Friendly, Chicago Sky) : q1_match_1 et
+  // q1_match_2 renvoyaient SYSTEMATIQUEMENT la meme valeur (ex 1.87/1.87,
+  // 1.79/1.79, 1.837/1.837). Impossible en vrai marche 2-way.
+  // → Cause : les T=755/757 pointent probablement vers 2 outcomes d'un MEME
+  //   marche (ex: Home Over + Home Under) et non Home/Away winner 2-way.
+  //   Le parseur ecrasait sur q1_match_1/2 en boucle, produisant des fake arbs
+  //   Q1 Vainqueur / Q2 Vainqueur systematiques cross-book.
+  // Prochaine etape : probe-xbet-basket-raw pour identifier les VRAIS T de
+  //   G=91/92 (Q1/Q2 winner 2-way), puis rebrancher avec le bon mapping.
+  // En attendant : Q1/Q2 xbet basket omis du parseur → plus de fake arbs.
 }
 
 export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
