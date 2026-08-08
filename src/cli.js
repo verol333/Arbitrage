@@ -45,6 +45,25 @@ async function notifyWebhookMerged(resultsBySport, { live = false } = {}) {
     if (opps.length) merged.push(...opps);
   }
   if (!merged.length) return;
+  // AUDIT distribution : verifie que chaque opp a bien sa cle .sport individuelle.
+  // Diagnostic backend : si l'app n'affiche pas basket/tennis, verifier que .sport
+  // n'est pas ecrase par root sport='multi' cote insertion Mongo.
+  const distribInMerged = {};
+  const missingSport = [];
+  for (const o of merged) {
+    const s = o.sport || 'undefined';
+    distribInMerged[s] = (distribInMerged[s] || 0) + 1;
+    if (!o.sport) missingSport.push(`${o.leg_a_book}-${o.leg_b_book}:${o.market_family}`);
+  }
+  const firstBySport = {};
+  for (const o of merged) {
+    if (o.sport && !firstBySport[o.sport]) {
+      firstBySport[o.sport] = `${o.market_family} | ${o.leg_a_book}@${o.leg_a_odd} vs ${o.leg_b_book}@${o.leg_b_odd}`;
+    }
+  }
+  console.log(`[webhook AUDIT] payload count=${merged.length} distrib_in_opportunities=${JSON.stringify(distribInMerged)} counts_by_sport=${JSON.stringify(countsBySport)}`);
+  for (const [s, ex] of Object.entries(firstBySport)) console.log(`[webhook AUDIT] first opp sport="${s}": ${ex}`);
+  if (missingSport.length) console.log(`[webhook AUDIT] ⚠️ ${missingSport.length} opps sans champ .sport : ${missingSport.slice(0, 3).join(' | ')}`);
   await sendWebhook({
     type: 'arbitrage_alert',
     scan_type: live ? 'live' : 'prematch',
