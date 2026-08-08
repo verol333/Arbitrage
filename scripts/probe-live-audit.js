@@ -10,7 +10,7 @@
 //   MATCH_SEARCH="Grimsby" SPORT=football node scripts/probe-live-audit.js
 //
 // Sortie : dump JSON par book (raw + parsed), + tableau diff apres 8s.
-import bookmakers from '../src/bookmakers/index.js';
+import { bookmakers } from '../src/bookmakers/index.js';
 
 const SEARCH = (process.env.MATCH_SEARCH || '').trim();
 const SPORT = (process.env.SPORT || 'football').trim();

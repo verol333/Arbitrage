@@ -27,15 +27,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install deps
-        working-directory: arbitrage-service
-        run: npm install --no-audit --no-fund
+      - name: Install deps (root level for ESM)
+        run: npm init -y && npm install --no-audit --no-fund ws got-scraping
       - name: Run live audit
-        working-directory: /home/runner/work/Arbitrage/Arbitrage
         env:
           MATCH_SEARCH: ${{ inputs.match_search }}
           SPORT: ${{ inputs.sport }}
           WAIT_MS: ${{ inputs.wait_ms }}
-          NODE_PATH: arbitrage-service/node_modules
-          SCRAPE_DO_TOKEN: ${{ secrets.SCRAPE_DO_TOKEN }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
         run: node scripts/probe-live-audit.js
