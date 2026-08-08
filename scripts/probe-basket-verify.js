@@ -62,19 +62,21 @@ for (const b of bookmakers) {
 // Pour CHAQUE opp du top, re-fetch les cotes fresh des 2 books et dump tout.
 for (let i = 0; i < opps.length; i++) {
   const o = opps[i];
-  const key = deriveKey(o);
+  const { a: keyA, b: keyB } = deriveKeyPair(o);
   console.log(`═════════════════════════════════════════════════════════════════`);
   console.log(`OPP #${i + 1}  profit=${o.profit_pct}%  ${o.market_family}`);
   console.log(`  match: ${o.team_home_full || o.team_home} vs ${o.team_away_full || o.team_away}`);
   console.log(`  league: ${o.league || '?'}   kickoff: ${o.kickoff_iso || '?'}`);
-  console.log(`  leg_a: ${o.leg_a_book}  ${o.leg_a_label} @ ${o.leg_a_odd}`);
-  console.log(`  leg_b: ${o.leg_b_book}  ${o.leg_b_label} @ ${o.leg_b_odd}`);
+  console.log(`  leg_a: ${o.leg_a_book}  ${o.leg_a_label} @ ${o.leg_a_odd}   → key ${keyA || '?'}`);
+  console.log(`  leg_b: ${o.leg_b_book}  ${o.leg_b_label} @ ${o.leg_b_odd}   → key ${keyB || '?'}`);
   console.log(`  inverse_sum = 1/${o.leg_a_odd} + 1/${o.leg_b_odd} = ${(1 / o.leg_a_odd + 1 / o.leg_b_odd).toFixed(4)}`);
-  console.log(`  key candidate : ${key || '(non deductible du family)'}`);
   console.log(`  IDs match : ${JSON.stringify(idsFromOpp(o))}`);
 
-  // Re-fetch fresh odds pour chaque book impliquee.
-  for (const bookKey of [o.leg_a_book, o.leg_b_book]) {
+  // Re-fetch fresh odds pour chaque book impliquee AVEC SA cle attendue.
+  for (const [bookKey, expectedKey, expectedOdd] of [
+    [o.leg_a_book, keyA, o.leg_a_odd],
+    [o.leg_b_book, keyB, o.leg_b_odd],
+  ]) {
     const book = bookByKey[bookKey];
     if (!book) continue;
     const m = matchFromOpp(o, bookKey);
@@ -84,16 +86,17 @@ for (let i = 0; i < opps.length; i++) {
       const relevantKeys = Object.keys(odds || {}).filter(k => keyMatchesFamily(k, o.market_family));
       console.log(`  ── ${bookKey} fresh (match id=${m.id}) : ${Object.keys(odds).length} cles totales, ${relevantKeys.length} liees a "${o.market_family}"`);
       for (const k of relevantKeys.sort()) console.log(`     ${k.padEnd(35)} = ${odds[k]}`);
-      // Verifie que la cote lue par le scanner === celle du re-fetch
-      if (key && odds[key] != null) {
-        const expected = bookKey === o.leg_a_book ? o.leg_a_odd : o.leg_b_odd;
-        const fresh = odds[key];
-        const drift = Math.abs(fresh - expected);
+      // Cross-check cote envoyee vs fresh sur la BONNE cle miroir.
+      if (expectedKey && odds[expectedKey] != null) {
+        const fresh = odds[expectedKey];
+        const drift = Math.abs(fresh - expectedOdd);
         const flag = drift < 0.001 ? '✅ IDENTIQUE' : drift < 0.20 ? '~ drift acceptable' : `🚨 DIVERGENT (drift=${drift.toFixed(2)})`;
-        console.log(`     ➜ ${key} : envoye=${expected}  fresh=${fresh}  ${flag}`);
+        console.log(`     ➜ ${expectedKey.padEnd(30)} envoye=${expectedOdd}  fresh=${fresh}  ${flag}`);
+      } else if (expectedKey) {
+        console.log(`     🚨 MANQUANT : cle ${expectedKey} envoyee (@${expectedOdd}) mais ABSENTE du re-fetch → cote peut-etre disparue OU parseur inconsistant`);
       }
     } catch (e) {
-      console.log(`  ⚠️ ${bookKey} getOdds ERR : ${e.message}`);
+      console.log(`  ⚠️ ${bookKey} getOdds ERR : ${e.message} ${e.stack?.split('\n').slice(1, 3).join(' | ') || ''}`);
     }
   }
   console.log('');
@@ -163,16 +166,42 @@ function periodPfx(fam) {
 }
 
 // Est-ce que la cle est liee a la market_family (pour filtrer l'affichage) ?
+// Match tres large : n'importe quelle cle qui partage le prefixe periode+type.
 function keyMatchesFamily(k, family) {
   const fam = String(family || '');
-  if (/^Vainqueur/.test(fam) && /^(q[1-4]_|h[12]_)?match_[12X]$/.test(k)) return true;
-  if (/Handicap Points/.test(fam) && /^hcp_/.test(k)) return true;
-  if (/Handicap/.test(fam) && /^(q[1-4]_|h[12]_)hcp_/.test(k)) return true;
-  if (/Total Points Match/.test(fam) && /^match_(over|under)_/.test(k)) return true;
-  if (/Total Points [DE]/.test(fam) && /^tt_/.test(k)) return true;
-  if (/(Q[1-4]|MT) Total Points/.test(fam) && /^(q[1-4]_|h[12]_)(over|under)_/.test(k)) return true;
-  if (/Pair\/Impair/.test(fam) && /^(q[1-4]_|h[12]_)?(odd|even)$/.test(k)) return true;
+  const pfx = periodPfx(fam);
+  // Vainqueur : match_1/2/X eventuellement prefixe
+  if (/Vainqueur/.test(fam)) return new RegExp(`^${pfx}match_[12X]$`).test(k);
+  // Handicap Points ou XX Handicap
+  if (/Handicap/.test(fam)) return new RegExp(`^${pfx}hcp_(home|away)_-?\\d`).test(k);
+  // Total Points Match / QX Total Points / TT Dom/Ext
+  if (/Total Points Match|MT Total Points|Q[1-4] Total Points$/.test(fam)) return new RegExp(`^${pfx}(match_)?(over|under)_\\d`).test(k);
+  if (/Total Points (Dom|Ext)/.test(fam)) return new RegExp(`^${pfx}tt_`).test(k);
+  if (/Pair\/Impair/.test(fam)) return new RegExp(`^${pfx}(odd|even)$`).test(k);
   return false;
+}
+
+// Genere les 2 cles miroirs (une par leg) pour verification cross-book.
+function deriveKeyPair(o) {
+  const key = deriveKey(o);
+  if (!key) return { a: null, b: null };
+  // Cles miroirs : match_1 ↔ match_2, hcp_home_L ↔ hcp_away_-L, over_L ↔ under_L
+  let mirror = key;
+  if (/match_1$/.test(key)) mirror = key.replace(/match_1$/, 'match_2');
+  else if (/match_2$/.test(key)) mirror = key.replace(/match_2$/, 'match_1');
+  else if (/hcp_home_(-?\d+(?:\.\d+)?)$/.test(key)) {
+    const m = key.match(/hcp_home_(-?\d+(?:\.\d+)?)$/);
+    mirror = key.replace(/hcp_home_-?\d+(?:\.\d+)?$/, `hcp_away_${-parseFloat(m[1])}`);
+  }
+  else if (/hcp_away_(-?\d+(?:\.\d+)?)$/.test(key)) {
+    const m = key.match(/hcp_away_(-?\d+(?:\.\d+)?)$/);
+    mirror = key.replace(/hcp_away_-?\d+(?:\.\d+)?$/, `hcp_home_${-parseFloat(m[1])}`);
+  }
+  else if (/over_(\d+(?:\.\d+)?)$/.test(key)) mirror = key.replace('over_', 'under_');
+  else if (/under_(\d+(?:\.\d+)?)$/.test(key)) mirror = key.replace('under_', 'over_');
+  else if (/odd$/.test(key)) mirror = key.replace(/odd$/, 'even');
+  else if (/even$/.test(key)) mirror = key.replace(/even$/, 'odd');
+  return { a: key, b: mirror };
 }
 
 function idsFromOpp(o) {

@@ -12,7 +12,11 @@ export default {
   },
   async getOdds(match, opts = {}) {
     const map = await fetchOddsWS([match.id]);
-    const groups = map.get(match.id) || map.get(String(match.id));
+    // Bug fix : la Map WS stocke souvent matchId en Number (b.data.matchId
+    // vient direct du JSON API). Le singleton oubliait le fallback Number
+    // (present dans getOddsBatch), ce qui produisait des re-fetch a vide sur
+    // certains matchs. Aligne les 3 tentatives comme getOddsBatch.
+    const groups = map.get(match.id) || map.get(String(match.id)) || map.get(Number(match.id));
     if (!groups) return {};
     const flat = opts.sport === 'tennis' ? winTennisFlatOdds
                : opts.sport === 'basket' ? winBasketFlatOdds
