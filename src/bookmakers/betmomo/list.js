@@ -29,8 +29,13 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72,
     for (let i = 0; i < real.length; i += BATCH) {
       const chunk = real.slice(i, i + BATCH);
       const ids = chunk.map((g) => g.id);
+      // is_open/is_active : SWARM expose potentiellement un flag suspendu par
+      // event ou par market. Sans ce flag, on lit les prix figes des marches
+      // suspendus (dernier prix avant suspension) → fake arbs live systematiques.
+      // On demande les 2 niveaux (market + event) car SWARM les positionne
+      // parfois different selon les operateurs (BetMomo=Digitain-SWARM).
       const oddsData = await send(
-        { game: ['id'], market: ['name', 'type', 'col_count', 'group_name', 'group_id'], event: ['name', 'price', 'base', 'type_1', 'type'] },
+        { game: ['id'], market: ['name', 'type', 'col_count', 'group_name', 'group_id', 'is_open', 'is_active'], event: ['name', 'price', 'base', 'type_1', 'type', 'is_open', 'is_active', 'status'] },
         { game: { id: { '@in': ids } } },
       );
       const byId = {};
