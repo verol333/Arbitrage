@@ -3,8 +3,8 @@ import { CONGO_API, congoJson } from './api.js';
 import { isHalfLine } from '../../core/markets.js';
 import { tokenOverlap } from '../../core/text.js';
 
-export async function getOdds(matchId) {
-  const json = await congoJson(`${CONGO_API}events/${matchId}`);
+export async function getOdds(matchId, { live = false, noCache = false } = {}) {
+  const json = await congoJson(`${CONGO_API}events/${matchId}`, { noCache: live || noCache });
   if (!json?.eventBetTypes) return null;
   const home = json.homeTeamName || ''; const away = json.awayTeamName || '';
   const odds = {};

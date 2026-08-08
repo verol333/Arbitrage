@@ -90,7 +90,7 @@ function congoLiveMeta(ev) {
 export async function listLive(sport = 'football') {
   const SPORT_ID = sportIdFor(sport);
   if (!SPORT_ID) return [];
-  const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`);
+  const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`, { noCache: true });
   return (Array.isArray(raw) ? raw : [])
     .filter((ev) => congoSportId(ev) === SPORT_ID && !isVirtual(ev))
     .map((ev) => ({

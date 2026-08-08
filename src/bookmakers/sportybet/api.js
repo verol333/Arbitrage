@@ -18,14 +18,22 @@ const HDR = {
 };
 
 // Sport IDs SportyBet (SportRadar) : sr:sport:1 = football, sr:sport:2 = basket, sr:sport:5 = tennis.
-// Market IDs demandés (utiles pour arbitrage) :
-// FOOT : 1=1X2, 18=Over/Under, 10=DC, 29=BTTS, 11=DNB, 26=Odd/Even, 14=Handicap Asian, 60100=1MT 1X2.
-// TENNIS : 186=Match Winner (pas de X), 68=Total Sets, 89=Set 1 Winner, 187-190=Games/Hcp.
+// IMPORTANT : la liste doit EXACTEMENT correspondre aux IDs consommes par
+// sportybetFlatOdds dans parse.js. Un ID demande mais pas parse = bande passante
+// gaspillee ; un ID parse mais pas demande = jamais recu = marche perdu.
+//
+// FOOT (parse.js:34-117) : 1=1X2, 18=O/U, 10=DC, 29=BTTS, 11=DNB, 26=O/E,
+//   16=Asian Hcp FT, 60=1MT 1X2, 68=1MT O/U.
+//   NE PAS mettre 60100 (variante 2UP Early Payout ignoree explicitement), 14
+//   (score-based hcp, pas Asian), 36 (jamais consomme).
+// TENNIS (parse.js:376-464) : 186=Winner, 187=Game Hcp, 188=Set Hcp, 189=Total Games,
+//   190=P1 Total, 191=P2 Total, 196=Exact Sets, 198=O/E games, 202=Set N Winner,
+//   203=Set N Hcp, 204=Set N Total, 314=Total Sets 2.5.
 // BASKET (incl OT) : 219=Winner, 223=Asian Hcp, 225=Total, 227=Home TT, 228=Away TT, 229=Odd/Even.
 //                    60=1H 1X2, 66=1H Asian Hcp, 68=1H Total, 83=2H 1X2.
 //                    235=Q1-Q4 1X2 (spec.quarternr), 303=Q1-Q4 Hcp, 236=Q1-Q4 Total, 304=Q1-Q4 O/E.
-const MARKET_IDS_FOOTBALL = '1,18,10,29,11,26,36,14,60100';
-const MARKET_IDS_TENNIS = '186,68,89,166,187,189,190,340'; // Winner + Sets + Games + Handicap
+const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,29,60,68';
+const MARKET_IDS_TENNIS = '186,187,188,189,190,191,196,198,202,203,204,314';
 const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,83,235,236,303,304';
 export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2' };
 export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET };
