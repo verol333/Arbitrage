@@ -195,10 +195,7 @@ function parseLive(markets, odds) {
 export function premierbetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
   const odds = {};
   if (sport === 'tennis') parseTennis(markets, odds);
-  // Basket : marketType IDs basket PremierBet non probes en prod. Sans mapping
-  // valide, retourner odds vides plutot que mismapper des IDs foot/tennis sur du
-  // basket (produirait des fake arbs). A activer apres probe depuis GH Actions.
-  else if (sport === 'basket') return odds;
+  else if (sport === 'basket') parseBasket(markets, odds);
   else if (live) parseLive(markets, odds);
   else parsePrematch(markets, odds);
   return odds;
@@ -259,6 +256,54 @@ function parseTennis(markets, odds) {
       // mais pas sur l'app PremierBet Congo cote user → arbs non-actionnables
       // + valeurs suspectes (1.78/1.79 sur matchs desequilibres 5.60 vs 1.08
       // = odds trop hautes). Reactiver seulement apres cross-check PB Congo.
+      default: break;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET PremierBet (guineegames sportId basket).
+// Probe discovery : 32 marketIds observes ; on mappe 22 utiles.
+// Convention keys : match_* / h1_* (1MT = mi-temps NBA) / qN_* (quarter).
+// Handicap/Total : outcome.handicap = ligne signee, isHalfLine filtre.
+// Winner 2-way (id=4, id=354-357) : put1x2 suffit (X absent en basket 2-way).
+// ═══════════════════════════════════════════════════════════════
+function parseBasket(markets, odds) {
+  for (const m of markets) {
+    const id = String(m.id || '');
+    switch (id) {
+      // Full time (inclut prolongations)
+      case '4':   put1x2(m, '', odds); break;                        // Gagnant Du Match (2-way)
+      case '16':  putOddEven(m, '', odds); break;                    // Pair/Impair total
+      case '23':  putHcpMultiLine(m, '', odds); break;               // Handicap incl OT
+      case '24':  putTotalMultiLine(m, 'match_', odds); break;       // Total Points incl OT
+      case '352': putTeamTotalMultiLine(m, 'away', '', odds); break; // Away TT
+      case '353': putTeamTotalMultiLine(m, 'home', '', odds); break; // Home TT
+      // 1ère mi-temps (H1)
+      case '6':   put1x2(m, 'h1_', odds); break;                     // 1MT 1X2 (peut avoir X)
+      case '25':  putHcpMultiLine(m, 'h1_', odds); break;            // 1MT Handicap
+      case '26':  putTotalMultiLine(m, 'h1_', odds); break;          // 1MT Total
+      case '49':  putOddEven(m, 'h1_', odds); break;                 // 1MT Pair/Impair
+      // Quart-temps (Q1-Q4)
+      case '354': put1x2(m, 'q1_', odds); break;                     // Q1 1X2
+      case '355': put1x2(m, 'q2_', odds); break;                     // Q2 1X2
+      case '356': put1x2(m, 'q3_', odds); break;                     // Q3 1X2
+      case '357': put1x2(m, 'q4_', odds); break;                     // Q4 1X2
+      case '362': putTotalMultiLine(m, 'q1_', odds); break;          // Q1 Total
+      case '363': putTotalMultiLine(m, 'q2_', odds); break;          // Q2 Total
+      case '364': putTotalMultiLine(m, 'q3_', odds); break;          // Q3 Total
+      case '365': putTotalMultiLine(m, 'q4_', odds); break;          // Q4 Total
+      case '366': putHcpMultiLine(m, 'q1_', odds); break;            // Q1 Handicap
+      case '367': putHcpMultiLine(m, 'q2_', odds); break;            // Q2 Handicap
+      case '368': putHcpMultiLine(m, 'q3_', odds); break;            // Q3 Handicap
+      case '369': putHcpMultiLine(m, 'q4_', odds); break;            // Q4 Handicap
+      case '370': putOddEven(m, 'q1_', odds); break;                 // Q1 Pair/Impair
+      case '371': putOddEven(m, 'q2_', odds); break;                 // Q2 Pair/Impair
+      case '372': putOddEven(m, 'q3_', odds); break;                 // Q3 Pair/Impair
+      case '373': putOddEven(m, 'q4_', odds); break;                 // Q4 Pair/Impair
+      // IGNORE explicite : 15 (MT/FT combo), 36 (result+total combo),
+      // 51 (OT y/n), 52 (marge victoire), 62 (highest quarter),
+      // 772 (2 points ahead) — non 2-way pur, non comparables cross-book.
       default: break;
     }
   }

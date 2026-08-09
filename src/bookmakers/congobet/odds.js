@@ -6,10 +6,7 @@ import { tokenOverlap } from '../../core/text.js';
 export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
   const json = await congoJson(`${CONGO_API}events/${matchId}`, { noCache: live || noCache });
   if (!json?.eventBetTypes) return null;
-  // Basket : betTypeIds Congobet basket non probes en prod. Sans mapping valide,
-  // retourner odds vides plutot que mismapper des IDs foot/tennis sur du basket
-  // (produirait des fake arbs). A activer apres probe basket depuis GH Actions.
-  if (sport === 'basket') return { _ids: {} };
+  if (sport === 'basket') return congobetBasket(json);
   const home = json.homeTeamName || ''; const away = json.awayTeamName || '';
   const odds = { _ids: {} };
   // Helper : ecrit odds[key] = value ET odds._ids[key] = { eventBetTypeItemId,
@@ -204,5 +201,150 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
       }
     }
   }
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET Congobet — betTypeIds identifies via probe basket-discovery
+// (WNBA Los Angeles Sparks vs Golden State Valkyries 09/08/2026, 22 IDs
+// distincts observes) :
+//   10001  "Resultat du match" (3-way, X eleve — reglementaire seulement)
+//   10007  "1MT Resultat" (h1_ 1X2)
+//   10011  "1MT Nombre de points" (h1_ total)
+//   10024  "2MT Resultat du match" (h2_ 1X2)
+//   10105  "1MT Vainqueur remb. si egalite" (h1_ DNB)
+//   10107  "1MT Ecart entre equipes" (h1_ handicap)
+//   10113  "1MT Nombre de points Pair/Impair" (h1_ odd/even)
+//   10121  "2MT Vainqueur remb. si egalite" (h2_ DNB)
+//   10123  "2MT Ecart entre equipes" (h2_ handicap)
+//   10127  "2MT Nombre de points Pair/Impair" (h2_ odd/even)
+//   10170  "Vainqueur (prol. incluses)" (match_1/2 — VRAI winner basket 2-way)
+//   10172  "Ecart entre equipes (prol. incluses)" (hcp)
+//   10174  "Nombre de points (prol. incluses)" (match_over/under)
+//   10176  "Nombre de points de {Home} (prol. incluses)" (tt_home)
+//   10177  "Nombre de points de {Away} (prol. incluses)" (tt_away)
+//   10182  "Nombre de points" (par quart-temps — ctx.qnr) → qN_over/under
+//   10491  "Resultat du quart-temps" (par quart-temps) → qN_match_1/X/2
+// IGNORE combos : 10009 (MT/FT), 10021 (Hcp Europeen 3-way), 10059 (OT y/n),
+//                 10209 (marge), 10211 (result+total).
+function congobetBasket(json) {
+  const odds = { _ids: {} };
+  const put = (key, it) => { odds[key] = Number(it.odds); odds._ids[key] = { eventBetTypeItemId: it.id, totalOdds: Number(it.odds) }; };
+  const ctxNum = (bt, key) => {
+    try { const c = JSON.parse(bt.betTypeContext || '{}'); if (c[key] != null) return parseFloat(String(c[key])); } catch { /* ignore */ }
+    return null;
+  };
+  const read1x2 = (items, pfx) => {
+    for (const it of items) {
+      const s = (it.shortName || '').trim().toLowerCase();
+      if (s === '1') put(`${pfx}match_1`, it);
+      else if (s === 'x') put(`${pfx}match_X`, it);
+      else if (s === '2') put(`${pfx}match_2`, it);
+    }
+  };
+  const readWinner2 = (items, pfx = '') => {
+    for (const it of items) {
+      const s = (it.shortName || '').trim();
+      if (s === '1') put(`${pfx}match_1`, it);
+      else if (s === '2') put(`${pfx}match_2`, it);
+    }
+  };
+  const readDnb = (items, pfx) => {
+    for (const it of items) {
+      const s = (it.shortName || '').trim();
+      if (s === '1') put(`${pfx}dnb_1`, it);
+      else if (s === '2') put(`${pfx}dnb_2`, it);
+    }
+  };
+  const readTotal = (items, line, pfx) => {
+    if (line == null || !isHalfLine(line)) return;
+    for (const it of items) {
+      if (/>|\+|plus|over/.test(it.shortName)) put(`${pfx}over_${line}`, it);
+      else if (/<|moins|under/.test(it.shortName)) put(`${pfx}under_${line}`, it);
+    }
+  };
+  const readOddEven = (items, pfx) => {
+    for (const it of items) {
+      const s = (it.shortName || '').toLowerCase();
+      if (/impair|odd/.test(s)) put(`${pfx}odd`, it);
+      else if (/pair|even/.test(s)) put(`${pfx}even`, it);
+    }
+  };
+  // Hcp Ecart : shortName "1 (+6.5)" | "2 (-6.5)". Ligne dans (). Convention
+  // basket meme que foot : home prend +/-, away prend l'oppose (deja stocke
+  // avec son propre signe via convention Congobet).
+  const readHcp = (items, pfx) => {
+    for (const it of items) {
+      const s = it.shortName || '';
+      const mLine = s.match(/\(([+-]?\d+(?:\.\d+)?)\)/);
+      if (!mLine) continue;
+      const line = parseFloat(mLine[1]);
+      if (!isHalfLine(line)) continue;
+      if (/^1\b/.test(s.trim())) put(`${pfx}hcp_home_${line}`, it);
+      else if (/^2\b/.test(s.trim())) put(`${pfx}hcp_away_${line}`, it);
+    }
+  };
+  // Quart-temps 10491 shortName "1er quarter : 1" — extraire qnr + issue
+  const readQuarterWinner = (items) => {
+    for (const it of items) {
+      const s = String(it.shortName || '').trim();
+      const m = s.match(/^(\d+)(?:er|ème|eme)?\s+quarter?\s*:\s*(1|X|2)$/i);
+      if (!m) continue;
+      const qn = Number(m[1]);
+      if (qn < 1 || qn > 4) continue;
+      const outcome = m[2].toUpperCase();
+      const key = outcome === '1' ? `q${qn}_match_1` : outcome === 'X' ? `q${qn}_match_X` : `q${qn}_match_2`;
+      put(key, it);
+    }
+  };
+  // Quart-temps 10182 shortName "1er quart temps : > 41.5" — extraire qnr + total
+  const readQuarterTotal = (items) => {
+    for (const it of items) {
+      const s = String(it.shortName || '').trim();
+      const m = s.match(/^(\d+)(?:er|ème|eme)?\s+quart\s*temps\s*:\s*([<>+-]|plus|moins)\s*(?:de\s+)?(\d+(?:\.\d+)?)$/i);
+      if (!m) continue;
+      const qn = Number(m[1]);
+      if (qn < 1 || qn > 4) continue;
+      const line = parseFloat(m[3]);
+      if (!isHalfLine(line)) continue;
+      const isOver = /[+>]/.test(m[2]) || /plus/i.test(m[2]);
+      const key = isOver ? `q${qn}_over_${line}` : `q${qn}_under_${line}`;
+      put(key, it);
+    }
+  };
+
+  for (const bt of json.eventBetTypes) {
+    const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
+    if (!items.length) continue;
+    const rawId = Number(bt.betTypeId);
+    const id = rawId >= 20000 && rawId < 30000 ? rawId - 10000 : rawId;
+    const total = ctxNum(bt, 'total');
+    // Reglementaire (avec X possible) — evite le fake winner : on utilise 10170
+    // pour le vrai match_1/2 basket. 10001 sert seulement pour "reste des paris"
+    // periode et n'est PAS mappe en match_ (conflit avec 10170).
+    if (id === 10007) read1x2(items, 'h1_');
+    else if (id === 10011) readTotal(items, total, 'h1_');
+    else if (id === 10024) read1x2(items, 'h2_');
+    else if (id === 10105) readDnb(items, 'h1_');
+    else if (id === 10107) readHcp(items, 'h1_');
+    else if (id === 10113) readOddEven(items, 'h1_');
+    else if (id === 10121) readDnb(items, 'h2_');
+    else if (id === 10123) readHcp(items, 'h2_');
+    else if (id === 10127) readOddEven(items, 'h2_');
+    // Incl OT — le VRAI marche cross-book pour arbitrage basket
+    else if (id === 10170) readWinner2(items, '');
+    else if (id === 10172) readHcp(items, '');
+    else if (id === 10174) readTotal(items, total, 'match_');
+    else if (id === 10176) readTotal(items, total, 'tt_home_'); // legerement abusif : tt_home_over/under_ prefixe attendu
+    else if (id === 10177) readTotal(items, total, 'tt_away_');
+    else if (id === 10182) readQuarterTotal(items);
+    else if (id === 10491) readQuarterWinner(items);
+    // Ignore combos et marches non-cross-book comparables
+    else if ([10001, 10009, 10021, 10059, 10209, 10211].includes(id)) { /* skip */ }
+  }
+  // Fix tt_home/away : les cles sont over/under mais on veut tt_home_over/under_X
+  // Correction post-lecture (readTotal ecrit sur pfx+over_L et pfx+under_L, donc
+  // pour tt_home_ le pfx est "tt_home_" → cles finales "tt_home_over_L" / "tt_home_under_L"
+  // C'est correct par construction. Rien a corriger.
   return odds;
 }
