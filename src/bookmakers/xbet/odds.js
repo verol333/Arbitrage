@@ -13,45 +13,55 @@ function iterate(g, cb) {
   }
 }
 
+// Helper : ecrit odds[key] = c ET odds._ids[key] = { betType: i.T, param: i.P }
+// pour permettre au backend de generer un code coupon (endpoint 1xBet/Megapari
+// SaveCoupon existant en prod : megapariCoupon). gameId + kind sont ajoutes
+// par collect.js. i.P est present pour Total/Handicap/TT lines, sinon null.
+function put1x(odds, key, i, c) {
+  odds[key] = c;
+  if (!odds._ids) odds._ids = {};
+  odds._ids[key] = { betType: i.T, param: i.P ?? null };
+}
+
 function parseGE(GE, odds, prefix = '') {
   const grp = (gid) => GE.find((x) => x.G === gid);
   iterate(grp(1), (i, c) => {
-    if (i.T === 1) odds[`${prefix}match_1`] = c;
-    if (i.T === 2) odds[`${prefix}match_X`] = c;
-    if (i.T === 3) odds[`${prefix}match_2`] = c;
+    if (i.T === 1) put1x(odds, `${prefix}match_1`, i, c);
+    if (i.T === 2) put1x(odds, `${prefix}match_X`, i, c);
+    if (i.T === 3) put1x(odds, `${prefix}match_2`, i, c);
   });
   iterate(grp(8), (i, c) => {
-    if (i.T === 4) odds[`${prefix}dc_1X`] = c;
-    if (i.T === 5) odds[`${prefix}dc_12`] = c;
-    if (i.T === 6) odds[`${prefix}dc_X2`] = c;
+    if (i.T === 4) put1x(odds, `${prefix}dc_1X`, i, c);
+    if (i.T === 5) put1x(odds, `${prefix}dc_12`, i, c);
+    if (i.T === 6) put1x(odds, `${prefix}dc_X2`, i, c);
   });
   iterate(grp(17), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
-    if (i.T === 9) odds[`${prefix}${prefix ? 'over' : 'match_over'}_${p}`] = c;
-    if (i.T === 10) odds[`${prefix}${prefix ? 'under' : 'match_under'}_${p}`] = c;
+    if (i.T === 9) put1x(odds, `${prefix}${prefix ? 'over' : 'match_over'}_${p}`, i, c);
+    if (i.T === 10) put1x(odds, `${prefix}${prefix ? 'under' : 'match_under'}_${p}`, i, c);
   });
   iterate(grp(19), (i, c) => {
-    if (i.T === 180) odds[`${prefix}btts_yes`] = c;
-    if (i.T === 181) odds[`${prefix}btts_no`] = c;
+    if (i.T === 180) put1x(odds, `${prefix}btts_yes`, i, c);
+    if (i.T === 181) put1x(odds, `${prefix}btts_no`, i, c);
   });
   iterate(grp(15), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
-    if (i.T === 11) odds[`${prefix}tt_home_over_${p}`] = c;
-    if (i.T === 12) odds[`${prefix}tt_home_under_${p}`] = c;
+    if (i.T === 11) put1x(odds, `${prefix}tt_home_over_${p}`, i, c);
+    if (i.T === 12) put1x(odds, `${prefix}tt_home_under_${p}`, i, c);
   });
   iterate(grp(62), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
-    if (i.T === 13) odds[`${prefix}tt_away_over_${p}`] = c;
-    if (i.T === 14) odds[`${prefix}tt_away_under_${p}`] = c;
+    if (i.T === 13) put1x(odds, `${prefix}tt_away_over_${p}`, i, c);
+    if (i.T === 14) put1x(odds, `${prefix}tt_away_under_${p}`, i, c);
   });
   iterate(grp(2), (i, c) => {
     if (i.P == null || !isHalfLine(i.P)) return;
-    if (i.T === 7) odds[`${prefix}hcp_home_${i.P}`] = c;
-    if (i.T === 8) odds[`${prefix}hcp_away_${i.P}`] = c;
+    if (i.T === 7) put1x(odds, `${prefix}hcp_home_${i.P}`, i, c);
+    if (i.T === 8) put1x(odds, `${prefix}hcp_away_${i.P}`, i, c);
   });
   iterate(grp(14), (i, c) => {
-    if (i.T === 182) odds[`${prefix}even`] = c;
-    if (i.T === 183) odds[`${prefix}odd`] = c;
+    if (i.T === 182) put1x(odds, `${prefix}even`, i, c);
+    if (i.T === 183) put1x(odds, `${prefix}odd`, i, c);
   });
 }
 
@@ -59,26 +69,26 @@ function parseMainOnly(GE, odds) {
   const grp = (gid) => GE.find((x) => x.G === gid);
   // 1X2 sans prolongation (fallback si G1 absent).
   iterate(grp(11581), (i, c) => {
-    if (i.T === 16684 && odds.match_1 == null) odds.match_1 = c;
-    if (i.T === 16685 && odds.match_X == null) odds.match_X = c;
-    if (i.T === 16686 && odds.match_2 == null) odds.match_2 = c;
+    if (i.T === 16684 && odds.match_1 == null) put1x(odds, 'match_1', i, c);
+    if (i.T === 16685 && odds.match_X == null) put1x(odds, 'match_X', i, c);
+    if (i.T === 16686 && odds.match_2 == null) put1x(odds, 'match_2', i, c);
   });
   // Draw No Bet (G9).
   iterate(grp(9), (i, c) => {
-    if (i.T === 703) odds.dnb_1 = c;
-    if (i.T === 704) odds.dnb_2 = c;
+    if (i.T === 703) put1x(odds, 'dnb_1', i, c);
+    if (i.T === 704) put1x(odds, 'dnb_2', i, c);
   });
   // 1ère équipe à marquer (3-way).
   iterate(grp(169), (i, c) => {
-    if (i.T === 923) odds.fts_home = c;
-    if (i.T === 925) odds.fts_none = c;
-    if (i.T === 924) odds.fts_away = c;
+    if (i.T === 923) put1x(odds, 'fts_home', i, c);
+    if (i.T === 925) put1x(odds, 'fts_none', i, c);
+    if (i.T === 924) put1x(odds, 'fts_away', i, c);
   });
   // Mi-temps la plus prolifique (G445).
   iterate(grp(445), (i, c) => {
-    if (i.T === 1305) odds.half_most_ht = c;
-    if (i.T === 1306) odds.half_most_h2 = c;
-    if (i.T === 1307) odds.half_most_equal = c;
+    if (i.T === 1305) put1x(odds, 'half_most_ht', i, c);
+    if (i.T === 1306) put1x(odds, 'half_most_h2', i, c);
+    if (i.T === 1307) put1x(odds, 'half_most_equal', i, c);
   });
 }
 
@@ -117,28 +127,28 @@ function parseBasketGE(GE, odds, prefix = '') {
   // est verifie par probe raw sur Argentina W (T=401=1.178 T=402=4.325 —
   // asymetrique coherent avec Argentina favori).
   iterate(grp(101), (i, c) => {
-    if (i.T === 401) odds[`${prefix}match_1`] = c;
-    if (i.T === 402) odds[`${prefix}match_2`] = c;
+    if (i.T === 401) put1x(odds, `${prefix}match_1`, i, c);
+    if (i.T === 402) put1x(odds, `${prefix}match_2`, i, c);
   });
   iterate(grp(17), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
-    if (i.T === 9) odds[`${prefix}${prefix ? 'over' : 'match_over'}_${p}`] = c;
-    if (i.T === 10) odds[`${prefix}${prefix ? 'under' : 'match_under'}_${p}`] = c;
+    if (i.T === 9) put1x(odds, `${prefix}${prefix ? 'over' : 'match_over'}_${p}`, i, c);
+    if (i.T === 10) put1x(odds, `${prefix}${prefix ? 'under' : 'match_under'}_${p}`, i, c);
   });
   iterate(grp(2), (i, c) => {
     if (i.P == null || !isHalfLine(i.P)) return;
-    if (i.T === 7) odds[`${prefix}hcp_home_${i.P}`] = c;
-    if (i.T === 8) odds[`${prefix}hcp_away_${i.P}`] = c;
+    if (i.T === 7) put1x(odds, `${prefix}hcp_home_${i.P}`, i, c);
+    if (i.T === 8) put1x(odds, `${prefix}hcp_away_${i.P}`, i, c);
   });
   iterate(grp(15), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
-    if (i.T === 11) odds[`${prefix}tt_home_over_${p}`] = c;
-    if (i.T === 12) odds[`${prefix}tt_home_under_${p}`] = c;
+    if (i.T === 11) put1x(odds, `${prefix}tt_home_over_${p}`, i, c);
+    if (i.T === 12) put1x(odds, `${prefix}tt_home_under_${p}`, i, c);
   });
   iterate(grp(62), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
-    if (i.T === 13) odds[`${prefix}tt_away_over_${p}`] = c;
-    if (i.T === 14) odds[`${prefix}tt_away_under_${p}`] = c;
+    if (i.T === 13) put1x(odds, `${prefix}tt_away_over_${p}`, i, c);
+    if (i.T === 14) put1x(odds, `${prefix}tt_away_under_${p}`, i, c);
   });
   // G=91 / G=92 (ancien mapping Q1/Q2 Winner) EXPRESSEMENT OMIS — voir
   // commentaire d'en-tete. Ne PAS reactiver sans probe fresh sur match

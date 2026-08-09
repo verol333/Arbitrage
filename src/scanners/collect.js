@@ -170,8 +170,8 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         // Voir docs/coupon-codes-research.md pour matrice books generables.
         // YellowBet/BetMomo : coupon_data reste null (403 CF sur SaveCoupon
         // impossible a bypass depuis Deno) → pas de bouton "Generer" cote UI.
-        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt);
-        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt);
+        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt, live);
+        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt, live);
         // Nettoyer les IDs internes (transportes via pushArb) avant envoi
         delete a.leg_a_ids; delete a.leg_b_ids;
         all.push({
@@ -765,7 +765,7 @@ export function shortMatchLabel(home, away) {
 //
 // L'eventId (match.id du book) est ajoute pour les books ou le SaveCoupon en
 // a besoin (SportyBet, 1win). Les autres l'ont deja dans les ids natifs.
-function buildCoupon(book, ids, matchId, price, readAt) {
+function buildCoupon(book, ids, matchId, price, readAt, live) {
   // YellowBet + BetMomo definitivement non generable → null explicite (le
   // dispatcher backend saura masquer le bouton "Generer").
   if (book === 'yellowbet' || book === 'betmomo') return null;
@@ -777,8 +777,11 @@ function buildCoupon(book, ids, matchId, price, readAt) {
   if (book === 'sportybet' && matchId != null) coupon.eventId = String(matchId);
   // Injecter matchId pour 1win (natif : Number)
   if (book === '1win' && matchId != null) coupon.matchId = Number(matchId);
-  // Injecter gameId pour 1xbet (natif : Number/String)
-  if (book === '1xbet' && matchId != null) coupon.gameId = String(matchId);
+  // Injecter gameId + kind pour 1xbet (natif : Number/String + 3=prematch/1=live)
+  if (book === '1xbet') {
+    if (matchId != null) coupon.gameId = String(matchId);
+    coupon.kind = live ? 1 : 3;
+  }
   // Merger les IDs natifs du parseur en dernier (peuvent overrider les defaults)
   return { ...coupon, ...ids };
 }

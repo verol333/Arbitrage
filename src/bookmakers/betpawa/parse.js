@@ -261,36 +261,41 @@ export function betpawaFlatOdds(eventJson) {
 }
 
 // ─── Helpers de parsing ───────────────────────────────────────────────
+// Note : chaque helper doit passer le price object p (pas juste sa cote) a
+// putBp pour peupler odds._ids[key] = { priceId: p.id }. byLabel retourne
+// desormais { label: priceObject } — extraire Number(p.odds) pour la cote.
 function put1x2(odds, prices, pfx) {
-  const p = byLabel(prices);
-  if (p['1']) odds[`${pfx}match_1`] = p['1'];
-  if (p['X'] || p['x']) odds[`${pfx}match_X`] = p['X'] || p['x'];
-  if (p['2']) odds[`${pfx}match_2`] = p['2'];
+  const map = byLabel(prices);
+  const p1 = map['1']; const pX = map['X'] || map['x']; const p2 = map['2'];
+  if (p1) putBp(odds, `${pfx}match_1`, Number(p1.odds), p1);
+  if (pX) putBp(odds, `${pfx}match_X`, Number(pX.odds), pX);
+  if (p2) putBp(odds, `${pfx}match_2`, Number(p2.odds), p2);
 }
 function putDC(odds, prices, pfx) {
-  const p = byLabel(prices);
-  if (p['1X'] || p['1x']) odds[`${pfx}dc_1X`] = p['1X'] || p['1x'];
-  if (p['12']) odds[`${pfx}dc_12`] = p['12'];
-  if (p['X2'] || p['x2']) odds[`${pfx}dc_X2`] = p['X2'] || p['x2'];
+  const map = byLabel(prices);
+  const p1X = map['1X'] || map['1x']; const p12 = map['12']; const pX2 = map['X2'] || map['x2'];
+  if (p1X) putBp(odds, `${pfx}dc_1X`, Number(p1X.odds), p1X);
+  if (p12) putBp(odds, `${pfx}dc_12`, Number(p12.odds), p12);
+  if (pX2) putBp(odds, `${pfx}dc_X2`, Number(pX2.odds), pX2);
 }
 function putBTTS(odds, prices, pfx) {
-  const p = byLabel(prices);
-  const yes = p['Oui'] || p['Yes'] || p['oui'] || p['yes'];
-  const no = p['Non'] || p['No'] || p['non'] || p['no'];
-  if (yes) odds[`${pfx}btts_yes`] = yes;
-  if (no) odds[`${pfx}btts_no`] = no;
+  const map = byLabel(prices);
+  const yes = map['Oui'] || map['Yes'] || map['oui'] || map['yes'];
+  const no = map['Non'] || map['No'] || map['non'] || map['no'];
+  if (yes) putBp(odds, `${pfx}btts_yes`, Number(yes.odds), yes);
+  if (no) putBp(odds, `${pfx}btts_no`, Number(no.odds), no);
 }
 function putDNB(odds, prices, pfx) {
-  const p = byLabel(prices);
-  if (p['1']) odds[`${pfx}dnb_1`] = p['1'];
-  if (p['2']) odds[`${pfx}dnb_2`] = p['2'];
+  const map = byLabel(prices);
+  if (map['1']) putBp(odds, `${pfx}dnb_1`, Number(map['1'].odds), map['1']);
+  if (map['2']) putBp(odds, `${pfx}dnb_2`, Number(map['2'].odds), map['2']);
 }
 function putOddEven(odds, prices, pfx) {
-  const p = byLabel(prices);
-  const odd = p['Impair'] || p['Odd'] || p['impair'] || p['odd'];
-  const even = p['Pair'] || p['Even'] || p['pair'] || p['even'];
-  if (odd) odds[`${pfx}odd`] = odd;
-  if (even) odds[`${pfx}even`] = even;
+  const map = byLabel(prices);
+  const odd = map['Impair'] || map['Odd'] || map['impair'] || map['odd'];
+  const even = map['Pair'] || map['Even'] || map['pair'] || map['even'];
+  if (odd) putBp(odds, `${pfx}odd`, Number(odd.odds), odd);
+  if (even) putBp(odds, `${pfx}even`, Number(even.odds), even);
 }
 // Total O/U multi-lignes : labels 'Plus de X.X' ou 'Moins de X.X'.
 function putTotal(odds, prices, pfx) {
@@ -320,13 +325,13 @@ function putTeamTotal(odds, prices, side, pfx) {
   }
 }
 function putHighestScoringHalf(odds, prices) {
-  const p = byLabel(prices);
-  const ht = p['Première Mi-Temps'] || p['Premiere Mi-Temps'] || p['1ère'] || p['1st Half'];
-  const h2 = p['Deuxième Mi-Temps'] || p['Deuxieme Mi-Temps'] || p['2ème'] || p['2nd Half'];
-  const eq = p['Égalité'] || p['Egalité'] || p['Egalite'] || p['Draw'];
-  if (ht) odds.half_most_ht = ht;
-  if (h2) odds.half_most_h2 = h2;
-  if (eq) odds.half_most_equal = eq;
+  const map = byLabel(prices);
+  const ht = map['Première Mi-Temps'] || map['Premiere Mi-Temps'] || map['1ère'] || map['1st Half'];
+  const h2 = map['Deuxième Mi-Temps'] || map['Deuxieme Mi-Temps'] || map['2ème'] || map['2nd Half'];
+  const eq = map['Égalité'] || map['Egalité'] || map['Egalite'] || map['Draw'];
+  if (ht) putBp(odds, 'half_most_ht', Number(ht.odds), ht);
+  if (h2) putBp(odds, 'half_most_h2', Number(h2.odds), h2);
+  if (eq) putBp(odds, 'half_most_equal', Number(eq.odds), eq);
 }
 
 // ─── Utilitaires ──────────────────────────────────────────────────────
@@ -339,12 +344,14 @@ function flattenPrices(row) {
   }
   return out;
 }
+// Retourne { label: priceObject } — garde le price object entier pour que
+// putBp(odds, key, v, p) puisse extraire p.id (priceId) requis SaveCoupon.
 function byLabel(prices) {
   const map = {};
   for (const p of prices) {
     const label = String(p?.name || p?.displayName || '').trim();
     const v = Number(p?.odds);
-    if (label && Number.isFinite(v) && v > 1) map[label] = v;
+    if (label && Number.isFinite(v) && v > 1) map[label] = p;
   }
   return map;
 }
