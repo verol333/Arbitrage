@@ -7,7 +7,11 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
   const json = await congoJson(`${CONGO_API}events/${matchId}`, { noCache: live || noCache });
   if (!json?.eventBetTypes) return null;
   const home = json.homeTeamName || ''; const away = json.awayTeamName || '';
-  const odds = {};
+  const odds = { _ids: {} };
+  // Helper : ecrit odds[key] = value ET odds._ids[key] = { eventBetTypeItemId,
+  // totalOdds } pour permettre au backend de generer un code coupon (endpoint
+  // /api/betting/get-my-code, format attendu par Congobet SaveCoupon).
+  const put = (key, it) => { odds[key] = Number(it.odds); odds._ids[key] = { eventBetTypeItemId: it.id, totalOdds: Number(it.odds) }; };
   const ctxNum = (bt, key) => {
     try { const c = JSON.parse(bt.betTypeContext || '{}'); if (c[key] != null) return parseFloat(String(c[key])); } catch { /* ignore */ }
     return null;
@@ -15,24 +19,24 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
   const read1x2 = (items, pfx) => {
     for (const it of items) {
       const s = (it.shortName || '').trim().toLowerCase();
-      if (s === '1') odds[`${pfx}match_1`] = Number(it.odds);
-      else if (s === 'x') odds[`${pfx}match_X`] = Number(it.odds);
-      else if (s === '2') odds[`${pfx}match_2`] = Number(it.odds);
+      if (s === '1') put(`${pfx}match_1`, it);
+      else if (s === 'x') put(`${pfx}match_X`, it);
+      else if (s === '2') put(`${pfx}match_2`, it);
     }
   };
   const readDC = (items, pfx) => {
     for (const it of items) {
       const s = (it.shortName || '').replace(/\s/g, '').toLowerCase();
-      if (s === '1x') odds[`${pfx}dc_1X`] = Number(it.odds);
-      else if (s === '12') odds[`${pfx}dc_12`] = Number(it.odds);
-      else if (s === 'x2') odds[`${pfx}dc_X2`] = Number(it.odds);
+      if (s === '1x') put(`${pfx}dc_1X`, it);
+      else if (s === '12') put(`${pfx}dc_12`, it);
+      else if (s === 'x2') put(`${pfx}dc_X2`, it);
     }
   };
   const readTotal = (items, line, overKey, underKey) => {
     if (line == null || !isHalfLine(line)) return;
     for (const it of items) {
-      if (/>|\+|plus|over/.test(it.shortName)) odds[overKey] = Number(it.odds);
-      else if (/<|moins|under/.test(it.shortName)) odds[underKey] = Number(it.odds);
+      if (/>|\+|plus|over/.test(it.shortName)) put(overKey, it);
+      else if (/<|moins|under/.test(it.shortName)) put(underKey, it);
     }
   };
   const readIndivTotal = (bt, items, line, pfx) => {
@@ -42,15 +46,15 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
     const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
     if (side === null) return;
     for (const it of items) {
-      if (/>|\+|plus|over/.test(it.shortName)) odds[`${pfx}tt_${side}_over_${line}`] = Number(it.odds);
-      else if (/<|moins|under/.test(it.shortName)) odds[`${pfx}tt_${side}_under_${line}`] = Number(it.odds);
+      if (/>|\+|plus|over/.test(it.shortName)) put(`${pfx}tt_${side}_over_${line}`, it);
+      else if (/<|moins|under/.test(it.shortName)) put(`${pfx}tt_${side}_under_${line}`, it);
     }
   };
   const readOddEven = (items, pfx) => {
     for (const it of items) {
       const s = (it.shortName || '').toLowerCase();
-      if (/impair|odd/.test(s)) odds[`${pfx}odd`] = Number(it.odds);
-      else if (/pair|even/.test(s)) odds[`${pfx}even`] = Number(it.odds);
+      if (/impair|odd/.test(s)) put(`${pfx}odd`, it);
+      else if (/pair|even/.test(s)) put(`${pfx}even`, it);
     }
   };
   const readHcpEcart = (bt, items, homeKey, awayKey) => {
@@ -60,8 +64,8 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
       if (!mLine) continue;
       const line = parseFloat(mLine[1]);
       if (!isHalfLine(line)) continue;
-      if (/^1\b/.test(s.trim())) odds[homeKey(line)] = Number(it.odds);
-      else if (/^2\b/.test(s.trim())) odds[awayKey(line)] = Number(it.odds);
+      if (/^1\b/.test(s.trim())) put(homeKey(line), it);
+      else if (/^2\b/.test(s.trim())) put(awayKey(line), it);
     }
   };
 
@@ -76,22 +80,22 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
     const total = ctxNum(bt, 'total');
     if (id === 10001) read1x2(items, '');
     else if (id === 10008) readDC(items, '');
-    else if (id === 10010) { for (const it of items) { const s = (it.shortName || '').toLowerCase(); if (/oui|yes/.test(s)) odds.btts_yes = Number(it.odds); else if (/non|no/.test(s)) odds.btts_no = Number(it.odds); } }
+    else if (id === 10010) { for (const it of items) { const s = (it.shortName || '').toLowerCase(); if (/oui|yes/.test(s)) put('btts_yes', it); else if (/non|no/.test(s)) put('btts_no', it); } }
     else if (id === 10003) readTotal(items, total, `match_over_${total}`, `match_under_${total}`);
     else if (id === 10055 || id === 10056) readIndivTotal(bt, items, total, '');
-    else if (id === 10015) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.dnb_1 = Number(it.odds); else if (s === '2') odds.dnb_2 = Number(it.odds); } }
+    else if (id === 10015) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') put('dnb_1', it); else if (s === '2') put('dnb_2', it); } }
     else if (id === 10016) readHcpEcart(bt, items, (l) => `hcp_home_${l}`, (l) => `hcp_away_${l}`);
     else if (id === 10031) readOddEven(items, '');
     else if (id === 10007) read1x2(items, 'ht_');
     else if (id === 10104) readDC(items, 'ht_');
-    else if (id === 10028) { for (const it of items) { const s = (it.shortName || '').toLowerCase(); if (/oui|yes/.test(s)) odds.ht_btts_yes = Number(it.odds); else if (/non|no/.test(s)) odds.ht_btts_no = Number(it.odds); } }
+    else if (id === 10028) { for (const it of items) { const s = (it.shortName || '').toLowerCase(); if (/oui|yes/.test(s)) put('ht_btts_yes', it); else if (/non|no/.test(s)) put('ht_btts_no', it); } }
     else if (id === 10011) readTotal(items, total, `ht_over_${total}`, `ht_under_${total}`);
     else if (id === 10108 || id === 10109) readIndivTotal(bt, items, total, 'ht_');
     else if (id === 10107) readHcpEcart(bt, items, (l) => `ht_hcp_home_${l}`, (l) => `ht_hcp_away_${l}`);
     else if (id === 10113) readOddEven(items, 'ht_');
     else if (id === 10024) read1x2(items, 'h2_');
     else if (id === 10120) readDC(items, 'h2_');
-    else if (id === 10029) { for (const it of items) { const s = (it.shortName || '').toLowerCase(); if (/oui|yes/.test(s)) odds.h2_btts_yes = Number(it.odds); else if (/non|no/.test(s)) odds.h2_btts_no = Number(it.odds); } }
+    else if (id === 10029) { for (const it of items) { const s = (it.shortName || '').toLowerCase(); if (/oui|yes/.test(s)) put('h2_btts_yes', it); else if (/non|no/.test(s)) put('h2_btts_no', it); } }
     else if (id === 10030) readTotal(items, total, `h2_over_${total}`, `h2_under_${total}`);
     else if (id === 10124 || id === 10125) readIndivTotal(bt, items, total, 'h2_');
     else if (id === 10123) readHcpEcart(bt, items, (l) => `h2_hcp_home_${l}`, (l) => `h2_hcp_away_${l}`);
@@ -101,16 +105,16 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
     else if (id === 10153) readOddEven(items, 'cor_');
     else if (id === 10146) readHcpEcart(bt, items, (l) => `cor_hcp_home_${l}`, (l) => `cor_hcp_away_${l}`);
     // DNB by half.
-    else if (id === 10106) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.ht_dnb_1 = Number(it.odds); else if (s === '2') odds.ht_dnb_2 = Number(it.odds); } }
-    else if (id === 10119) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') odds.h2_dnb_1 = Number(it.odds); else if (s === '2') odds.h2_dnb_2 = Number(it.odds); } }
+    else if (id === 10106) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') put('ht_dnb_1', it); else if (s === '2') put('ht_dnb_2', it); } }
+    else if (id === 10119) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') put('h2_dnb_1', it); else if (s === '2') put('h2_dnb_2', it); } }
     // Half with most goals — audit prouve id=10022 (pas 10036).
     // shortName: "1ère" | "2ème" | "X"
     else if (id === 10022) {
       for (const it of items) {
         const s = (it.shortName || '').toLowerCase();
-        if (/1(st|ère|ere)?\s*(mi|half)?/i.test(s) || s === '1') odds.half_most_ht = Number(it.odds);
-        else if (/2(nd|ème|eme)?\s*(mi|half)?/i.test(s) || s === '2') odds.half_most_h2 = Number(it.odds);
-        else if (/egal|equal|draw|x/i.test(s)) odds.half_most_equal = Number(it.odds);
+        if (/1(st|ère|ere)?\s*(mi|half)?/i.test(s) || s === '1') put('half_most_ht', it);
+        else if (/2(nd|ème|eme)?\s*(mi|half)?/i.test(s) || s === '2') put('half_most_h2', it);
+        else if (/egal|equal|draw|x/i.test(s)) put('half_most_equal', it);
       }
     }
     // Combos explicitement ignorés (l'audit prouve que ces IDs sont des combos
@@ -134,8 +138,8 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
     else if (id === 10002) {
       for (const it of items) {
         const s = (it.shortName || '').trim();
-        if (s === '1') odds.match_1 = Number(it.odds);
-        else if (s === '2') odds.match_2 = Number(it.odds);
+        if (s === '1') put('match_1', it);
+        else if (s === '2') put('match_2', it);
       }
     }
     // Total Games (match). ctx.total = 20.5/21.5/22.5
@@ -147,23 +151,23 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
     // Player 1 Total Games (tt_home)
     else if (id === 10048) {
       if (total != null && isHalfLine(total)) for (const it of items) {
-        if (/>|\+|plus|over/.test(it.shortName)) odds[`tt_home_over_${total}`] = Number(it.odds);
-        else if (/<|moins|under/.test(it.shortName)) odds[`tt_home_under_${total}`] = Number(it.odds);
+        if (/>|\+|plus|over/.test(it.shortName)) put(`tt_home_over_${total}`, it);
+        else if (/<|moins|under/.test(it.shortName)) put(`tt_home_under_${total}`, it);
       }
     }
     // Player 2 Total Games (tt_away)
     else if (id === 10157) {
       if (total != null && isHalfLine(total)) for (const it of items) {
-        if (/>|\+|plus|over/.test(it.shortName)) odds[`tt_away_over_${total}`] = Number(it.odds);
-        else if (/<|moins|under/.test(it.shortName)) odds[`tt_away_under_${total}`] = Number(it.odds);
+        if (/>|\+|plus|over/.test(it.shortName)) put(`tt_away_over_${total}`, it);
+        else if (/<|moins|under/.test(it.shortName)) put(`tt_away_under_${total}`, it);
       }
     }
     // Total exact de sets (2 ou 3 en best-of-3) → set_under/over_2.5
     else if (id === 10158) {
       for (const it of items) {
         const s = (it.shortName || '').trim();
-        if (s === '2') odds['set_under_2.5'] = Number(it.odds);
-        else if (s === '3') odds['set_over_2.5'] = Number(it.odds);
+        if (s === '2') put('set_under_2.5', it);
+        else if (s === '3') put('set_over_2.5', it);
       }
     }
     // Vainqueur du set (per-set winner). ctx.setnr = "1"/"2"/"3"
@@ -174,8 +178,8 @@ export async function getOdds(matchId, { live = false, noCache = false } = {}) {
         const pfx = `s${setnr}_`;
         for (const it of items) {
           const s = (it.shortName || '');
-          if (/-\s*1\s*$/.test(s)) odds[`${pfx}match_1`] = Number(it.odds);
-          else if (/-\s*2\s*$/.test(s)) odds[`${pfx}match_2`] = Number(it.odds);
+          if (/-\s*1\s*$/.test(s)) put(`${pfx}match_1`, it);
+          else if (/-\s*2\s*$/.test(s)) put(`${pfx}match_2`, it);
         }
       }
     }

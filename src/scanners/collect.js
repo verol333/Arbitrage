@@ -164,6 +164,16 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         if (a.profit_pct < minP) continue;
         const legAlive = matches[a.leg_a_book]?.live || null;
         const legBlive = matches[a.leg_b_book]?.live || null;
+        // Coupon data pour backend SaveCoupon : IDs natifs par book + eventId
+        // (match.id) + price + read_at. Format figé avec Mon : clés natives
+        // (aucune normalisation), 3 champs communs {book, price, read_at}.
+        // Voir docs/coupon-codes-research.md pour matrice books generables.
+        // YellowBet/BetMomo : coupon_data reste null (403 CF sur SaveCoupon
+        // impossible a bypass depuis Deno) → pas de bouton "Generer" cote UI.
+        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt);
+        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt);
+        // Nettoyer les IDs internes (transportes via pushArb) avant envoi
+        delete a.leg_a_ids; delete a.leg_b_ids;
         all.push({
           ...a, scan_id: scanId, sport, is_live: live,
           match_label: shortMatchLabel(ref.home, ref.away),
@@ -173,6 +183,8 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
           status: 'live',
+          leg_a_coupon: legAcoupon,
+          leg_b_coupon: legBcoupon,
           ...(live ? {
             live_score: liveSnapshot?.score || null,
             live_minute: liveSnapshot?.minute ?? null,
@@ -733,6 +745,42 @@ export function shortTeam(name) {
 
 export function shortMatchLabel(home, away) {
   return `${shortTeam(home)} vs ${shortTeam(away)}`;
+}
+
+// Construit l'objet leg_a_coupon / leg_b_coupon envoye au backend pour
+// generation SaveCoupon. Format figé avec Mon (docs/coupon-codes-research.md) :
+//
+//   { book, ...idsNatifsBook, price, read_at }
+//
+// - book       : String, clé de routage backend (dispatcher SaveCoupon).
+// - ...ids     : IDs bruts par book (spec native, aucune normalisation) :
+//     • congobet   : { eventBetTypeItemId, totalOdds }
+//     • sportybet  : { eventId, marketId, outcomeId, specifier? }
+//     • betpawa    : { priceId } (Number)
+//     • 1win       : { oddId, matchId }
+//     • 1xbet      : { gameId, betType, param, kind }
+//     • yellowbet, betmomo : null (403 CF impossible a bypass depuis Deno)
+// - price      : Number, prix utilise a la detection (permet drift detection).
+// - read_at    : ISO 8601 UTC ms (approx. moment de lecture des cotes).
+//
+// L'eventId (match.id du book) est ajoute pour les books ou le SaveCoupon en
+// a besoin (SportyBet, 1win). Les autres l'ont deja dans les ids natifs.
+function buildCoupon(book, ids, matchId, price, readAt) {
+  // YellowBet + BetMomo definitivement non generable → null explicite (le
+  // dispatcher backend saura masquer le bouton "Generer").
+  if (book === 'yellowbet' || book === 'betmomo') return null;
+  // Pas d'ids extraits par le parseur → coupon non generable pour cette cote
+  // (le parseur du book n'a pas encore ete enrichi ou marche non supporte).
+  if (!ids) return null;
+  const coupon = { book, price, read_at: readAt };
+  // Injecter eventId pour SportyBet (natif : "sr:match:X")
+  if (book === 'sportybet' && matchId != null) coupon.eventId = String(matchId);
+  // Injecter matchId pour 1win (natif : Number)
+  if (book === '1win' && matchId != null) coupon.matchId = Number(matchId);
+  // Injecter gameId pour 1xbet (natif : Number/String)
+  if (book === '1xbet' && matchId != null) coupon.gameId = String(matchId);
+  // Merger les IDs natifs du parseur en dernier (peuvent overrider les defaults)
+  return { ...coupon, ...ids };
 }
 
 function idFields(matches) {

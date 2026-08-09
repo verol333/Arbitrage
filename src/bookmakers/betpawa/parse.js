@@ -43,8 +43,19 @@ import { isHalfLine } from '../../core/markets.js';
 //   2068172 = Games O/U Away - FT         → tt_away_over/under_X
 //   3597899 = Total Sets O/U - FT         → total_sets_over/under_X
 //   4429    = Correct Score               (skip, pas standard cross-book)
+// Helper : ecrit odds[key] = v ET odds._ids[key] = { priceId } pour permettre
+// au backend de generer un code coupon (endpoint BetPawa
+// /api/sportsbook/v3/booking-number, format { selections:[{type:"COMBO",
+// selections:[priceId,...]}] }). Chaque price BetPawa a un id numerique
+// unique (p.id) — c'est le seul ID necessaire pour SaveCoupon.
+function putBp(odds, key, v, p) {
+  odds[key] = v;
+  if (!odds._ids) odds._ids = {};
+  odds._ids[key] = { priceId: p?.id != null ? Number(p.id) : null };
+}
+
 export function betpawaTennisFlatOdds(eventJson) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!eventJson?.markets?.length) return odds;
   for (const market of eventJson.markets) {
     const marketId = String(market?.marketType?.id ?? '');
@@ -64,16 +75,16 @@ export function betpawaTennisFlatOdds(eventJson) {
         switch (marketId) {
           // Moneyline FT/1S/2S : name "1" = home, "2" = away
           case '2043818': // Match Winner FT
-            if (name === '1') odds.match_1 = v;
-            else if (name === '2') odds.match_2 = v;
+            if (name === '1') putBp(odds, 'match_1', v, p);
+            else if (name === '2') putBp(odds, 'match_2', v, p);
             break;
           case '4758': // 1S
-            if (name === '1') odds.s1_match_1 = v;
-            else if (name === '2') odds.s1_match_2 = v;
+            if (name === '1') putBp(odds, 's1_match_1', v, p);
+            else if (name === '2') putBp(odds, 's1_match_2', v, p);
             break;
           case '4770': // 2S
-            if (name === '1') odds.s2_match_1 = v;
-            else if (name === '2') odds.s2_match_2 = v;
+            if (name === '1') putBp(odds, 's2_match_1', v, p);
+            else if (name === '2') putBp(odds, 's2_match_2', v, p);
             break;
 
           // Handicap match : specifier.hcp = valeur pour home (name=1)
@@ -81,16 +92,16 @@ export function betpawaTennisFlatOdds(eventJson) {
           case '3532590': { // Match Handicap Games 2-way
             const hcp = Number(hcpStr);
             if (!Number.isFinite(hcp) || !isHalfLine(hcp)) break;
-            if (name === '1') odds[`hcp_home_${hcp}`] = v;
-            else if (name === '2') odds[`hcp_away_${-hcp}`] = v;
+            if (name === '1') putBp(odds, `hcp_home_${hcp}`, v, p);
+            else if (name === '2') putBp(odds, `hcp_away_${-hcp}`, v, p);
             break;
           }
           // Handicap 1S : name = "Domicile"/"Extérieur"
           case '4666923': { // Set 1 Game Handicap
             const hcp = Number(hcpStr);
             if (!Number.isFinite(hcp) || !isHalfLine(hcp)) break;
-            if (/dom/i.test(name)) odds[`s1_hcp_home_${hcp}`] = v;
-            else if (/ext/i.test(name)) odds[`s1_hcp_away_${-hcp}`] = v;
+            if (/dom/i.test(name)) putBp(odds, `s1_hcp_home_${hcp}`, v, p);
+            else if (/ext/i.test(name)) putBp(odds, `s1_hcp_away_${-hcp}`, v, p);
             break;
           }
 
@@ -98,15 +109,15 @@ export function betpawaTennisFlatOdds(eventJson) {
           case '4895': { // Total Games O/U FT
             const line = Number(totalStr);
             if (!Number.isFinite(line) || !isHalfLine(line)) break;
-            if (/plus/i.test(name)) odds[`match_over_${line}`] = v;
-            else if (/moins/i.test(name)) odds[`match_under_${line}`] = v;
+            if (/plus/i.test(name)) putBp(odds, `match_over_${line}`, v, p);
+            else if (/moins/i.test(name)) putBp(odds, `match_under_${line}`, v, p);
             break;
           }
           case '4880': { // Total Games O/U 1S
             const line = Number(totalStr);
             if (!Number.isFinite(line) || !isHalfLine(line)) break;
-            if (/plus/i.test(name)) odds[`s1_over_${line}`] = v;
-            else if (/moins/i.test(name)) odds[`s1_under_${line}`] = v;
+            if (/plus/i.test(name)) putBp(odds, `s1_over_${line}`, v, p);
+            else if (/moins/i.test(name)) putBp(odds, `s1_under_${line}`, v, p);
             break;
           }
 
@@ -114,15 +125,15 @@ export function betpawaTennisFlatOdds(eventJson) {
           case '2068161': { // Home total games
             const line = Number(totalStr);
             if (!Number.isFinite(line) || !isHalfLine(line)) break;
-            if (/plus/i.test(name)) odds[`tt_home_over_${line}`] = v;
-            else if (/moins/i.test(name)) odds[`tt_home_under_${line}`] = v;
+            if (/plus/i.test(name)) putBp(odds, `tt_home_over_${line}`, v, p);
+            else if (/moins/i.test(name)) putBp(odds, `tt_home_under_${line}`, v, p);
             break;
           }
           case '2068172': { // Away total games
             const line = Number(totalStr);
             if (!Number.isFinite(line) || !isHalfLine(line)) break;
-            if (/plus/i.test(name)) odds[`tt_away_over_${line}`] = v;
-            else if (/moins/i.test(name)) odds[`tt_away_under_${line}`] = v;
+            if (/plus/i.test(name)) putBp(odds, `tt_away_over_${line}`, v, p);
+            else if (/moins/i.test(name)) putBp(odds, `tt_away_under_${line}`, v, p);
             break;
           }
 
@@ -130,8 +141,8 @@ export function betpawaTennisFlatOdds(eventJson) {
           case '3597899': { // Total Sets O/U FT
             const line = Number(totalStr);
             if (!Number.isFinite(line) || !isHalfLine(line)) break;
-            if (/plus/i.test(name)) odds[`total_sets_over_${line}`] = v;
-            else if (/moins/i.test(name)) odds[`total_sets_under_${line}`] = v;
+            if (/plus/i.test(name)) putBp(odds, `total_sets_over_${line}`, v, p);
+            else if (/moins/i.test(name)) putBp(odds, `total_sets_under_${line}`, v, p);
             break;
           }
           default: break;
@@ -153,7 +164,7 @@ export function betpawaTennisFlatOdds(eventJson) {
 // BetPawa basket n'expose PAS quarters/halves/team-totals prématch (limité vs autres books).
 // ═══════════════════════════════════════════════════════════════
 export function betpawaBasketFlatOdds(eventJson) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!eventJson?.markets?.length) return odds;
   for (const market of eventJson.markets) {
     const marketId = String(market?.marketType?.id ?? '');
@@ -171,26 +182,26 @@ export function betpawaBasketFlatOdds(eventJson) {
 
         switch (marketId) {
           case '4791': // Moneyline 2-way
-            if (name === '1') odds.match_1 = v;
-            else if (name === '2') odds.match_2 = v;
+            if (name === '1') putBp(odds, 'match_1', v, p);
+            else if (name === '2') putBp(odds, 'match_2', v, p);
             break;
           case '5009': { // Total FT
             const line = Number(totalStr);
             if (!Number.isFinite(line) || !isHalfLine(line)) break;
-            if (/plus/i.test(name)) odds[`match_over_${line}`] = v;
-            else if (/moins/i.test(name)) odds[`match_under_${line}`] = v;
+            if (/plus/i.test(name)) putBp(odds, `match_over_${line}`, v, p);
+            else if (/moins/i.test(name)) putBp(odds, `match_under_${line}`, v, p);
             break;
           }
           case '3777': { // Asian Handicap FT
             const hcp = Number(hcpStr);
             if (!Number.isFinite(hcp) || !isHalfLine(Math.abs(hcp))) break;
-            if (name === '1') odds[`hcp_home_${hcp}`] = v;
-            else if (name === '2') odds[`hcp_away_${-hcp}`] = v;
+            if (name === '1') putBp(odds, `hcp_home_${hcp}`, v, p);
+            else if (name === '2') putBp(odds, `hcp_away_${-hcp}`, v, p);
             break;
           }
           case '4839': // Odd/Even
-            if (/impair/i.test(name)) odds.odd = v;
-            else if (/pair/i.test(name)) odds.even = v;
+            if (/impair/i.test(name)) putBp(odds, 'odd', v, p);
+            else if (/pair/i.test(name)) putBp(odds, 'even', v, p);
             break;
           default: break;
         }
@@ -201,7 +212,7 @@ export function betpawaBasketFlatOdds(eventJson) {
 }
 
 export function betpawaFlatOdds(eventJson) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!eventJson?.markets?.length) return odds;
 
   for (const market of eventJson.markets) {
@@ -292,7 +303,7 @@ function putTotal(odds, prices, pfx) {
     const line = Number(m[2]);
     if (!isHalfLine(line)) continue;
     const dir = /plus|over/i.test(m[1]) ? 'over' : 'under';
-    odds[`${pfx}${dir}_${line}`] = v;
+    putBp(odds, `${pfx}${dir}_${line}`, v, p);
   }
 }
 function putTeamTotal(odds, prices, side, pfx) {
@@ -305,7 +316,7 @@ function putTeamTotal(odds, prices, side, pfx) {
     const line = Number(m[2]);
     if (!isHalfLine(line)) continue;
     const dir = /plus|over/i.test(m[1]) ? 'over' : 'under';
-    odds[`${pfx}tt_${side}_${dir}_${line}`] = v;
+    putBp(odds, `${pfx}tt_${side}_${dir}_${line}`, v, p);
   }
 }
 function putHighestScoringHalf(odds, prices) {

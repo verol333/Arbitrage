@@ -20,10 +20,26 @@ import { isHalfLine } from '../../core/markets.js';
 // dont les cotes divergent du 1X2 standard → produisent des fake arbs.
 // ⚠️ NE PAS mapper 14 : Handicap score-based (specifier "hcp=0:1"), pas un Asian HCP.
 
+// Helper : ecrit odds[key] = v ET odds._ids[key] = { marketId, outcomeId,
+// specifier } pour permettre au backend de generer un code coupon (endpoint
+// SportyBet /api/ng/orders/share, format attendu :
+// [{ eventId, marketId, outcomeId, specifier? }]). `eventId` est injecte par
+// collect.js depuis match.id ("sr:match:X"). Le parseur produit les IDs
+// spec/market/outcome natifs SR API — voir docs/coupon-codes-research.md.
+function putSb(odds, key, v, m, o) {
+  odds[key] = v;
+  if (!odds._ids) odds._ids = {};
+  odds._ids[key] = {
+    marketId: String(m?.id ?? ''),
+    outcomeId: o?.id != null ? String(o.id) : (o?.desc ?? null),
+    specifier: m?.specifier || null,
+  };
+}
+
 export function sportybetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
   if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
   if (sport === 'basket') return sportybetBasketFlatOdds(markets);
-  const odds = {};
+  const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
 
   for (const m of markets) {
@@ -38,9 +54,9 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.match_1 = v;
-          else if (d === 'draw' || d === 'x') odds.match_X = v;
-          else if (d === 'away' || d === '2') odds.match_2 = v;
+          if (d === 'home' || d === '1') putSb(odds, 'match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'match_2', v, m, o);
         }
         break;
       }
@@ -54,9 +70,9 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home or draw' || d === '1x') odds.dc_1X = v;
-          else if (d === 'home or away' || d === '12') odds.dc_12 = v;
-          else if (d === 'away or draw' || d === 'x2') odds.dc_X2 = v;
+          if (d === 'home or draw' || d === '1x') putSb(odds, 'dc_1X', v, m, o);
+          else if (d === 'home or away' || d === '12') putSb(odds, 'dc_12', v, m, o);
+          else if (d === 'away or draw' || d === 'x2') putSb(odds, 'dc_X2', v, m, o);
         }
         break;
       }
@@ -67,8 +83,8 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'yes' || d === 'oui') odds.btts_yes = v;
-          else if (d === 'no' || d === 'non') odds.btts_no = v;
+          if (d === 'yes' || d === 'oui') putSb(odds, 'btts_yes', v, m, o);
+          else if (d === 'no' || d === 'non') putSb(odds, 'btts_no', v, m, o);
         }
         break;
       }
@@ -79,8 +95,8 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.dnb_1 = v;
-          else if (d === 'away' || d === '2') odds.dnb_2 = v;
+          if (d === 'home' || d === '1') putSb(odds, 'dnb_1', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'dnb_2', v, m, o);
         }
         break;
       }
@@ -91,8 +107,8 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'odd' || d === 'impair') odds.odd = v;
-          else if (d === 'even' || d === 'pair') odds.even = v;
+          if (d === 'odd' || d === 'impair') putSb(odds, 'odd', v, m, o);
+          else if (d === 'even' || d === 'pair') putSb(odds, 'even', v, m, o);
         }
         break;
       }
@@ -106,9 +122,9 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.ht_match_1 = v;
-          else if (d === 'draw' || d === 'x') odds.ht_match_X = v;
-          else if (d === 'away' || d === '2') odds.ht_match_2 = v;
+          if (d === 'home' || d === '1') putSb(odds, 'ht_match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'ht_match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'ht_match_2', v, m, o);
         }
         break;
       }
@@ -130,8 +146,8 @@ function putTotal(odds, m, pfx) {
     const v = Number(o?.odds);
     if (!Number.isFinite(v) || v <= 1) continue;
     const d = String(o?.desc || '').toLowerCase();
-    if (/^over/.test(d) || /plus/.test(d)) odds[`${pfx}over_${line}`] = v;
-    else if (/^under/.test(d) || /moins/.test(d)) odds[`${pfx}under_${line}`] = v;
+    if (/^over/.test(d) || /plus/.test(d)) putSb(odds, `${pfx}over_${line}`, v, m, o);
+    else if (/^under/.test(d) || /moins/.test(d)) putSb(odds, `${pfx}under_${line}`, v, m, o);
   }
 }
 
@@ -150,8 +166,8 @@ function putAsianHcp(odds, m, pfx) {
     const d = String(o?.desc || '').toLowerCase();
     // Extraire uniquement la partie AVANT la parenthèse ou espace
     const teamKey = d.split(/[\s(]/)[0].trim();
-    if (teamKey === 'home' || teamKey === '1') odds[`${pfx}hcp_home_${line}`] = v;
-    else if (teamKey === 'away' || teamKey === '2') odds[`${pfx}hcp_away_${-line}`] = v;
+    if (teamKey === 'home' || teamKey === '1') putSb(odds, `${pfx}hcp_home_${line}`, v, m, o);
+    else if (teamKey === 'away' || teamKey === '2') putSb(odds, `${pfx}hcp_away_${-line}`, v, m, o);
   }
 }
 
@@ -185,7 +201,7 @@ function extractLine(specifier, key) {
 // mix incl-OT vs reg-time qui produirait faux surbètes.
 // ═══════════════════════════════════════════════════════════════
 function sportybetBasketFlatOdds(markets) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
 
   for (const m of markets) {
@@ -205,8 +221,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase().trim();
-          if (d === 'home' || d === '1') odds.match_1 = v;
-          else if (d === 'away' || d === '2') odds.match_2 = v;
+          if (d === 'home' || d === '1') putSb(odds, 'match_1', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'match_2', v, m, o);
         }
         break;
       }
@@ -216,8 +232,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (/^over/.test(d)) odds[`match_over_${total}`] = v;
-          else if (/^under/.test(d)) odds[`match_under_${total}`] = v;
+          if (/^over/.test(d)) putSb(odds, `match_over_${total}`, v, m, o);
+          else if (/^under/.test(d)) putSb(odds, `match_under_${total}`, v, m, o);
         }
         break;
       }
@@ -228,8 +244,8 @@ function sportybetBasketFlatOdds(markets) {
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
           const teamKey = d.split(/[\s(]/)[0].trim();
-          if (teamKey === 'home' || teamKey === '1') odds[`hcp_home_${hcp}`] = v;
-          else if (teamKey === 'away' || teamKey === '2') odds[`hcp_away_${-hcp}`] = v;
+          if (teamKey === 'home' || teamKey === '1') putSb(odds, `hcp_home_${hcp}`, v, m, o);
+          else if (teamKey === 'away' || teamKey === '2') putSb(odds, `hcp_away_${-hcp}`, v, m, o);
         }
         break;
       }
@@ -239,8 +255,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (/^over/.test(d)) odds[`tt_home_over_${total}`] = v;
-          else if (/^under/.test(d)) odds[`tt_home_under_${total}`] = v;
+          if (/^over/.test(d)) putSb(odds, `tt_home_over_${total}`, v, m, o);
+          else if (/^under/.test(d)) putSb(odds, `tt_home_under_${total}`, v, m, o);
         }
         break;
       }
@@ -250,8 +266,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (/^over/.test(d)) odds[`tt_away_over_${total}`] = v;
-          else if (/^under/.test(d)) odds[`tt_away_under_${total}`] = v;
+          if (/^over/.test(d)) putSb(odds, `tt_away_over_${total}`, v, m, o);
+          else if (/^under/.test(d)) putSb(odds, `tt_away_under_${total}`, v, m, o);
         }
         break;
       }
@@ -260,8 +276,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'odd') odds.odd = v;
-          else if (d === 'even') odds.even = v;
+          if (d === 'odd') putSb(odds, 'odd', v, m, o);
+          else if (d === 'even') putSb(odds, 'even', v, m, o);
         }
         break;
       }
@@ -272,9 +288,9 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.h1_match_1 = v;
-          else if (d === 'draw' || d === 'x') odds.h1_match_X = v;
-          else if (d === 'away' || d === '2') odds.h1_match_2 = v;
+          if (d === 'home' || d === '1') putSb(odds, 'h1_match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'h1_match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'h1_match_2', v, m, o);
         }
         break;
       }
@@ -283,9 +299,9 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds.h2_match_1 = v;
-          else if (d === 'draw' || d === 'x') odds.h2_match_X = v;
-          else if (d === 'away' || d === '2') odds.h2_match_2 = v;
+          if (d === 'home' || d === '1') putSb(odds, 'h2_match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'h2_match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'h2_match_2', v, m, o);
         }
         break;
       }
@@ -295,8 +311,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (/^over/.test(d)) odds[`h1_over_${total}`] = v;
-          else if (/^under/.test(d)) odds[`h1_under_${total}`] = v;
+          if (/^over/.test(d)) putSb(odds, `h1_over_${total}`, v, m, o);
+          else if (/^under/.test(d)) putSb(odds, `h1_under_${total}`, v, m, o);
         }
         break;
       }
@@ -307,8 +323,8 @@ function sportybetBasketFlatOdds(markets) {
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
           const teamKey = d.split(/[\s(]/)[0].trim();
-          if (teamKey === 'home' || teamKey === '1') odds[`h1_hcp_home_${hcp}`] = v;
-          else if (teamKey === 'away' || teamKey === '2') odds[`h1_hcp_away_${-hcp}`] = v;
+          if (teamKey === 'home' || teamKey === '1') putSb(odds, `h1_hcp_home_${hcp}`, v, m, o);
+          else if (teamKey === 'away' || teamKey === '2') putSb(odds, `h1_hcp_away_${-hcp}`, v, m, o);
         }
         break;
       }
@@ -320,9 +336,9 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'home' || d === '1') odds[`${qPfx}match_1`] = v;
-          else if (d === 'draw' || d === 'x') odds[`${qPfx}match_X`] = v;
-          else if (d === 'away' || d === '2') odds[`${qPfx}match_2`] = v;
+          if (d === 'home' || d === '1') putSb(odds, `${qPfx}match_1`, v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, `${qPfx}match_X`, v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, `${qPfx}match_2`, v, m, o);
         }
         break;
       }
@@ -332,8 +348,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (/^over/.test(d)) odds[`${qPfx}over_${total}`] = v;
-          else if (/^under/.test(d)) odds[`${qPfx}under_${total}`] = v;
+          if (/^over/.test(d)) putSb(odds, `${qPfx}over_${total}`, v, m, o);
+          else if (/^under/.test(d)) putSb(odds, `${qPfx}under_${total}`, v, m, o);
         }
         break;
       }
@@ -344,8 +360,8 @@ function sportybetBasketFlatOdds(markets) {
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
           const teamKey = d.split(/[\s(]/)[0].trim();
-          if (teamKey === 'home' || teamKey === '1') odds[`${qPfx}hcp_home_${hcp}`] = v;
-          else if (teamKey === 'away' || teamKey === '2') odds[`${qPfx}hcp_away_${-hcp}`] = v;
+          if (teamKey === 'home' || teamKey === '1') putSb(odds, `${qPfx}hcp_home_${hcp}`, v, m, o);
+          else if (teamKey === 'away' || teamKey === '2') putSb(odds, `${qPfx}hcp_away_${-hcp}`, v, m, o);
         }
         break;
       }
@@ -355,8 +371,8 @@ function sportybetBasketFlatOdds(markets) {
           const v = Number(o?.odds);
           if (!Number.isFinite(v) || v <= 1) continue;
           const d = String(o?.desc || '').toLowerCase();
-          if (d === 'odd') odds[`${qPfx}odd`] = v;
-          else if (d === 'even') odds[`${qPfx}even`] = v;
+          if (d === 'odd') putSb(odds, `${qPfx}odd`, v, m, o);
+          else if (d === 'even') putSb(odds, `${qPfx}even`, v, m, o);
         }
         break;
       }
@@ -374,7 +390,7 @@ function sportybetBasketFlatOdds(markets) {
 // Specifier peut combiner : "setnr=1|hcp=-2.5" ou "setnr=1|total=9.5".
 // ═══════════════════════════════════════════════════════════════
 function sportybetTennisFlatOdds(markets) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
   for (const mk of markets) {
     const id = String(mk?.id || '');
@@ -391,69 +407,69 @@ function sportybetTennisFlatOdds(markets) {
       const ocId = String(oc?.id || '');
       switch (id) {
         case '186': // Winner
-          if (ocId === '4') odds.match_1 = v;
-          else if (ocId === '5') odds.match_2 = v;
+          if (ocId === '4') putSb(odds, 'match_1', v, m, o);
+          else if (ocId === '5') putSb(odds, 'match_2', v, m, o);
           break;
         case '187': // Game handicap
           if (hcp != null && isHalfLine(Math.abs(hcp))) {
-            if (ocId === '1714') odds[`hcp_home_${hcp}`] = v;
-            else if (ocId === '1715') odds[`hcp_away_${-hcp}`] = v;
+            if (ocId === '1714') putSb(odds, `hcp_home_${hcp}`, v, m, o);
+            else if (ocId === '1715') putSb(odds, `hcp_away_${-hcp}`, v, m, o);
           }
           break;
         case '188': // Set handicap (±1.5)
           if (hcp != null) {
-            if (ocId === '1714') odds[`hcp_sets_home_${hcp}`] = v;
-            else if (ocId === '1715') odds[`hcp_sets_away_${-hcp}`] = v;
+            if (ocId === '1714') putSb(odds, `hcp_sets_home_${hcp}`, v, m, o);
+            else if (ocId === '1715') putSb(odds, `hcp_sets_away_${-hcp}`, v, m, o);
           }
           break;
         case '189': // Total games
           if (total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`match_over_${total}`] = v;
-            else if (ocId === '13') odds[`match_under_${total}`] = v;
+            if (ocId === '12') putSb(odds, `match_over_${total}`, v, m, o);
+            else if (ocId === '13') putSb(odds, `match_under_${total}`, v, m, o);
           }
           break;
         case '190': // Player 1 (home) total games
           if (total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`tt_home_over_${total}`] = v;
-            else if (ocId === '13') odds[`tt_home_under_${total}`] = v;
+            if (ocId === '12') putSb(odds, `tt_home_over_${total}`, v, m, o);
+            else if (ocId === '13') putSb(odds, `tt_home_under_${total}`, v, m, o);
           }
           break;
         case '191': // Player 2 (away) total games
           if (total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`tt_away_over_${total}`] = v;
-            else if (ocId === '13') odds[`tt_away_under_${total}`] = v;
+            if (ocId === '12') putSb(odds, `tt_away_over_${total}`, v, m, o);
+            else if (ocId === '13') putSb(odds, `tt_away_under_${total}`, v, m, o);
           }
           break;
         case '196': // Exact sets (2 or 3)
-          if (String(oc.id).includes(':32')) odds.total_sets_2 = v;
-          else if (String(oc.id).includes(':33')) odds.total_sets_3 = v;
+          if (String(oc.id).includes(':32')) putSb(odds, 'total_sets_2', v, m, o);
+          else if (String(oc.id).includes(':33')) putSb(odds, 'total_sets_3', v, m, o);
           break;
         case '198': // Odd/Even games
-          if (ocId === '70') odds.odd = v;
-          else if (ocId === '72') odds.even = v;
+          if (ocId === '70') putSb(odds, 'odd', v, m, o);
+          else if (ocId === '72') putSb(odds, 'even', v, m, o);
           break;
         case '202': // Set N winner (setnr=1 or 2)
           if (setnr) {
-            if (ocId === '4') odds[`${setPfx}match_1`] = v;
-            else if (ocId === '5') odds[`${setPfx}match_2`] = v;
+            if (ocId === '4') putSb(odds, `${setPfx}match_1`, v, m, o);
+            else if (ocId === '5') putSb(odds, `${setPfx}match_2`, v, m, o);
           }
           break;
         case '203': // Set N game handicap
           if (setnr && hcp != null && isHalfLine(Math.abs(hcp))) {
-            if (ocId === '1714') odds[`${setPfx}hcp_home_${hcp}`] = v;
-            else if (ocId === '1715') odds[`${setPfx}hcp_away_${-hcp}`] = v;
+            if (ocId === '1714') putSb(odds, `${setPfx}hcp_home_${hcp}`, v, m, o);
+            else if (ocId === '1715') putSb(odds, `${setPfx}hcp_away_${-hcp}`, v, m, o);
           }
           break;
         case '204': // Set N total games
           if (setnr && total != null && isHalfLine(total)) {
-            if (ocId === '12') odds[`${setPfx}over_${total}`] = v;
-            else if (ocId === '13') odds[`${setPfx}under_${total}`] = v;
+            if (ocId === '12') putSb(odds, `${setPfx}over_${total}`, v, m, o);
+            else if (ocId === '13') putSb(odds, `${setPfx}under_${total}`, v, m, o);
           }
           break;
         case '314': // Total sets 2.5
           if (total != null) {
-            if (ocId === '12') odds[`total_sets_over_${total}`] = v;
-            else if (ocId === '13') odds[`total_sets_under_${total}`] = v;
+            if (ocId === '12') putSb(odds, `total_sets_over_${total}`, v, m, o);
+            else if (ocId === '13') putSb(odds, `total_sets_under_${total}`, v, m, o);
           }
           break;
         default: break;
