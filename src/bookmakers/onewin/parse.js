@@ -3,11 +3,23 @@
 import { isHalfLine } from '../../core/markets.js';
 import { tokenOverlap } from '../../core/text.js';
 
+
+// Helper : ecrit odds[key] = v ET odds._ids[key] = { oddId } pour permettre au
+// backend de generer un code coupon (endpoint 1win /shared-bets/create, format
+// { coupons: [{ oddId: String }] }). L'oddId natif est odd.id, format
+// "<groupId>:<uniqueId>:<outcome>" (ex "10:21612258419570790:1"). matchId est
+// ajoute par collect.js depuis match.id.
+function putWin(odds, key, o) {
+  putWin(odds, key, o);
+  if (!odds._ids) odds._ids = {};
+  odds._ids[key] = { oddId: o.id != null ? String(o.id) : null };
+}
+
 // Convertit les groupes tennis 1win → cotes plates canoniques.
 // Prefixes set : "1st set."/"2nd set."/"3rd set." → sN_.
 // Marches : Winner, Handicap, Total, <Player> total, Total. Odd/Even.
 export function winTennisFlatOdds(groups, names) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!groups) return odds;
   const isHome = (n) => tokenOverlap(n, names.home) >= 0.5;
   const isAway = (n) => tokenOverlap(n, names.away) >= 0.5;
@@ -34,10 +46,10 @@ export function winTennisFlatOdds(groups, names) {
         const oc = String(o.outcome || '').toLowerCase().trim();
         const n = String(o.name || '').toLowerCase();
         // sN_ prefix : cle sN_match_1 / sN_match_2. Base : match_1 / match_2.
-        if (oc === '1') odds[`${pfx}match_1`] = Number(o.cf);
-        else if (oc === '2') odds[`${pfx}match_2`] = Number(o.cf);
-        else if (isHome(n) && !isAway(n)) odds[`${pfx}match_1`] = Number(o.cf);
-        else if (isAway(n) && !isHome(n)) odds[`${pfx}match_2`] = Number(o.cf);
+        if (oc === '1') putWin(odds, `${pfx}match_1`, o);
+        else if (oc === '2') putWin(odds, `${pfx}match_2`, o);
+        else if (isHome(n) && !isAway(n)) putWin(odds, `${pfx}match_1`, o);
+        else if (isAway(n) && !isHome(n)) putWin(odds, `${pfx}match_2`, o);
       }
     }
     // Handicap : "Matteo Berrettini 1.5" ou "Mariano Navone -1.5"
@@ -60,7 +72,7 @@ export function winTennisFlatOdds(groups, names) {
           side = sH > sA ? 'home' : sA > sH ? 'away' : null;
         }
         if (side === null) continue;
-        odds[`${pfx}hcp_${side}_${line}`] = Number(o.cf);
+        putWin(odds, `${pfx}hcp_${side}_${line}`, o);
       }
     }
     // Total : "Over 26.5" / "Under 26.5" → match_over_26.5 / match_under_26.5
@@ -77,12 +89,12 @@ export function winTennisFlatOdds(groups, names) {
         if (!isOver && !isUnder) continue;
         if (pfx) {
           // Par set : sN_over_X / sN_under_X
-          if (isOver) odds[`${pfx}over_${line}`] = Number(o.cf);
-          else odds[`${pfx}under_${line}`] = Number(o.cf);
+          if (isOver) putWin(odds, `${pfx}over_${line}`, o);
+          else putWin(odds, `${pfx}under_${line}`, o);
         } else {
           // Match : match_over_X / match_under_X
-          if (isOver) odds[`match_over_${line}`] = Number(o.cf);
-          else odds[`match_under_${line}`] = Number(o.cf);
+          if (isOver) putWin(odds, `match_over_${line}`, o);
+          else putWin(odds, `match_under_${line}`, o);
         }
       }
     }
@@ -91,8 +103,8 @@ export function winTennisFlatOdds(groups, names) {
       for (const o of list) {
         const oc = String(o.outcome || '').toLowerCase().trim();
         const n = String(o.name || '').toLowerCase();
-        if (oc === 'odd' || /odd/i.test(n)) odds[`${pfx}odd`] = Number(o.cf);
-        else if (oc === 'even' || /even/i.test(n)) odds[`${pfx}even`] = Number(o.cf);
+        if (oc === 'odd' || /odd/i.test(n)) putWin(odds, `${pfx}odd`, o);
+        else if (oc === 'even' || /even/i.test(n)) putWin(odds, `${pfx}even`, o);
       }
     }
     // "<Player name> total" → tt_home_over/under_X ou tt_away_over/under_X
@@ -109,8 +121,8 @@ export function winTennisFlatOdds(groups, names) {
         const line = parseFloat(m[1]);
         const isOver = oc === 'over' || /over/i.test(n);
         const isUnder = oc === 'under' || /under/i.test(n);
-        if (isOver) odds[`tt_${side}_over_${line}`] = Number(o.cf);
-        else if (isUnder) odds[`tt_${side}_under_${line}`] = Number(o.cf);
+        if (isOver) putWin(odds, `tt_${side}_over_${line}`, o);
+        else if (isUnder) putWin(odds, `tt_${side}_under_${line}`, o);
       }
     }
   }
@@ -134,7 +146,7 @@ export function winTennisFlatOdds(groups, names) {
 // mélanger avec Winner (incl. OT) qui est le marché principal cross-book.
 // ═══════════════════════════════════════════════════════════════
 export function winBasketFlatOdds(groups, names) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!groups) return odds;
   const isHome = (n) => tokenOverlap(n, names.home) >= 0.5;
   const isAway = (n) => tokenOverlap(n, names.away) >= 0.5;
@@ -171,11 +183,11 @@ export function winBasketFlatOdds(groups, names) {
         const oc = String(o.outcome || '').toLowerCase().trim();
         const n = String(o.name || '').toLowerCase();
         // Result (Nth quarter) peut être 3-way avec draw. Skip draw pour basket.
-        if (oc === '1' || oc === 'w1' || oc === 'home') odds[`${pfx}match_1`] = num(o);
-        else if (oc === '2' || oc === 'w2' || oc === 'away') odds[`${pfx}match_2`] = num(o);
-        else if (oc === 'x' || oc === 'draw') odds[`${pfx}match_X`] = num(o);
-        else if (isHome(n) && !isAway(n)) odds[`${pfx}match_1`] = num(o);
-        else if (isAway(n) && !isHome(n)) odds[`${pfx}match_2`] = num(o);
+        if (oc === '1' || oc === 'w1' || oc === 'home') putWin(odds, `${pfx}match_1`, o);
+        else if (oc === '2' || oc === 'w2' || oc === 'away') putWin(odds, `${pfx}match_2`, o);
+        else if (oc === 'x' || oc === 'draw') putWin(odds, `${pfx}match_X`, o);
+        else if (isHome(n) && !isAway(n)) putWin(odds, `${pfx}match_1`, o);
+        else if (isAway(n) && !isHome(n)) putWin(odds, `${pfx}match_2`, o);
       }
       continue;
     }
@@ -191,11 +203,11 @@ export function winBasketFlatOdds(groups, names) {
         const isOver = oc === 'over' || /over/i.test(n);
         const isUnder = oc === 'under' || /under/i.test(n);
         if (pfx) {
-          if (isOver) odds[`${pfx}over_${line}`] = num(o);
-          else if (isUnder) odds[`${pfx}under_${line}`] = num(o);
+          if (isOver) putWin(odds, `${pfx}over_${line}`, o);
+          else if (isUnder) putWin(odds, `${pfx}under_${line}`, o);
         } else {
-          if (isOver) odds[`match_over_${line}`] = num(o);
-          else if (isUnder) odds[`match_under_${line}`] = num(o);
+          if (isOver) putWin(odds, `match_over_${line}`, o);
+          else if (isUnder) putWin(odds, `match_under_${line}`, o);
         }
       }
       continue;
@@ -213,8 +225,8 @@ export function winBasketFlatOdds(groups, names) {
         const sH = tokenOverlap(teamPart, names.home);
         const sA = tokenOverlap(teamPart, names.away);
         if (sH === 0 && sA === 0) continue;
-        if (sH >= sA) odds[`${pfx}hcp_home_${line}`] = num(o);
-        else odds[`${pfx}hcp_away_${line}`] = num(o);
+        if (sH >= sA) putWin(odds, `${pfx}hcp_home_${line}`, o);
+        else putWin(odds, `${pfx}hcp_away_${line}`, o);
       }
       continue;
     }
@@ -224,8 +236,8 @@ export function winBasketFlatOdds(groups, names) {
       for (const o of list) {
         const oc = String(o.outcome || '').toLowerCase().trim();
         const n = String(o.name || '').toLowerCase();
-        if (oc === 'odd' || /odd/.test(n)) odds[`${pfx}odd`] = num(o);
-        else if (oc === 'even' || /even/.test(n)) odds[`${pfx}even`] = num(o);
+        if (oc === 'odd' || /odd/.test(n)) putWin(odds, `${pfx}odd`, o);
+        else if (oc === 'even' || /even/.test(n)) putWin(odds, `${pfx}even`, o);
       }
       continue;
     }
@@ -248,8 +260,8 @@ export function winBasketFlatOdds(groups, names) {
         const line = parseFloat(m[1]);
         const isOver = oc === 'over' || /over/i.test(n);
         const isUnder = oc === 'under' || /under/i.test(n);
-        if (isOver) odds[`tt_${side}_over_${line}`] = num(o);
-        else if (isUnder) odds[`tt_${side}_under_${line}`] = num(o);
+        if (isOver) putWin(odds, `tt_${side}_over_${line}`, o);
+        else if (isUnder) putWin(odds, `tt_${side}_under_${line}`, o);
       }
       continue;
     }
@@ -258,7 +270,7 @@ export function winBasketFlatOdds(groups, names) {
 }
 
 export function winFlatOdds(groups, names) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!groups) return odds;
   const isHome = (n) => tokenOverlap(n, names.home) >= 0.5;
   const isAway = (n) => tokenOverlap(n, names.away) >= 0.5;
@@ -274,46 +286,46 @@ export function winFlatOdds(groups, names) {
       for (const o of list) {
         const oc = (o.outcome || '').toString().toLowerCase().trim();
         const n = (o.name || '').toLowerCase();
-        if (oc === '1' || oc === 'w1' || oc === 'home') odds.match_1 = Number(o.cf);
-        else if (oc === '2' || oc === 'w2' || oc === 'away') odds.match_2 = Number(o.cf);
-        else if (oc === 'x' || oc === 'draw') odds.match_X = Number(o.cf);
-        else if (isDraw(n)) odds.match_X = Number(o.cf);
-        else if (isHome(n) && !isAway(n)) odds.match_1 = Number(o.cf);
-        else if (isAway(n) && !isHome(n)) odds.match_2 = Number(o.cf);
+        if (oc === '1' || oc === 'w1' || oc === 'home') putWin(odds, 'match_1', o);
+        else if (oc === '2' || oc === 'w2' || oc === 'away') putWin(odds, 'match_2', o);
+        else if (oc === 'x' || oc === 'draw') putWin(odds, 'match_X', o);
+        else if (isDraw(n)) putWin(odds, 'match_X', o);
+        else if (isHome(n) && !isAway(n)) putWin(odds, 'match_1', o);
+        else if (isAway(n) && !isHome(n)) putWin(odds, 'match_2', o);
       }
     }
     if (low === 'double chance (regular time)' || low === 'double chance') {
       for (const o of list) {
         const oc = (o.outcome || '').toString().toLowerCase().replace(/\s/g, '');
         const n = (o.name || '').toLowerCase();
-        if (oc === '1x' || oc === 'x1') odds.dc_1X = Number(o.cf);
-        else if (oc === '12' || oc === '21') odds.dc_12 = Number(o.cf);
-        else if (oc === 'x2' || oc === '2x') odds.dc_X2 = Number(o.cf);
-        else if (isDraw(n) && isHome(n)) odds.dc_1X = Number(o.cf);
-        else if (isDraw(n) && isAway(n)) odds.dc_X2 = Number(o.cf);
-        else if (isHome(n) && isAway(n)) odds.dc_12 = Number(o.cf);
+        if (oc === '1x' || oc === 'x1') putWin(odds, 'dc_1X', o);
+        else if (oc === '12' || oc === '21') putWin(odds, 'dc_12', o);
+        else if (oc === 'x2' || oc === '2x') putWin(odds, 'dc_X2', o);
+        else if (isDraw(n) && isHome(n)) putWin(odds, 'dc_1X', o);
+        else if (isDraw(n) && isAway(n)) putWin(odds, 'dc_X2', o);
+        else if (isHome(n) && isAway(n)) putWin(odds, 'dc_12', o);
       }
     }
     if (low === 'both teams to score') {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
-        if (n === 'yes' || n.includes('yes')) odds.btts_yes = Number(o.cf);
-        if (n === 'no' || n.includes('no')) odds.btts_no = Number(o.cf);
+        if (n === 'yes' || n.includes('yes')) putWin(odds, 'btts_yes', o);
+        if (n === 'no' || n.includes('no')) putWin(odds, 'btts_no', o);
       }
     }
     if (low.includes('draw no bet')) {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
-        if (isHome(n)) odds.dnb_1 = Number(o.cf);
-        else if (isAway(n)) odds.dnb_2 = Number(o.cf);
+        if (isHome(n)) putWin(odds, 'dnb_1', o);
+        else if (isAway(n)) putWin(odds, 'dnb_2', o);
       }
     }
     if (low === 'total') {
       for (const o of list) {
         const mo = (o.name || '').match(/over\s*\(?([\d.]+)/i);
         const mu = (o.name || '').match(/under\s*\(?([\d.]+)/i);
-        if (mo && isHalfLine(mo[1])) odds[`match_over_${parseFloat(mo[1])}`] = Number(o.cf);
-        if (mu && isHalfLine(mu[1])) odds[`match_under_${parseFloat(mu[1])}`] = Number(o.cf);
+        if (mo && isHalfLine(mo[1])) putWin(odds, `match_over_${parseFloat(mo[1])}`, o);
+        if (mu && isHalfLine(mu[1])) putWin(odds, `match_under_${parseFloat(mu[1])}`, o);
       }
     }
     if (/\btotal$/.test(low) && low !== 'total'
@@ -331,8 +343,8 @@ export function winFlatOdds(groups, names) {
         if (!m || !isHalfLine(m[1])) continue;
         const line = parseFloat(m[1]);
         const oc = (o.outcome || '').toLowerCase();
-        if (oc === 'over' || /over|plus/i.test(o.name)) odds[`tt_${side}_over_${line}`] = Number(o.cf);
-        else if (oc === 'under' || /under|moins/i.test(o.name)) odds[`tt_${side}_under_${line}`] = Number(o.cf);
+        if (oc === 'over' || /over|plus/i.test(o.name)) putWin(odds, `tt_${side}_over_${line}`, o);
+        else if (oc === 'under' || /under|moins/i.test(o.name)) putWin(odds, `tt_${side}_under_${line}`, o);
       }
     }
     if (low === 'handicap' || low === 'handicap (regular time)' || low === 'asian handicap') {
@@ -346,8 +358,8 @@ export function winFlatOdds(groups, names) {
         const scoreHome = tokenOverlap(teamPart, names.home);
         const scoreAway = tokenOverlap(teamPart, names.away);
         if (scoreHome === 0 && scoreAway === 0) continue;
-        if (scoreHome >= scoreAway) odds[`hcp_home_${line}`] = Number(o.cf);
-        else odds[`hcp_away_${line}`] = Number(o.cf);
+        if (scoreHome >= scoreAway) putWin(odds, `hcp_home_${line}`, o);
+        else putWin(odds, `hcp_away_${line}`, o);
       }
     }
     const PFX = { '1st half.': 'ht_', '2nd half.': 'h2_', 'corners.': 'cor_', 'corners. 1st half.': 'cor_ht_' };
@@ -358,26 +370,26 @@ export function winFlatOdds(groups, names) {
         for (const o of list) {
           const mo = (o.name || '').match(/over\s*\(?([\d.]+)/i);
           const mu = (o.name || '').match(/under\s*\(?([\d.]+)/i);
-          if (mo && isHalfLine(mo[1])) odds[`${pfx}over_${parseFloat(mo[1])}`] = Number(o.cf);
-          if (mu && isHalfLine(mu[1])) odds[`${pfx}under_${parseFloat(mu[1])}`] = Number(o.cf);
+          if (mo && isHalfLine(mo[1])) putWin(odds, `${pfx}over_${parseFloat(mo[1])}`, o);
+          if (mu && isHalfLine(mu[1])) putWin(odds, `${pfx}under_${parseFloat(mu[1])}`, o);
         }
       } else if (base === 'result') {
         for (const o of list) {
           const oc = (o.outcome || '').toString().toLowerCase().trim();
           const n = (o.name || '').toLowerCase();
-          if (oc === '1' || oc === 'w1' || oc === 'home') odds[`${pfx}match_1`] = Number(o.cf);
-          else if (oc === '2' || oc === 'w2' || oc === 'away') odds[`${pfx}match_2`] = Number(o.cf);
-          else if (oc === 'x' || oc === 'draw') odds[`${pfx}match_X`] = Number(o.cf);
-          else if (isDraw(n)) odds[`${pfx}match_X`] = Number(o.cf);
-          else if (isHome(n) && !isAway(n)) odds[`${pfx}match_1`] = Number(o.cf);
-          else if (isAway(n) && !isHome(n)) odds[`${pfx}match_2`] = Number(o.cf);
+          if (oc === '1' || oc === 'w1' || oc === 'home') putWin(odds, `${pfx}match_1`, o);
+          else if (oc === '2' || oc === 'w2' || oc === 'away') putWin(odds, `${pfx}match_2`, o);
+          else if (oc === 'x' || oc === 'draw') putWin(odds, `${pfx}match_X`, o);
+          else if (isDraw(n)) putWin(odds, `${pfx}match_X`, o);
+          else if (isHome(n) && !isAway(n)) putWin(odds, `${pfx}match_1`, o);
+          else if (isAway(n) && !isHome(n)) putWin(odds, `${pfx}match_2`, o);
         }
       } else if (base === 'double chance') {
         for (const o of list) {
           const oc = (o.outcome || '').toString().toLowerCase().replace(/\s/g, '');
-          if (oc === '1x' || oc === 'x1') odds[`${pfx}dc_1X`] = Number(o.cf);
-          else if (oc === '12' || oc === '21') odds[`${pfx}dc_12`] = Number(o.cf);
-          else if (oc === 'x2' || oc === '2x') odds[`${pfx}dc_X2`] = Number(o.cf);
+          if (oc === '1x' || oc === 'x1') putWin(odds, `${pfx}dc_1X`, o);
+          else if (oc === '12' || oc === '21') putWin(odds, `${pfx}dc_12`, o);
+          else if (oc === 'x2' || oc === '2x') putWin(odds, `${pfx}dc_X2`, o);
         }
       } else if (base === 'handicap') {
         for (const o of list) {
@@ -390,14 +402,14 @@ export function winFlatOdds(groups, names) {
           const scoreHome = tokenOverlap(teamPart, names.home);
           const scoreAway = tokenOverlap(teamPart, names.away);
           if (scoreHome === 0 && scoreAway === 0) continue;
-          if (scoreHome >= scoreAway) odds[`${pfx}hcp_home_${line}`] = Number(o.cf);
-          else odds[`${pfx}hcp_away_${line}`] = Number(o.cf);
+          if (scoreHome >= scoreAway) putWin(odds, `${pfx}hcp_home_${line}`, o);
+          else putWin(odds, `${pfx}hcp_away_${line}`, o);
         }
       } else if (base === 'total. even/odd' || base === 'odd/even' || base === 'even/odd') {
         for (const o of list) {
           const n = (o.name || '').toLowerCase();
-          if (n === 'odd' || /odd|impair/.test(n)) odds[`${pfx}odd`] = Number(o.cf);
-          if (n === 'even' || /even|pair/.test(n)) odds[`${pfx}even`] = Number(o.cf);
+          if (n === 'odd' || /odd|impair/.test(n)) putWin(odds, `${pfx}odd`, o);
+          if (n === 'even' || /even|pair/.test(n)) putWin(odds, `${pfx}even`, o);
         }
       }
     }
@@ -416,30 +428,30 @@ export function winFlatOdds(groups, names) {
           if (!m || !isHalfLine(m[1])) continue;
           const line = parseFloat(m[1]);
           const oc = (o.outcome || '').toLowerCase();
-          if (oc === 'over' || /over|plus/i.test(o.name)) odds[`${half}tt_${side}_over_${line}`] = Number(o.cf);
-          else if (oc === 'under' || /under|moins/i.test(o.name)) odds[`${half}tt_${side}_under_${line}`] = Number(o.cf);
+          if (oc === 'over' || /over|plus/i.test(o.name)) putWin(odds, `${half}tt_${side}_over_${line}`, o);
+          else if (oc === 'under' || /under|moins/i.test(o.name)) putWin(odds, `${half}tt_${side}_under_${line}`, o);
         }
       }
     }
     if (low.includes('draw no bet') && low.includes('1st half')) {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
-        if (isHome(n)) odds.ht_dnb_1 = Number(o.cf);
-        else if (isAway(n)) odds.ht_dnb_2 = Number(o.cf);
+        if (isHome(n)) putWin(odds, 'ht_dnb_1', o);
+        else if (isAway(n)) putWin(odds, 'ht_dnb_2', o);
       }
     }
     if (low.includes('draw no bet') && low.includes('2nd half')) {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
-        if (isHome(n)) odds.h2_dnb_1 = Number(o.cf);
-        else if (isAway(n)) odds.h2_dnb_2 = Number(o.cf);
+        if (isHome(n)) putWin(odds, 'h2_dnb_1', o);
+        else if (isAway(n)) putWin(odds, 'h2_dnb_2', o);
       }
     }
     if (low === 'odd/even' || low === 'total. even/odd') {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
-        if (n === 'odd' || /odd|impair/.test(n)) odds.odd = Number(o.cf);
-        if (n === 'even' || /even|pair/.test(n)) odds.even = Number(o.cf);
+        if (n === 'odd' || /odd|impair/.test(n)) putWin(odds, 'odd', o);
+        if (n === 'even' || /even|pair/.test(n)) putWin(odds, 'even', o);
       }
     }
     // Helper strict yes/no : n'accepte QUE outcome_type explicite (yes/no/w1/w2)
@@ -456,25 +468,25 @@ export function winFlatOdds(groups, names) {
     if (/1st half.*both teams|both teams.*1st half/i.test(low)) {
       for (const o of list) {
         const yn = yesNo(o);
-        if (yn === 'yes') odds.ht_btts_yes = Number(o.cf);
-        else if (yn === 'no') odds.ht_btts_no = Number(o.cf);
+        if (yn === 'yes') putWin(odds, 'ht_btts_yes', o);
+        else if (yn === 'no') putWin(odds, 'ht_btts_no', o);
       }
     }
     // 2nd half BTTS.
     if (/2nd half.*both teams|both teams.*2nd half/i.test(low)) {
       for (const o of list) {
         const yn = yesNo(o);
-        if (yn === 'yes') odds.h2_btts_yes = Number(o.cf);
-        else if (yn === 'no') odds.h2_btts_no = Number(o.cf);
+        if (yn === 'yes') putWin(odds, 'h2_btts_yes', o);
+        else if (yn === 'no') putWin(odds, 'h2_btts_no', o);
       }
     }
     // 2nd half double chance.
     if (/2nd half.*double chance/i.test(low)) {
       for (const o of list) {
         const oc = (o.outcome || '').toString().toLowerCase().replace(/\s/g, '');
-        if (oc === '1x' || oc === 'x1') odds.h2_dc_1X = Number(o.cf);
-        else if (oc === '12' || oc === '21') odds.h2_dc_12 = Number(o.cf);
-        else if (oc === 'x2' || oc === '2x') odds.h2_dc_X2 = Number(o.cf);
+        if (oc === '1x' || oc === 'x1') putWin(odds, 'h2_dc_1X', o);
+        else if (oc === '12' || oc === '21') putWin(odds, 'h2_dc_12', o);
+        else if (oc === 'x2' || oc === '2x') putWin(odds, 'h2_dc_X2', o);
       }
     }
     // Corners total.
@@ -485,17 +497,17 @@ export function winFlatOdds(groups, names) {
     if (/corners.*odd.*even|corners.*even.*odd/i.test(low)) {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
-        if (/odd|impair/.test(n)) odds.cor_odd = Number(o.cf);
-        if (/even|pair/.test(n)) odds.cor_even = Number(o.cf);
+        if (/odd|impair/.test(n)) putWin(odds, 'cor_odd', o);
+        if (/even|pair/.test(n)) putWin(odds, 'cor_even', o);
       }
     }
     if (/first (team to score|goal)|which team scores first|team to score first/.test(low)) {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
         const oc = (o.outcome || '').toString().toLowerCase().trim();
-        if (/no goal|neither|none|nobody/.test(n) || oc === 'no goal') { odds.fts_none = Number(o.cf); continue; }
-        if (isHome(n) && !isAway(n)) odds.fts_home = Number(o.cf);
-        else if (isAway(n) && !isHome(n)) odds.fts_away = Number(o.cf);
+        if (/no goal|neither|none|nobody/.test(n) || oc === 'no goal') { putWin(odds, 'fts_none', o); continue; }
+        if (isHome(n) && !isAway(n)) putWin(odds, 'fts_home', o);
+        else if (isAway(n) && !isHome(n)) putWin(odds, 'fts_away', o);
       }
     }
   }
