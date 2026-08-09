@@ -245,6 +245,32 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   }
   log(`📊 distribution confirmed par book — ${usable.map((b) => `${b.key}:${bookConfirmed[b.key]}`).join(' | ')}`);
 
+  // Coupon fill rate par book — combien de legs ont coupon != null / total legs
+  // du book dans les opps confirmées. Cible : 100% pour books enrichis (all
+  // sauf yellowbet/betmomo qui restent null car CF).
+  const couponStats = {};
+  const familyMiss = {};
+  for (const b of usable) couponStats[b.key] = { total: 0, filled: 0 };
+  for (const o of confirmed) {
+    for (const [side, book, coupon] of [
+      ['a', o.leg_a_book, o.leg_a_coupon],
+      ['b', o.leg_b_book, o.leg_b_coupon],
+    ]) {
+      if (!book) continue;
+      couponStats[book] = couponStats[book] || { total: 0, filled: 0 };
+      couponStats[book].total++;
+      if (coupon) couponStats[book].filled++;
+      else {
+        const key = `${book}|${o.market_family}`;
+        familyMiss[key] = (familyMiss[key] || 0) + 1;
+      }
+    }
+  }
+  log(`🎫 coupon fill rate — ${Object.entries(couponStats).filter(([, s]) => s.total > 0).map(([b, s]) => `${b}:${s.filled}/${s.total}`).join(' | ')}`);
+  // Top families qui echouent (au dela des books sans support coupon)
+  const topMiss = Object.entries(familyMiss).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  if (topMiss.length) log(`   ❌ top marches sans coupon : ${topMiss.map(([k, n]) => `${k}(${n})`).join(' | ')}`);
+
   // Log les 5 premières opps envoyées (sample) : profit, marché, books, matches
   if (confirmed.length) {
     log(`📤 Sample opps envoyees :`);
