@@ -10,7 +10,7 @@ import { tokenOverlap } from '../../core/text.js';
 // "<groupId>:<uniqueId>:<outcome>" (ex "10:21612258419570790:1"). matchId est
 // ajoute par collect.js depuis match.id.
 function putWin(odds, key, o) {
-  putWin(odds, key, o);
+  odds[key] = Number(o.cf);
   if (!odds._ids) odds._ids = {};
   odds._ids[key] = { oddId: o.id != null ? String(o.id) : null };
 }
