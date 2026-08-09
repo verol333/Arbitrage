@@ -24,38 +24,41 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72,
     }
     const real = games.filter((g) => !isOutright(g) && !isVirtual(g)).slice(0, limit);
     if (!real.length) return [];
+    // Batches paralleles sur la meme WS session — chaque send() est une requete
+    // independante rid=rN awaitable. Sequentiel prenait ~1s/batch × 40 batches
+    // = 40s pour foot (limit 1200 / BATCH 30), depassant le timeout 45s.
+    // Parallelise → 40 batches / 8 concurrents = 5s roundtrip max.
     const BATCH = 30;
-    const out = [];
-    for (let i = 0; i < real.length; i += BATCH) {
-      const chunk = real.slice(i, i + BATCH);
-      const ids = chunk.map((g) => g.id);
-      // is_open/is_active : SWARM expose potentiellement un flag suspendu par
-      // event ou par market. Sans ce flag, on lit les prix figes des marches
-      // suspendus (dernier prix avant suspension) → fake arbs live systematiques.
-      // On demande les 2 niveaux (market + event) car SWARM les positionne
-      // parfois different selon les operateurs (BetMomo=Digitain-SWARM).
-      const oddsData = await send(
-        { game: ['id'], market: ['name', 'type', 'col_count', 'group_name', 'group_id', 'is_open', 'is_active'], event: ['name', 'price', 'base', 'type_1', 'type', 'is_open', 'is_active', 'status'] },
-        { game: { id: { '@in': ids } } },
-      );
-      const byId = {};
+    const chunks = [];
+    for (let i = 0; i < real.length; i += BATCH) chunks.push(real.slice(i, i + BATCH));
+    const oddsFields = { game: ['id'], market: ['name', 'type', 'col_count', 'group_name', 'group_id', 'is_open', 'is_active'], event: ['name', 'price', 'base', 'type_1', 'type', 'is_open', 'is_active', 'status'] };
+    // is_open/is_active : SWARM expose un flag suspendu par event/market. Sans
+    // ce flag, on lit les prix figes des marches suspendus (dernier prix avant
+    // suspension) → fake arbs live systematiques. On demande les 2 niveaux
+    // (market + event) car SWARM les positionne different selon operateurs.
+    const results = await Promise.all(chunks.map((chunk) =>
+      send(oddsFields, { game: { id: { '@in': chunk.map((g) => g.id) } } })
+    ));
+    const byId = {};
+    for (const oddsData of results) {
       for (const g of Object.values(oddsData?.game || {})) byId[g.id] = g;
-      for (const g of chunk) {
-        const withOdds = byId[g.id];
-        const markets = withOdds ? Object.values(withOdds.market || {}) : [];
-        const info = g.info || {};
-        const s1 = info.score1, s2 = info.score2;
-        const score = (s1 != null && s2 != null) ? `${s1}-${s2}` : null;
-        const minute = info.current_game_time != null ? Number(info.current_game_time) : null;
-        const period = info.current_game_state || null;
-        out.push({
-          id: g.id, home: g.team1_name, away: g.team2_name, league: g.league || '',
-          start: g.start_ts ? g.start_ts * 1000 : null,
-          __raw: { markets },
-          live: live ? { score, minute: Number.isFinite(minute) ? minute : null, period } : null,
-        });
-      }
+    }
+    const out = [];
+    for (const g of real) {
+      const withOdds = byId[g.id];
+      const markets = withOdds ? Object.values(withOdds.market || {}) : [];
+      const info = g.info || {};
+      const s1 = info.score1, s2 = info.score2;
+      const score = (s1 != null && s2 != null) ? `${s1}-${s2}` : null;
+      const minute = info.current_game_time != null ? Number(info.current_game_time) : null;
+      const period = info.current_game_state || null;
+      out.push({
+        id: g.id, home: g.team1_name, away: g.team2_name, league: g.league || '',
+        start: g.start_ts ? g.start_ts * 1000 : null,
+        __raw: { markets },
+        live: live ? { score, minute: Number.isFinite(minute) ? minute : null, period } : null,
+      });
     }
     return out;
-  });
+  }, { timeoutMs: 90_000 });
 }
