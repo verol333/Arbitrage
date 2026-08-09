@@ -1,40 +1,34 @@
 #!/usr/bin/env node
-// PROBE YellowBet BASKET — dump complet des marches d'un match basket YB
-// pour identifier le nom exact des marches Handicap (et voir si notre
-// parseur les rate).
-//
-// Sortie : liste TOUS les bts avec nom, id, count odds, et pour chaque
-// odd le n/l/p pour comprendre la structure de la ligne (est-ce integer,
-// demi-ligne, ou embedded dans le nom ?).
+// PROBE YellowBet BASKET — dump complet des marches embarques dans le listing
+// (ev.bts du GetEvents), c'est ce que le scanner prematch utilise reellement.
+// GetEventDetails 503 systematique, donc inutile de le probe.
 
-import { evapi, BASE_URL, fetchMatchBts } from '../src/bookmakers/yellowbet/api.js';
-import { listPrematch } from '../src/bookmakers/yellowbet/list.js';
+import { evapi, BASE_URL } from '../src/bookmakers/yellowbet/api.js';
 
-console.log('▶ PROBE YELLOWBET BASKET MARKETS\n');
+console.log('▶ PROBE YB BASKET — dump ev.bts embarque dans GetEvents\n');
 
-const list = await listPrematch(168, 'basket');
-console.log(`Basket matchs listes : ${list.length}\n`);
-if (!list.length) {
-  console.log('❌ Pas de match basket dispo (403 CF ?). Abandon.');
-  process.exit(0);
-}
+const url = `${BASE_URL}/event/GetEvents?skip=0&take=500&count=500`;
+const data = await evapi(url);
+const events = Array.isArray(data?.data) ? data.data : [];
+console.log(`GetEvents total : ${events.length}`);
 
-// Prend les 3 premiers matchs
-for (const m of list.slice(0, 3)) {
+const basket = events.filter((ev) => ev?.sid === 32 && !ev.lv);
+console.log(`Basket prematch (sid=32) : ${basket.length}\n`);
+
+if (!basket.length) { console.log('❌ Aucun match basket.'); process.exit(0); }
+
+// Prend les 3 premiers matchs basket
+for (const ev of basket.slice(0, 3)) {
   console.log(`══════════════════════════════════════════════════════════════`);
-  console.log(`MATCH id=${m.id} : ${m.home} vs ${m.away}`);
-  console.log(`  league: ${m.league}`);
-  console.log(`  start: ${m.start ? new Date(m.start).toISOString() : 'null'}`);
+  console.log(`MATCH id=${ev.id} : ${ev.h} vs ${ev.a}`);
+  console.log(`  league: ${ev.ln} | start: ${ev.gt}`);
+  const bts = Array.isArray(ev.bts) ? ev.bts : [];
+  console.log(`  ev.bts count : ${bts.length}\n`);
+  if (!bts.length) { console.log('  ⚠️ bts vide dans listing.\n'); continue; }
 
-  // Fetch full details
-  const bts = await fetchMatchBts(m.id);
-  console.log(`  bts count : ${bts.length}\n`);
-
-  // Dump ALL bt names
   for (const b of bts) {
     const oddCount = (b.odds || []).length;
     console.log(`  [bt id=${b.id}] "${b.n}" (${oddCount} odds)`);
-    // Show first 8 odds with full structure
     for (const o of (b.odds || []).slice(0, 12)) {
       const parts = [];
       if (o.n != null) parts.push(`n="${o.n}"`);
@@ -49,14 +43,11 @@ for (const m of list.slice(0, 3)) {
   }
   console.log('');
 
-  // Identifier tous les bts dont le nom contient handicap-like
   const hcpBts = bts.filter((b) => /handicap|spread|ecart|difference|marge/i.test(String(b?.n || '')));
   console.log(`  ➜ bts nom-like Handicap : ${hcpBts.length}`);
   for (const b of hcpBts) {
-    console.log(`     [${b.id}] "${b.n}" — odds sample:`);
-    for (const o of (b.odds || []).slice(0, 6)) {
-      console.log(`         ${JSON.stringify(o)}`);
-    }
+    console.log(`     [${b.id}] "${b.n}"`);
+    for (const o of (b.odds || []).slice(0, 8)) console.log(`         ${JSON.stringify(o)}`);
   }
   console.log('');
 }
