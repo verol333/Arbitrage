@@ -13,8 +13,14 @@ jobs:
           node-version: 20
       - name: Install deps (root ESM)
         run: npm init -y && npm install --no-audit --no-fund ws got-scraping
-      - name: Run hockey discovery
+      - name: Run hockey discovery v1
         env:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
         run: node scripts/probe-hockey-discovery.js
+      - name: Run hockey discovery v2 (4 books restants)
+        if: always()
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+        run: node scripts/probe-hockey-discovery-v2.js
