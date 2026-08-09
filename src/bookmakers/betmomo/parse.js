@@ -2,10 +2,32 @@
 // Un seul switch sur `market.type`. Chaque case émet des clés standardisées.
 import { isHalfLine } from '../../core/markets.js';
 
+
+// Helper : ecrit odds[k] = v ET odds._ids[k] = { marketType, marketName,
+// groupId, groupName, eventType, eventName, gameId, base } — champs SWARM
+// natifs BetMomo requis SaveCoupon /image-creator/share-booking/ (body inclut
+// siteId + events avec eventId+gameId+price+betType). eventId (matchId) et
+// siteId (211) ajoutes par collect.js.
+function putBm(odds, k, v, m, e) {
+  odds[k] = v;
+  if (!odds._ids) odds._ids = {};
+  odds._ids[k] = {
+    marketType: String(m?.type ?? ''),
+    marketName: String(m?.name ?? ''),
+    groupId: m?.group_id ?? null,
+    groupName: String(m?.group_name ?? ''),
+    eventType: String(e?.type ?? ''),
+    eventName: String(e?.name ?? ''),
+    gameId: e?.game_id ?? e?.gameId ?? null,
+    base: e?.base ?? null,
+    price: v,
+  };
+}
+
 export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
   if (sport === 'tennis') return betmomoTennisFlatOdds(markets);
   if (sport === 'basket') return betmomoBasketFlatOdds(markets);
-  const odds = {};
+  const odds = { _ids: {} };
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);
   const ok = (e) => e && e.price != null && Number(e.price) > 1;
@@ -18,24 +40,24 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
     const put1x2 = (pfx) => {
       for (const e of list) {
         const ty = String(e.type_1 || e.type || '').toLowerCase();
-        if (ty === 'w1' || ty === 'home' || ty === '1') odds[`${pfx}match_1`] = price(e);
-        else if (ty === 'x' || ty === 'draw') odds[`${pfx}match_X`] = price(e);
-        else if (ty === 'w2' || ty === 'away' || ty === '2') odds[`${pfx}match_2`] = price(e);
+        if (ty === 'w1' || ty === 'home' || ty === '1') putBm(odds, `${pfx}match_1`, price(e), m, e);
+        else if (ty === 'x' || ty === 'draw') putBm(odds, `${pfx}match_X`, price(e), m, e);
+        else if (ty === 'w2' || ty === 'away' || ty === '2') putBm(odds, `${pfx}match_2`, price(e), m, e);
       }
     };
     const putDC = (pfx) => {
       for (const e of list) {
         const ty = String(e.type_1 || e.type || '').toLowerCase().replace(/\s/g, '');
-        if (ty === '1x' || ty === 'x1') odds[`${pfx}dc_1X`] = price(e);
-        else if (ty === '12' || ty === '21') odds[`${pfx}dc_12`] = price(e);
-        else if (ty === 'x2' || ty === '2x') odds[`${pfx}dc_X2`] = price(e);
+        if (ty === '1x' || ty === 'x1') putBm(odds, `${pfx}dc_1X`, price(e), m, e);
+        else if (ty === '12' || ty === '21') putBm(odds, `${pfx}dc_12`, price(e), m, e);
+        else if (ty === 'x2' || ty === '2x') putBm(odds, `${pfx}dc_X2`, price(e), m, e);
       }
     };
     const putBtts = (pfx) => {
       for (const e of list) {
         const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
-        if (/yes|oui/.test(ty)) odds[`${pfx}btts_yes`] = price(e);
-        else if (/no|non/.test(ty)) odds[`${pfx}btts_no`] = price(e);
+        if (/yes|oui/.test(ty)) putBm(odds, `${pfx}btts_yes`, price(e), m, e);
+        else if (/no|non/.test(ty)) putBm(odds, `${pfx}btts_no`, price(e), m, e);
       }
     };
     const putTotal = (pfx) => {
@@ -43,8 +65,8 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const ty = String(e.type_1 || e.type || '').toLowerCase();
-        if (ty === 'over') odds[`${pfx}over_${base}`] = price(e);
-        else if (ty === 'under') odds[`${pfx}under_${base}`] = price(e);
+        if (ty === 'over') putBm(odds, `${pfx}over_${base}`, price(e), m, e);
+        else if (ty === 'under') putBm(odds, `${pfx}under_${base}`, price(e), m, e);
       }
     };
     const putTeamTotal = (side, pfx) => {
@@ -52,8 +74,8 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const ty = String(e.type_1 || e.type || '').toLowerCase();
-        if (ty === 'over') odds[`${pfx}tt_${side}_over_${base}`] = price(e);
-        else if (ty === 'under') odds[`${pfx}tt_${side}_under_${base}`] = price(e);
+        if (ty === 'over') putBm(odds, `${pfx}tt_${side}_over_${base}`, price(e), m, e);
+        else if (ty === 'under') putBm(odds, `${pfx}tt_${side}_under_${base}`, price(e), m, e);
       }
     };
     const putHcp = (pfx) => {
@@ -61,22 +83,22 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const ty = String(e.type_1 || e.type || '').toLowerCase();
-        if (ty === 'home') odds[`${pfx}hcp_home_${base}`] = price(e);
-        else if (ty === 'away') odds[`${pfx}hcp_away_${base}`] = price(e);
+        if (ty === 'home') putBm(odds, `${pfx}hcp_home_${base}`, price(e), m, e);
+        else if (ty === 'away') putBm(odds, `${pfx}hcp_away_${base}`, price(e), m, e);
       }
     };
     const putOddEven = (pfx) => {
       for (const e of list) {
         const ty = String(e.type_1 || e.type || e.name || '').toLowerCase();
-        if (/odd|impair/.test(ty)) odds[`${pfx}odd`] = price(e);
-        else if (/even|pair/.test(ty)) odds[`${pfx}even`] = price(e);
+        if (/odd|impair/.test(ty)) putBm(odds, `${pfx}odd`, price(e), m, e);
+        else if (/even|pair/.test(ty)) putBm(odds, `${pfx}even`, price(e), m, e);
       }
     };
     const putDnb = (pfx) => {
       for (const e of list) {
         const ty = String(e.type_1 || e.type || '').toLowerCase();
-        if (ty === 'home' || ty === 'w1' || ty === '1') odds[`${pfx}dnb_1`] = price(e);
-        else if (ty === 'away' || ty === 'w2' || ty === '2') odds[`${pfx}dnb_2`] = price(e);
+        if (ty === 'home' || ty === 'w1' || ty === '1') putBm(odds, `${pfx}dnb_1`, price(e), m, e);
+        else if (ty === 'away' || ty === 'w2' || ty === '2') putBm(odds, `${pfx}dnb_2`, price(e), m, e);
       }
     };
 
@@ -128,17 +150,17 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
       case 'FirstTeamToScore': {
         for (const e of list) {
           const ty = String(e.type_1 || e.type || '').toLowerCase();
-          if (ty === 'home' || ty === 'w1' || ty === '1') odds.fts_home = price(e);
-          else if (ty === 'away' || ty === 'w2' || ty === '2') odds.fts_away = price(e);
-          else if (/no goal|none|neither/.test(ty)) odds.fts_none = price(e);
+          if (ty === 'home' || ty === 'w1' || ty === '1') putBm(odds, 'fts_home', price(e), m, e);
+          else if (ty === 'away' || ty === 'w2' || ty === '2') putBm(odds, 'fts_away', price(e), m, e);
+          else if (/no goal|none|neither/.test(ty)) putBm(odds, 'fts_none', price(e), m, e);
         } break;
       }
       case 'HalfWithMostGoals': case 'HighestScoringHalf': {
         for (const e of list) {
           const ty = String(e.type_1 || e.type || '').toLowerCase();
-          if (ty === '1st half' || ty === '1' || ty === 'first') odds.half_most_ht = price(e);
-          else if (ty === '2nd half' || ty === '2' || ty === 'second') odds.half_most_h2 = price(e);
-          else if (/equal|tie|draw|x/.test(ty)) odds.half_most_equal = price(e);
+          if (ty === '1st half' || ty === '1' || ty === 'first') putBm(odds, 'half_most_ht', price(e), m, e);
+          else if (ty === '2nd half' || ty === '2' || ty === 'second') putBm(odds, 'half_most_h2', price(e), m, e);
+          else if (/equal|tie|draw|x/.test(ty)) putBm(odds, 'half_most_equal', price(e), m, e);
         } break;
       }
 
@@ -167,7 +189,7 @@ function periodPfxFromName(name) {
 }
 
 function betmomoBasketFlatOdds(markets) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!Array.isArray(markets) && typeof markets !== 'object') return odds;
   const list = Array.isArray(markets) ? markets : Object.values(markets || {});
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
@@ -184,8 +206,8 @@ function betmomoBasketFlatOdds(markets) {
     if (t === 'P1P2' && /^match winner$/i.test(name)) {
       for (const e of events) {
         const et = String(e.type || '').toUpperCase();
-        if (et === 'P1') odds.match_1 = price(e);
-        else if (et === 'P2') odds.match_2 = price(e);
+        if (et === 'P1') putBm(odds, 'match_1', price(e), m, e);
+        else if (et === 'P2') putBm(odds, 'match_2', price(e), m, e);
       }
       continue;
     }
@@ -196,8 +218,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'over') odds[`match_over_${base}`] = price(e);
-        else if (et === 'under') odds[`match_under_${base}`] = price(e);
+        if (et === 'over') putBm(odds, `match_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `match_under_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -208,8 +230,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (base == null || !isHalfLine(Math.abs(base))) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'home') odds[`hcp_home_${base}`] = price(e);
-        else if (et === 'away') odds[`hcp_away_${base}`] = price(e);
+        if (et === 'home') putBm(odds, `hcp_home_${base}`, price(e), m, e);
+        else if (et === 'away') putBm(odds, `hcp_away_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -220,8 +242,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'over') odds[`tt_home_over_${base}`] = price(e);
-        else if (et === 'under') odds[`tt_home_under_${base}`] = price(e);
+        if (et === 'over') putBm(odds, `tt_home_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `tt_home_under_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -232,8 +254,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'over') odds[`tt_away_over_${base}`] = price(e);
-        else if (et === 'under') odds[`tt_away_under_${base}`] = price(e);
+        if (et === 'over') putBm(odds, `tt_away_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `tt_away_under_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -242,8 +264,8 @@ function betmomoBasketFlatOdds(markets) {
     if (t === 'MatchOddEvenTotal') {
       for (const e of events) {
         const et = String(e.type || '').toLowerCase();
-        if (et === 'odd') odds.odd = price(e);
-        else if (et === 'even') odds.even = price(e);
+        if (et === 'odd') putBm(odds, 'odd', price(e), m, e);
+        else if (et === 'even') putBm(odds, 'even', price(e), m, e);
       }
       continue;
     }
@@ -256,8 +278,8 @@ function betmomoBasketFlatOdds(markets) {
     if (t === 'QuarterWinner2' || t === 'HalfWinner2') {
       for (const e of events) {
         const et = String(e.type || '').toUpperCase();
-        if (et === 'P1') odds[`${pfx}match_1`] = price(e);
-        else if (et === 'P2') odds[`${pfx}match_2`] = price(e);
+        if (et === 'P1') putBm(odds, `${pfx}match_1`, price(e), m, e);
+        else if (et === 'P2') putBm(odds, `${pfx}match_2`, price(e), m, e);
       }
       continue;
     }
@@ -268,8 +290,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'over') odds[`${pfx}over_${base}`] = price(e);
-        else if (et === 'under') odds[`${pfx}under_${base}`] = price(e);
+        if (et === 'over') putBm(odds, `${pfx}over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `${pfx}under_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -280,8 +302,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (base == null || !isHalfLine(Math.abs(base))) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'home') odds[`${pfx}hcp_home_${base}`] = price(e);
-        else if (et === 'away') odds[`${pfx}hcp_away_${base}`] = price(e);
+        if (et === 'home') putBm(odds, `${pfx}hcp_home_${base}`, price(e), m, e);
+        else if (et === 'away') putBm(odds, `${pfx}hcp_away_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -292,8 +314,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'over') odds[`${pfx}tt_home_over_${base}`] = price(e);
-        else if (et === 'under') odds[`${pfx}tt_home_under_${base}`] = price(e);
+        if (et === 'over') putBm(odds, `${pfx}tt_home_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `${pfx}tt_home_under_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -304,8 +326,8 @@ function betmomoBasketFlatOdds(markets) {
         const base = Number(e.base);
         if (!isHalfLine(base)) continue;
         const et = String(e.type || '').toLowerCase();
-        if (et === 'over') odds[`${pfx}tt_away_over_${base}`] = price(e);
-        else if (et === 'under') odds[`${pfx}tt_away_under_${base}`] = price(e);
+        if (et === 'over') putBm(odds, `${pfx}tt_away_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `${pfx}tt_away_under_${base}`, price(e), m, e);
       }
       continue;
     }
@@ -314,8 +336,8 @@ function betmomoBasketFlatOdds(markets) {
     if (t === 'QuarterOddEvenTotal' || t === 'HalfOddEvenTotal') {
       for (const e of events) {
         const et = String(e.type || '').toLowerCase();
-        if (et === 'odd') odds[`${pfx}odd`] = price(e);
-        else if (et === 'even') odds[`${pfx}even`] = price(e);
+        if (et === 'odd') putBm(odds, `${pfx}odd`, price(e), m, e);
+        else if (et === 'even') putBm(odds, `${pfx}even`, price(e), m, e);
       }
       continue;
     }
@@ -330,7 +352,7 @@ function betmomoBasketFlatOdds(markets) {
 // name=W1/W2/Over/Under/etc.
 // ═══════════════════════════════════════════════════════════════
 function betmomoTennisFlatOdds(markets) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!Array.isArray(markets) && typeof markets !== 'object') return odds;
   const list = Array.isArray(markets) ? markets : Object.values(markets || {});
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));

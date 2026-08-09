@@ -170,8 +170,8 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         // Voir docs/coupon-codes-research.md pour matrice books generables.
         // YellowBet/BetMomo : coupon_data reste null (403 CF sur SaveCoupon
         // impossible a bypass depuis Deno) → pas de bouton "Generer" cote UI.
-        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt, live);
-        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt, live);
+        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt, live, matches[a.leg_a_book]);
+        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt, live, matches[a.leg_b_book]);
         // Nettoyer les IDs internes (transportes via pushArb) avant envoi
         delete a.leg_a_ids; delete a.leg_b_ids;
         all.push({
@@ -765,10 +765,7 @@ export function shortMatchLabel(home, away) {
 //
 // L'eventId (match.id du book) est ajoute pour les books ou le SaveCoupon en
 // a besoin (SportyBet, 1win). Les autres l'ont deja dans les ids natifs.
-function buildCoupon(book, ids, matchId, price, readAt, live) {
-  // YellowBet + BetMomo definitivement non generable → null explicite (le
-  // dispatcher backend saura masquer le bouton "Generer").
-  if (book === 'yellowbet' || book === 'betmomo') return null;
+function buildCoupon(book, ids, matchId, price, readAt, live, match) {
   // Pas d'ids extraits par le parseur → coupon non generable pour cette cote
   // (le parseur du book n'a pas encore ete enrichi ou marche non supporte).
   if (!ids) return null;
@@ -781,6 +778,22 @@ function buildCoupon(book, ids, matchId, price, readAt, live) {
   if (book === '1xbet') {
     if (matchId != null) coupon.gameId = String(matchId);
     coupon.kind = live ? 1 : 3;
+  }
+  // YellowBet : eventId + contexte match complet (homeName/awayName/gameTime/
+  // isLive) requis par le body /placebetsport selections[].
+  if (book === 'yellowbet') {
+    if (matchId != null) coupon.eventId = Number(matchId);
+    if (match?.home) coupon.homeName = match.home;
+    if (match?.away) coupon.awayName = match.away;
+    if (match?.start) coupon.gameTime = new Date(match.start).toISOString();
+    coupon.isLive = !!live;
+  }
+  // BetMomo : eventId + siteId (211 pour BetMomo) requis par
+  // /image-creator/share-booking/. Le parseur fournit deja marketType/
+  // groupId/eventType/gameId/base — le backend construit le body avec ca.
+  if (book === 'betmomo') {
+    if (matchId != null) coupon.eventId = Number(matchId);
+    coupon.siteId = 211;
   }
   // Merger les IDs natifs du parseur en dernier (peuvent overrider les defaults)
   return { ...coupon, ...ids };
