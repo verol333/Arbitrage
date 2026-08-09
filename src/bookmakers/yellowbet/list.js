@@ -8,7 +8,7 @@ import { BASE_URL, evapi, isVirtual, toMatch } from './api.js';
 // Hockey : introuvable dans le catalogue YellowBet (pas d'événements identifiés).
 // Note : le paramètre `sportIds=` semble ignoré côté API — on doit filtrer
 // côté client via ev.sid après un fetch large.
-const SPORT_IDS = { football: 31, tennis: 35 };
+const SPORT_IDS = { football: 31, tennis: 35, basket: 32 };
 
 // L'URL avec fromDate/toDate déclenche un 403 Cloudflare (pattern typique scraper).
 // L'URL simple ?count=N&take=N (comme utilisée en live) passe. On filtre l'horizon

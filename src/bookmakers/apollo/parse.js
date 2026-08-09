@@ -15,6 +15,10 @@ function eachOdd(offers, key, cb) {
 
 export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   if (sport === 'tennis') return apolloTennisFlatOdds(offers);
+  // Basket : BetTypeKey basket Apollo non probes en prod. Sans mapping valide,
+  // retourner odds vides plutot que mismapper des keys foot/tennis sur du basket
+  // (produirait des fake arbs). A activer apres probe basket depuis GH Actions.
+  if (sport === 'basket') return {};
   const odds = {};
   if (!offers || !offers.length) return odds;
 

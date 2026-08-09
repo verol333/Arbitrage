@@ -221,3 +221,56 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
   }
   return odds;
 }
+
+// ─── BASKET (marches incl OT, 2-way : pas de X) ─────────────────────────
+// Marches YB basket typiques (bts[].n) :
+//   "FT" ou "Winner" → match_1/match_2
+//   "Under/Over" → match_over_L/match_under_L (L = ligne points, ex 155.5)
+//   "Handicap" ou "Asian Handicap" → hcp_home_L/hcp_away_L
+export function yellowbetBasketFlatOdds(bts, { live = false } = {}) {
+  const odds = { _ids: {} };
+  if (!Array.isArray(bts)) return odds;
+  let mkt = null;
+  const put = (k, c, o) => {
+    if (!c || (odds[k] && c <= odds[k])) return;
+    odds[k] = c;
+    if (mkt && o) {
+      odds._ids[k] = {
+        betTypeId: mkt?.id,
+        betTypeName: String(mkt?.n || ''),
+        oddKey: String(o?.n ?? ''),
+        oddName: String(o?.n ?? ''),
+        oddDisplayName: String(o?.n ?? ''),
+        oddPrice: c,
+      };
+    }
+  };
+  // Winner FT incl OT (2-way, pas de X en basket)
+  const winnerMkt = findMarket(bts, 'FT') || findMarket(bts, 'Winner') || bts.find((m) => /^winner|^ft$|match winner/i.test(String(m?.n || '')));
+  mkt = winnerMkt;
+  if (winnerMkt) for (const o of winnerMkt.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1' || n === 'home') put('match_1', c, o);
+    else if (n === '2' || n === 'away') put('match_2', c, o);
+  }
+  // Under/Over points (Total incl OT)
+  const totalMkt = findMarket(bts, 'Under/Over') || findMarket(bts, 'Total') || bts.find((m) => /^total$|under.*over/i.test(String(m?.n || '')));
+  mkt = totalMkt;
+  if (totalMkt) for (const o of totalMkt.odds || []) {
+    const l = lineOf(o); if (!isHalfLine(l)) continue;
+    const n = lbl(o), c = priceOf(o);
+    if (n === 'over') put(`match_over_${l}`, c, o);
+    else if (n === 'under') put(`match_under_${l}`, c, o);
+  }
+  // Handicap points — chercher par regex sur les noms de marche
+  for (const mktLoop of bts.filter((m) => /handicap|point.?spread/i.test(String(m?.n || ''))).slice(0, 3)) {
+    mkt = mktLoop;
+    for (const o of mkt.odds || []) {
+      const l = lineOf(o); if (!isHalfLine(l)) continue;
+      const n = lbl(o), c = priceOf(o);
+      if (n === '1' || n === 'home') put(`hcp_home_${l}`, c, o);
+      else if (n === '2' || n === 'away') put(`hcp_away_${-l}`, c, o);
+    }
+  }
+  return odds;
+}

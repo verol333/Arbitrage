@@ -195,6 +195,10 @@ function parseLive(markets, odds) {
 export function premierbetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
   const odds = {};
   if (sport === 'tennis') parseTennis(markets, odds);
+  // Basket : marketType IDs basket PremierBet non probes en prod. Sans mapping
+  // valide, retourner odds vides plutot que mismapper des IDs foot/tennis sur du
+  // basket (produirait des fake arbs). A activer apres probe depuis GH Actions.
+  else if (sport === 'basket') return odds;
   else if (live) parseLive(markets, odds);
   else parsePrematch(markets, odds);
   return odds;

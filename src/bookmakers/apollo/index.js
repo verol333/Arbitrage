@@ -6,7 +6,7 @@ export default {
   label: 'Apollo Games',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (sport !== 'football' && sport !== 'tennis') return [];
+    if (sport !== 'football' && sport !== 'tennis' && sport !== 'basket') return [];
     return listMatches({ live, sport });
   },
   async getOdds(match, { sport = 'football' } = {}) {

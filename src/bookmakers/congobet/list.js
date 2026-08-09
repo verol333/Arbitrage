@@ -4,7 +4,7 @@ import { CONGO_API, congoJson } from './api.js';
 //   101=Football (K-League 2 etc.), 102=Basketball (VBA), 103=Tennis (ATP),
 //   104=Rugby XV (Currie Cup), 105=Canadian Football (CFL), 107=Baseball (MLB).
 // Hockey/Volley : non identifiés dans le catalogue Congobet (probe testé 101..115).
-const SPORT_IDS = { football: '101', tennis: '103' };
+const SPORT_IDS = { football: '101', tennis: '103', basket: '102' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);

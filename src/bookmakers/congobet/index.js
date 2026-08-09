@@ -6,8 +6,8 @@ export default {
   label: 'Congobet',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (sport !== 'football' && sport !== 'tennis') return [];
+    if (sport !== 'football' && sport !== 'tennis' && sport !== 'basket') return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
-  async getOdds(match, { live = false, noCache = false } = {}) { return getOddsImpl(match.id, { live, noCache }); },
+  async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) { return getOddsImpl(match.id, { live, noCache, sport }); },
 };

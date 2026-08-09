@@ -3,9 +3,13 @@ import { CONGO_API, congoJson } from './api.js';
 import { isHalfLine } from '../../core/markets.js';
 import { tokenOverlap } from '../../core/text.js';
 
-export async function getOdds(matchId, { live = false, noCache = false } = {}) {
+export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
   const json = await congoJson(`${CONGO_API}events/${matchId}`, { noCache: live || noCache });
   if (!json?.eventBetTypes) return null;
+  // Basket : betTypeIds Congobet basket non probes en prod. Sans mapping valide,
+  // retourner odds vides plutot que mismapper des IDs foot/tennis sur du basket
+  // (produirait des fake arbs). A activer apres probe basket depuis GH Actions.
+  if (sport === 'basket') return { _ids: {} };
   const home = json.homeTeamName || ''; const away = json.awayTeamName || '';
   const odds = { _ids: {} };
   // Helper : ecrit odds[key] = value ET odds._ids[key] = { eventBetTypeItemId,

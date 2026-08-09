@@ -11,7 +11,7 @@ const HEADERS = {
 };
 // Sport IDs Apollo (via /sport/offer/v3/sports) : 388=Soccer, 389=Tennis,
 // 391=Basketball, 398=Ice Hockey, 397=Volleyball.
-export const APOLLO_SID = { football: 388, tennis: 389 };
+export const APOLLO_SID = { football: 388, tennis: 389, basket: 391 };
 
 export async function apolloGet(path) {
   return fetchJson(`${SPORT_API}${path}`, { headers: HEADERS, timeoutMs: 20_000 });
