@@ -1,0 +1,15 @@
+name: Probe Basket Discovery
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm init -y && npm install --no-audit --no-fund ws got-scraping
+      - run: node scripts/probe-basket-discovery.js
