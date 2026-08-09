@@ -223,10 +223,25 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
 }
 
 // ─── BASKET (marches incl OT, 2-way : pas de X) ─────────────────────────
-// Marches YB basket typiques (bts[].n) :
-//   "FT" ou "Winner" → match_1/match_2
-//   "Under/Over" → match_over_L/match_under_L (L = ligne points, ex 155.5)
-//   "Handicap" ou "Asian Handicap" → hcp_home_L/hcp_away_L
+// Noms de marches YB basket verifies via probe-yb-basket-markets run
+// 31326074838 (Mogi das Cruzes, Paulista) :
+//   "2 Way (incl. overtime)"   → match_1/match_2 (Winner incl OT, VRAI 2-way)
+//   "FT 1X2"                    → SKIP (basket sans OT, cross-book utilise incl OT)
+//   "Total (Incl. OT)" /
+//     "Total (incl. overtime)"  → match_over_L / match_under_L
+//   "Asian Handicap"            → hcp_home_L / hcp_away_-L (demi-lignes)
+//   "Handicap (incl. overtime)" → SKIP (lignes entieres → push possible)
+//   "European Handicap"         → SKIP (3-way)
+//   "1st Half : Asian Handicap" → ht_hcp_home_L / ht_hcp_away_-L
+//   "2nd Half : Asian Handicap" → h2_hcp_home_L / h2_hcp_away_-L
+//   "1st Half : Total Spreads"  → ht_over_L / ht_under_L
+//   "1st Quarter : Total Spread"→ q1_over_L / q1_under_L
+//   "2nd Quarter : Total Spread"→ q2_over_L / q2_under_L
+//   "3rd Quarter : Total Spread"→ q3_over_L / q3_under_L
+//   "3rd Quarter : Points Spread"→ q3_hcp_home_L / q3_hcp_away_-L
+//   "4th Quarter : Total Spread"→ q4_over_L / q4_under_L
+//   "Draw no bet"               → dnb_1 / dnb_2
+//   "Odd/Even Points"           → odd / even
 export function yellowbetBasketFlatOdds(bts, { live = false } = {}) {
   const odds = { _ids: {} };
   if (!Array.isArray(bts)) return odds;
@@ -245,32 +260,144 @@ export function yellowbetBasketFlatOdds(bts, { live = false } = {}) {
       };
     }
   };
-  // Winner FT incl OT (2-way, pas de X en basket)
-  const winnerMkt = findMarket(bts, 'FT') || findMarket(bts, 'Winner') || bts.find((m) => /^winner|^ft$|match winner/i.test(String(m?.n || '')));
-  mkt = winnerMkt;
-  if (winnerMkt) for (const o of winnerMkt.odds || []) {
-    const n = lbl(o), c = priceOf(o);
-    if (n === '1' || n === 'home') put('match_1', c, o);
-    else if (n === '2' || n === 'away') put('match_2', c, o);
-  }
-  // Under/Over points (Total incl OT)
-  const totalMkt = findMarket(bts, 'Under/Over') || findMarket(bts, 'Total') || bts.find((m) => /^total$|under.*over/i.test(String(m?.n || '')));
-  mkt = totalMkt;
-  if (totalMkt) for (const o of totalMkt.odds || []) {
-    const l = lineOf(o); if (!isHalfLine(l)) continue;
-    const n = lbl(o), c = priceOf(o);
-    if (n === 'over') put(`match_over_${l}`, c, o);
-    else if (n === 'under') put(`match_under_${l}`, c, o);
-  }
-  // Handicap points — chercher par regex sur les noms de marche
-  for (const mktLoop of bts.filter((m) => /handicap|point.?spread/i.test(String(m?.n || ''))).slice(0, 3)) {
-    mkt = mktLoop;
-    for (const o of mkt.odds || []) {
-      const l = lineOf(o); if (!isHalfLine(l)) continue;
-      const n = lbl(o), c = priceOf(o);
-      if (n === '1' || n === 'home') put(`hcp_home_${l}`, c, o);
-      else if (n === '2' || n === 'away') put(`hcp_away_${-l}`, c, o);
+
+  // Iteration principale par nom exact.
+  for (const b of bts) {
+    const name = String(b?.n || '').trim();
+    const nameLc = name.toLowerCase();
+    mkt = b;
+
+    // ─── Winner FT incl OT (2-way, pas de X — le vrai match Winner basket)
+    if (/^2\s*way.*overtime/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put('match_1', c, o);
+        else if (n === '2') put('match_2', c, o);
+      }
+      continue;
+    }
+
+    // ─── Total points incl OT (main market)
+    if (/^total\s*\(?\s*incl\.?\s*(?:overtime|ot)/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') put(`match_over_${l}`, c, o);
+        else if (n === 'under') put(`match_under_${l}`, c, o);
+      }
+      continue;
+    }
+
+    // ─── Asian Handicap FT (main handicap incl OT)
+    if (/^asian\s+handicap$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`hcp_home_${l}`, c, o);
+        else if (n === '2') put(`hcp_away_${-l}`, c, o);
+      }
+      continue;
+    }
+
+    // ─── Draw No Bet (2-way sans nul, incl OT)
+    if (/^draw\s*no\s*bet$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put('dnb_1', c, o);
+        else if (n === '2') put('dnb_2', c, o);
+      }
+      continue;
+    }
+
+    // ─── Odd/Even Points
+    if (/^odd\/even\s+points/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'odd') put('odd', c, o);
+        else if (n === 'even') put('even', c, o);
+      }
+      continue;
+    }
+
+    // ─── 1st Half : Asian Handicap
+    if (/^1st\s+half\s*:\s*asian\s+handicap/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`ht_hcp_home_${l}`, c, o);
+        else if (n === '2') put(`ht_hcp_away_${-l}`, c, o);
+      }
+      continue;
+    }
+
+    // ─── 2nd Half : Asian Handicap
+    if (/^2nd\s+half\s*:\s*asian\s+handicap/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`h2_hcp_home_${l}`, c, o);
+        else if (n === '2') put(`h2_hcp_away_${-l}`, c, o);
+      }
+      continue;
+    }
+
+    // ─── 1st Half : Total Spreads
+    if (/^1st\s+half\s*:\s*total\s*(?:spreads?)?/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') put(`ht_over_${l}`, c, o);
+        else if (n === 'under') put(`ht_under_${l}`, c, o);
+      }
+      continue;
+    }
+
+    // ─── Quarter totals (1st/2nd/3rd/4th Quarter : Total Spread)
+    const qTot = name.match(/^(1st|2nd|3rd|4th)\s+quarter\s*:\s*total\s*spread/i);
+    if (qTot) {
+      const qMap = { '1st': 'q1_', '2nd': 'q2_', '3rd': 'q3_', '4th': 'q4_' };
+      const pfx = qMap[qTot[1].toLowerCase()];
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') put(`${pfx}over_${l}`, c, o);
+        else if (n === 'under') put(`${pfx}under_${l}`, c, o);
+      }
+      continue;
+    }
+
+    // ─── Quarter handicap (1st/2nd/3rd/4th Quarter : Points Spread)
+    const qHcp = name.match(/^(1st|2nd|3rd|4th)\s+quarter\s*:\s*points?\s*spread/i);
+    if (qHcp) {
+      const qMap = { '1st': 'q1_', '2nd': 'q2_', '3rd': 'q3_', '4th': 'q4_' };
+      const pfx = qMap[qHcp[1].toLowerCase()];
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`${pfx}hcp_home_${l}`, c, o);
+        else if (n === '2') put(`${pfx}hcp_away_${-l}`, c, o);
+      }
+      continue;
+    }
+
+    // Skip explicites (documentes) :
+    //   "FT 1X2"                     : basket sans OT (cross-book utilise incl OT)
+    //   "Handicap (incl. overtime)"  : lignes ENTIERES → push possible, pas d'arb garanti
+    //   "European Handicap"          : 3-way, ligne "0:16" non-numerique
+    //   "Overtime Yes/No"            : proposition side, pas arbitrable cross-book
+    //   "Total margins Regular:ranges" : ranges non-2-way
+    //   "Winner & total (incl. overtime)" : combo, pas arbitrable
+    //   "Winning Margins"            : ranges non-2-way
+    //   "*total (incl. overtime)"    : totaux INDIVIDUELS par equipe → tt_home/tt_away
+    // Individual team totals (basket) — YB expose "{TeamName} total (incl. overtime)"
+    if (/total\s*\(?\s*incl\.?\s*(?:overtime|ot)/i.test(nameLc) && !/^total/i.test(nameLc)) {
+      // Nom du type "CA Paulistano SP total (incl. overtime)" ou "Mogi das Cruzes total ..."
+      // On ne connait pas le mapping team→home/away sans context supplementaire
+      // (le nom equipe n'est pas dans le parseur, seulement match.home/away).
+      // A ajouter plus tard si besoin — skip pour l'instant.
+      continue;
     }
   }
+
   return odds;
 }
