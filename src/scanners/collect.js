@@ -416,15 +416,20 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
         };
       }
     }
-    // Refresh coupon.price + coupon.read_at avec les valeurs fresh du confirm
-    // pour que le backend ait une donnee coherente pour la generation SaveCoupon
-    // (price stale = detection drift cassee). Les _ids natifs restent stables
-    // entre fetch et re-fetch (marketId/betType/oddKey ne changent pas au sein
-    // d'un match), donc pas besoin de recalculer les ids.
+    // Refresh coupon.price + coupon.read_at avec les valeurs fresh du confirm.
+    // Rebuild opportuniste : si l'opp arrivee sans coupon (init parse rate ou
+    // ancien code), on re-tente de le construire depuis les fresh _ids obtenus
+    // au re-fetch — ca sauve les opps qui auraient sinon eu leg_a_coupon:null.
+    // Sinon on refresh juste price/read_at (les _ids sont stables entre init
+    // et confirm pour un meme match).
     const legAfreshRounded = Math.round(freshA * 100) / 100;
     const legBfreshRounded = Math.round(freshB * 100) / 100;
-    const legAcouponRefreshed = o.leg_a_coupon ? { ...o.leg_a_coupon, price: legAfreshRounded, read_at: confirmedAt } : null;
-    const legBcouponRefreshed = o.leg_b_coupon ? { ...o.leg_b_coupon, price: legBfreshRounded, read_at: confirmedAt } : null;
+    const legAcouponRefreshed = o.leg_a_coupon
+      ? { ...o.leg_a_coupon, price: legAfreshRounded, read_at: confirmedAt }
+      : buildCoupon(o.leg_a_book, oddsA?._ids?.[key.a], o.verify?.leg_a_match?.id, legAfreshRounded, confirmedAt, !!freshLiveByBook, matchesIdxByBook.get(o.leg_a_book)?.get(idA));
+    const legBcouponRefreshed = o.leg_b_coupon
+      ? { ...o.leg_b_coupon, price: legBfreshRounded, read_at: confirmedAt }
+      : buildCoupon(o.leg_b_book, oddsB?._ids?.[key.b], o.verify?.leg_b_match?.id, legBfreshRounded, confirmedAt, !!freshLiveByBook, matchesIdxByBook.get(o.leg_b_book)?.get(idB));
     out.push({
       ...o,
       leg_a_odd: legAfreshRounded,
