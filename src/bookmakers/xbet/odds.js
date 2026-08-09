@@ -83,58 +83,43 @@ function parseMainOnly(GE, odds) {
 }
 
 // Parseur BASKET 1xBet (marchés incl. OT).
-// Mapping (G, T, P) validé via probe-basket-dump :
-//   G=101 T=401→match_1, T=402→match_2 (Winner 2-way incl OT)
-//   G=17  T=9→over, T=10→under, P=line (Total match incl OT)
-//   G=2   T=7→hcp_home, T=8→hcp_away, P=line (Handicap incl OT)
-//   G=15  T=11→over, T=12→under, P=line (TT home incl OT)
-//   G=62  T=13→over, T=14→under, P=line (TT away incl OT)
-//   G=91  T=755→q1_match_1, T=757→q1_match_2 (2-way Q1)
-//   G=92  T=766→q2_match_1, T=767→q2_match_2 (2-way Q2)
+// Mapping (G, T, P) valide via probe-basket-dump + probe-xbet-basket-raw :
+//   G=101 T=401→match_1, T=402→match_2 (Winner 2-way incl OT) ✅ verifie asymetrique
+//   G=17  T=9→over, T=10→under, P=line (Total match incl OT)  ✅
+//   G=2   T=7→hcp_home, T=8→hcp_away, P=line (Handicap incl OT) ✅
+//   G=15  T=11→over, T=12→under, P=line (TT home incl OT) ✅
+//   G=62  T=13→over, T=14→under, P=line (TT away incl OT) ✅
 // Attention: pas de match_X pour basket incl OT (pas de nul possible).
 //
-// SANITY GUARD (fix bug 2026-08-08, v2 tolerance absolue) : 1xBet retourne
-// parfois les 2 outcomes d'un marche 2-way avec des cotes QUASI-IDENTIQUES
-// (placeholder pretmatch "marche disponible mais cotes non finalisees").
-// Cas observes via probe raw :
-//   - Chicago Sky WNBA G=91 : T=755=1.87 T=757=1.87 (identique strict)
-//   - Argentina W        G=91 : T=755=1.809 T=757=1.811 (bruit 0.002 !!)
-//   - Argentina W        G=92 : T=766=1.81  T=767=1.81  (identique strict)
-// Le v1 utilisait '===' strict, ce qui laissait passer le cas Argentina Q1
-// (1.809 != 1.811). Le v2 utilise une TOLERANCE ABSOLUE de 0.02 :
-//   → un vrai marche 2-way asymetrique a par definition |h-a| >= 0.02
-//     (meme un match ultra-equilibre 1.90 vs 1.95 → 0.05 delta).
-//   → un placeholder a par nature |h-a| < 0.02 (bruit sur cote centrale).
-// C'est un invariant semantique defensif : on n'accepte QUE les marches
-// clairement asymetriques, ce qui elimine tous les faux placeholders en
-// une seule regle.
-function readWinner2Way(g, tHome, tAway, homeKey, awayKey, odds, groupTag) {
-  if (!g?.E) return;
-  let h = null, a = null;
-  for (const sub of g.E) {
-    for (const it of (Array.isArray(sub) ? sub : [sub])) {
-      const c = parseFloat(it?.C);
-      if (!Number.isFinite(c) || c <= 1) continue;
-      if (it.T === tHome) h = c;
-      if (it.T === tAway) a = c;
-    }
-  }
-  // Skip si l'un des 2 manque OU si delta absolu < 0.02 (placeholder xbet).
-  if (h == null || a == null) return;
-  if (Math.abs(h - a) < 0.02) {
-    // Log peu bruyant : uniquement quand le guard fire, pour visibilite.
-    // Utile pour tracker si 1xBet change ses placeholders (delta evolue).
-    if (groupTag) console.log(`[xbet basket] skip placeholder ${groupTag}: h=${h} a=${a} delta=${(h-a).toFixed(4)}`);
-    return;
-  }
-  odds[homeKey] = h;
-  odds[awayKey] = a;
-}
-
+// ⚠️ G=91 / G=92 SONT DELIBEREMENT OMIS (fix root cause 2026-08-08).
+// L'ancien mapping (T=755/757→q1_match_1/2, T=766/767→q2_match_1/2) etait FAUX.
+// Preuves rassemblees via probe-xbet-basket-raw sur 6 matchs distincts (WNBA,
+// Argentina W, Chicago Sky, Fu Jen, Bank of Taiwan, Ginebra Philippines) :
+//   G=91 : cotes SYSTEMATIQUEMENT symetriques ~1.81/1.87 sur TOUS les matchs,
+//          independamment de la force des equipes. Argentina W (favori FT 1.18
+//          vs 4.32) → G=91 T=755=1.809 T=757=1.811. Un vrai Q1 Winner avec
+//          Argentina favori serait 1.4/2.8, pas 1.81/1.81.
+// Interpretation : G=91/G=92 ne sont PAS "Q1/Q2 Winner". C'est un marche
+// 1xBet-specifique intrinsequement 50/50 (probablement Handicap 0 Q1 ou
+// Q1 DNB ou Race-to-N points, non documente). Mapping impossible cross-book
+// avec les Q1 Winner 3-way de 1win/SB/BetMomo.
+//
+// Approche precedente (readWinner2Way avec delta 0.02) etait un MASQUE qui
+// cachait le probleme sans le comprendre. Le vrai fix : ne pas mapper ce
+// marche du tout. Si un jour on identifie le VRAI groupe G du Q1 Winner
+// 2xBet (via dump d'un match Q1 en cours), on l'ajoutera. En attendant, la
+// couverture Q1/Q2 Winner reste correcte via 1win + sportybet + betmomo qui
+// eux exposent bien Q1 Winner en 3-way et sont valides par
+// pushArbPeriodWinner (3-way check dans compareBasketTwoBooks).
 function parseBasketGE(GE, odds, prefix = '') {
   const grp = (gid) => GE.find((x) => x.G === gid);
-  // Winner 2-way FT (incl OT) — via readWinner2Way (sanity guard delta <0.02).
-  readWinner2Way(grp(101), 401, 402, `${prefix}match_1`, `${prefix}match_2`, odds, `${prefix}FT`);
+  // Winner 2-way FT (incl OT) : lecture directe. Le mapping G=101/T=401/T=402
+  // est verifie par probe raw sur Argentina W (T=401=1.178 T=402=4.325 —
+  // asymetrique coherent avec Argentina favori).
+  iterate(grp(101), (i, c) => {
+    if (i.T === 401) odds[`${prefix}match_1`] = c;
+    if (i.T === 402) odds[`${prefix}match_2`] = c;
+  });
   iterate(grp(17), (i, c) => {
     const p = i.P; if (p == null || !isHalfLine(p)) return;
     if (i.T === 9) odds[`${prefix}${prefix ? 'over' : 'match_over'}_${p}`] = c;
@@ -155,14 +140,9 @@ function parseBasketGE(GE, odds, prefix = '') {
     if (i.T === 13) odds[`${prefix}tt_away_over_${p}`] = c;
     if (i.T === 14) odds[`${prefix}tt_away_under_${p}`] = c;
   });
-  if (!prefix) {
-    // Q1/Q2 winner 2-way — reactive avec sanity guard : quand les cotes
-    // sont placeholders (T_home = T_away), readWinner2Way skip
-    // silencieusement. Quand 1xBet ouvre les vraies cotes (typiquement
-    // juste avant ou pendant le match), le mapping fonctionne.
-    readWinner2Way(grp(91), 755, 757, 'q1_match_1', 'q1_match_2', odds, 'Q1');
-    readWinner2Way(grp(92), 766, 767, 'q2_match_1', 'q2_match_2', odds, 'Q2');
-  }
+  // G=91 / G=92 (ancien mapping Q1/Q2 Winner) EXPRESSEMENT OMIS — voir
+  // commentaire d'en-tete. Ne PAS reactiver sans probe fresh sur match
+  // basket LIVE avec Q1 en cours qui identifierait le VRAI G du Winner.
 }
 
 export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
