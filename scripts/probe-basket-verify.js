@@ -50,7 +50,11 @@ function groupOddsForAudit(odds) {
     if (cat === 'handicap') {
       const line = extractLine(k);
       const side = /hcp_home/.test(k) ? 'home' : 'away';
-      const bucket = `${pfx}hcp_${line}`;
+      // CANONICALISATION home-perspective : les paires complementaires sont
+      // home_-L ↔ away_+L (signes opposes). Regroupe sur le line "home-vu"
+      // pour que la paire correcte se retrouve dans le meme bucket.
+      const canonicalLine = side === 'home' ? line : -line;
+      const bucket = `${pfx}hcp_${canonicalLine}`;
       groups.handicap[bucket] = groups.handicap[bucket] || {};
       groups.handicap[bucket][side] = { key: k, odd: v };
     } else if (cat === 'total') {
