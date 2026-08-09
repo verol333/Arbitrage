@@ -416,10 +416,21 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
         };
       }
     }
+    // Refresh coupon.price + coupon.read_at avec les valeurs fresh du confirm
+    // pour que le backend ait une donnee coherente pour la generation SaveCoupon
+    // (price stale = detection drift cassee). Les _ids natifs restent stables
+    // entre fetch et re-fetch (marketId/betType/oddKey ne changent pas au sein
+    // d'un match), donc pas besoin de recalculer les ids.
+    const legAfreshRounded = Math.round(freshA * 100) / 100;
+    const legBfreshRounded = Math.round(freshB * 100) / 100;
+    const legAcouponRefreshed = o.leg_a_coupon ? { ...o.leg_a_coupon, price: legAfreshRounded, read_at: confirmedAt } : null;
+    const legBcouponRefreshed = o.leg_b_coupon ? { ...o.leg_b_coupon, price: legBfreshRounded, read_at: confirmedAt } : null;
     out.push({
       ...o,
-      leg_a_odd: Math.round(freshA * 100) / 100,
-      leg_b_odd: Math.round(freshB * 100) / 100,
+      leg_a_odd: legAfreshRounded,
+      leg_b_odd: legBfreshRounded,
+      leg_a_coupon: legAcouponRefreshed,
+      leg_b_coupon: legBcouponRefreshed,
       inverse_sum: Math.round(invSum * 10000) / 10000,
       profit_pct: Math.round(profit * 100) / 100,
       stake_a_pct: Math.round(stakeA * 10) / 10,

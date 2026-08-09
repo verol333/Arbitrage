@@ -370,38 +370,38 @@ function betmomoTennisFlatOdds(markets) {
       const base = e.base != null && e.base !== '' ? Number(e.base) : null;
 
       if (t === 'P1P2' && name === 'Match Winner') {
-        if (et === 'P1') odds.match_1 = p;
-        else if (et === 'P2') odds.match_2 = p;
+        if (et === 'P1') putBm(odds, 'match_1', p, m, e);
+        else if (et === 'P2') putBm(odds, 'match_2', p, m, e);
       } else if (t === 'Handicap' && name === 'Games Handicap' && base != null && isHalfLine(Math.abs(base))) {
-        if (et === 'Home') odds[`hcp_home_${base}`] = p;
-        else if (et === 'Away') odds[`hcp_away_${base}`] = p;
+        if (et === 'Home') putBm(odds, `hcp_home_${base}`, p, m, e);
+        else if (et === 'Away') putBm(odds, `hcp_away_${base}`, p, m, e);
       } else if (t === 'TotalGamesOver/Under' && name === 'Total Games' && base != null && isHalfLine(base)) {
-        if (et === 'Over') odds[`match_over_${base}`] = p;
-        else if (et === 'Under') odds[`match_under_${base}`] = p;
+        if (et === 'Over') putBm(odds, `match_over_${base}`, p, m, e);
+        else if (et === 'Under') putBm(odds, `match_under_${base}`, p, m, e);
       } else if (t === "Player1:Player'sTotalofWonGames" && base != null && isHalfLine(base)) {
-        if (et === 'Over') odds[`tt_home_over_${base}`] = p;
-        else if (et === 'Under') odds[`tt_home_under_${base}`] = p;
+        if (et === 'Over') putBm(odds, `tt_home_over_${base}`, p, m, e);
+        else if (et === 'Under') putBm(odds, `tt_home_under_${base}`, p, m, e);
       } else if (t === "Player2:Player'sTotalofWonGames" && base != null && isHalfLine(base)) {
-        if (et === 'Over') odds[`tt_away_over_${base}`] = p;
-        else if (et === 'Under') odds[`tt_away_under_${base}`] = p;
+        if (et === 'Over') putBm(odds, `tt_away_over_${base}`, p, m, e);
+        else if (et === 'Under') putBm(odds, `tt_away_under_${base}`, p, m, e);
       } else if (t === 'SetHandicap' && name === '1st Set Games Handicap' && base != null && isHalfLine(Math.abs(base))) {
-        if (et === 'Home') odds[`s1_hcp_home_${base}`] = p;
-        else if (et === 'Away') odds[`s1_hcp_away_${base}`] = p;
+        if (et === 'Home') putBm(odds, `s1_hcp_home_${base}`, p, m, e);
+        else if (et === 'Away') putBm(odds, `s1_hcp_away_${base}`, p, m, e);
       } else if (t === 'SetOverUnder' && name === '1st Set Total Games' && base != null && isHalfLine(base)) {
-        if (et === 'Over') odds[`s1_over_${base}`] = p;
-        else if (et === 'Under') odds[`s1_under_${base}`] = p;
+        if (et === 'Over') putBm(odds, `s1_over_${base}`, p, m, e);
+        else if (et === 'Under') putBm(odds, `s1_under_${base}`, p, m, e);
       } else if (t === 'Sets Handicap' && name === 'Sets Handicap' && base != null) {
-        if (et === 'Home') odds[`hcp_sets_home_${base}`] = p;
-        else if (et === 'Away') odds[`hcp_sets_away_${base}`] = p;
+        if (et === 'Home') putBm(odds, `hcp_sets_home_${base}`, p, m, e);
+        else if (et === 'Away') putBm(odds, `hcp_sets_away_${base}`, p, m, e);
       } else if (t === 'TotalGamesOddorEven') {
-        if (et === 'Odd') odds.odd = p;
-        else if (et === 'Even') odds.even = p;
+        if (et === 'Odd') putBm(odds, 'odd', p, m, e);
+        else if (et === 'Even') putBm(odds, 'even', p, m, e);
       } else if (t === 'SetWinner' && name === '1st Set Winner') {
-        if (et === 'Home') odds.s1_match_1 = p;
-        else if (et === 'Away') odds.s1_match_2 = p;
+        if (et === 'Home') putBm(odds, 's1_match_1', p, m, e);
+        else if (et === 'Away') putBm(odds, 's1_match_2', p, m, e);
       } else if (t === 'TotalofSets' && base != null) {
-        if (et === 'Over') odds[`total_sets_over_${base}`] = p;
-        else if (et === 'Under') odds[`total_sets_under_${base}`] = p;
+        if (et === 'Over') putBm(odds, `total_sets_over_${base}`, p, m, e);
+        else if (et === 'Under') putBm(odds, `total_sets_under_${base}`, p, m, e);
       }
     }
   }
