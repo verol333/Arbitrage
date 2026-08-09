@@ -392,19 +392,19 @@ function sportybetBasketFlatOdds(markets) {
 function sportybetTennisFlatOdds(markets) {
   const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
-  for (const mk of markets) {
-    const id = String(mk?.id || '');
-    const outcomes = Array.isArray(mk?.outcomes) ? mk.outcomes : [];
+  for (const m of markets) {
+    const id = String(m?.id || '');
+    const outcomes = Array.isArray(m?.outcomes) ? m.outcomes : [];
     if (!outcomes.length) continue;
-    const spec = String(mk.specifier || '');
+    const spec = String(m.specifier || '');
     const hcp = extractLine(spec, 'hcp');
     const total = extractLine(spec, 'total');
     const setnr = extractLine(spec, 'setnr');
     const setPfx = setnr ? `s${setnr}_` : '';
-    for (const oc of outcomes) {
-      const v = Number(oc?.odds);
+    for (const o of outcomes) {
+      const v = Number(o?.odds);
       if (!Number.isFinite(v) || v <= 1) continue;
-      const ocId = String(oc?.id || '');
+      const ocId = String(o?.id || '');
       switch (id) {
         case '186': // Winner
           if (ocId === '4') putSb(odds, 'match_1', v, m, o);
@@ -441,8 +441,8 @@ function sportybetTennisFlatOdds(markets) {
           }
           break;
         case '196': // Exact sets (2 or 3)
-          if (String(oc.id).includes(':32')) putSb(odds, 'total_sets_2', v, m, o);
-          else if (String(oc.id).includes(':33')) putSb(odds, 'total_sets_3', v, m, o);
+          if (String(o.id).includes(':32')) putSb(odds, 'total_sets_2', v, m, o);
+          else if (String(o.id).includes(':33')) putSb(odds, 'total_sets_3', v, m, o);
           break;
         case '198': // Odd/Even games
           if (ocId === '70') putSb(odds, 'odd', v, m, o);
