@@ -1,0 +1,20 @@
+name: Probe Hockey Verify (mapping + coupons)
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps (root ESM)
+        run: npm init -y && npm install --no-audit --no-fund ws got-scraping
+      - name: Run hockey verify
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+        run: node scripts/probe-hockey-verify.js
