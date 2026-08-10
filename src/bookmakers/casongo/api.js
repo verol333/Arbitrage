@@ -24,17 +24,10 @@ function browserHeaders(token) {
 
 // Fetch via Scrape.do (super=true active les résidentiels — CF laisse passer).
 // customHeaders=true → Scrape.do forwarde nos headers au serveur cible.
-// geoCode=fr : IP residentielle France — proche geographiquement du Congo (langue
-// fr partagee, token utilisateur configure en fr), meilleur match pour eviter
-// des heuristiques anti-fraude Velisports. sessionId=<numeric> epingle l'IP a
-// une seule sortie residentielle sur toute la duree du run (docs Scrape.do :
-// 1-1000000 int, TTL 10 min inactivite).
-let SESSION_ID = null;
-function sessionId() {
-  if (SESSION_ID) return SESSION_ID;
-  SESSION_ID = String(Math.floor(Math.random() * 900000) + 100000); // 6-digit numeric
-  return SESSION_ID;
-}
+// geoCode=us : residentiel US (test empirique 2026-08-10 : geoCode=fr bloque
+// TOUT en 401, US laisse passer GetPrematchTree mais bloque GetMatchById 401.
+// Cause probable : le token est lie au fingerprint session cote Velisports,
+// non transposable a une IP arbitraire pour endpoints auth-strict).
 export async function casongoGet(path, { timeoutMs = 30_000, noCache = false } = {}) {
   const token = process.env.CASONGO_TOKEN;
   const sdKey = process.env.SCRAPE_DO_KEY;
@@ -42,7 +35,7 @@ export async function casongoGet(path, { timeoutMs = 30_000, noCache = false } =
   if (!sdKey) { console.log('[casongo] SCRAPE_DO_KEY absent'); return null; }
   const sep = path.includes('?') ? '&' : '?';
   const target = `${BASE}${path}${sep}${QS_BASE}${noCache ? `&_t=${Date.now()}` : ''}`;
-  const proxied = `https://api.scrape.do/?token=${sdKey}&url=${encodeURIComponent(target)}&customHeaders=true&super=true&geoCode=fr&sessionId=${sessionId()}`;
+  const proxied = `https://api.scrape.do/?token=${sdKey}&url=${encodeURIComponent(target)}&customHeaders=true&super=true&geoCode=us`;
   try {
     const res = await fetch(proxied, { signal: AbortSignal.timeout(timeoutMs), headers: browserHeaders(token) });
     if (!res.ok) { console.log(`[casongo] ${path} status=${res.status}`); return null; }
