@@ -64,3 +64,4 @@ jobs:
           MAX_MATCHES: '150'
           SCAN_SPORTS: 'football,tennis,basket,hockey'
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}

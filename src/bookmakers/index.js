@@ -10,13 +10,14 @@ import betmomo from './betmomo/index.js';
 import premierbet from './premierbet/index.js';
 import betpawa from './betpawa/index.js';
 import sportybet from './sportybet/index.js';
-// casongo (Velisports/VeliGroup) : sportsbook rendu dans un iframe
-// launcher.velisports.com qui génère un JWT guest côté serveur à chaque ouverture.
-// Impossible d'obtenir ce JWT depuis un backend headless sans simuler l'iframe
-// (Playwright). Module conservé dans src/bookmakers/casongo/ pour ré-activation
-// future ; non branché ici car sans JWT chaque appel retourne 400 MALFORMED.
+// casongo (Velisports/VeliGroup, foot uniquement) : JWT Bearer token capture via
+// F12 utilisateur (2026-08-10) et stocke en GH secret CASONGO_TOKEN. Le token
+// dure ~30j — rotation manuelle mensuelle par le user via F12 fresh dump.
+// Backend prod-api.velisports.com passe par Scrape.do super=true (Cloudflare
+// bloque les IPs cloud sans residentialisation).
+import casongo from './casongo/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
