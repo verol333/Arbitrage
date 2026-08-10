@@ -3,8 +3,7 @@
 import { mget } from '../src/bookmakers/premierbet/api.js';
 
 console.log('▶ PROBE PremierBet HOCKEY RAW\n');
-try {
-  // Fetch highlights hockey (sportId=4)
+async function main() {
   const h = await mget('/events/highlights', { sportId: '4' }, 15000);
   const cats = h?.data?.categories || [];
   let sampleId = null;
@@ -47,6 +46,7 @@ try {
     console.log(`  marketId=${id}  "${s.name}"  groups=[${[...s.groups].join(',')}]`);
     for (const outs of s.outsSamples) console.log(`     ${outs.join(' | ')}`);
   }
-} catch (e) { console.log('ERR:', e.message); }
+}
+try { await main(); } catch (e) { console.log('ERR:', e.message); }
 console.log('\n═══ FIN ═══');
 process.exit(0);

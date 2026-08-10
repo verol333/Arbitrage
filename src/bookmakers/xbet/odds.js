@@ -167,11 +167,14 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     parseBasketGE(GE, odds, '');
     return odds;
   }
-  // Hockey utilise les MEMES market groups universels 1xbet que basket :
-  // G=101 (Winner 2-way incl OT), G=17 (Total buts), G=2 (Handicap), G=15
-  // (TT home), G=62 (TT away). Verifie par observation cross-sport 1xbet.
+  // Hockey utilise parseGE (foot) car les autres books (CongoBet/BetMomo/SportyBet/
+  // PremierBet) exposent le winner regulation 3-way (match_1/X/2) et non incl OT
+  // 2-way. parseBasketGE lisait G=101 (incl OT 2-way) → mismatch semantique
+  // cross-book. parseGE lit G=1 (1X2 regulation 3-way) + G=17 (total) + G=2 (hcp)
+  // + G=15/62 (tt) + G=19 (btts) + G=8 (dc) + G=14 (odd/even) — tout compatible
+  // regulation avec les autres books.
   if (sport === 'hockey') {
-    parseBasketGE(GE, odds, '');
+    parseGE(GE, odds, '');
     return odds;
   }
   parseGE(GE, odds, '');

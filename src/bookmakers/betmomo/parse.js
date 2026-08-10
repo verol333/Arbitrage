@@ -27,11 +27,7 @@ function putBm(odds, k, v, m, e) {
 export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
   if (sport === 'tennis') return betmomoTennisFlatOdds(markets);
   if (sport === 'basket') return betmomoBasketFlatOdds(markets);
-  // Hockey utilise les MEMES types SWARM cross-sport BetConstruct : MatchWinner
-  // (P1P2), MatchTotal, MatchHandicap, MatchHomeTeamTotal2, MatchAwayTeamTotal2,
-  // MatchOddEvenTotal. Le parseur basket couvre le FT ; les periodes hockey
-  // (P1/P2/P3) different des quarters basket mais le FT match.
-  if (sport === 'hockey') return betmomoBasketFlatOdds(markets);
+  if (sport === 'hockey') return betmomoHockeyFlatOdds(markets);
   const odds = { _ids: {} };
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);
@@ -343,6 +339,103 @@ function betmomoBasketFlatOdds(markets) {
         const et = String(e.type || '').toLowerCase();
         if (et === 'odd') putBm(odds, `${pfx}odd`, price(e), m, e);
         else if (et === 'even') putBm(odds, `${pfx}even`, price(e), m, e);
+      }
+      continue;
+    }
+  }
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR HOCKEY BetMomo (SWARM sportId=2). Verifie via probe-hockey-betmomo-raw
+// (SKA-VMF vs Sokol Krasnoyarsk 46 markets, 21 types distincts).
+// Types cross-book utiles :
+//   P1XP2                   → match_1/X/2 (Regulation Time 3-way)
+//   MatchTotal2             → match_over/under_L (Regular Time, base=X.5)
+//   MatchHandicap2          → hcp_home/away_L (Regular Time)
+//   HomeTeamTotal / AwayTeamTotal → tt_home/away_over/under_L (Reg Time)
+//   OddEvenTotal            → odd/even (Reg Time)
+//   1X12X2                  → dc_1X/12/X2
+// P1P2 (Match Winner Including Overtime) : IGNORE — semantique differente (2-way
+// incl OT) et pas comparable directement au 3-way regulation majoritaire. Sinon
+// on melange incl-OT (aucune X) avec regulation (X existe) → fake arbs.
+// Types SKIP : MatchTotal2Asian/MatchHandicap2Asian/*TeamTotalAsian (lignes .25/.75
+// non half-lines), CorrectScore (granulaire), FirstTeamToScore, PeriodXxx (v2 TODO).
+// ═══════════════════════════════════════════════════════════════
+function betmomoHockeyFlatOdds(markets) {
+  const odds = { _ids: {} };
+  if (!Array.isArray(markets) && typeof markets !== 'object') return odds;
+  const list = Array.isArray(markets) ? markets : Object.values(markets || {});
+  const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
+  const price = (e) => Number(e.price);
+  const okEvent = (e) => e && e.price != null && Number(e.price) > 1;
+  for (const m of list) {
+    const t = String(m.type || '');
+    const events = evs(m).filter(okEvent);
+    if (!events.length) continue;
+    if (t === 'P1XP2') {
+      for (const e of events) {
+        const et = String(e.type || '').toUpperCase();
+        if (et === 'P1') putBm(odds, 'match_1', price(e), m, e);
+        else if (et === 'X') putBm(odds, 'match_X', price(e), m, e);
+        else if (et === 'P2') putBm(odds, 'match_2', price(e), m, e);
+      }
+      continue;
+    }
+    if (t === 'MatchTotal2') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'over') putBm(odds, `match_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `match_under_${base}`, price(e), m, e);
+      }
+      continue;
+    }
+    if (t === 'MatchHandicap2') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (base == null || !isHalfLine(Math.abs(base))) continue;
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'home') putBm(odds, `hcp_home_${base}`, price(e), m, e);
+        else if (et === 'away') putBm(odds, `hcp_away_${base}`, price(e), m, e);
+      }
+      continue;
+    }
+    if (t === 'HomeTeamTotal') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type_1 || e.type || '').toLowerCase();
+        if (et === 'over') putBm(odds, `tt_home_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `tt_home_under_${base}`, price(e), m, e);
+      }
+      continue;
+    }
+    if (t === 'AwayTeamTotal') {
+      for (const e of events) {
+        const base = Number(e.base);
+        if (!isHalfLine(base)) continue;
+        const et = String(e.type_1 || e.type || '').toLowerCase();
+        if (et === 'over') putBm(odds, `tt_away_over_${base}`, price(e), m, e);
+        else if (et === 'under') putBm(odds, `tt_away_under_${base}`, price(e), m, e);
+      }
+      continue;
+    }
+    if (t === 'OddEvenTotal') {
+      for (const e of events) {
+        const et = String(e.type || '').toLowerCase();
+        if (et === 'odd') putBm(odds, 'odd', price(e), m, e);
+        else if (et === 'even') putBm(odds, 'even', price(e), m, e);
+      }
+      continue;
+    }
+    if (t === '1X12X2') {
+      for (const e of events) {
+        const et = String(e.type || e.type_1 || '').toUpperCase();
+        if (et === '1X') putBm(odds, 'dc_1X', price(e), m, e);
+        else if (et === '12') putBm(odds, 'dc_12', price(e), m, e);
+        else if (et === 'X2') putBm(odds, 'dc_X2', price(e), m, e);
       }
       continue;
     }
