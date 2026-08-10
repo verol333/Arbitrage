@@ -27,6 +27,11 @@ function putBm(odds, k, v, m, e) {
 export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
   if (sport === 'tennis') return betmomoTennisFlatOdds(markets);
   if (sport === 'basket') return betmomoBasketFlatOdds(markets);
+  // Hockey utilise les MEMES types SWARM cross-sport BetConstruct : MatchWinner
+  // (P1P2), MatchTotal, MatchHandicap, MatchHomeTeamTotal2, MatchAwayTeamTotal2,
+  // MatchOddEvenTotal. Le parseur basket couvre le FT ; les periodes hockey
+  // (P1/P2/P3) different des quarters basket mais le FT match.
+  if (sport === 'hockey') return betmomoBasketFlatOdds(markets);
   const odds = { _ids: {} };
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);

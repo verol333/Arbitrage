@@ -35,8 +35,12 @@ const HDR = {
 const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,29,60,68';
 const MARKET_IDS_TENNIS = '186,187,188,189,190,191,196,198,202,203,204,314';
 const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,83,235,236,303,304';
-export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2' };
-export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET };
+// HOCKEY (SportRadar UOF sr:sport:4). Market IDs a probe : 1=1X2, 18=Total,
+// 16=Asian Hcp, 26=O/E, 27=BTTS. Structure similaire foot pour marches match.
+// Puisque hockey a 3 periodes avec draw possible on garde 1X2 (id=1).
+const MARKET_IDS_HOCKEY = '1,10,18,16,26,27,29,86';
+export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4' };
+export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY };
 
 // Rotation d'user-agents pour eviter les 403 Cloudflare rate-limit.
 // Diag 5books tennis a montre : Chrome 151 marche, autres UAs parfois bloques.

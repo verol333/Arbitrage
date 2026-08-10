@@ -196,6 +196,7 @@ export function premierbetFlatOdds(markets, { live = false, sport = 'football' }
   const odds = {};
   if (sport === 'tennis') parseTennis(markets, odds);
   else if (sport === 'basket') parseBasket(markets, odds);
+  else if (sport === 'hockey') parseHockey(markets, odds);
   else if (live) parseLive(markets, odds);
   else parsePrematch(markets, odds);
   return odds;
@@ -268,6 +269,32 @@ function parseTennis(markets, odds) {
 // Handicap/Total : outcome.handicap = ligne signee, isHalfLine filtre.
 // Winner 2-way (id=4, id=354-357) : put1x2 suffit (X absent en basket 2-way).
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR HOCKEY PremierBet (guineegames sportId=4, KHL).
+// Hockey a un vrai 3-way regulation (60min), donc 1X2 s'applique. Les market
+// IDs guineegames sont partages cross-sport pour les marches generiques :
+// 3=1X2, 23=Handicap, 29=Total, 352/353=TT home/away, 16=Odd/Even, 17=DC,
+// 18=DNB, 6=1MT 1X2 (P1 pour hockey), 396=1MT Handicap, 119=1MT Total.
+// V1 conservateur : full-time only ; periodes P1/P2/P3 en follow-up apres probe.
+// ═══════════════════════════════════════════════════════════════
+function parseHockey(markets, odds) {
+  for (const m of markets) {
+    const id = String(m.id || '');
+    switch (id) {
+      case '3':   put1x2(m, '', odds); break;                     // 1X2 regulation (60min)
+      case '7':   putBtts(m, '', odds); break;                    // Both teams to score
+      case '17':  putDC(m, '', odds); break;                      // Double chance
+      case '18':  putDnb(m, '', odds); break;                     // Draw no bet
+      case '23':  putHcpMultiLine(m, '', odds); break;            // Handicap
+      case '29':  putTotalMultiLine(m, 'match_', odds); break;    // Total buts
+      case '353': putTeamTotalMultiLine(m, 'home', '', odds); break;
+      case '352': putTeamTotalMultiLine(m, 'away', '', odds); break;
+      case '16':  putOddEven(m, '', odds); break;                 // Odd/Even total
+      default: break;
+    }
+  }
+}
+
 function parseBasket(markets, odds) {
   for (const m of markets) {
     const id = String(m.id || '');

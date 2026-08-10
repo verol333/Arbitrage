@@ -19,6 +19,9 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // retourner odds vides plutot que mismapper des keys foot/tennis sur du basket
   // (produirait des fake arbs). A activer apres probe basket depuis GH Actions.
   if (sport === 'basket') return {};
+  // Hockey Apollo : sportId=398 identifie mais catalogue actuellement vide
+  // (0 matchs 72h probe). BetTypeKeys non probes. Retour vide securite.
+  if (sport === 'hockey') return {};
   const odds = {};
   if (!offers || !offers.length) return odds;
 

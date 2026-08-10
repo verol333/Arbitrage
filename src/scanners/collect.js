@@ -2,7 +2,7 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
@@ -60,6 +60,21 @@ async function readOddsSafe(book, matches, opts) {
 function sanitizeForSport(odds, sport = 'football') {
   if (!odds || typeof odds !== 'object') return {};
   if (sport === 'tennis') return odds;
+  if (sport === 'hockey') {
+    // Hockey : marches match_/hcp_/tt_/odd/even similaires basket + prefixes
+    // periodes p1_/p2_/p3_ (a suivre). Purge tennis-only (s1_/set_) et basket
+    // quarters (q1..q4). Garde 1X2 pur (regulation time = draw possible).
+    const out = {};
+    for (const [k, v] of Object.entries(odds)) {
+      if (/^s[1-5]_/.test(k)) continue;
+      if (/^set_/.test(k)) continue;
+      if (/^q[1-4]_/.test(k)) continue;
+      if (/^h[12]_/.test(k)) continue;
+      if (/^ht_|^cor_|^fts_|^half_most_/.test(k)) continue;
+      out[k] = v;
+    }
+    return out;
+  }
   if (sport === 'basket') {
     // Basket : purge s1_..s5_ et set_ (tennis-only), garde q1_..q4_ / h1_ / h2_.
     const out = {};
@@ -143,6 +158,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // Basket : marchés Points (incl OT) avec quarters qN_ et halves hN_.
   const compare = sport === 'tennis' ? compareTennisTwoBooks
                 : sport === 'basket' ? compareBasketTwoBooks
+                : sport === 'hockey' ? compareHockeyTwoBooks
                 : compareTwoBooks;
   const all = [];
   for (const entry of sorted) {

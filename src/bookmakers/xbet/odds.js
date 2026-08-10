@@ -167,6 +167,13 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     parseBasketGE(GE, odds, '');
     return odds;
   }
+  // Hockey utilise les MEMES market groups universels 1xbet que basket :
+  // G=101 (Winner 2-way incl OT), G=17 (Total buts), G=2 (Handicap), G=15
+  // (TT home), G=62 (TT away). Verifie par observation cross-sport 1xbet.
+  if (sport === 'hockey') {
+    parseBasketGE(GE, odds, '');
+    return odds;
+  }
   parseGE(GE, odds, '');
   parseMainOnly(GE, odds);
 

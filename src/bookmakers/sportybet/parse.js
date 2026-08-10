@@ -39,6 +39,7 @@ function putSb(odds, key, v, m, o) {
 export function sportybetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
   if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
   if (sport === 'basket') return sportybetBasketFlatOdds(markets);
+  if (sport === 'hockey') return sportybetHockeyFlatOdds(markets);
   const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
 
@@ -373,6 +374,61 @@ function sportybetBasketFlatOdds(markets) {
           const d = String(o?.desc || '').toLowerCase();
           if (d === 'odd') putSb(odds, `${qPfx}odd`, v, m, o);
           else if (d === 'even') putSb(odds, `${qPfx}even`, v, m, o);
+        }
+        break;
+      }
+      default: break;
+    }
+  }
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR HOCKEY SportyBet (SportRadar UOF sr:sport:4).
+// UOF market IDs cross-sport safe : 1=1X2 (Home/Draw/Away regulation),
+// 10=DC, 18=Total (spec.total), 16=Asian Hcp (spec.hcp), 26=Odd/Even, 29=BTTS.
+// Convention hockey : winner en reg-time est 3-way (draw apres 60min possible).
+// V1 conservateur : winner + total + hcp + O/E. Extension periodes P1/P2/P3 TODO.
+// ═══════════════════════════════════════════════════════════════
+function sportybetHockeyFlatOdds(markets) {
+  const odds = { _ids: {} };
+  if (!Array.isArray(markets)) return odds;
+  for (const m of markets) {
+    const id = String(m?.id || '');
+    const outcomes = Array.isArray(m?.outcomes) ? m.outcomes : [];
+    if (!outcomes.length) continue;
+    switch (id) {
+      case '1': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home' || d === '1') putSb(odds, 'match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'match_2', v, m, o);
+        }
+        break;
+      }
+      case '18': putTotal(odds, m, 'match_'); break;
+      case '16': putAsianHcp(odds, m, ''); break;
+      case '26': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/^odd|impair/.test(d)) putSb(odds, 'odd', v, m, o);
+          else if (/^even|pair/.test(d)) putSb(odds, 'even', v, m, o);
+        }
+        break;
+      }
+      case '10': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home or draw' || d === '1x') putSb(odds, 'dc_1X', v, m, o);
+          else if (d === 'home or away' || d === '12') putSb(odds, 'dc_12', v, m, o);
+          else if (d === 'away or draw' || d === 'x2') putSb(odds, 'dc_X2', v, m, o);
         }
         break;
       }

@@ -665,6 +665,72 @@ export function compareBasketTwoBooks(rawA, bookA, rawB, bookB) {
   return out;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPARATOR HOCKEY — vainqueur 3-way (regulation 60min), handicap, total,
+// team totals, odd/even. Convention keys : match_1/X/2, hcp_home/away_L,
+// match_over/under_L, tt_home/away_over/under_L, odd/even.
+// NOTE : winner en regulation time = 3-way (draw possible apres 60 min). On
+// utilise pushArbPeriodWinner comme basket pour valider la couverture 3-way
+// et eviter fake arbs sans compter la draw (bug basket documente).
+// Periodes P1/P2/P3 : NON couvertes en v1 (needs probe cross-book per book).
+// ═══════════════════════════════════════════════════════════════════════════════
+export function compareHockeyTwoBooks(rawA, bookA, rawB, bookB) {
+  const oa = normalizeAliases(rawA);
+  const ob = normalizeAliases(rawB);
+  const out = [];
+
+  // Vainqueur regulation 3-way. compareTwoBooks (foot) traite deja 1X2 3-way
+  // en cherchant complementarites 1+X2, 2+1X, X+12. On reutilise sa logique
+  // via pushArbPeriodWinner (validation couverture 3-way).
+  pushArbPeriodWinner(out, 'Match', oa, ob, bookA, bookB, '');
+  pushArbPeriodWinner(out, 'Match', ob, oa, bookB, bookA, '');
+
+  // Handicap (buts, ±L).
+  for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
+    const sign = lNum > 0 ? '+' + l : l;
+    const fam = `Handicap ${sign}`;
+    const aL = `Dom. ${sign}`;
+    const bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
+    pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
+    pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+  }
+
+  // Total buts match.
+  for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Buts ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB, idsOf(oa, `match_over_${l}`), idsOf(ob, `match_under_${l}`));
+    pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA, idsOf(ob, `match_over_${l}`), idsOf(oa, `match_under_${l}`));
+  }
+
+  // Total buts individuel (Dom./Ext.).
+  for (const [side, lbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
+    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
+      const fam = `Total Buts ${lbl} ${l}`;
+      pushArb(out, fam, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB, idsOf(oa, ok), idsOf(ob, uk));
+      pushArb(out, fam, `${lbl} +${l}`, ob[ok], bookB, `${lbl} −${l}`, oa[uk], bookA, idsOf(ob, ok), idsOf(oa, uk));
+    }
+  }
+
+  // Pair/Impair Buts.
+  pushArb(out, 'Pair/Impair Buts', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB, idsOf(oa, 'odd'), idsOf(ob, 'even'));
+  pushArb(out, 'Pair/Impair Buts', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA, idsOf(ob, 'odd'), idsOf(oa, 'even'));
+
+  // Double Chance (regulation 3-way donc DC 1X/12/X2 valide).
+  const dcPairs = [['dc_1X', '2', 'dc_1X', 'Ext.'], ['dc_12', 'X', 'dc_12', 'Nul'], ['dc_X2', '1', 'dc_X2', 'Dom.']];
+  for (const [dcKey, otherOutcome, dcKey2, otherLabel] of dcPairs) {
+    const otherK = otherOutcome === '1' ? 'match_1' : otherOutcome === 'X' ? 'match_X' : 'match_2';
+    const dcLabel = dcKey === 'dc_1X' ? 'Dom./Nul' : dcKey === 'dc_12' ? 'Dom./Ext.' : 'Nul/Ext.';
+    const fam = `Double Chance vs ${otherLabel}`;
+    pushArb(out, fam, dcLabel, oa[dcKey], bookA, otherLabel, ob[otherK], bookB, idsOf(oa, dcKey), idsOf(ob, otherK));
+    pushArb(out, fam, dcLabel, ob[dcKey2], bookB, otherLabel, oa[otherK], bookA, idsOf(ob, dcKey2), idsOf(oa, otherK));
+  }
+
+  return out;
+}
+
 export function dedupeOpportunities(opps) {
   const seen = new Set();
   const out = [];

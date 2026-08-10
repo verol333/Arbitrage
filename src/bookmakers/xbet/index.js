@@ -6,7 +6,7 @@ export default {
   label: '1xbet',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (!['football', 'tennis', 'basket'].includes(sport)) return [];
+    if (!['football', 'tennis', 'basket', 'hockey'].includes(sport)) return [];
     return live ? listLive({ sport }) : listPrematch({ sport });
   },
   async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
