@@ -1,10 +1,9 @@
 import { CONGO_API, congoJson } from './api.js';
 
-// Sport IDs Congobet (validés via probe v3, sample d'événements) :
-//   101=Football (K-League 2 etc.), 102=Basketball (VBA), 103=Tennis (ATP),
-//   104=Rugby XV (Currie Cup), 105=Canadian Football (CFL), 107=Baseball (MLB).
-// Hockey/Volley : non identifiés dans le catalogue Congobet (probe testé 101..115).
-const SPORT_IDS = { football: '101', tennis: '103', basket: '102' };
+// Sport IDs Congobet (validés via probe v3 + F12 utilisateur 2026-08-10) :
+//   101=Football, 102=Basketball, 103=Tennis, 104=Rugby XV, 105=Canadian
+//   Football, 107=Baseball, 111=Hockey sur Glace (Salei Cup Belarus).
+const SPORT_IDS = { football: '101', tennis: '103', basket: '102', hockey: '111' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);
@@ -49,7 +48,9 @@ export async function listPrematch(sport = 'football') {
   // Fix : omettre betTypeId pour les sports != football. Probe v2 confirme :
   //   events?eventCategoryIds=54994&betTypeId=10001 → 0
   //   events?eventCategoryIds=54994                 → 8 (De Minaur vs Tsitsipas)
-  const btParam = sport === 'football' ? '&fetchEventBetTypesMode=0&betTypeId=10001' : '';
+  // betTypeId=10001 (Resultat du match 1X2) existe en foot ET hockey → filtre
+  // partage pour reduire noise. Tennis/basket = 0 events avec ce filtre.
+  const btParam = (sport === 'football' || sport === 'hockey') ? '&fetchEventBetTypesMode=0&betTypeId=10001' : '';
   const leaves = await listLeafCategories(SPORT_ID);
   if (leaves.length) {
     const BATCH = 16;

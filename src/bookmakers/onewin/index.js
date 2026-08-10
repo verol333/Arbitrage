@@ -7,7 +7,7 @@ export default {
   label: '1win',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (!['football', 'tennis', 'basket'].includes(sport)) return [];
+    if (!['football', 'tennis', 'basket', 'hockey'].includes(sport)) return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match, opts = {}) {
@@ -18,6 +18,8 @@ export default {
     // certains matchs. Aligne les 3 tentatives comme getOddsBatch.
     const groups = map.get(match.id) || map.get(String(match.id)) || map.get(Number(match.id));
     if (!groups) return {};
+    // Hockey utilise le meme format 3-way regulation que foot (winner
+    // 1X2 + total + hcp) — routage vers winFlatOdds jusqu'a probe cross-book.
     const flat = opts.sport === 'tennis' ? winTennisFlatOdds
                : opts.sport === 'basket' ? winBasketFlatOdds
                : winFlatOdds;
@@ -35,6 +37,8 @@ export default {
       for (const [k, v] of part) raw.set(k, v);
     }
     const out = new Map();
+    // Hockey utilise le meme format 3-way regulation que foot (winner
+    // 1X2 + total + hcp) — routage vers winFlatOdds jusqu'a probe cross-book.
     const flat = opts.sport === 'tennis' ? winTennisFlatOdds
                : opts.sport === 'basket' ? winBasketFlatOdds
                : winFlatOdds;
