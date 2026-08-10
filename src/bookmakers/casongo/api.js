@@ -24,6 +24,21 @@ function browserHeaders(token) {
 
 // Fetch via Scrape.do (super=true active les résidentiels — CF laisse passer).
 // customHeaders=true → Scrape.do forwarde nos headers au serveur cible.
+// sessionId=<CASONGO_TOKEN_HASH> epingle l'IP sortante Scrape.do a une seule
+// residentielle par run — evite que Velisports invalide le token (lie au device
+// fingerprint + IP). Sans sessionId, GetPrematchTree passe (endpoint public)
+// mais GetMatchById retourne 401 (endpoint auth strict par session).
+// Docs Scrape.do : sessionId doit etre 1-32 chars alphanumeriques, IP reste
+// stable jusqu'a 10 min d'inactivite.
+let SESSION_ID = null;
+function sessionId(token) {
+  if (SESSION_ID) return SESSION_ID;
+  // Derive un id stable depuis le hash du token (32 chars max)
+  let h = 0;
+  for (let i = 0; i < token.length; i++) h = ((h << 5) - h + token.charCodeAt(i)) | 0;
+  SESSION_ID = 'cs' + Math.abs(h).toString(36) + Date.now().toString(36).slice(-6);
+  return SESSION_ID;
+}
 export async function casongoGet(path, { timeoutMs = 30_000, noCache = false } = {}) {
   const token = process.env.CASONGO_TOKEN;
   const sdKey = process.env.SCRAPE_DO_KEY;
@@ -31,7 +46,8 @@ export async function casongoGet(path, { timeoutMs = 30_000, noCache = false } =
   if (!sdKey) { console.log('[casongo] SCRAPE_DO_KEY absent'); return null; }
   const sep = path.includes('?') ? '&' : '?';
   const target = `${BASE}${path}${sep}${QS_BASE}${noCache ? `&_t=${Date.now()}` : ''}`;
-  const proxied = `https://api.scrape.do/?token=${sdKey}&url=${encodeURIComponent(target)}&customHeaders=true&super=true&geoCode=us`;
+  const sid = sessionId(token);
+  const proxied = `https://api.scrape.do/?token=${sdKey}&url=${encodeURIComponent(target)}&customHeaders=true&super=true&geoCode=us&sessionId=${sid}`;
   try {
     const res = await fetch(proxied, { signal: AbortSignal.timeout(timeoutMs), headers: browserHeaders(token) });
     if (!res.ok) { console.log(`[casongo] ${path} status=${res.status}`); return null; }
