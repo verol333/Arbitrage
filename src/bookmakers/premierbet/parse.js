@@ -277,19 +277,25 @@ function parseTennis(markets, odds) {
 // 18=DNB, 6=1MT 1X2 (P1 pour hockey), 396=1MT Handicap, 119=1MT Total.
 // V1 conservateur : full-time only ; periodes P1/P2/P3 en follow-up apres probe.
 // ═══════════════════════════════════════════════════════════════
+// Hockey PremierBet marketIds decouverts via probe-hockey-premierbet-raw
+// (Lokomotiv Iaroslavl vs Traktor Tcheliabinsk KHL, 5 marketIds distincts) :
+//   3   = "1X2" (regulation 3-way)
+//   66  = "Handicap (Prolongations Incl.)" (multi-line hcp)
+//   67  = "IceHockeyOddType.TotalSpreadsovertime" (Total incl OT, alias 377)
+//   377 = "Plus de/Moins de (Prolongations Incl.)" (Total incl OT)
+//   378 = "Gagnant du Match (Prolongations Incl.)" (Winner 2-way IGNORE
+//         — semantique differente du 3-way regulation)
 function parseHockey(markets, odds) {
   for (const m of markets) {
     const id = String(m.id || '');
     switch (id) {
-      case '3':   put1x2(m, '', odds); break;                     // 1X2 regulation (60min)
-      case '7':   putBtts(m, '', odds); break;                    // Both teams to score
-      case '17':  putDC(m, '', odds); break;                      // Double chance
-      case '18':  putDnb(m, '', odds); break;                     // Draw no bet
-      case '23':  putHcpMultiLine(m, '', odds); break;            // Handicap
-      case '29':  putTotalMultiLine(m, 'match_', odds); break;    // Total buts
-      case '353': putTeamTotalMultiLine(m, 'home', '', odds); break;
-      case '352': putTeamTotalMultiLine(m, 'away', '', odds); break;
-      case '16':  putOddEven(m, '', odds); break;                 // Odd/Even total
+      case '3':   put1x2(m, '', odds); break;                     // 1X2 regulation
+      case '66':  putHcpMultiLine(m, '', odds); break;            // Handicap incl OT
+      case '67':  putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (alias)
+      case '377': putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (principal)
+      // Skip marketId=378 (Gagnant incl OT 2-way) — pas comparable au 3-way regulation.
+      // Skip aussi les marketIds foot (7/17/18/23/29/352/353/16) : n'existent pas en
+      // hockey PB (confirme via probe raw).
       default: break;
     }
   }
