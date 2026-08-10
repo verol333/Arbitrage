@@ -10,9 +10,8 @@
 //   4) Dresser une matrice book x marches supportes
 import { bookmakers } from '../src/bookmakers/index.js';
 
-const BOOKS_HOCKEY = ['1xbet', 'onewin', 'congobet', 'apollo', 'betmomo', 'premierbet', 'sportybet'];
+const BOOKS_HOCKEY = ['1xbet', '1win', 'congobet', 'apollo', 'betmomo', 'premierbet', 'sportybet'];
 // Note : YellowBet + BetPawa exclus (hockey absent catalogue)
-// 'onewin' internal key. Le book expose la key '1win' mais le module fichier est onewin.
 
 function classify(key) {
   if (/^match_[12X]$/.test(key)) return 'winner';

@@ -18,3 +18,11 @@ jobs:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
         run: node scripts/probe-hockey-verify.js
+      - name: Dump BetMomo hockey RAW types
+        if: always()
+        run: node scripts/probe-hockey-betmomo-raw.js
+      - name: Dump PremierBet hockey RAW marketIds
+        if: always()
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+        run: node scripts/probe-hockey-premierbet-raw.js
