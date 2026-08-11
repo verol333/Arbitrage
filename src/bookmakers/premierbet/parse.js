@@ -291,8 +291,9 @@ function parseHockey(markets, odds) {
     switch (id) {
       case '3':   put1x2(m, '', odds); break;                     // 1X2 regulation
       case '66':  putHcpMultiLine(m, '', odds); break;            // Handicap incl OT
-      case '67':  putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (alias)
-      case '377': putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (principal)
+      case '67':  putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (alias KHL)
+      case '377': putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (principal KHL)
+      case '28':  putTotalMultiLine(m, 'match_', odds); break;    // Total incl OT (alias sources bielorusse/slovaque)
       // Skip marketId=378 (Gagnant incl OT 2-way) — pas comparable au 3-way regulation.
       // Skip aussi les marketIds foot (7/17/18/23/29/352/353/16) : n'existent pas en
       // hockey PB (confirme via probe raw).
