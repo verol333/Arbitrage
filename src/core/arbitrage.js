@@ -259,10 +259,14 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   // Handicaps ASIATIQUES ±L (demi-lignes, 2-way sans nul). Lignes découvertes
   // DYNAMIQUEMENT (avant : hard-codées [-4.5..4.5] → manquait -5.5, -6.5, +5.5,
   // +6.5 pour matchs déséquilibrés). Pair {hcp_home_l, hcp_away_-l}.
+  // Handicap FOOT — nommage "Handicap" (pas "Asiatique") : notre parseur
+  // filtre uniquement les demi-lignes (0.5/1.5/2.5...) via isHalfLine, ce
+  // qui correspond au HANDICAP SIMPLE (2-way sans push), pas au vrai
+  // handicap asiatique (lignes quart .25/.75 avec refund partiel).
   for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
     const lNum = parseFloat(l);
     const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
-    const fam = `Handicap Asiatique ${lNum > 0 ? '+' + l : l}`;
+    const fam = `Handicap ${lNum > 0 ? '+' + l : l}`;
     const aL = `Dom. ${lNum > 0 ? '+' + l : l}`, bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
     pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
     pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
@@ -326,8 +330,9 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, lbl, 'Impair', oa[`${pfx}odd`], bookA, 'Pair', ob[`${pfx}even`], bookB, idsOf(oa, `${pfx}odd`), idsOf(ob, `${pfx}even`));
     pushArb(out, lbl, 'Impair', ob[`${pfx}odd`], bookB, 'Pair', oa[`${pfx}even`], bookA, idsOf(ob, `${pfx}odd`), idsOf(oa, `${pfx}even`));
   }
-  // Handicap Asiatique par mi-temps — lignes DYNAMIQUES.
-  for (const [pfx, lbl] of [['ht_', '1MT Handicap Asiatique'], ['h2_', '2MT Handicap Asiatique']]) {
+  // Handicap FOOT par mi-temps — meme convention "Handicap" (pas asiatique).
+  // isHalfLine filtre les demi-lignes (0.5/1.5/2.5...) = handicap simple.
+  for (const [pfx, lbl] of [['ht_', '1MT Handicap'], ['h2_', '2MT Handicap']]) {
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
       const lNum = parseFloat(l);
       const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
