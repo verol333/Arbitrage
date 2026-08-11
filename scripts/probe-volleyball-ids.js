@@ -1,93 +1,35 @@
 #!/usr/bin/env node
-// PROBE Volleyball sport IDs — v2 avec bons endpoints par book.
-import { viaWorker, FEED, COUNTRY } from '../src/bookmakers/xbet/api.js';
+// PROBE Volleyball v3 — investigation ciblee sur suspects.
 import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
 import { mget } from '../src/bookmakers/premierbet/api.js';
 import { apolloGet } from '../src/bookmakers/apollo/api.js';
 import { bpFetchList, buildEventsListUrl } from '../src/bookmakers/betpawa/api.js';
-import { API_BASE, PLATFORM } from '../src/bookmakers/onewin/api.js';
+import { fetchJson } from '../src/net/fetcher.js';
 
-async function probe1win() {
-  console.log('\n═══ 1win ═══');
-  // 1win utilise WS + top-parser. Endpoint sport-list REST : /parser/api/v1/prematch/sport-tree
-  try {
-    const url = `${API_BASE}/parser/api/v1/prematch/sport-tree/all?platformId=${PLATFORM}&language=en-001&country=NG&isCyber=0`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    const j = await r.json();
-    const sports = j?.data || j || [];
-    const arr = Array.isArray(sports) ? sports : Object.values(sports);
-    const volley = arr.filter(s => /volley/i.test((s.name || s.sportName || '') + (s.title || '')));
-    for (const s of volley) console.log(`  FOUND id=${s.id || s.sportId} name="${s.name || s.title}" matches=${s.matchCount || s.count || '?'}`);
-    // fallback : dump all sports
-    if (!volley.length) {
-      console.log(`  (aucun via sport-tree — dump 20 premiers sports pour info):`);
-      for (const s of arr.slice(0, 30)) console.log(`    id=${s.id || s.sportId} name="${s.name || s.title}"`);
-    }
-  } catch (e) { console.log(`  err=${e.message}`); }
-}
-
-async function probeCongobet() {
-  console.log('\n═══ Congobet ═══');
-  // Tester chaque sportId candidate via eventCategories
-  for (const sid of ['104','105','106','107','108','109','110','112','113','114','115','116','117','118','119','120']) {
+async function probeCongobetDeep() {
+  console.log('\n═══ Congobet DEEP ═══');
+  // Suspects prometteurs : 108, 113, 114. Investiguer noms des leagues.
+  for (const sid of ['108','113','114','116','119','122','130']) {
     try {
       const cats = await congoJson(`${CONGO_API}eventCategories/${sid}?l=fr`);
       if (!Array.isArray(cats) || !cats.length) continue;
-      const firstName = (cats[0]?.name || '').toLowerCase();
-      const isVolley = /volley/i.test(cats.map(c => c.name || '').join(' '));
-      const marker = isVolley ? ' ← VOLLEY' : '';
-      const totalEvents = cats.reduce((s, c) => s + (c.eventsCount || 0), 0);
-      if (totalEvents > 0 || isVolley) console.log(`  sid=${sid} : first="${cats[0]?.name}" total=${totalEvents}${marker}`);
+      const allLeagueNames = [];
+      const walk = (n) => {
+        if (n.subCategories?.length) n.subCategories.forEach(walk);
+        else allLeagueNames.push(n.name || '');
+      };
+      cats.forEach(walk);
+      const isVolley = allLeagueNames.some(n => /volley/i.test(n));
+      const marker = isVolley ? ' ← VOLLEY!' : '';
+      console.log(`  sid=${sid} : ${allLeagueNames.length} leagues${marker}`);
+      console.log(`    samples: ${allLeagueNames.slice(0, 5).join(' | ')}`);
     } catch (e) {}
   }
 }
 
-async function probeApollo() {
-  console.log('\n═══ Apollo ═══');
-  // Apollo utilise /sport/offer/v3/sports/offer?SportIds=X. Tester 385-400.
-  const now = new Date().toISOString();
-  const to = new Date(Date.now() + 48 * 3600_000).toISOString();
-  for (const sid of [385, 386, 387, 390, 392, 393, 394, 395, 396, 397, 399, 400]) {
-    try {
-      const path = `/sport/offer/v3/sports/offer?Offset=0&Limit=5&DateFrom=${now}&DateTo=${to}&SportIds=${sid}`;
-      const j = await apolloGet(path);
-      const matches = j?.Matches || j?.matches || j?.Data || [];
-      if (matches.length) {
-        const league = matches[0]?.League?.Name || matches[0]?.LeagueName || '';
-        const home = matches[0]?.Home || matches[0]?.HomeName || '';
-        const away = matches[0]?.Away || matches[0]?.AwayName || '';
-        console.log(`  sid=${sid} : ${matches.length} matchs (sample: "${home} vs ${away}" league="${league}")`);
-      }
-    } catch (e) {}
-  }
-}
-
-async function probeBetPawa() {
-  console.log('\n═══ BetPawa ═══');
-  // Foot=2, basket=3, tennis=452 → tester range plus large
-  for (const cat of ['4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','30','40','50','100','200','300','400','453','454','455']) {
-    try {
-      const url = buildEventsListUrl({ eventType: 'UPCOMING', categories: [cat], marketTypes: ['3743','4791','2043818','5000','5009','4895'], skip: 0, take: 5 });
-      const strings = await bpFetchList(url);
-      const ids = new Set();
-      for (let i = 0; i < strings.length; i++) {
-        if (/^\d{7,10}$/.test(strings[i])) {
-          const name = strings[i + 1] || '';
-          if (name.includes(' - ')) ids.add(strings[i]);
-        }
-      }
-      if (ids.size > 0) {
-        // Fetch first event details to see sport name
-        console.log(`  cat=${cat} : ${ids.size} matchs (sample id=${[...ids][0]})`);
-      }
-    } catch (e) {}
-  }
-}
-
-async function probePremierBet() {
-  console.log('\n═══ PremierBet ═══');
-  // Foot=1, basket=2, baseball=3, hockey=4, tennis=5. Volleyball probable 6-15.
-  for (const sid of [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]) {
+async function probePremierBetWide() {
+  console.log('\n═══ PremierBet WIDE 21-45 ═══');
+  for (const sid of [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 40, 45]) {
     try {
       const j = await mget('/events/highlights', { sportId: sid });
       const events = [];
@@ -96,20 +38,103 @@ async function probePremierBet() {
         catNames.add(cat.name || '');
         for (const comp of (cat.competitions || [])) events.push(...(comp.events || []));
       }
-      if (events.length || catNames.size) {
-        const nameStr = [...catNames].slice(0, 2).join(', ');
-        const marker = /volley/i.test(nameStr) ? ' ← VOLLEY' : '';
-        console.log(`  sid=${sid} : ${events.length} events (cats: ${nameStr})${marker}`);
+      if (events.length) {
+        const marker = /volley/i.test([...catNames].join(' ')) ? ' ← VOLLEY!' : '';
+        console.log(`  sid=${sid} : ${events.length} events (${[...catNames].slice(0, 2).join(', ')})${marker}`);
       }
     } catch (e) {}
   }
 }
 
-console.log('▶ PROBE Volleyball v2 (5 books restants)\n');
-await probe1win();
-await probeCongobet();
-await probeApollo();
-await probeBetPawa();
-await probePremierBet();
+async function probeApolloWide() {
+  console.log('\n═══ Apollo WIDE ═══');
+  // Try common tenant sports IDs range
+  const now = new Date().toISOString();
+  const to = new Date(Date.now() + 72 * 3600_000).toISOString();
+  for (const sid of [1, 2, 3, 4, 5, 10, 15, 20, 30, 40, 50, 100, 200, 300, 380, 381, 382, 383, 384, 385, 386, 387, 390, 391, 392, 393, 394, 395, 396, 397, 399, 400, 401, 402, 500]) {
+    try {
+      const path = `/sport/offer/v3/sports/offer?Offset=0&Limit=3&DateFrom=${now}&DateTo=${to}&SportIds=${sid}`;
+      const j = await apolloGet(path);
+      const matches = j?.Matches || j?.matches || [];
+      if (matches.length) {
+        const home = matches[0]?.Home || '';
+        const away = matches[0]?.Away || '';
+        const league = matches[0]?.LeagueName || matches[0]?.League?.Name || '';
+        console.log(`  sid=${sid} : ${matches.length} matches (sample: "${home} vs ${away}" league="${league}")`);
+      }
+    } catch (e) {}
+  }
+}
+
+async function probeBetPawaCategoryDiscovery() {
+  console.log('\n═══ BetPawa - Category discovery via HTML page ═══');
+  // BetPawa expose la liste des categories via une page publique
+  try {
+    const r = await fetch('https://cg.betpawa.com/events', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/150.0.0.0',
+        Accept: 'text/html',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!r.ok) { console.log(`  status=${r.status}`); return; }
+    const html = await r.text();
+    // Chercher categoryId dans le HTML
+    const catPattern = /categoryId=(\d+)[^>]*>([^<]{1,50})</g;
+    const seen = new Map();
+    let m;
+    while ((m = catPattern.exec(html)) !== null) {
+      const cid = m[1];
+      const name = m[2].trim();
+      if (!seen.has(cid)) seen.set(cid, name);
+    }
+    for (const [cid, name] of seen) {
+      const isVolley = /volley/i.test(name);
+      if (isVolley) console.log(`  ← VOLLEY! cat=${cid} name="${name}"`);
+    }
+    console.log(`  ${seen.size} categoryIds trouvees dans HTML page`);
+  } catch (e) { console.log(`  err=${e.message}`); }
+}
+
+async function probe1winSports() {
+  console.log('\n═══ 1win — sport tree via GraphQL/REST ═══');
+  // Try common endpoints for 1win
+  const { API_BASE, PLATFORM } = await import('../src/bookmakers/onewin/api.js');
+  const endpoints = [
+    `${API_BASE}/parser/api/v1/prematch/getSports?platformId=${PLATFORM}&language=en-001&country=NG`,
+    `${API_BASE}/parser/api/v1/pre-match/sports?externalPartnerId=${PLATFORM}&language=en-001&country=NG`,
+    `${API_BASE}/parser/api/v1/prematch/all-sports?externalPartnerId=${PLATFORM}&language=en-001`,
+    `${API_BASE}/parser/api/v1/prematch/list?externalPartnerId=${PLATFORM}&language=en-001`,
+    `${API_BASE}/parser/api/v1/sports-list?externalPartnerId=${PLATFORM}`,
+  ];
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const txt = await r.text();
+      console.log(`  ${url.split('parser/api/v1/')[1].slice(0, 40)} → ${r.status} len=${txt.length}${txt.length > 5 && txt.length < 200 ? ' body="' + txt.slice(0, 100) + '"' : ''}`);
+      if (r.ok && txt.length > 500) {
+        // JSON likely
+        try {
+          const j = JSON.parse(txt);
+          const sports = j?.data || j;
+          const arr = Array.isArray(sports) ? sports : Object.values(sports || {});
+          const volley = arr.filter(s => /volley/i.test((s.name || s.title || '')));
+          if (volley.length) {
+            for (const v of volley) console.log(`    ← VOLLEY! id=${v.id || v.sportId} name="${v.name || v.title}"`);
+          } else {
+            console.log(`    ${arr.length} sports total, aucun volleyball`);
+          }
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+}
+
+console.log('▶ PROBE Volleyball v3 (investigation ciblee)\n');
+await probeCongobetDeep();
+await probePremierBetWide();
+await probeApolloWide();
+await probeBetPawaCategoryDiscovery();
+await probe1winSports();
 console.log('\n═══ FIN PROBE ═══');
 process.exit(0);
