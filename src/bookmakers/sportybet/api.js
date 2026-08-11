@@ -34,7 +34,8 @@ const HDR = {
 //                    235=Q1-Q4 1X2 (spec.quarternr), 303=Q1-Q4 Hcp, 236=Q1-Q4 Total, 304=Q1-Q4 O/E.
 const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,29,60,68';
 const MARKET_IDS_TENNIS = '186,187,188,189,190,191,196,198,202,203,204,314';
-const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,83,235,236,303,304';
+// Ajout audit 2026-08-11 : 74 (1H O/E), 88 (2H Asian Hcp), 94 (2H O/E)
+const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,74,83,88,94,235,236,303,304';
 // HOCKEY (SportRadar UOF sr:sport:4). Market IDs a probe : 1=1X2, 18=Total,
 // 16=Asian Hcp, 26=O/E, 27=BTTS. Structure similaire foot pour marches match.
 // Puisque hockey a 3 periodes avec draw possible on garde 1X2 (id=1).

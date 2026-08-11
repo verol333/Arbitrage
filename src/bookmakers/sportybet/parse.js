@@ -306,6 +306,39 @@ function sportybetBasketFlatOdds(markets) {
         }
         break;
       }
+      // ─── 2H markets etendus (audit 2026-08-11) ────────────────────
+      case '88': { // 2H Asian Handicap (spec.hcp)
+        if (hcp == null || !isHalfLine(Math.abs(hcp))) break;
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          const teamKey = d.split(/[\s(]/)[0].trim();
+          if (teamKey === 'home' || teamKey === '1') putSb(odds, `h2_hcp_home_${hcp}`, v, m, o);
+          else if (teamKey === 'away' || teamKey === '2') putSb(odds, `h2_hcp_away_${-hcp}`, v, m, o);
+        }
+        break;
+      }
+      case '94': { // 2H Odd/Even
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/odd|impair/.test(d)) putSb(odds, 'h2_odd', v, m, o);
+          else if (/even|pair/.test(d)) putSb(odds, 'h2_even', v, m, o);
+        }
+        break;
+      }
+      case '74': { // 1H Odd/Even
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (/odd|impair/.test(d)) putSb(odds, 'h1_odd', v, m, o);
+          else if (/even|pair/.test(d)) putSb(odds, 'h1_even', v, m, o);
+        }
+        break;
+      }
       case '68': { // 1H Total
         if (total == null || !isHalfLine(total)) break;
         for (const o of outcomes) {
