@@ -12,3 +12,4 @@ jobs:
         env:
           SUPERGOOAL_TOKEN: ${{ secrets.SUPERGOOAL_TOKEN }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
