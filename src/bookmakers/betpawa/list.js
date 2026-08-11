@@ -5,7 +5,7 @@
 // identiques (SWPL Cup + friendly), les 2 sans start/league → matching random.
 import { bpFetchList, bpFetchEvent, buildEventsListUrl, isVirtual, splitTeams, CATEGORY_IDS, MARKET_TYPES_BY_SPORT } from './api.js';
 
-const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746', '2043818']);
+const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745', '3746', '3774', '2043818']);
 
 export async function listMatches({ live = false, sport = 'football' } = {}) {
   const category = CATEGORY_IDS[sport];

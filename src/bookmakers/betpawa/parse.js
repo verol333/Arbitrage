@@ -247,17 +247,41 @@ export function betpawaFlatOdds(eventJson) {
       case '4976': putTotal(odds, prices, 'h2_'); break;
       case '4809': putOddEven(odds, prices, 'h2_'); break;
 
+      // ─── Handicap Asiatique FT (specifier.hcp par row, name "1"/"2") ─
+      // Confirme via audit-betpawa 2026-08-11 : id=3774, 4 rows par match
+      // avec hcp = -2.5/-1.5/-0.5/0.5 etc. Standard cross-book (1xbet,
+      // Sportybet, 1win, PremierBet exposent tous ce marche).
+      case '3774': putAsianHcpFoot(odds, market, ''); break;
+
       // ─── Mi-temps la plus prolifique ───────────────────────────────
       case '4728': putHighestScoringHalf(odds, prices); break;
 
       // ─── IGNORÉS explicitement ─────────────────────────────────────
       // Variantes 1UP/2UP (cashout anticipé, non équivalent 1X2 standard)
-      // Handicap 3-way European (non comparable au 2-way asiatique)
+      // Handicap 1X2 3-way European (non comparable au 2-way asiatique)
       // Marchés complexes (correct score, combos, multigoals, ht/ft, etc.)
       default: break;
     }
   }
   return odds;
+}
+
+// Asian Handicap foot BetPawa : chaque row = 1 ligne hcp (specifier.hcp),
+// prices name "1" = home avec hcp, "2" = away avec -hcp. Emet keys
+// hcp_home_L / hcp_away_-L standard cross-book.
+function putAsianHcpFoot(odds, market, pfx = '') {
+  const rows = Array.isArray(market.row) ? market.row : [];
+  for (const r of rows) {
+    const hcp = Number(r?.specifier?.hcp);
+    if (!Number.isFinite(hcp) || !isHalfLine(hcp)) continue;
+    for (const p of (r.prices || [])) {
+      const name = String(p?.name || '').trim();
+      const v = Number(p?.odds);
+      if (!Number.isFinite(v) || v <= 1) continue;
+      if (name === '1') putBp(odds, `${pfx}hcp_home_${hcp}`, v, p);
+      else if (name === '2') putBp(odds, `${pfx}hcp_away_${-hcp}`, v, p);
+    }
+  }
 }
 
 // ─── Helpers de parsing ───────────────────────────────────────────────

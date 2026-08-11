@@ -34,7 +34,7 @@ export const CATEGORY_FOOTBALL = CATEGORY_IDS.football;
 //   Football : 3743=1X2, 28000810/850=Total, 3744/45/46=variants
 //   Tennis   : 2043818=Winner (verifie via F12 marketId=12 -> internal 2043818)
 //   Basket   : 4791=Moneyline FT incl OT, 5009=Total O/U, 3777=Asian Hcp, 4839=O/E
-export const MARKET_TYPES_FOOTBALL = ['3743', '28000810', '28000850', '3744', '3745', '3746'];
+export const MARKET_TYPES_FOOTBALL = ['3743', '28000810', '28000850', '3744', '3745', '3746', '3774'];
 export const MARKET_TYPES_TENNIS = ['2043818'];
 export const MARKET_TYPES_BASKET = ['4791', '5009', '3777', '4839'];
 export const MARKET_TYPES_BY_SPORT = { football: MARKET_TYPES_FOOTBALL, tennis: MARKET_TYPES_TENNIS, basket: MARKET_TYPES_BASKET };
