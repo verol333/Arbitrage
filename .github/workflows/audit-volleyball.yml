@@ -1,0 +1,16 @@
+name: Audit Volleyball Markets (7 books)
+on: { workflow_dispatch: {} }
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        working-directory: arbitrage-service
+        run: npm install --production --no-audit --no-fund
+      - name: Symlink node_modules
+        run: ln -sfn arbitrage-service/node_modules node_modules
+      - run: node scripts/audit-volleyball-markets.js
