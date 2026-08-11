@@ -10,8 +10,10 @@ Deux boucles indépendantes tournent en permanence :
 - **Live** — toutes les 15 s, tous les matchs en direct (le live n'est jamais
   bloqué par un scan prématch lent).
 
-Bookmakers intégrés : 1xbet, 1win, Congobet, YellowBet, Apollo Games, BetMomo,
-Sportcash, PremierBet.
+Bookmakers intégrés (10) : 1xbet, 1win, Congobet, YellowBet, Apollo Games,
+BetMomo, PremierBet, BetPawa, SportyBet, Casongo.
+
+Sports : football, tennis, basket, hockey (glace).
 
 Marchés comparés : 1X2, Double Chance, BTTS, Totaux 0.5/1.5/2.5/3.5 (demi-lignes
 uniquement), Handicaps, Mi-temps, DNB, Pair/Impair, 1ère équipe à marquer,
