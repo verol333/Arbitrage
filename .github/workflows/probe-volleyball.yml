@@ -1,0 +1,20 @@
+name: Probe Volleyball IDs (10 books)
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        working-directory: arbitrage-service
+        run: npm install --production --no-audit --no-fund
+      - name: Symlink node_modules
+        run: ln -sfn arbitrage-service/node_modules node_modules
+      - run: node scripts/probe-volleyball-ids.js
+        env:
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
