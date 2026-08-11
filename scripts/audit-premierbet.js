@@ -29,7 +29,15 @@ function sanity2(o, k1, k2) {
 async function fetchEventRaw(matchId, sport) {
   const path = `/events/${matchId}`;
   const r = await mget(path, {}, 20_000);
-  return r?.data || r || null;
+  const ev = r?.data || r || null;
+  if (!ev) return null;
+  // La reponse expose soit markets direct, soit marketGroups[].markets
+  const markets = [];
+  if (Array.isArray(ev.markets)) markets.push(...ev.markets);
+  else if (Array.isArray(ev.marketGroups)) {
+    for (const g of ev.marketGroups) markets.push(...(g.markets || []));
+  }
+  return { ...ev, markets };
 }
 
 console.log('▶ AUDIT PremierBet\n');
