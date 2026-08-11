@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // AUDIT BetMomo (SWARM WS) : dump market types inconnus par sport.
 import bm from '../src/bookmakers/betmomo/index.js';
-import { swarmSession, BETMOMO_SID, BETMOMO_SITE_ID } from '../src/bookmakers/betmomo/api.js';
+import { fetchMatchOdds } from '../src/bookmakers/betmomo/api.js';
 import { betmomoFlatOdds } from '../src/bookmakers/betmomo/parse.js';
 import { readFileSync } from 'fs';
 
@@ -20,33 +20,9 @@ function sanity2(o, k1, k2) {
   return `${a.toFixed(2)}+${b.toFixed(2)}→inv=${(1/a+1/b).toFixed(3)}`;
 }
 
-// Fetch un match via SWARM avec markets complets
+// Reuse la vraie fonction fetchMatchOdds du book (celle qui marche en prod).
 async function fetchMatchMarkets(matchId, sport) {
-  return swarmSession(async (send) => {
-    const sid = BETMOMO_SID[sport];
-    const where = {
-      partner: BETMOMO_SITE_ID, site: BETMOMO_SITE_ID, game: { id: matchId },
-      sport: { id: sid },
-    };
-    const what = {
-      market: ['id','type','name','base','main','group_id'],
-      event: ['id','name','type','type_1','price','ob_id'],
-    };
-    const raw = await send(what, where);
-    if (!raw || !raw.data) return [];
-    const gd = raw.data.game || {};
-    const markets = [];
-    for (const gid of Object.keys(gd)) {
-      const g = gd[gid];
-      const gmarkets = g.market || {};
-      for (const mid of Object.keys(gmarkets)) {
-        const m = gmarkets[mid];
-        m._events = Object.values(m.event || {});
-        markets.push(m);
-      }
-    }
-    return markets;
-  }, { timeoutMs: 30_000 });
+  return await fetchMatchOdds(matchId);
 }
 
 for (const sport of SPORTS) {
