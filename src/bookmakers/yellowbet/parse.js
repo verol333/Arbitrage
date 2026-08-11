@@ -107,6 +107,13 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
     if (n === '1') set('dnb_1', c, o);
     else if (n === '2') set('dnb_2', c, o);
   }
+  // 1st Half Draw no bet (nom exact YB avec "no bet" lowercase — audit 2026-08-11)
+  const dnbHt = findMarket(bts, '1st Half Draw no bet');
+  mkt = dnbHt; if (dnbHt) for (const o of dnbHt.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (n === '1') set('ht_dnb_1', c, o);
+    else if (n === '2') set('ht_dnb_2', c, o);
+  }
   const oe = findMarket(bts, 'Odd/Even goals');
   mkt = oe; if (oe) for (const o of oe.odds || []) {
     const n = lbl(o), c = priceOf(o);
@@ -242,6 +249,154 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
 //   "4th Quarter : Total Spread"→ q4_over_L / q4_under_L
 //   "Draw no bet"               → dnb_1 / dnb_2
 //   "Odd/Even Points"           → odd / even
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR TENNIS YellowBet (audit 2026-08-11 : 37 matchs dispo).
+// YB tennis expose 20 marches dont 10+ cross-book utiles.
+// Convention keys : match_1/2, hcp_home/away_L, match_over/under_L,
+// tt_home/away_over/under_L, hcp_sets_home/away_L, s1_/s2_ prefixes,
+// total_sets_2/3, odd/even.
+// ═══════════════════════════════════════════════════════════════
+export function yellowbetTennisFlatOdds(bts, { home = '', away = '' } = {}) {
+  const odds = { _ids: {} };
+  if (!Array.isArray(bts)) return odds;
+  let mkt = null;
+  const put = (k, c, o) => {
+    if (!c || (odds[k] && c <= odds[k])) return;
+    odds[k] = c;
+    if (mkt && o) {
+      odds._ids[k] = {
+        betTypeId: mkt?.id, betTypeName: String(mkt?.n || ''),
+        oddKey: String(o?.n ?? ''), oddName: String(o?.n ?? ''),
+        oddDisplayName: String(o?.n ?? ''), oddPrice: c,
+      };
+    }
+  };
+  // Norm player name pour matching tt_home / tt_away sur "{Player} total games"
+  const homeLc = String(home || '').toLowerCase();
+  const awayLc = String(away || '').toLowerCase();
+  const isHomeName = (n) => homeLc && n.includes(homeLc.split(',')[0].trim().toLowerCase().slice(0, 4));
+  const isAwayName = (n) => awayLc && n.includes(awayLc.split(',')[0].trim().toLowerCase().slice(0, 4));
+
+  for (const b of bts) {
+    const name = String(b?.n || '').trim();
+    const nameLc = name.toLowerCase();
+    mkt = b;
+
+    // ─── Vainqueur du match (2-way, tennis pas de nul)
+    if (/^2\s*way$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put('match_1', c, o);
+        else if (n === '2') put('match_2', c, o);
+      }
+      continue;
+    }
+    // ─── Vainqueur 1er / 2eme set
+    if (/^1st\s+set\s+winner$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put('s1_match_1', c, o);
+        else if (n === '2') put('s1_match_2', c, o);
+      }
+      continue;
+    }
+    if (/^who\s+wins\s+second\s+set$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put('s2_match_1', c, o);
+        else if (n === '2') put('s2_match_2', c, o);
+      }
+      continue;
+    }
+    // ─── Total Games match
+    if (/^total\s+games$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') put(`match_over_${l}`, c, o);
+        else if (n === 'under') put(`match_under_${l}`, c, o);
+      }
+      continue;
+    }
+    // ─── 1st set - total games
+    if (/^1st\s+set\s*-\s*total\s+games$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') put(`s1_over_${l}`, c, o);
+        else if (n === 'under') put(`s1_under_${l}`, c, o);
+      }
+      continue;
+    }
+    // ─── Game Handicap match (2-way sur jeux)
+    if (/^game\s+handicap$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(Math.abs(l))) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`hcp_home_${l}`, c, o);
+        else if (n === '2') put(`hcp_away_${-l}`, c, o);
+      }
+      continue;
+    }
+    // ─── 1st set - game handicap
+    if (/^1st\s+set\s*-\s*game\s+handicap$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(Math.abs(l))) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`s1_hcp_home_${l}`, c, o);
+        else if (n === '2') put(`s1_hcp_away_${-l}`, c, o);
+      }
+      continue;
+    }
+    // ─── Set Handicap (sets gagnes, ±1.5)
+    if (/^set\s+handicap$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(Math.abs(l))) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === '1') put(`hcp_sets_home_${l}`, c, o);
+        else if (n === '2') put(`hcp_sets_away_${-l}`, c, o);
+      }
+      continue;
+    }
+    // ─── Total number of sets (best of 3) → outcome 2 ou 3 sets
+    if (/^total\s+number\s+of\s+sets/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === '2') put('total_sets_2', c, o);
+        else if (n === '3') put('total_sets_3', c, o);
+      }
+      continue;
+    }
+    // ─── Odd/even games (match)
+    if (/^odd\/even\s+games$/i.test(name)) {
+      for (const o of b.odds || []) {
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'odd') put('odd', c, o);
+        else if (n === 'even') put('even', c, o);
+      }
+      continue;
+    }
+    // ─── Player total games : "{Player} total games" → tt_home / tt_away
+    const ttMatch = nameLc.match(/^(.+?)\s+total\s+games$/);
+    if (ttMatch) {
+      const playerLc = ttMatch[1];
+      const side = isHomeName(playerLc) ? 'home' : isAwayName(playerLc) ? 'away' : null;
+      if (!side) continue;
+      for (const o of b.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') put(`tt_${side}_over_${l}`, c, o);
+        else if (n === 'under') put(`tt_${side}_under_${l}`, c, o);
+      }
+      continue;
+    }
+    // Skip explicites : "Correct Set Score", "1st set - correct score",
+    // "Any set to nil", "Double result", "{Player} to win a set",
+    // "{Player} to win exactly 1 set" (tous non arbitrables cross-book).
+  }
+  return odds;
+}
+
 export function yellowbetBasketFlatOdds(bts, { live = false } = {}) {
   const odds = { _ids: {} };
   if (!Array.isArray(bts)) return odds;
