@@ -1,50 +1,41 @@
-// Probe volleyball : compter le nombre RÉEL de matchs disponibles sur chaque book
-// (horizon 72h), sans filtrage, pour identifier ceux qui sous-comptent.
-// Usage GH Actions : workflow_dispatch dédié.
-import { listPrematch as xbetList } from '../src/bookmakers/xbet/list.js';
-import { listPrematch as onewinList } from '../src/bookmakers/onewin/list.js';
-import { listPrematch as congoList } from '../src/bookmakers/congobet/list.js';
-import { listPrematch as yellowList } from '../src/bookmakers/yellowbet/list.js';
-import { listPrematch as apolloList } from '../src/bookmakers/apollo/list.js';
-import { listPrematch as betmomoList } from '../src/bookmakers/betmomo/list.js';
-import { listPrematch as pbList } from '../src/bookmakers/premierbet/list.js';
-import { listPrematch as bpList } from '../src/bookmakers/betpawa/list.js';
-import { listPrematch as sbList } from '../src/bookmakers/sportybet/list.js';
+// Probe volleyball : compter le nombre RÉEL de matchs par book (horizon 168h).
+// Utilise l'interface publique listMatches de chaque index.js.
+import xbet from '../src/bookmakers/xbet/index.js';
+import onewin from '../src/bookmakers/onewin/index.js';
+import congobet from '../src/bookmakers/congobet/index.js';
+import yellowbet from '../src/bookmakers/yellowbet/index.js';
+import apollo from '../src/bookmakers/apollo/index.js';
+import betmomo from '../src/bookmakers/betmomo/index.js';
+import premierbet from '../src/bookmakers/premierbet/index.js';
+import betpawa from '../src/bookmakers/betpawa/index.js';
+import sportybet from '../src/bookmakers/sportybet/index.js';
 
 const HORIZON = 168; // 7 jours
 
-async function run(name, fn) {
+async function run(book) {
   const t0 = Date.now();
   try {
-    const matches = await fn();
-    const leagues = new Set(matches.map((m) => m.league).filter(Boolean));
-    console.log(`[${name}] matchs=${matches.length} leagues=${leagues.size} (${Date.now()-t0}ms)`);
-    // Sample 3 matchs
-    matches.slice(0, 3).forEach((m) => {
-      console.log(`  · [${m.league}] ${m.home} vs ${m.away} @ ${m.start ? new Date(m.start).toISOString() : '?'}`);
+    const matches = await book.listMatches({ horizonHours: HORIZON, sport: 'volleyball' });
+    const arr = Array.isArray(matches) ? matches : [];
+    const leagues = new Map();
+    for (const m of arr) leagues.set(m.league || '?', (leagues.get(m.league || '?') || 0) + 1);
+    console.log(`\n[${book.key}] matchs=${arr.length} leagues=${leagues.size} (${Date.now()-t0}ms)`);
+    arr.slice(0, 3).forEach((m) => {
+      const start = m.start ? new Date(m.start).toISOString().slice(0, 16) : '?';
+      console.log(`  · [${m.league || '?'}] ${m.home} vs ${m.away} @ ${start}`);
     });
-    // List all leagues
-    if (leagues.size <= 30) {
-      console.log(`  ligues: ${[...leagues].join(' | ')}`);
-    } else {
-      console.log(`  ligues (${leagues.size}, top10): ${[...leagues].slice(0, 10).join(' | ')}`);
-    }
+    const sorted = [...leagues.entries()].sort((a,b) => b[1]-a[1]);
+    const top = sorted.slice(0, 15);
+    console.log(`  ligues (top ${top.length}/${leagues.size}): ${top.map(([n,c]) => `${n}(${c})`).join(' | ')}`);
   } catch (e) {
-    console.log(`[${name}] ERR ${e.message}`);
+    console.log(`[${book.key}] ERR ${e.message}`);
   }
 }
 
 (async () => {
-  console.log(`=== Probe volleyball horizon=${HORIZON}h ===\n`);
-  await run('1xbet', () => xbetList(HORIZON, 'volleyball'));
-  await run('1win', () => onewinList(HORIZON, 'volleyball'));
-  await run('congobet', () => congoList(HORIZON, 'volleyball'));
-  await run('yellowbet', () => yellowList(HORIZON, 'volleyball'));
-  await run('apollo', () => apolloList(HORIZON, 'volleyball'));
-  await run('betmomo', () => betmomoList(HORIZON, 'volleyball'));
-  await run('premierbet', () => pbList(HORIZON, 'volleyball'));
-  await run('betpawa', () => bpList(HORIZON, 'volleyball'));
-  await run('sportybet', () => sbList(HORIZON, 'volleyball'));
+  console.log(`=== Probe volleyball horizon=${HORIZON}h (7 jours) ===`);
+  const books = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet];
+  for (const b of books) await run(b);
   console.log('\n=== Fin ===');
   process.exit(0);
 })();
