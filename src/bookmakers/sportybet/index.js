@@ -7,7 +7,7 @@ export default {
   label: 'SportyBet',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (!['football', 'tennis', 'basket', 'hockey'].includes(sport)) return [];
+    if (!['football', 'tennis', 'basket', 'hockey', 'volleyball'].includes(sport)) return [];
     return live ? listLive({ sport }) : listPrematch({ sport });
   },
   // LIVE : re-fetch fresh via /event?productId=1 OBLIGATOIRE. Le fallback sur
@@ -21,7 +21,7 @@ export default {
   async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
     // Tennis / Basket : listPrematch filtre par MARKET_IDS_FOOTBALL → __raw pauvre.
     // Force fetch event detail pour recuperer TOUS les markets.
-    if (sport === 'tennis' || sport === 'basket' || sport === 'hockey') {
+    if (sport === 'tennis' || sport === 'basket' || sport === 'hockey' || sport === 'volleyball') {
       const evt = await sbFetchEvent(match.id, { live });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
       return markets.length ? sportybetFlatOdds(markets, { live, sport }) : {};

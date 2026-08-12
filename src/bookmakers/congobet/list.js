@@ -38,9 +38,15 @@ export async function listPrematch(sport = 'football') {
     for (const ev of items) {
       if (isVirtual(ev) || seen.has(ev.id)) continue;
       seen.add(ev.id);
+      // Volleyball (sid=114) : categoryPath renvoie un path d'IDs "/114/24541/51766/"
+      // au lieu du nom lisible → fallback sur categories[] qui contient les noms.
+      const path = ev.categoryPath || '';
+      const isIdPath = /^\/[\d/]+$/.test(path);
+      const cats = Array.isArray(ev.categories) ? ev.categories.filter(Boolean) : [];
+      const league = (isIdPath && cats.length) ? cats.join(' / ') : (path || cats[0] || '');
       out.push({
         id: ev.id, home: ev.homeTeamName, away: ev.awayTeamName,
-        league: ev.categoryPath || (ev.categories || [])[0] || '',
+        league,
         start: ev.expectedStart ? new Date(ev.expectedStart).getTime() : null,
       });
     }
