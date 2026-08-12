@@ -40,8 +40,13 @@ const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,74,83,88,94,235,236,
 // 16=Asian Hcp, 26=O/E, 27=BTTS. Structure similaire foot pour marches match.
 // Puisque hockey a 3 periodes avec draw possible on garde 1X2 (id=1).
 const MARKET_IDS_HOCKEY = '1,10,18,16,26,27,29,86';
-export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4' };
-export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY };
+// Volleyball SportyBet : sr:sport:23 (SportRadar UOF standard, confirme via probe).
+// Market IDs volley : 186=Winner, 202=1st set winner, 309=1st set point handicap,
+// 311=1st set O/E, 26=O/E match, 196=Exact sets. Note pas de 187/188 (game hcp),
+// remplaces par 309 (point handicap sets).
+const MARKET_IDS_VOLLEYBALL = '186,202,309,311,26,196,201';
+export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4', volleyball: 'sr:sport:23' };
+export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY, volleyball: MARKET_IDS_VOLLEYBALL };
 
 // Rotation d'user-agents pour eviter les 403 Cloudflare rate-limit.
 // Diag 5books tennis a montre : Chrome 151 marche, autres UAs parfois bloques.

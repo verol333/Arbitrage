@@ -177,6 +177,20 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     parseGE(GE, odds, '');
     return odds;
   }
+  // Volleyball : structure quasi-identique basket 2-way + tennis sets.
+  // G=1 (2-way winner, T=1 home + T=3 away, sans T=2 nul), G=17 (total points),
+  // G=2 (handicap points), G=15/62 (team totals), G=14 (odd/even), G=343 (nOut=3
+  // potentially total sets 2/3-way). Ignore G=343 pour l'instant (pas de mapping
+  // valide sans probe). Reuse parseBasketGE (2-way + total + hcp + tt).
+  if (sport === 'volleyball') {
+    parseBasketGE(GE, odds, '');
+    // Ajout G=14 odd/even (parseBasketGE ne le fait pas mais volleyball l'expose).
+    iterate((GE.find((x) => x.G === 14)), (i, c) => {
+      if (i.T === 182) put1x(odds, 'even', i, c);
+      if (i.T === 183) put1x(odds, 'odd', i, c);
+    });
+    return odds;
+  }
   parseGE(GE, odds, '');
   parseMainOnly(GE, odds);
 

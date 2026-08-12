@@ -15,6 +15,10 @@ function eachOdd(offers, key, cb) {
 
 export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   if (sport === 'tennis') return apolloTennisFlatOdds(offers);
+  // Volleyball Apollo : structure sets identique tennis (BetTypeKey 20 winner,
+  // 502/558 s1/s2 winner, 910 hcp games, 911 total games/points, 914 total sets).
+  // Reuse apolloTennisFlatOdds — les BetTypeKeys sont les memes en tennis/volley.
+  if (sport === 'volleyball') return apolloTennisFlatOdds(offers);
   // Basket : BetTypeKey basket Apollo non probes en prod. Sans mapping valide,
   // retourner odds vides plutot que mismapper des keys foot/tennis sur du basket
   // (produirait des fake arbs). A activer apres probe basket depuis GH Actions.
