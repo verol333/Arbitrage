@@ -14,66 +14,73 @@ jobs:
       - name: Wait for Byparr
         run: for i in {1..90}; do curl -sf http://localhost:8191/docs >/dev/null 2>&1 && break; sleep 2; done
 
-      - name: Fetch SuperGooal HTML + extract JS URLs
+      - name: Fetch main.js SuperGooal (Angular bundle)
         run: |
-          echo "=== Fetch supergooal.cg/fr/pari via Byparr ==="
+          echo "=== main.js via Byparr ==="
           curl -s -X POST http://localhost:8191/v1 \
             -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari","maxTimeout":60000}' \
-            > /tmp/sg.json
-          jq -r '.solution.response' /tmp/sg.json > /tmp/sg.html
-          echo "HTML size: $(wc -c < /tmp/sg.html)"
+            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari/main.3965dae5f31396fc.js","maxTimeout":60000}' \
+            > /tmp/main.json
+          jq -r '.solution.response' /tmp/main.json > /tmp/main.js 2>/dev/null
+          # Byparr wrap dans HTML : extract pre content si présent
+          if grep -q '<pre>' /tmp/main.js; then
+            sed -n 's/.*<pre>\(.*\)<\/pre>.*/\1/p' /tmp/main.js > /tmp/main.raw.js
+          else
+            cp /tmp/main.js /tmp/main.raw.js
+          fi
+          echo "size: $(wc -c < /tmp/main.raw.js)"
 
           echo ""
-          echo "=== JS files trouvés ==="
-          grep -oE 'src="[^"]+\.js"' /tmp/sg.html | sed 's/^src="//;s/"$//' | sort -u > /tmp/jsfiles.txt
-          cat /tmp/jsfiles.txt
-          # Ajoute le prefix supergooal.cg si relatif
-          echo ""
-          echo "=== JS avec prefix ==="
-          while read js; do
-            if [[ "$js" == /* ]] || [[ "$js" != http* ]]; then
-              echo "https://supergooal.cg/fr/pari/$js"
-            else
-              echo "$js"
-            fi
-          done < /tmp/jsfiles.txt > /tmp/jsurls.txt
-          cat /tmp/jsurls.txt
+          echo "=== OAuth endpoints ==="
+          grep -oE '[a-zA-Z0-9\.\-]*/oauth/[a-zA-Z0-9/_\-]+' /tmp/main.raw.js | sort -u | head -10
 
           echo ""
-          echo "=== Grep dans HTML : oauth/token/api paths ==="
-          grep -oE 'oauth[a-zA-Z0-9/_\-\.]*' /tmp/sg.html | sort -u | head -20
-          grep -oE 'client[_-]id[^"]*"[^"]+' /tmp/sg.html | head -5
-          grep -oE '["/]api/v?[0-9]?/[a-zA-Z0-9/_\-]+' /tmp/sg.html | sort -u | head -30
-          grep -oE '(access_token|Bearer|Authorization)' /tmp/sg.html | sort -u | head -5
+          echo "=== Base URLs API ==="
+          grep -oE 'https?://[a-zA-Z0-9\.\-]+\.meridianbet\.com/[a-zA-Z0-9/_\-]*' /tmp/main.raw.js | sort -u | head -20
+          grep -oE 'baseUrl["'\'':]\s*["'\''][^"'\'']+' /tmp/main.raw.js | head -10
+          grep -oE 'apiUrl["'\'':]\s*["'\''][^"'\'']+' /tmp/main.raw.js | head -10
 
-      - name: Fetch main JS bundle et cherche endpoints
+          echo ""
+          echo "=== API paths /betshop/api/* ==="
+          grep -oE '/betshop/api/[a-zA-Z0-9/_\-]+' /tmp/main.raw.js | sort -u | head -30
+
+          echo ""
+          echo "=== OAuth constants ==="
+          grep -oE 'client_id["'\'':]\s*[0-9"a-zA-Z_\-]+' /tmp/main.raw.js | head -5
+          grep -oE 'client_secret["'\'':]\s*[a-zA-Z0-9"'\''_\-]+' /tmp/main.raw.js | head -5
+          grep -oE 'grant_type["'\'':]\s*["'\''][a-z_]+' /tmp/main.raw.js | head -5
+          grep -oE 'scope["'\'':]\s*["'\''][a-z_ ]+' /tmp/main.raw.js | head -5
+
+          echo ""
+          echo "=== Cherche flow anonyme ==="
+          grep -oE 'anonymous[a-zA-Z]*' /tmp/main.raw.js | sort -u | head -10
+          grep -oE 'guest[a-zA-Z]*' /tmp/main.raw.js | sort -u | head -10
+
+          echo ""
+          echo "=== Headers custom ==="
+          grep -oE '["'\''][Xx]-[A-Za-z0-9\-]+["'\'']' /tmp/main.raw.js | sort -u | head -20
+
+      - name: Test OAuth flow candidates
         run: |
-          # Fetch les 3 premiers JS via Byparr
-          I=0
-          while IFS= read -r url && [ "$I" -lt 3 ]; do
-            I=$((I+1))
+          test_oauth() {
+            local label="$1"; local url="$2"; local body="$3"
             echo ""
-            echo "=== JS $I: $url ==="
-            curl -s -X POST http://localhost:8191/v1 \
+            echo "=== $label — $url ==="
+            echo "  body: $body"
+            RESP=$(curl -s -X POST http://localhost:8191/v1 \
               -H 'Content-Type: application/json' \
-              -d "{\"cmd\":\"request.get\",\"url\":\"$url\",\"maxTimeout\":30000}" \
-              > /tmp/js.json
-            jq -r '.solution.response' /tmp/js.json > /tmp/js.txt 2>/dev/null
-            echo "  size: $(wc -c < /tmp/js.txt)"
+              -d "{\"cmd\":\"request.post\",\"url\":\"$url\",\"maxTimeout\":30000,\"postData\":\"$body\",\"headers\":{\"Content-Type\":\"application/x-www-form-urlencoded\"}}" \
+              2>&1)
+            echo "$RESP" > /tmp/oauth.json
+            echo "  HTTP=$(echo "$RESP" | jq -r '.solution.status' 2>/dev/null)"
+            echo "$RESP" | jq -r '.solution.response' 2>/dev/null | sed -n 's/.*<pre>\(.*\)<\/pre>.*/\1/p' | head -c 500
+          }
 
-            echo "  === oauth/token paths ==="
-            grep -oE '["/]oauth/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -10 || echo "  (none)"
-            grep -oE '["/]auth/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -10 || echo "  (none)"
+          # client_id=4 trouvé dans HTML, tester différents grant_type + endpoints
+          test_oauth "meridianbet oauth token client_credentials" "https://online.meridianbet.com/oauth/token" "grant_type=client_credentials&client_id=4"
+          test_oauth "meridianbet oauth token password anon" "https://online.meridianbet.com/oauth/token" "grant_type=password&client_id=4"
+          test_oauth "supergooal oauth token" "https://supergooal.cg/oauth/token" "grant_type=client_credentials&client_id=4"
+          test_oauth "meridianbet betshop oauth" "https://online.meridianbet.com/betshop/oauth/token" "grant_type=client_credentials&client_id=4"
 
-            echo "  === API paths ==="
-            grep -oE '/betshop/api/v?[0-9]?/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -15 || echo "  (none)"
-            grep -oE '/api/v?[0-9]?/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -20 || echo "  (none)"
-
-            echo "  === client_id / secret ==="
-            grep -oE 'client[_-]?id["'\'':,\ ]*["'\'']\?[a-zA-Z0-9_\-]{5,}' /tmp/js.txt | head -3 || echo "  (none)"
-            grep -oE 'grant_type["'\'':,\ ]*["'\''][a-z_]+' /tmp/js.txt | head -3 || echo "  (none)"
-
-            echo "  === URLs meridianbet ==="
-            grep -oE 'https?://[a-zA-Z0-9\.\-]+\.meridianbet\.com/[a-zA-Z0-9/_\-]*' /tmp/js.txt | sort -u | head -20 || echo "  (none)"
-          done < /tmp/jsurls.txt
+          # Anonymous session possible
+          test_oauth "meridianbet init anon POST" "https://online.meridianbet.com/betshop/api/v2/init" ""
