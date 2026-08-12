@@ -11,61 +11,45 @@ jobs:
         options: --shm-size=1g
     steps:
       - uses: actions/checkout@v4
-
       - name: Wait for Byparr
-        run: |
-          for i in {1..90}; do
-            if curl -sf http://localhost:8191/docs >/dev/null 2>&1; then
-              echo "OK Byparr ready after ${i}s"
-              break
-            fi
-            sleep 2
-          done
+        run: for i in {1..90}; do curl -sf http://localhost:8191/docs >/dev/null 2>&1 && break; sleep 2; done
 
-      - name: Probe SuperGooal HTML + extract API URLs
-        run: |
-          echo "=== SuperGooal HTML full dump (chercher API URLs) ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari","maxTimeout":60000}' \
-            > /tmp/sg.json
-          echo "size: $(jq -r '.solution.response' /tmp/sg.json | wc -c)"
-          echo ""
-          echo "=== API URLs trouvées dans le HTML ==="
-          jq -r '.solution.response' /tmp/sg.json | grep -oE 'https?://[a-zA-Z0-9\.\-]+\.(meridianbet|merbet)\.[a-z]+/[a-zA-Z0-9/\._\-]*' | sort -u | head -30
-          echo ""
-          echo "=== Fichiers .js chargés (peut contenir API base) ==="
-          jq -r '.solution.response' /tmp/sg.json | grep -oE 'src="[^"]+\.js"' | head -10
-          echo ""
-          echo "=== data-*  attributs ==="
-          jq -r '.solution.response' /tmp/sg.json | grep -oE 'data-api[^=]*="[^"]+"' | head -10
-
-      - name: Probe endpoints Meridianbet candidats via Byparr
+      - name: Probe Meridianbet API endpoints
         run: |
           test_url() {
             local label="$1"; local url="$2"
-            echo ""
-            echo "=== $label ==="
+            echo ""; echo "=== $label ==="
             curl -s -X POST http://localhost:8191/v1 \
               -H 'Content-Type: application/json' \
               -d "{\"cmd\":\"request.get\",\"url\":\"$url\",\"maxTimeout\":30000}" \
-              > /tmp/probe.json 2>&1 || { echo "curl failed"; return; }
-            local http=$(jq -r '.solution.status' /tmp/probe.json 2>/dev/null)
-            local size=$(jq -r '.solution.response' /tmp/probe.json 2>/dev/null | wc -c)
-            echo "  HTTP=$http size=${size}b"
-            jq -r '.solution.response' /tmp/probe.json 2>/dev/null | head -c 500 | tr -d '\n'
-            echo ""
+              > /tmp/p.json 2>&1 || { echo "curl failed"; return; }
+            echo "  HTTP=$(jq -r '.solution.status' /tmp/p.json) size=$(jq -r '.solution.response' /tmp/p.json | wc -c)b"
+            jq -r '.solution.response' /tmp/p.json | head -c 500 | tr -d '\n'; echo ""
           }
 
-          # Endpoints candidats basés sur ce qu'on voit dans le HTML
-          test_url "viforbo sports" "https://viforbo.meridianbet.com/api/v1/sports?locale=fr"
-          test_url "viforbo standard" "https://viforbo.meridianbet.com/standard/sport?locale=fr"
-          test_url "merbet root" "https://merbet.com/"
-          test_url "wsbo-online" "https://wsbo-online.meridianbet.com/"
-          test_url "online.meridianbet API v2" "https://online.meridianbet.com/betshop/api/v2/standard/sport/58"
-          test_url "supergooal API pari" "https://supergooal.cg/api/pari/sports"
-          test_url "supergooal graphql" "https://supergooal.cg/api/graphql"
+          # Feed public direct sports Congo
+          test_url "smartdog feeds sp CG" "https://smartdog.meridianbet.com/feeds/sp/CG"
+          test_url "smartdog feeds sp CG/football" "https://smartdog.meridianbet.com/feeds/sp/CG/football"
 
-          # Domaines Meridianbet connus
-          test_url "meridianbet online-api" "https://online.meridianbet.com/api/v1/sports"
-          test_url "meridian bo-api" "https://bo-api.meridianbet.com/api/v1/sports"
+          # Init token endpoint
+          test_url "online init" "https://online.meridianbet.com/betshop/api/v2/init"
+          test_url "online init anonymous" "https://online.meridianbet.com/betshop/api/v2/user/anonymous"
+          test_url "oauth token" "https://online.meridianbet.com/oauth/token"
+
+          # Betshop API sport variations (58 = soccer commonly)
+          test_url "online sport 58 sr" "https://online.meridianbet.com/betshop/api/v2/standard/sport/58/region"
+          test_url "online sport 58 events" "https://online.meridianbet.com/betshop/api/v2/standard/sport/58/events"
+
+          # viforbo variations
+          test_url "viforbo standard sport 58" "https://viforbo.meridianbet.com/standard/sport/58"
+          test_url "viforbo api v2 sports" "https://viforbo.meridianbet.com/api/v2/sports"
+          test_url "viforbo betshop standard 58" "https://viforbo.meridianbet.com/betshop/api/v2/standard/sport/58"
+
+          # Sports different IDs (foot could be 1, 58, or other in Meridianbet)
+          test_url "online sport 1" "https://online.meridianbet.com/betshop/api/v2/standard/sport/1"
+
+          # ProdOnline / ProdBetshop variants (sometimes used)
+          test_url "prodbetshop sport 58" "https://online.meridianbet.com/prod-betshop/api/v2/standard/sport/58"
+
+          # supergooal-hosted API (proxy?)
+          test_url "supergooal betshop" "https://supergooal.cg/betshop/api/v2/standard/sport/58"
