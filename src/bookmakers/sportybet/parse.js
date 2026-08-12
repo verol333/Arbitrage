@@ -40,6 +40,7 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
   if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
   if (sport === 'basket') return sportybetBasketFlatOdds(markets);
   if (sport === 'hockey') return sportybetHockeyFlatOdds(markets);
+  if (sport === 'volleyball') return sportybetVolleyballFlatOdds(markets);
   const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
 
@@ -560,6 +561,69 @@ function sportybetTennisFlatOdds(markets) {
             if (ocId === '12') putSb(odds, `total_sets_over_${total}`, v, m, o);
             else if (ocId === '13') putSb(odds, `total_sets_under_${total}`, v, m, o);
           }
+          break;
+        default: break;
+      }
+    }
+  }
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR VOLLEYBALL SportyBet (audit 2026-08-11).
+// Market IDs volley SB (specifiques, differents tennis) :
+//   186 = Winner (id=4 home, id=5 away)
+//   202 = Nth set winner (specifier setnr)
+//   309 = Nth set point handicap (specifier setnr+hcp — different tennis 203)
+//   311 = Nth set odd/even (specifier setnr)
+//   26  = Odd/Even match (id=70 odd, id=72 even)
+//   196 = Exact sets (skip)
+//   201 = Double result (skip combo)
+// Volleyball a des sets a 25 points, best-of-5 (3 sets pour femmes/jeunes).
+// Convention keys : match_1/2, sN_match_1/2, sN_hcp_home_L/away_-L, odd/even,
+// sN_odd/even.
+// ═══════════════════════════════════════════════════════════════
+function sportybetVolleyballFlatOdds(markets) {
+  const odds = { _ids: {} };
+  if (!Array.isArray(markets)) return odds;
+  for (const m of markets) {
+    const id = String(m?.id || '');
+    const outcomes = Array.isArray(m?.outcomes) ? m.outcomes : [];
+    if (!outcomes.length) continue;
+    const spec = String(m.specifier || '');
+    const hcp = extractLine(spec, 'hcp');
+    const setnr = extractLine(spec, 'setnr');
+    const setPfx = setnr ? `s${setnr}_` : '';
+    for (const o of outcomes) {
+      const v = Number(o?.odds);
+      if (!Number.isFinite(v) || v <= 1) continue;
+      const ocId = String(o?.id || '');
+      switch (id) {
+        case '186': // Winner match
+          if (ocId === '4') putSb(odds, 'match_1', v, m, o);
+          else if (ocId === '5') putSb(odds, 'match_2', v, m, o);
+          break;
+        case '202': // Nth set winner
+          if (setnr) {
+            if (ocId === '4') putSb(odds, `${setPfx}match_1`, v, m, o);
+            else if (ocId === '5') putSb(odds, `${setPfx}match_2`, v, m, o);
+          }
+          break;
+        case '309': // Nth set point handicap
+          if (setnr && hcp != null && isHalfLine(Math.abs(hcp))) {
+            if (ocId === '1714') putSb(odds, `${setPfx}hcp_home_${hcp}`, v, m, o);
+            else if (ocId === '1715') putSb(odds, `${setPfx}hcp_away_${-hcp}`, v, m, o);
+          }
+          break;
+        case '311': // Nth set odd/even
+          if (setnr) {
+            if (ocId === '70') putSb(odds, `${setPfx}odd`, v, m, o);
+            else if (ocId === '72') putSb(odds, `${setPfx}even`, v, m, o);
+          }
+          break;
+        case '26': // Odd/Even match
+          if (ocId === '70') putSb(odds, 'odd', v, m, o);
+          else if (ocId === '72') putSb(odds, 'even', v, m, o);
           break;
         default: break;
       }

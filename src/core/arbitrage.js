@@ -736,6 +736,106 @@ export function compareHockeyTwoBooks(rawA, bookA, rawB, bookB) {
   return out;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPARATOR VOLLEYBALL — 2-way winner (pas de nul, best-of-5), sets, handicap
+// points, total points, team totals, odd/even, total sets. Structure hybride
+// tennis (sets s1_/s2_/s3_) + basket (hcp/total points + tt).
+// Pas de match_X (volley = 2-way toujours). Pas de comparaison sets 5 (0.5%
+// des matchs), gardons jusqu'a s3.
+// ═══════════════════════════════════════════════════════════════════════════════
+export function compareVolleyballTwoBooks(rawA, bookA, rawB, bookB) {
+  const oa = normalizeAliases(rawA);
+  const ob = normalizeAliases(rawB);
+  const out = [];
+
+  // Vainqueur du Match : 2-way. match_1/2 complementaires.
+  pushArb(out, 'Vainqueur du Match', 'Dom.', oa.match_1, bookA, 'Ext.', ob.match_2, bookB, idsOf(oa, 'match_1'), idsOf(ob, 'match_2'));
+  pushArb(out, 'Vainqueur du Match', 'Dom.', ob.match_1, bookB, 'Ext.', oa.match_2, bookA, idsOf(ob, 'match_1'), idsOf(oa, 'match_2'));
+
+  // Handicap Points Match (±L, demi-lignes 0.5-19.5).
+  for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
+    const sign = lNum > 0 ? '+' + l : l;
+    const fam = `Handicap Points ${sign}`;
+    const aL = `Dom. ${sign}`;
+    const bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
+    pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
+    pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+  }
+
+  // Total Points Match (60-180 typique).
+  for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Points Match ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB, idsOf(oa, `match_over_${l}`), idsOf(ob, `match_under_${l}`));
+    pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA, idsOf(ob, `match_over_${l}`), idsOf(oa, `match_under_${l}`));
+  }
+
+  // Total Points individuel Dom./Ext.
+  for (const [side, lbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
+    for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const ok = `tt_${side}_over_${l}`, uk = `tt_${side}_under_${l}`;
+      const fam = `Total Points ${lbl} ${l}`;
+      pushArb(out, fam, `${lbl} +${l}`, oa[ok], bookA, `${lbl} −${l}`, ob[uk], bookB, idsOf(oa, ok), idsOf(ob, uk));
+      pushArb(out, fam, `${lbl} +${l}`, ob[ok], bookB, `${lbl} −${l}`, oa[uk], bookA, idsOf(ob, ok), idsOf(oa, uk));
+    }
+  }
+
+  // Handicap Sets (±1.5 typique best-of-3 ou ±2.5 best-of-5).
+  for (const l of linesOf(oa, ob, /^hcp_sets_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_sets_home_${l}`, ak = `hcp_sets_away_${-lNum}`;
+    const sign = lNum > 0 ? '+' + l : l;
+    const fam = `Handicap Sets ${sign}`;
+    pushArb(out, fam, `Dom. ${sign}`, oa[hk], bookA, `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
+    pushArb(out, fam, `Dom. ${sign}`, ob[hk], bookB, `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+  }
+
+  // Total Sets (2/3 best-of-3, 3.5 best-of-5).
+  for (const l of linesOf(oa, ob, /^total_sets_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Sets ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`total_sets_over_${l}`], bookA, `−${l}`, ob[`total_sets_under_${l}`], bookB, idsOf(oa, `total_sets_over_${l}`), idsOf(ob, `total_sets_under_${l}`));
+    pushArb(out, fam, `+${l}`, ob[`total_sets_over_${l}`], bookB, `−${l}`, oa[`total_sets_under_${l}`], bookA, idsOf(ob, `total_sets_over_${l}`), idsOf(oa, `total_sets_under_${l}`));
+  }
+  // Total Sets 2/3 (variantes total_sets_2 / total_sets_3 sans lines).
+  pushArb(out, 'Total Sets 2', '2 sets', oa.total_sets_2, bookA, '3 sets', ob.total_sets_3, bookB, idsOf(oa, 'total_sets_2'), idsOf(ob, 'total_sets_3'));
+  pushArb(out, 'Total Sets 2', '2 sets', ob.total_sets_2, bookB, '3 sets', oa.total_sets_3, bookA, idsOf(ob, 'total_sets_2'), idsOf(oa, 'total_sets_3'));
+
+  // Pair/Impair Points.
+  pushArb(out, 'Pair/Impair Points', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB, idsOf(oa, 'odd'), idsOf(ob, 'even'));
+  pushArb(out, 'Pair/Impair Points', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA, idsOf(ob, 'odd'), idsOf(oa, 'even'));
+
+  // ─── Par SET (s1/s2/s3) : Vainqueur, Handicap points, Total points, O/E
+  const ORDINAL = ['1er', '2e', '3e', '4e', '5e'];
+  for (const n of ['1', '2', '3', '4', '5']) {
+    const pfx = `s${n}_`;
+    const ord = ORDINAL[parseInt(n, 10) - 1];
+    // Vainqueur du set (2-way, pas de nul)
+    pushArb(out, `Vainqueur ${ord} Set`, 'Dom.', oa[`${pfx}match_1`], bookA, 'Ext.', ob[`${pfx}match_2`], bookB, idsOf(oa, `${pfx}match_1`), idsOf(ob, `${pfx}match_2`));
+    pushArb(out, `Vainqueur ${ord} Set`, 'Dom.', ob[`${pfx}match_1`], bookB, 'Ext.', oa[`${pfx}match_2`], bookA, idsOf(ob, `${pfx}match_1`), idsOf(oa, `${pfx}match_2`));
+    // Handicap points dans le set
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}hcp_home_(-?\\d+(?:\\.\\d+)?)$`))) {
+      const lNum = parseFloat(l);
+      const hk = `${pfx}hcp_home_${l}`, ak = `${pfx}hcp_away_${-lNum}`;
+      const sign = lNum > 0 ? '+' + l : l;
+      const fam = `Handicap ${ord} Set ${sign}`;
+      pushArb(out, fam, `Dom. ${sign}`, oa[hk], bookA, `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
+      pushArb(out, fam, `Dom. ${sign}`, ob[hk], bookB, `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+    }
+    // Total points du set
+    for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
+      const fam = `Total Points ${ord} Set ${l}`;
+      pushArb(out, fam, `+${l}`, oa[`${pfx}over_${l}`], bookA, `−${l}`, ob[`${pfx}under_${l}`], bookB, idsOf(oa, `${pfx}over_${l}`), idsOf(ob, `${pfx}under_${l}`));
+      pushArb(out, fam, `+${l}`, ob[`${pfx}over_${l}`], bookB, `−${l}`, oa[`${pfx}under_${l}`], bookA, idsOf(ob, `${pfx}over_${l}`), idsOf(oa, `${pfx}under_${l}`));
+    }
+    // Pair/Impair points du set
+    pushArb(out, `Pair/Impair ${ord} Set`, 'Impair', oa[`${pfx}odd`], bookA, 'Pair', ob[`${pfx}even`], bookB, idsOf(oa, `${pfx}odd`), idsOf(ob, `${pfx}even`));
+    pushArb(out, `Pair/Impair ${ord} Set`, 'Impair', ob[`${pfx}odd`], bookB, 'Pair', oa[`${pfx}even`], bookA, idsOf(ob, `${pfx}odd`), idsOf(oa, `${pfx}even`));
+  }
+
+  return out;
+}
+
 export function dedupeOpportunities(opps) {
   const seen = new Set();
   const out = [];

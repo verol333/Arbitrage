@@ -28,6 +28,9 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
   if (sport === 'tennis') return betmomoTennisFlatOdds(markets);
   if (sport === 'basket') return betmomoBasketFlatOdds(markets);
   if (sport === 'hockey') return betmomoHockeyFlatOdds(markets);
+  // Volleyball : structure sets similaire tennis (P1P2 winner, SetWinner s1/s2/s3,
+  // Handicap points, MatchTotal points, Sets Handicap, Odd/Even).
+  if (sport === 'volleyball') return betmomoTennisFlatOdds(markets);
   const odds = { _ids: {} };
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);

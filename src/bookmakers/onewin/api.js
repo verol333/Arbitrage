@@ -11,4 +11,6 @@ export const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 
 //   35 = Ice Hockey (NHL — Carolina, Florida, Toronto, Montreal — vraie glace)
 // URL confirmee : 1win.ng/betting/live/tennis-33 (sportId 33), basketball-23,
 // 1win.ng/betting/prematch/ice-hockey-35.
-export const WIN_SID = { football: 18, tennis: 33, basket: 23, hockey: 35 };
+// Volleyball 1win : sid=27 (confirme via probe 2026-08-11 - matchs Volei Renata U19,
+// Pan American Cup, USA vs Puerto Rico partages avec SportyBet/Congobet).
+export const WIN_SID = { football: 18, tennis: 33, basket: 23, hockey: 35, volleyball: 27 };

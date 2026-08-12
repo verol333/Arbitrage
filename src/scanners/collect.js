@@ -2,7 +2,7 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
-import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, compareVolleyballTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
@@ -60,6 +60,20 @@ async function readOddsSafe(book, matches, opts) {
 function sanitizeForSport(odds, sport = 'football') {
   if (!odds || typeof odds !== 'object') return {};
   if (sport === 'tennis') return odds;
+  // Volleyball : garde structure sets (s1_/s2_/s3_) + match_/hcp_/tt_/odd/even,
+  // purge foot-only (btts_, dc_, dnb_, fts_, cor_, ht_/h2_ foot, half_most_,
+  // total_sets_2/3, q1-q4). Volley n'a JAMAIS match_X.
+  if (sport === 'volleyball') {
+    const out = {};
+    for (const [k, v] of Object.entries(odds)) {
+      if (/^btts_|^dc_|^dnb_|^fts_|^cor_|^half_most_/.test(k)) continue;
+      if (/^ht_|^h[12]_/.test(k)) continue; // Volley n'a pas mi-temps
+      if (/^q[1-4]_/.test(k)) continue;
+      if (k === 'match_X') continue; // 2-way strict
+      out[k] = v;
+    }
+    return out;
+  }
   if (sport === 'hockey') {
     // Hockey : marches match_/hcp_/tt_/odd/even similaires basket + prefixes
     // periodes p1_/p2_/p3_ (a suivre). Purge tennis-only (s1_/set_) et basket
@@ -159,6 +173,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const compare = sport === 'tennis' ? compareTennisTwoBooks
                 : sport === 'basket' ? compareBasketTwoBooks
                 : sport === 'hockey' ? compareHockeyTwoBooks
+                : sport === 'volleyball' ? compareVolleyballTwoBooks
                 : compareTwoBooks;
   const all = [];
   for (const entry of sorted) {
