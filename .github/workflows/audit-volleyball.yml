@@ -22,53 +22,45 @@ jobs:
             sleep 2
           done
 
-      - name: Test BetPawa homepage via Byparr
+      - name: Probe multiple books via Byparr
         run: |
-          echo "=== BetPawa.cg homepage ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://www.betpawa.cg/","maxTimeout":90000}' \
-            > /tmp/bp.json 2>&1 || echo "curl failed"
-          echo "size: $(wc -c < /tmp/bp.json)"
-          jq -r '.status, .message, .solution.status, .solution.userAgent' /tmp/bp.json 2>&1 || cat /tmp/bp.json
-          echo "cookies: $(jq '.solution.cookies | length' /tmp/bp.json 2>/dev/null)"
-          echo "cf_clearance: $(jq -r '.solution.cookies[] | select(.name=="cf_clearance") | .value' /tmp/bp.json 2>/dev/null | head -c 40)"
-          echo "--- html preview ---"
-          jq -r '.solution.response' /tmp/bp.json 2>/dev/null | head -c 500
-          echo ""
-          echo "CF challenge markers: $(jq -r '.solution.response' /tmp/bp.json 2>/dev/null | grep -Ec 'Just a moment|challenge-platform' || echo 0)"
+          test_url() {
+            local label="$1"
+            local url="$2"
+            echo ""
+            echo "=== $label — $url ==="
+            curl -s -X POST http://localhost:8191/v1 \
+              -H 'Content-Type: application/json' \
+              -d "{\"cmd\":\"request.get\",\"url\":\"$url\",\"maxTimeout\":60000}" \
+              > /tmp/probe.json 2>&1 || { echo "curl failed"; return; }
+            local http=$(jq -r '.solution.status' /tmp/probe.json 2>/dev/null)
+            local size=$(jq -r '.solution.response' /tmp/probe.json 2>/dev/null | wc -c)
+            local cf=$(jq -r '.solution.response' /tmp/probe.json 2>/dev/null | grep -Ec 'Just a moment|challenge-platform|cf-mitigated' || echo 0)
+            local cookies=$(jq '.solution.cookies | length' /tmp/probe.json 2>/dev/null)
+            local msg=$(jq -r '.message' /tmp/probe.json 2>/dev/null)
+            echo "  HTTP=$http size=${size}b cookies=$cookies CF_markers=$cf msg=$msg"
+            echo "  preview:"
+            jq -r '.solution.response' /tmp/probe.json 2>/dev/null | head -c 250 | tr -d '\n'
+            echo ""
+          }
 
-      - name: Test BetPawa API via Byparr
-        run: |
-          echo "=== BetPawa API events list ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://www.betpawa.cg/api/sportsbook/v3/events/list/by-query?marketId=1X2&categoryId=2&take=10","maxTimeout":90000}' \
-            > /tmp/bp_api.json
-          echo "http status: $(jq -r '.solution.status' /tmp/bp_api.json 2>/dev/null)"
-          jq -r '.solution.response' /tmp/bp_api.json 2>/dev/null | head -c 400
-          echo ""
+          # BOOKS DÉJÀ TESTÉS (contrôle)
+          test_url "BetPawa homepage" "https://www.betpawa.cg/"
+          test_url "Casongo homepage" "https://casongo.cg/"
+          test_url "SuperGooal homepage" "https://supergooal.cg/fr/pari"
 
-      - name: Test Casongo via Byparr
-        run: |
-          echo "=== Casongo.cg homepage ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://casongo.cg/","maxTimeout":90000}' \
-            > /tmp/cs.json
-          echo "http status: $(jq -r '.solution.status' /tmp/cs.json 2>/dev/null)"
-          echo "cookies count: $(jq '.solution.cookies | length' /tmp/cs.json 2>/dev/null)"
-          jq -r '.solution.response' /tmp/cs.json 2>/dev/null | head -c 400
-          echo ""
+          # BETCLIC — plusieurs domaines
+          test_url "Betclic.fr" "https://www.betclic.fr/"
+          test_url "Betclic.pt" "https://www.betclic.pt/"
 
-      - name: Test SuperGooal via Byparr
-        run: |
-          echo "=== SuperGooal.cg ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari","maxTimeout":90000}' \
-            > /tmp/sg.json
-          echo "http status: $(jq -r '.solution.status' /tmp/sg.json 2>/dev/null)"
-          jq -r '.solution.response' /tmp/sg.json 2>/dev/null | head -c 400
-          echo ""
-          echo "CF challenge markers: $(jq -r '.solution.response' /tmp/sg.json 2>/dev/null | grep -Ec 'Just a moment|challenge-platform' || echo 0)"
+          # LNBPari — plusieurs domaines candidats (Bénin)
+          test_url "LNBPari.bj" "https://www.lnbpari.bj/"
+          test_url "LNBPari.com" "https://www.lnbpari.com/"
+          test_url "LNBPari (paris.lnb.bj)" "https://paris.lnb.bj/"
+          test_url "LNBPari (bet.lnb.bj)" "https://bet.lnb.bj/"
+
+          # BetPawa API test v3 events (bon endpoint cette fois)
+          test_url "BetPawa API v2 events" "https://www.betpawa.cg/api/sportsbook/v2/categories/games?marketId=1X2&categoryId=2&take=10"
+
+          # Casongo API prématch tree
+          test_url "Casongo API GetPrematchTree" "https://casongo.cg/WebSite/GetPrematchTree?SportId=1"
