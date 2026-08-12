@@ -14,73 +14,53 @@ jobs:
       - name: Wait for Byparr
         run: for i in {1..90}; do curl -sf http://localhost:8191/docs >/dev/null 2>&1 && break; sleep 2; done
 
-      - name: Fetch main.js SuperGooal (Angular bundle)
+      - name: FULL DUMP oauth/token supergooal
         run: |
-          echo "=== main.js via Byparr ==="
+          echo "=== Full response supergooal.cg/oauth/token ==="
           curl -s -X POST http://localhost:8191/v1 \
             -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari/main.3965dae5f31396fc.js","maxTimeout":60000}' \
-            > /tmp/main.json
-          jq -r '.solution.response' /tmp/main.json > /tmp/main.js 2>/dev/null
-          # Byparr wrap dans HTML : extract pre content si présent
-          if grep -q '<pre>' /tmp/main.js; then
-            sed -n 's/.*<pre>\(.*\)<\/pre>.*/\1/p' /tmp/main.js > /tmp/main.raw.js
-          else
-            cp /tmp/main.js /tmp/main.raw.js
-          fi
-          echo "size: $(wc -c < /tmp/main.raw.js)"
-
+            -d '{"cmd":"request.post","url":"https://supergooal.cg/oauth/token","maxTimeout":30000,"postData":"grant_type=client_credentials&client_id=4","headers":{"Content-Type":"application/x-www-form-urlencoded"}}' \
+            > /tmp/o.json
+          echo "--- outer keys ---"
+          jq 'keys' /tmp/o.json
           echo ""
-          echo "=== OAuth endpoints ==="
-          grep -oE '[a-zA-Z0-9\.\-]*/oauth/[a-zA-Z0-9/_\-]+' /tmp/main.raw.js | sort -u | head -10
-
+          echo "--- solution ---"
+          jq '.solution.status,.solution.url,.solution.headers,.solution.cookies' /tmp/o.json
           echo ""
-          echo "=== Base URLs API ==="
-          grep -oE 'https?://[a-zA-Z0-9\.\-]+\.meridianbet\.com/[a-zA-Z0-9/_\-]*' /tmp/main.raw.js | sort -u | head -20
-          grep -oE 'baseUrl["'\'':]\s*["'\''][^"'\'']+' /tmp/main.raw.js | head -10
-          grep -oE 'apiUrl["'\'':]\s*["'\''][^"'\'']+' /tmp/main.raw.js | head -10
-
+          echo "--- solution.response raw (first 3000 chars) ---"
+          jq -r '.solution.response' /tmp/o.json | head -c 3000
           echo ""
-          echo "=== API paths /betshop/api/* ==="
-          grep -oE '/betshop/api/[a-zA-Z0-9/_\-]+' /tmp/main.raw.js | sort -u | head -30
-
           echo ""
-          echo "=== OAuth constants ==="
-          grep -oE 'client_id["'\'':]\s*[0-9"a-zA-Z_\-]+' /tmp/main.raw.js | head -5
-          grep -oE 'client_secret["'\'':]\s*[a-zA-Z0-9"'\''_\-]+' /tmp/main.raw.js | head -5
-          grep -oE 'grant_type["'\'':]\s*["'\''][a-z_]+' /tmp/main.raw.js | head -5
-          grep -oE 'scope["'\'':]\s*["'\''][a-z_ ]+' /tmp/main.raw.js | head -5
+          echo "--- solution.response as plain text without HTML wrapper ---"
+          jq -r '.solution.response' /tmp/o.json | sed 's/<[^>]*>//g' | head -c 2000
 
-          echo ""
-          echo "=== Cherche flow anonyme ==="
-          grep -oE 'anonymous[a-zA-Z]*' /tmp/main.raw.js | sort -u | head -10
-          grep -oE 'guest[a-zA-Z]*' /tmp/main.raw.js | sort -u | head -10
-
-          echo ""
-          echo "=== Headers custom ==="
-          grep -oE '["'\''][Xx]-[A-Za-z0-9\-]+["'\'']' /tmp/main.raw.js | sort -u | head -20
-
-      - name: Test OAuth flow candidates
+      - name: Test différentes variantes OAuth SuperGooal
         run: |
-          test_oauth() {
-            local label="$1"; local url="$2"; local body="$3"
+          test_v() {
+            local label="$1"; local body="$2"
             echo ""
-            echo "=== $label — $url ==="
+            echo "=== $label ==="
             echo "  body: $body"
-            RESP=$(curl -s -X POST http://localhost:8191/v1 \
+            curl -s -X POST http://localhost:8191/v1 \
               -H 'Content-Type: application/json' \
-              -d "{\"cmd\":\"request.post\",\"url\":\"$url\",\"maxTimeout\":30000,\"postData\":\"$body\",\"headers\":{\"Content-Type\":\"application/x-www-form-urlencoded\"}}" \
-              2>&1)
-            echo "$RESP" > /tmp/oauth.json
-            echo "  HTTP=$(echo "$RESP" | jq -r '.solution.status' 2>/dev/null)"
-            echo "$RESP" | jq -r '.solution.response' 2>/dev/null | sed -n 's/.*<pre>\(.*\)<\/pre>.*/\1/p' | head -c 500
+              -d "{\"cmd\":\"request.post\",\"url\":\"https://supergooal.cg/oauth/token\",\"maxTimeout\":30000,\"postData\":\"$body\",\"headers\":{\"Content-Type\":\"application/x-www-form-urlencoded\"}}" \
+              > /tmp/v.json
+            echo "  HTTP=$(jq -r '.solution.status' /tmp/v.json)"
+            jq -r '.solution.response' /tmp/v.json | sed 's/<[^>]*>//g' | head -c 400
+            echo ""
           }
+          test_v "no params" ""
+          test_v "grant_type only" "grant_type=client_credentials"
+          test_v "password grant anon" "grant_type=password&username=&password=&client_id=4"
+          test_v "with scope" "grant_type=client_credentials&client_id=4&scope=read"
+          test_v "with client_secret vide" "grant_type=client_credentials&client_id=4&client_secret="
 
-          # client_id=4 trouvé dans HTML, tester différents grant_type + endpoints
-          test_oauth "meridianbet oauth token client_credentials" "https://online.meridianbet.com/oauth/token" "grant_type=client_credentials&client_id=4"
-          test_oauth "meridianbet oauth token password anon" "https://online.meridianbet.com/oauth/token" "grant_type=password&client_id=4"
-          test_oauth "supergooal oauth token" "https://supergooal.cg/oauth/token" "grant_type=client_credentials&client_id=4"
-          test_oauth "meridianbet betshop oauth" "https://online.meridianbet.com/betshop/oauth/token" "grant_type=client_credentials&client_id=4"
-
-          # Anonymous session possible
-          test_oauth "meridianbet init anon POST" "https://online.meridianbet.com/betshop/api/v2/init" ""
+      - name: Try meridianbet alt paths + POST init
+        run: |
+          echo "=== meridianbet online-api /api/v2/init POST ==="
+          curl -s -X POST http://localhost:8191/v1 \
+            -H 'Content-Type: application/json' \
+            -d '{"cmd":"request.post","url":"https://online.meridianbet.com/api/v2/init","maxTimeout":30000,"postData":""}' \
+            > /tmp/i.json
+          echo "  HTTP=$(jq -r '.solution.status' /tmp/i.json)"
+          jq -r '.solution.response' /tmp/i.json | sed 's/<[^>]*>//g' | head -c 400
