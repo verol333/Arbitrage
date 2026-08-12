@@ -1,72 +1,41 @@
-// Probe PremierBet + BetPawa volleyball : chercher un sportId qui matche.
-import { mget } from '../src/bookmakers/premierbet/api.js';
+// Re-probe volleyball par book après fixes (SportyBet whitelist + Congobet ligues).
+// Doit maintenant : SportyBet=5, Congobet=5 avec noms lisibles.
+import xbet from '../src/bookmakers/xbet/index.js';
+import onewin from '../src/bookmakers/onewin/index.js';
+import congobet from '../src/bookmakers/congobet/index.js';
+import yellowbet from '../src/bookmakers/yellowbet/index.js';
+import apollo from '../src/bookmakers/apollo/index.js';
+import betmomo from '../src/bookmakers/betmomo/index.js';
+import premierbet from '../src/bookmakers/premierbet/index.js';
+import betpawa from '../src/bookmakers/betpawa/index.js';
+import sportybet from '../src/bookmakers/sportybet/index.js';
 
-async function probePB() {
-  console.log('\n=== PremierBet : list all sports ===');
-  // Endpoint principal expose la liste des sports actifs
-  const r = await mget('/config/sports', {});
-  const data = r?.data;
-  if (Array.isArray(data)) {
-    console.log(`Total sports: ${data.length}`);
-    for (const s of data) {
-      const name = s?.name || s?.eventNames?.en || s?.sportName || s?.title;
-      const id = s?.id || s?.sportId;
-      const events = s?.eventCount ?? s?.count ?? '?';
-      console.log(`  sportId=${id} name="${name}" events=${events}`);
-    }
-  } else {
-    console.log('data keys:', Object.keys(data || {}));
-    console.log('preview:', JSON.stringify(data).slice(0, 500));
-  }
+const HORIZON = 168;
 
-  // Test IDs candidats pour volleyball
-  console.log('\n=== PremierBet : test candidate sportIds for volleyball ===');
-  for (const sid of ['6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27']) {
-    const j = await mget('/events/highlights', { sportId: sid });
-    const cats = j?.data?.categories || [];
-    const evs = cats.reduce((s, c) => s + (c?.competitions || []).reduce((ss, cc) => ss + (cc?.events?.length || 0), 0), 0);
-    if (evs > 0) {
-      const firstCat = cats[0]?.name || cats[0]?.eventNames?.en;
-      const firstComp = cats[0]?.competitions?.[0]?.name || cats[0]?.competitions?.[0]?.eventNames?.en;
-      const firstEvent = cats[0]?.competitions?.[0]?.events?.[0]?.eventNames?.en;
-      console.log(`  sportId=${sid} events=${evs} first="${firstCat} / ${firstComp} / ${firstEvent}"`);
-    }
-  }
-}
-
-async function probeBP() {
-  console.log('\n=== BetPawa : list all sports ===');
-  const url = 'https://www.betpawa.cg/api/sportsbook/v3/categories/list/mobile-menu';
+async function run(book) {
+  const t0 = Date.now();
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        'x-pawa-brand': 'betpawa-congo-brazzaville',
-        'x-pawa-language': 'fr',
-      },
-      signal: AbortSignal.timeout(15_000),
+    const matches = await book.listMatches({ horizonHours: HORIZON, sport: 'volleyball' });
+    const arr = Array.isArray(matches) ? matches : [];
+    const leagues = new Map();
+    for (const m of arr) leagues.set(m.league || '?', (leagues.get(m.league || '?') || 0) + 1);
+    console.log(`\n[${book.key}] matchs=${arr.length} leagues=${leagues.size} (${Date.now()-t0}ms)`);
+    arr.slice(0, 3).forEach((m) => {
+      const start = m.start ? new Date(m.start).toISOString().slice(0, 16) : '?';
+      console.log(`  · [${m.league || '?'}] ${m.home} vs ${m.away} @ ${start}`);
     });
-    console.log('BP status:', res.status);
-    if (res.ok) {
-      const j = await res.json();
-      const cats = j?.categories || j?.data || j;
-      if (Array.isArray(cats)) {
-        for (const c of cats) {
-          const name = c?.name || c?.label || c?.title;
-          const id = c?.id || c?.sportId || c?.eventTypeId;
-          console.log(`  sportId=${id} name="${name}"`);
-        }
-      } else {
-        console.log('preview:', JSON.stringify(j).slice(0, 1000));
-      }
-    }
+    const sorted = [...leagues.entries()].sort((a,b) => b[1]-a[1]);
+    const top = sorted.slice(0, 15);
+    console.log(`  ligues (top ${top.length}/${leagues.size}): ${top.map(([n,c]) => `${n}(${c})`).join(' | ')}`);
   } catch (e) {
-    console.log('BP err:', e.message);
+    console.log(`[${book.key}] ERR ${e.message}`);
   }
 }
 
 (async () => {
-  await probePB();
-  await probeBP();
+  console.log(`=== VALIDATION FIXES volleyball horizon=${HORIZON}h ===`);
+  const books = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet];
+  for (const b of books) await run(b);
+  console.log('\n=== Fin ===');
   process.exit(0);
 })();
