@@ -14,42 +14,66 @@ jobs:
       - name: Wait for Byparr
         run: for i in {1..90}; do curl -sf http://localhost:8191/docs >/dev/null 2>&1 && break; sleep 2; done
 
-      - name: Probe Meridianbet API endpoints
+      - name: Fetch SuperGooal HTML + extract JS URLs
         run: |
-          test_url() {
-            local label="$1"; local url="$2"
-            echo ""; echo "=== $label ==="
+          echo "=== Fetch supergooal.cg/fr/pari via Byparr ==="
+          curl -s -X POST http://localhost:8191/v1 \
+            -H 'Content-Type: application/json' \
+            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari","maxTimeout":60000}' \
+            > /tmp/sg.json
+          jq -r '.solution.response' /tmp/sg.json > /tmp/sg.html
+          echo "HTML size: $(wc -c < /tmp/sg.html)"
+
+          echo ""
+          echo "=== JS files trouvés ==="
+          grep -oE 'src="[^"]+\.js"' /tmp/sg.html | sed 's/^src="//;s/"$//' | sort -u > /tmp/jsfiles.txt
+          cat /tmp/jsfiles.txt
+          # Ajoute le prefix supergooal.cg si relatif
+          echo ""
+          echo "=== JS avec prefix ==="
+          while read js; do
+            if [[ "$js" == /* ]] || [[ "$js" != http* ]]; then
+              echo "https://supergooal.cg/fr/pari/$js"
+            else
+              echo "$js"
+            fi
+          done < /tmp/jsfiles.txt > /tmp/jsurls.txt
+          cat /tmp/jsurls.txt
+
+          echo ""
+          echo "=== Grep dans HTML : oauth/token/api paths ==="
+          grep -oE 'oauth[a-zA-Z0-9/_\-\.]*' /tmp/sg.html | sort -u | head -20
+          grep -oE 'client[_-]id[^"]*"[^"]+' /tmp/sg.html | head -5
+          grep -oE '["/]api/v?[0-9]?/[a-zA-Z0-9/_\-]+' /tmp/sg.html | sort -u | head -30
+          grep -oE '(access_token|Bearer|Authorization)' /tmp/sg.html | sort -u | head -5
+
+      - name: Fetch main JS bundle et cherche endpoints
+        run: |
+          # Fetch les 3 premiers JS via Byparr
+          I=0
+          while IFS= read -r url && [ "$I" -lt 3 ]; do
+            I=$((I+1))
+            echo ""
+            echo "=== JS $I: $url ==="
             curl -s -X POST http://localhost:8191/v1 \
               -H 'Content-Type: application/json' \
               -d "{\"cmd\":\"request.get\",\"url\":\"$url\",\"maxTimeout\":30000}" \
-              > /tmp/p.json 2>&1 || { echo "curl failed"; return; }
-            echo "  HTTP=$(jq -r '.solution.status' /tmp/p.json) size=$(jq -r '.solution.response' /tmp/p.json | wc -c)b"
-            jq -r '.solution.response' /tmp/p.json | head -c 500 | tr -d '\n'; echo ""
-          }
+              > /tmp/js.json
+            jq -r '.solution.response' /tmp/js.json > /tmp/js.txt 2>/dev/null
+            echo "  size: $(wc -c < /tmp/js.txt)"
 
-          # Feed public direct sports Congo
-          test_url "smartdog feeds sp CG" "https://smartdog.meridianbet.com/feeds/sp/CG"
-          test_url "smartdog feeds sp CG/football" "https://smartdog.meridianbet.com/feeds/sp/CG/football"
+            echo "  === oauth/token paths ==="
+            grep -oE '["/]oauth/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -10 || echo "  (none)"
+            grep -oE '["/]auth/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -10 || echo "  (none)"
 
-          # Init token endpoint
-          test_url "online init" "https://online.meridianbet.com/betshop/api/v2/init"
-          test_url "online init anonymous" "https://online.meridianbet.com/betshop/api/v2/user/anonymous"
-          test_url "oauth token" "https://online.meridianbet.com/oauth/token"
+            echo "  === API paths ==="
+            grep -oE '/betshop/api/v?[0-9]?/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -15 || echo "  (none)"
+            grep -oE '/api/v?[0-9]?/[a-zA-Z0-9/_\-]+' /tmp/js.txt | sort -u | head -20 || echo "  (none)"
 
-          # Betshop API sport variations (58 = soccer commonly)
-          test_url "online sport 58 sr" "https://online.meridianbet.com/betshop/api/v2/standard/sport/58/region"
-          test_url "online sport 58 events" "https://online.meridianbet.com/betshop/api/v2/standard/sport/58/events"
+            echo "  === client_id / secret ==="
+            grep -oE 'client[_-]?id["'\'':,\ ]*["'\'']\?[a-zA-Z0-9_\-]{5,}' /tmp/js.txt | head -3 || echo "  (none)"
+            grep -oE 'grant_type["'\'':,\ ]*["'\''][a-z_]+' /tmp/js.txt | head -3 || echo "  (none)"
 
-          # viforbo variations
-          test_url "viforbo standard sport 58" "https://viforbo.meridianbet.com/standard/sport/58"
-          test_url "viforbo api v2 sports" "https://viforbo.meridianbet.com/api/v2/sports"
-          test_url "viforbo betshop standard 58" "https://viforbo.meridianbet.com/betshop/api/v2/standard/sport/58"
-
-          # Sports different IDs (foot could be 1, 58, or other in Meridianbet)
-          test_url "online sport 1" "https://online.meridianbet.com/betshop/api/v2/standard/sport/1"
-
-          # ProdOnline / ProdBetshop variants (sometimes used)
-          test_url "prodbetshop sport 58" "https://online.meridianbet.com/prod-betshop/api/v2/standard/sport/58"
-
-          # supergooal-hosted API (proxy?)
-          test_url "supergooal betshop" "https://supergooal.cg/betshop/api/v2/standard/sport/58"
+            echo "  === URLs meridianbet ==="
+            grep -oE 'https?://[a-zA-Z0-9\.\-]+\.meridianbet\.com/[a-zA-Z0-9/_\-]*' /tmp/js.txt | sort -u | head -20 || echo "  (none)"
+          done < /tmp/jsurls.txt
