@@ -22,9 +22,27 @@ jobs:
             sleep 2
           done
 
-      - name: Probe Betclic API CDN via Byparr
+      - name: Probe SuperGooal HTML + extract API URLs
         run: |
-          test_json() {
+          echo "=== SuperGooal HTML full dump (chercher API URLs) ==="
+          curl -s -X POST http://localhost:8191/v1 \
+            -H 'Content-Type: application/json' \
+            -d '{"cmd":"request.get","url":"https://supergooal.cg/fr/pari","maxTimeout":60000}' \
+            > /tmp/sg.json
+          echo "size: $(jq -r '.solution.response' /tmp/sg.json | wc -c)"
+          echo ""
+          echo "=== API URLs trouvées dans le HTML ==="
+          jq -r '.solution.response' /tmp/sg.json | grep -oE 'https?://[a-zA-Z0-9\.\-]+\.(meridianbet|merbet)\.[a-z]+/[a-zA-Z0-9/\._\-]*' | sort -u | head -30
+          echo ""
+          echo "=== Fichiers .js chargés (peut contenir API base) ==="
+          jq -r '.solution.response' /tmp/sg.json | grep -oE 'src="[^"]+\.js"' | head -10
+          echo ""
+          echo "=== data-*  attributs ==="
+          jq -r '.solution.response' /tmp/sg.json | grep -oE 'data-api[^=]*="[^"]+"' | head -10
+
+      - name: Probe endpoints Meridianbet candidats via Byparr
+        run: |
+          test_url() {
             local label="$1"; local url="$2"
             echo ""
             echo "=== $label ==="
@@ -35,31 +53,19 @@ jobs:
             local http=$(jq -r '.solution.status' /tmp/probe.json 2>/dev/null)
             local size=$(jq -r '.solution.response' /tmp/probe.json 2>/dev/null | wc -c)
             echo "  HTTP=$http size=${size}b"
-            # Extraire le JSON du body (Byparr wrap dans HTML)
-            jq -r '.solution.response' /tmp/probe.json 2>/dev/null \
-              | sed -n 's/.*<pre>\(.*\)<\/pre>.*/\1/p' | head -c 800
+            jq -r '.solution.response' /tmp/probe.json 2>/dev/null | head -c 500 | tr -d '\n'
             echo ""
           }
-          QP="application=2&countrycode=fr&language=fr&sitecode=frfr"
-          BASE="https://offer.cdn.betclic.fr/api/pub/v2"
 
-          # Étape 1 : lister tous les sports
-          test_json "sports list" "${BASE}/sports?${QP}"
+          # Endpoints candidats basés sur ce qu'on voit dans le HTML
+          test_url "viforbo sports" "https://viforbo.meridianbet.com/api/v1/sports?locale=fr"
+          test_url "viforbo standard" "https://viforbo.meridianbet.com/standard/sport?locale=fr"
+          test_url "merbet root" "https://merbet.com/"
+          test_url "wsbo-online" "https://wsbo-online.meridianbet.com/"
+          test_url "online.meridianbet API v2" "https://online.meridianbet.com/betshop/api/v2/standard/sport/58"
+          test_url "supergooal API pari" "https://supergooal.cg/api/pari/sports"
+          test_url "supergooal graphql" "https://supergooal.cg/api/graphql"
 
-          # Étape 2 : sport football = probable id=1
-          test_json "sport 1 (probable football)" "${BASE}/sports/1?${QP}"
-          test_json "sport 1 competitions" "${BASE}/sports/1/competitions?${QP}"
-
-          # Étape 3 : test v3 aussi
-          BASE3="https://offer.cdn.betclic.fr/api/pub/v3"
-          test_json "v3 sports/1" "${BASE3}/sports/1?${QP}"
-          test_json "v3 top matches" "${BASE3}/top-matches?${QP}&sportId=1"
-          test_json "v3 sport events" "${BASE3}/sports/1/events?${QP}"
-
-          # Étape 4 : essai endpoint direct compétition connue (Ligue 1)
-          # Note : compId 432 mentionné dans un exemple public de search
-          test_json "competition 432 (exemple)" "${BASE}/competitions/432?${QP}&forceCompetitionInfo=true"
-
-          # Étape 5 : endpoint search + match direct
-          test_json "matches list" "${BASE}/matches?${QP}&sportId=1"
-          test_json "events list" "${BASE}/events?${QP}&sportId=1"
+          # Domaines Meridianbet connus
+          test_url "meridianbet online-api" "https://online.meridianbet.com/api/v1/sports"
+          test_url "meridian bo-api" "https://bo-api.meridianbet.com/api/v1/sports"
