@@ -11,6 +11,13 @@ jobs:
         options: --shm-size=1g
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        working-directory: arbitrage-service
+        run: npm install --production --no-audit --no-fund
+      - name: Symlink node_modules
+        run: ln -sfn arbitrage-service/node_modules node_modules
 
       - name: Wait for Byparr
         run: |
@@ -22,13 +29,12 @@ jobs:
             sleep 2
           done
 
-      - name: Probe multiple books via Byparr
+      - name: Probe books via Byparr
         run: |
           test_url() {
-            local label="$1"
-            local url="$2"
+            local label="$1"; local url="$2"
             echo ""
-            echo "=== $label — $url ==="
+            echo "=== $label ==="
             curl -s -X POST http://localhost:8191/v1 \
               -H 'Content-Type: application/json' \
               -d "{\"cmd\":\"request.get\",\"url\":\"$url\",\"maxTimeout\":60000}" \
@@ -37,30 +43,24 @@ jobs:
             local size=$(jq -r '.solution.response' /tmp/probe.json 2>/dev/null | wc -c)
             local cf=$(jq -r '.solution.response' /tmp/probe.json 2>/dev/null | grep -Ec 'Just a moment|challenge-platform|cf-mitigated' || echo 0)
             local cookies=$(jq '.solution.cookies | length' /tmp/probe.json 2>/dev/null)
-            local msg=$(jq -r '.message' /tmp/probe.json 2>/dev/null)
-            echo "  HTTP=$http size=${size}b cookies=$cookies CF_markers=$cf msg=$msg"
-            echo "  preview:"
+            echo "  HTTP=$http size=${size}b cookies=$cookies CF=$cf"
             jq -r '.solution.response' /tmp/probe.json 2>/dev/null | head -c 250 | tr -d '\n'
             echo ""
           }
-
-          # BOOKS DÉJÀ TESTÉS (contrôle)
-          test_url "BetPawa homepage" "https://www.betpawa.cg/"
-          test_url "Casongo homepage" "https://casongo.cg/"
-          test_url "SuperGooal homepage" "https://supergooal.cg/fr/pari"
-
-          # BETCLIC — plusieurs domaines
           test_url "Betclic.fr" "https://www.betclic.fr/"
           test_url "Betclic.pt" "https://www.betclic.pt/"
-
-          # LNBPari — plusieurs domaines candidats (Bénin)
           test_url "LNBPari.bj" "https://www.lnbpari.bj/"
           test_url "LNBPari.com" "https://www.lnbpari.com/"
           test_url "LNBPari (paris.lnb.bj)" "https://paris.lnb.bj/"
           test_url "LNBPari (bet.lnb.bj)" "https://bet.lnb.bj/"
-
-          # BetPawa API test v3 events (bon endpoint cette fois)
           test_url "BetPawa API v2 events" "https://www.betpawa.cg/api/sportsbook/v2/categories/games?marketId=1X2&categoryId=2&take=10"
-
-          # Casongo API prématch tree
           test_url "Casongo API GetPrematchTree" "https://casongo.cg/WebSite/GetPrematchTree?SportId=1"
+
+      - name: Probe PremierBet volleyball + YellowBet LIVE
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+        run: node scripts/audit-volleyball-markets.js
