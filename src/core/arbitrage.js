@@ -388,6 +388,83 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
       pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA, idsOf(ob, ok), idsOf(oa, uk));
     }
   }
+  // ═══ Nouveaux marchés cross-book (audit Congobet + Apollo 2026-08-13) ═══
+  // Team Clean Sheet (2-way Yes/No) — Congobet 10013/10014, Apollo 901/902
+  for (const side of ['home', 'away']) {
+    const yk = `cs_${side}_yes`, nk = `cs_${side}_no`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `Clean Sheet ${lbl}`;
+    if (oa[yk] && ob[nk] && crossBookImpliedProbOK(oa, ob, yk, nk)) {
+      pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    }
+    if (ob[yk] && oa[nk] && crossBookImpliedProbOK(ob, oa, yk, nk)) {
+      pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+    }
+  }
+  // Team goals Odd/Even (2-way) — Congobet 10089/10090, Apollo 965/966
+  for (const side of ['home', 'away']) {
+    const ok = `tt_${side}_odd`, ek = `tt_${side}_even`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `Buts ${lbl} Pair/Impair`;
+    pushArb(out, fam, 'Impair', oa[ok], bookA, 'Pair', ob[ek], bookB, idsOf(oa, ok), idsOf(ob, ek));
+    pushArb(out, fam, 'Impair', ob[ok], bookB, 'Pair', oa[ek], bookA, idsOf(ob, ok), idsOf(oa, ek));
+  }
+  // Team scores each half (2-way Y/N) — Congobet 10032/10033 (autres books à activer)
+  for (const side of ['home', 'away']) {
+    const yk = `tt_${side}_score_each_half_yes`, nk = `tt_${side}_score_each_half_no`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `${lbl} marque chaque mi-temps`;
+    if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+  }
+  // Team wins both halves (2-way Y/N)
+  for (const side of ['home', 'away']) {
+    const yk = `tt_${side}_wins_both_halves_yes`, nk = `tt_${side}_wins_both_halves_no`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `${lbl} gagne les 2 MT`;
+    if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+  }
+  // Team wins to nil (2-way Y/N)
+  for (const side of ['home', 'away']) {
+    const yk = `tt_${side}_wins_to_nil_yes`, nk = `tt_${side}_wins_to_nil_no`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `${lbl} gagne sans encaisser`;
+    if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+  }
+  // Team wins at least one half (2-way Y/N)
+  for (const side of ['home', 'away']) {
+    const yk = `tt_${side}_wins_atleast_one_half_yes`, nk = `tt_${side}_wins_atleast_one_half_no`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `${lbl} gagne au moins 1 MT`;
+    if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+  }
+  // BTTS each half (2-way Y/N)
+  if (oa.btts_each_half_yes && ob.btts_each_half_no) {
+    pushArb(out, 'BTTS chaque MT', 'Oui', oa.btts_each_half_yes, bookA, 'Non', ob.btts_each_half_no, bookB, idsOf(oa, 'btts_each_half_yes'), idsOf(ob, 'btts_each_half_no'));
+  }
+  if (ob.btts_each_half_yes && oa.btts_each_half_no) {
+    pushArb(out, 'BTTS chaque MT', 'Oui', ob.btts_each_half_yes, bookB, 'Non', oa.btts_each_half_no, bookA, idsOf(ob, 'btts_each_half_yes'), idsOf(oa, 'btts_each_half_no'));
+  }
+  // Over/Under 1.5 each half (2-way Y/N) — 2 marchés séparés (over each / under each)
+  if (oa['over_1.5_each_half_yes'] && ob['over_1.5_each_half_no']) {
+    pushArb(out, 'Plus 1.5 buts chaque MT', 'Oui', oa['over_1.5_each_half_yes'], bookA, 'Non', ob['over_1.5_each_half_no'], bookB, idsOf(oa, 'over_1.5_each_half_yes'), idsOf(ob, 'over_1.5_each_half_no'));
+  }
+  if (ob['over_1.5_each_half_yes'] && oa['over_1.5_each_half_no']) {
+    pushArb(out, 'Plus 1.5 buts chaque MT', 'Oui', ob['over_1.5_each_half_yes'], bookB, 'Non', oa['over_1.5_each_half_no'], bookA, idsOf(ob, 'over_1.5_each_half_yes'), idsOf(oa, 'over_1.5_each_half_no'));
+  }
+  // Team clean sheet par mi-temps (1MT / 2MT)
+  for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
+    for (const side of ['home', 'away']) {
+      const yk = `${pfx}cs_${side}_yes`, nk = `${pfx}cs_${side}_no`;
+      const sideLbl = side === 'home' ? 'Domicile' : 'Extérieur';
+      const fam = `${lbl} Clean Sheet ${sideLbl}`;
+      if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+      if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+    }
+  }
   // Note : les opps 3-way (1ère équipe à marquer, mi-temps la plus prolifique)
   // étaient génerées via pushArb3 mais leur `market_family` "... (3 issues)"
   // n'est pas reconstructible par marketKeyFromOpp, donc rejetées noKey au
@@ -556,6 +633,19 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
   // Pair/Impair jeux
   pushArb(out, 'Pair/Impair Jeux', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB, idsOf(oa, 'odd'), idsOf(ob, 'even'));
   pushArb(out, 'Pair/Impair Jeux', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA, idsOf(ob, 'odd'), idsOf(oa, 'even'));
+
+  // ═══ Nouveaux marchés tennis (audit Congobet + Apollo 2026-08-13) ═══
+  // Team wins a set (2-way Y/N) — Congobet 10050/10053, Apollo 211/212
+  for (const side of ['home', 'away']) {
+    const yk = `tt_${side}_wins_a_set_yes`, nk = `tt_${side}_wins_a_set_no`;
+    const lbl = side === 'home' ? 'J1' : 'J2';
+    const fam = `${lbl} gagne un set`;
+    if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+  }
+  // 6-0 possible (Y/N) — Congobet 10049, Apollo 852
+  if (oa.set_60_yes && ob.set_60_no) pushArb(out, 'Set 6-0 possible', 'Oui', oa.set_60_yes, bookA, 'Non', ob.set_60_no, bookB, idsOf(oa, 'set_60_yes'), idsOf(ob, 'set_60_no'));
+  if (ob.set_60_yes && oa.set_60_no) pushArb(out, 'Set 6-0 possible', 'Oui', ob.set_60_yes, bookB, 'Non', oa.set_60_no, bookA, idsOf(ob, 'set_60_yes'), idsOf(oa, 'set_60_no'));
 
   return out;
 }

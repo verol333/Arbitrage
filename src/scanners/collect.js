@@ -608,8 +608,63 @@ function marketKeyFromOpp(o) {
     if (fam.startsWith('1MT')) return { a: 'ht_odd', b: 'ht_even' };
     if (fam.startsWith('2MT')) return { a: 'h2_odd', b: 'h2_even' };
     if (fam.startsWith('Corners')) return { a: 'cor_odd', b: 'cor_even' };
+    // Team goals Pair/Impair — "Buts Domicile Pair/Impair" / "Buts Extérieur Pair/Impair"
+    const teamOE = fam.match(/^Buts (Domicile|Extérieur) Pair\/Impair$/);
+    if (teamOE) {
+      const side = teamOE[1] === 'Domicile' ? 'home' : 'away';
+      return { a: `tt_${side}_odd`, b: `tt_${side}_even` };
+    }
     return { a: 'odd', b: 'even' };
   }
+  // Clean Sheet — "Clean Sheet Domicile" / "Clean Sheet Extérieur" (2-way Y/N)
+  const csMatch = fam.match(/^Clean Sheet (Domicile|Extérieur)$/);
+  if (csMatch) {
+    const side = csMatch[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `cs_${side}_yes`, b: `cs_${side}_no` };
+  }
+  // 1MT/2MT Clean Sheet team
+  const partCs = fam.match(/^(1MT|2MT) Clean Sheet (Domicile|Extérieur)$/);
+  if (partCs) {
+    const pfx = partCs[1] === '1MT' ? 'ht_' : 'h2_';
+    const side = partCs[2] === 'Domicile' ? 'home' : 'away';
+    return { a: `${pfx}cs_${side}_yes`, b: `${pfx}cs_${side}_no` };
+  }
+  // Team scores each half
+  const scoreEach = fam.match(/^(Domicile|Extérieur) marque chaque mi-temps$/);
+  if (scoreEach) {
+    const side = scoreEach[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_score_each_half_yes`, b: `tt_${side}_score_each_half_no` };
+  }
+  // Team wins both halves
+  const winsBoth = fam.match(/^(Domicile|Extérieur) gagne les 2 MT$/);
+  if (winsBoth) {
+    const side = winsBoth[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_both_halves_yes`, b: `tt_${side}_wins_both_halves_no` };
+  }
+  // Team wins to nil
+  const winsNil = fam.match(/^(Domicile|Extérieur) gagne sans encaisser$/);
+  if (winsNil) {
+    const side = winsNil[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_to_nil_yes`, b: `tt_${side}_wins_to_nil_no` };
+  }
+  // Team wins at least one half
+  const winsAtLeast = fam.match(/^(Domicile|Extérieur) gagne au moins 1 MT$/);
+  if (winsAtLeast) {
+    const side = winsAtLeast[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_atleast_one_half_yes`, b: `tt_${side}_wins_atleast_one_half_no` };
+  }
+  // BTTS each half
+  if (fam === 'BTTS chaque MT') return { a: 'btts_each_half_yes', b: 'btts_each_half_no' };
+  // Over 1.5 each half
+  if (fam === 'Plus 1.5 buts chaque MT') return { a: 'over_1.5_each_half_yes', b: 'over_1.5_each_half_no' };
+  // Tennis Team wins a set — "J1 gagne un set" / "J2 gagne un set"
+  const winsSet = fam.match(/^(J1|J2) gagne un set$/);
+  if (winsSet) {
+    const side = winsSet[1] === 'J1' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_a_set_yes`, b: `tt_${side}_wins_a_set_no` };
+  }
+  // Tennis 6-0 possible
+  if (fam === 'Set 6-0 possible') return { a: 'set_60_yes', b: 'set_60_no' };
   // Team totals (Dom. / Ext.)
   const ttMatch = fam.match(/^Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
   if (ttMatch) {

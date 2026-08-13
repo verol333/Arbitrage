@@ -5,7 +5,10 @@ import { yellowbetFlatOdds, yellowbetBasketFlatOdds, yellowbetTennisFlatOdds } f
 export default {
   key: 'yellowbet',
   label: 'YellowBet',
-  supports: { prematch: true, live: false },
+  // LIVE activé 2026-08-12 : probe confirme 3 matchs foot live avec score+minute
+  // réels (Chachoengsao FC vs Chanthaburi 2-1 min 73). listLive + toMatch parsent
+  // ev.lv (payload JSON) pour hs/as/t/p.
+  supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     // Tennis + Volleyball actives 2026-08-11 (structure sets identique tennis).
     if (!['football','basket','tennis','volleyball'].includes(sport)) return [];

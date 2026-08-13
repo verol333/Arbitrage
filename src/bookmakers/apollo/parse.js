@@ -19,10 +19,12 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // 502/558 s1/s2 winner, 910 hcp games, 911 total games/points, 914 total sets).
   // Reuse apolloTennisFlatOdds — les BetTypeKeys sont les memes en tennis/volley.
   if (sport === 'volleyball') return apolloTennisFlatOdds(offers);
-  // Basket : BetTypeKey basket Apollo non probes en prod. Sans mapping valide,
-  // retourner odds vides plutot que mismapper des keys foot/tennis sur du basket
-  // (produirait des fake arbs). A activer apres probe basket depuis GH Actions.
-  if (sport === 'basket') return {};
+  // Basket Apollo — probe 2026-08-13 (32 matchs NBA) identifie 4 BetTypeKeys :
+  //   key=1 (3m) samples "1:1 | X:X | 2:2" → 1X2 avec draw (règlementaire)
+  //   key=20 (3m) samples "1:1 | 2:2" → Winner 2-way (incl OT)
+  //   key=1003 (9m) samples "1:1 | 2:2" → probable handicap avec Sbv=line
+  //   key=1004 (15m) samples "1:under | 2:over" → probable total points
+  if (sport === 'basket') return apolloBasketFlatOdds(offers);
   // Hockey Apollo : sportId=398 identifie mais catalogue actuellement vide
   // (0 matchs 72h probe). BetTypeKeys non probes. Retour vide securite.
   if (sport === 'hockey') return {};
@@ -74,6 +76,47 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   eachOdd(offers, 129, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.cor_odd = c; else if (s.includes('even') || s.includes('pair')) odds.cor_even = c; });
   eachOdd(offers, 5002, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_ht_under_${l}`] = c; else if (s.includes('over')) odds[`cor_ht_over_${l}`] = c; });
 
+  // ─── Nouveaux marchés Apollo foot (audit 2026-08-13) ───────────────
+  // Team Clean Sheet home/away (yes/no) - BetTypeKey 901/902
+  // samples: 1:yes | 2:no (Type=1 = Yes, Type=2 = No)
+  eachOdd(offers, 901, (t, _n, c) => { if (t === '1') odds.cs_home_yes = c; else if (t === '2') odds.cs_home_no = c; });
+  eachOdd(offers, 902, (t, _n, c) => { if (t === '1') odds.cs_away_yes = c; else if (t === '2') odds.cs_away_no = c; });
+  // Team goals odd/even home/away - BetTypeKey 965/966
+  // samples: 1:Even | 2:Odd (Type=1 = Even, Type=2 = Odd)
+  eachOdd(offers, 965, (t, _n, c) => { if (t === '1') odds.tt_home_even = c; else if (t === '2') odds.tt_home_odd = c; });
+  eachOdd(offers, 966, (t, _n, c) => { if (t === '1') odds.tt_away_even = c; else if (t === '2') odds.tt_away_odd = c; });
+
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR BASKET Apollo (BetTypeKey → cle plate).
+// Probe 2026-08-13 : NBA Detroit Pistons vs Boston Celtics + 31 autres.
+// ═══════════════════════════════════════════════════════════════
+function apolloBasketFlatOdds(offers) {
+  const odds = {};
+  if (!offers || !offers.length) return odds;
+  // key=20 Winner 2-way (incl OT) — vrai winner basket cross-book
+  eachOdd(offers, 20, (t, _n, c) => {
+    if (t === '1') odds.match_1 = c;
+    else if (t === '2') odds.match_2 = c;
+  });
+  // key=1004 Total Points (Sbv=line, tip 1=under, tip 2=over — pattern Apollo)
+  eachOdd(offers, 1004, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(l)) return;
+    if (t === '1') odds[`match_under_${l}`] = c;
+    else if (t === '2') odds[`match_over_${l}`] = c;
+  });
+  // key=1003 Handicap Points (Sbv=line, tip 1=home, tip 2=away avec inv sign)
+  eachOdd(offers, 1003, (t, _n, c, sbv) => {
+    const l = parseFloat(sbv);
+    if (!isHalfLine(Math.abs(l))) return;
+    if (t === '1') odds[`hcp_home_${l}`] = c;
+    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+  });
+  // key=1 reste ignoré (3-way avec draw = reglementaire, pas cross-book pour basket
+  // vs 2-way incl OT qui est le vrai marché arbitrable)
   return odds;
 }
 
@@ -156,6 +199,13 @@ function apolloTennisFlatOdds(offers) {
     if (t === '2') odds.total_sets_2 = c;
     else if (t === '3') odds.total_sets_3 = c;
   });
+  // ─── Nouveaux marchés Apollo tennis (audit 2026-08-13) ─────────────
+  // key=211 Player 1 wins a set (Yes/No)
+  eachOdd(offers, 211, (t, _n, c) => { if (t === '1') odds.tt_home_wins_a_set_yes = c; else if (t === '2') odds.tt_home_wins_a_set_no = c; });
+  // key=212 Player 2 wins a set (Yes/No)
+  eachOdd(offers, 212, (t, _n, c) => { if (t === '1') odds.tt_away_wins_a_set_yes = c; else if (t === '2') odds.tt_away_wins_a_set_no = c; });
+  // key=852 "Will there be a 6-0 set?" (Yes/No)
+  eachOdd(offers, 852, (t, _n, c) => { if (t === '1') odds.set_60_yes = c; else if (t === '2') odds.set_60_no = c; });
 
   return odds;
 }

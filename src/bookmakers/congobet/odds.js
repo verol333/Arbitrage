@@ -118,6 +118,137 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
         else if (/egal|equal|draw|x/i.test(s)) put('half_most_equal', it);
       }
     }
+    // ═══ Nouveaux marchés foot (audit exhaustif 2026-08-13) ══════════
+    // Team Clean Sheet home/away (2-way Yes/No). Team name dans bt.name.
+    else if (id === 10013 || id === 10014) {
+      const teamPart = (bt.name || '').replace(/n[’']?encaisse pas de but/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`cs_${side}_yes`, it);
+        else if (/non|no/.test(s)) put(`cs_${side}_no`, it);
+      }
+    }
+    // Team scores each half (2-way Y/N) - 10032/10033
+    else if (id === 10032 || id === 10033) {
+      const teamPart = (bt.name || '').replace(/marque à chaque mi-temps/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`tt_${side}_score_each_half_yes`, it);
+        else if (/non|no/.test(s)) put(`tt_${side}_score_each_half_no`, it);
+      }
+    }
+    // Team wins both halves (2-way Y/N) - 10037/10038
+    else if (id === 10037 || id === 10038) {
+      const teamPart = (bt.name || '').replace(/gagne les deux mi-temps/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`tt_${side}_wins_both_halves_yes`, it);
+        else if (/non|no/.test(s)) put(`tt_${side}_wins_both_halves_no`, it);
+      }
+    }
+    // Team wins to nil (2-way Y/N) - 10066/10067
+    else if (id === 10066 || id === 10067) {
+      const teamPart = (bt.name || '').replace(/gagne sans encaisser de buts/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`tt_${side}_wins_to_nil_yes`, it);
+        else if (/non|no/.test(s)) put(`tt_${side}_wins_to_nil_no`, it);
+      }
+    }
+    // Team wins at least one half (2-way Y/N) - 10070/10071
+    else if (id === 10070 || id === 10071) {
+      const teamPart = (bt.name || '').replace(/gagne au moins une mi-temps/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`tt_${side}_wins_atleast_one_half_yes`, it);
+        else if (/non|no/.test(s)) put(`tt_${side}_wins_atleast_one_half_no`, it);
+      }
+    }
+    // First goal scorer team (3-way 1/X/2) - 10082
+    else if (id === 10082) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/1er.*but.*:\s*1/.test(s)) put('first_goal_1', it);
+        else if (/1er.*but.*:\s*x/.test(s) || /pas de but/.test(s)) put('first_goal_X', it);
+        else if (/1er.*but.*:\s*2/.test(s)) put('first_goal_2', it);
+      }
+    }
+    // Last goal scorer team (3-way 1/X/2) - 10083
+    else if (id === 10083) {
+      for (const it of items) {
+        const s = (it.shortName || '').trim().toLowerCase();
+        if (s === '1') put('last_goal_1', it);
+        else if (s === 'x' || /pas de but/.test(s)) put('last_goal_X', it);
+        else if (s === '2') put('last_goal_2', it);
+      }
+    }
+    // Team goals odd/even - 10089/10090
+    else if (id === 10089 || id === 10090) {
+      const teamPart = (bt.name || '').replace(/nombre de buts de/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/impair|odd/.test(s)) put(`tt_${side}_odd`, it);
+        else if (/pair|even/.test(s)) put(`tt_${side}_even`, it);
+      }
+    }
+    // BTTS each half (2-way Y/N) - 10099
+    else if (id === 10099) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui\s*\/\s*oui|yes\s*\/\s*yes/.test(s)) put('btts_each_half_yes', it);
+        else if (/non\s*\/\s*non|no\s*\/\s*no/.test(s)) put('btts_each_half_no', it);
+      }
+    }
+    // Over 1.5 each half (2-way Y/N) - 10100
+    else if (id === 10100) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put('over_1.5_each_half_yes', it);
+        else if (/non|no/.test(s)) put('over_1.5_each_half_no', it);
+      }
+    }
+    // Under 1.5 each half (2-way Y/N) - 10101
+    else if (id === 10101) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put('under_1.5_each_half_yes', it);
+        else if (/non|no/.test(s)) put('under_1.5_each_half_no', it);
+      }
+    }
+    // 1MT Team Clean Sheet - 10114/10115
+    else if (id === 10114 || id === 10115) {
+      const teamPart = (bt.name || '').replace(/1ère mi-temps\s*-\s*/i, '').replace(/n[’']?encaisse pas de but/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`ht_cs_${side}_yes`, it);
+        else if (/non|no/.test(s)) put(`ht_cs_${side}_no`, it);
+      }
+    }
+    // 2MT Team Clean Sheet - 10128/10129
+    else if (id === 10128 || id === 10129) {
+      const teamPart = (bt.name || '').replace(/2ème mi-temps\s*-\s*/i, '').replace(/n[’']?encaisse pas de but/i, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`h2_cs_${side}_yes`, it);
+        else if (/non|no/.test(s)) put(`h2_cs_${side}_no`, it);
+      }
+    }
     // Combos explicitement ignorés (l'audit prouve que ces IDs sont des combos
     // multi-marchés non comparables) :
     // - 10009 : Résultat Mi-temps / Fin de match (9-way)
@@ -200,6 +331,28 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
         readTotal(items, total, `${pfx}over_${total}`, `${pfx}under_${total}`);
       }
     }
+    // ═══ Nouveaux marchés tennis (audit 2026-08-13) ══════════════════
+    // 10049 "Y aura-t-il un 6-0 ?" (Y/N)
+    else if (id === 10049) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put('set_60_yes', it);
+        else if (/non|no/.test(s)) put('set_60_no', it);
+      }
+    }
+    // 10050/10053 Team wins a set (2-way Y/N)
+    else if (id === 10050 || id === 10053) {
+      const teamPart = (bt.name || '').replace(/gagnera un set/i, '').replace(/[?]/g, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`tt_${side}_wins_a_set_yes`, it);
+        else if (/non|no/.test(s)) put(`tt_${side}_wins_a_set_no`, it);
+      }
+    }
+    // 10159 Nombre de jeux Pair/Impair (match)
+    else if (id === 10159) readOddEven(items, '');
   }
   return odds;
 }
