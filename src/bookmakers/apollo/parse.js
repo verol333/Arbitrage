@@ -19,6 +19,10 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // 502/558 s1/s2 winner, 910 hcp games, 911 total games/points, 914 total sets).
   // Reuse apolloTennisFlatOdds — les BetTypeKeys sont les memes en tennis/volley.
   if (sport === 'volleyball') return apolloTennisFlatOdds(offers);
+  // Table Tennis Apollo : sid=417. Meme BetTypeKey=20 pour Winner 2-way.
+  // Autres BetTypeKeys probablement partages avec tennis (handicap, total)
+  // → reuse parseur tennis (2-way winner + hcp games/points + totals).
+  if (sport === 'table_tennis') return apolloTennisFlatOdds(offers);
   // Basket Apollo — probe 2026-08-13 (32 matchs NBA) identifie 4 BetTypeKeys :
   //   key=1 (3m) samples "1:1 | X:X | 2:2" → 1X2 avec draw (règlementaire)
   //   key=20 (3m) samples "1:1 | 2:2" → Winner 2-way (incl OT)

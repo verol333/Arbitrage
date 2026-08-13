@@ -5,7 +5,9 @@ import { CONGO_API, congoJson } from './api.js';
 //   Football, 107=Baseball, 111=Hockey sur Glace (Salei Cup Belarus).
 // Volleyball Congobet : sid=114 (confirme via probe 2026-08-11 - International/Pan
 // American Cup + Brésil U19 Paulista + Russie Pro League).
-const SPORT_IDS = { football: '101', tennis: '103', basket: '102', hockey: '111', volleyball: '114' };
+// Table Tennis Congobet : sid=113 (confirmé F12 user 2026-08-13 : Czech Liga Pro,
+// Kasnik vs Sychra, Stolfa vs Janata, Cabis vs Zika — 12+ matchs actifs).
+const SPORT_IDS = { football: '101', tennis: '103', basket: '102', hockey: '111', volleyball: '114', table_tennis: '113' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);

@@ -62,6 +62,6 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           MIN_PROFIT_LIVE: ${{ secrets.MIN_PROFIT_LIVE }}
           MAX_MATCHES: '150'
-          SCAN_SPORTS: 'football,tennis,basket,hockey,volleyball'
+          SCAN_SPORTS: 'football,tennis,basket,hockey,volleyball,table_tennis'
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}

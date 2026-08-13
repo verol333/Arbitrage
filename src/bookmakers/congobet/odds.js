@@ -7,6 +7,7 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
   const json = await congoJson(`${CONGO_API}events/${matchId}`, { noCache: live || noCache });
   if (!json?.eventBetTypes) return null;
   if (sport === 'basket') return congobetBasket(json);
+  if (sport === 'table_tennis') return congobetTableTennis(json);
   const home = json.homeTeamName || ''; const away = json.awayTeamName || '';
   const odds = { _ids: {} };
   // Helper : ecrit odds[key] = value ET odds._ids[key] = { eventBetTypeItemId,
@@ -353,6 +354,77 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     }
     // 10159 Nombre de jeux Pair/Impair (match)
     else if (id === 10159) readOddEven(items, '');
+  }
+  return odds;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARSEUR TABLE TENNIS Congobet — betTypeIds identifies via F12 user 2026-08-13
+// (Czech Liga Pro, Stolfa vs Janata, Kasnik vs Sychra) :
+//   10002  "Résultat du match" (Winner 2-way : 1/2)
+//   10183  "Ecart entre équipes" (Handicap : "1 (+4.5)" / "2 (-4.5)") ctx.hcp
+//   10184  "Nombre de points" (Total : "> 74.5" / "< 74.5") ctx.total
+//   10185  "Nombre exact de sets" (bestof:5 → 3/4/5)
+//   10186  "Vainqueur du jeu" (par jeu, ctx.gamenr — non exploite cross-book)
+//   10492  "Score exact" (bestof:5 3:0/3:1/3:2/0:3/1:3/2:3 — 6-way non exploite)
+// IGNORE : 10186 (game-level trop specifique), 10492 (6-way score exact).
+function congobetTableTennis(json) {
+  const odds = { _ids: {} };
+  const put = (key, it) => { odds[key] = Number(it.odds); odds._ids[key] = { eventBetTypeItemId: it.id, totalOdds: Number(it.odds) }; };
+  const ctxNum = (bt, key) => {
+    try { const c = JSON.parse(bt.betTypeContext || '{}'); if (c[key] != null) return parseFloat(String(c[key])); } catch { /* ignore */ }
+    return null;
+  };
+  const readHcpEcart = (items, homeKey, awayKey) => {
+    for (const it of items) {
+      const s = it.shortName || '';
+      const mLine = s.match(/\(([+-]?\d+(?:\.\d+)?)\)/);
+      if (!mLine) continue;
+      const line = parseFloat(mLine[1]);
+      if (!isHalfLine(line)) continue;
+      if (/^1\b/.test(s.trim())) put(homeKey(line), it);
+      else if (/^2\b/.test(s.trim())) put(awayKey(line), it);
+    }
+  };
+  const readTotal = (items, line, overKey, underKey) => {
+    if (line == null || !isHalfLine(line)) return;
+    for (const it of items) {
+      if (/>|\+|plus|over/.test(it.shortName)) put(overKey, it);
+      else if (/<|moins|under/.test(it.shortName)) put(underKey, it);
+    }
+  };
+  for (const bt of json.eventBetTypes) {
+    const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
+    if (!items.length) continue;
+    const rawId = Number(bt.betTypeId);
+    const id = rawId >= 20000 && rawId < 30000 ? rawId - 10000 : rawId;
+    // Winner 2-way (TT est 2-way, pas de nul).
+    if (id === 10002) {
+      for (const it of items) {
+        const s = (it.shortName || '').trim();
+        if (s === '1') put('match_1', it);
+        else if (s === '2') put('match_2', it);
+      }
+    }
+    // Handicap points (TT-specifique id=10183, ctx.hcp au lieu de shortName).
+    else if (id === 10183) {
+      readHcpEcart(items, (l) => `hcp_home_${l}`, (l) => `hcp_away_${l}`);
+    }
+    // Total points (TT-specifique id=10184).
+    else if (id === 10184) {
+      const total = ctxNum(bt, 'total');
+      readTotal(items, total, `match_over_${total}`, `match_under_${total}`);
+    }
+    // Nombre exact de sets (bestof:5). shortName "3"/"4"/"5" → total sets under/over 3.5/4.5
+    else if (id === 10185) {
+      for (const it of items) {
+        const s = (it.shortName || '').trim();
+        if (s === '3') put('total_sets_3', it);
+        else if (s === '4') put('total_sets_4', it);
+        else if (s === '5') put('total_sets_5', it);
+      }
+    }
+    // 10186 (par jeu) / 10492 (score exact 6-way) : ignore, non exploitables cross-book
   }
   return odds;
 }

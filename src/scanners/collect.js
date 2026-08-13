@@ -60,6 +60,8 @@ async function readOddsSafe(book, matches, opts) {
 function sanitizeForSport(odds, sport = 'football') {
   if (!odds || typeof odds !== 'object') return {};
   if (sport === 'tennis') return odds;
+  // Table Tennis : identique tennis (2-way winner + sets 3-5). Retourne odds tel quel.
+  if (sport === 'table_tennis') return odds;
   // Volleyball : garde structure sets (s1_/s2_/s3_) + match_/hcp_/tt_/odd/even,
   // purge foot-only (btts_, dc_, dnb_, fts_, cor_, ht_/h2_ foot, half_most_,
   // total_sets_2/3, q1-q4). Volley n'a JAMAIS match_X.
@@ -171,6 +173,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // (Handicap Jeux vs Handicap Asiatique, Total Jeux vs Total Buts, s1_/s2_/...).
   // Basket : marchés Points (incl OT) avec quarters qN_ et halves hN_.
   const compare = sport === 'tennis' ? compareTennisTwoBooks
+                : sport === 'table_tennis' ? compareTennisTwoBooks
                 : sport === 'basket' ? compareBasketTwoBooks
                 : sport === 'hockey' ? compareHockeyTwoBooks
                 : sport === 'volleyball' ? compareVolleyballTwoBooks
