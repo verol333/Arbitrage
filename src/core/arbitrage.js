@@ -634,6 +634,19 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
   pushArb(out, 'Pair/Impair Jeux', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB, idsOf(oa, 'odd'), idsOf(ob, 'even'));
   pushArb(out, 'Pair/Impair Jeux', 'Impair', ob.odd, bookB, 'Pair', oa.even, bookA, idsOf(ob, 'odd'), idsOf(oa, 'even'));
 
+  // ═══ Nouveaux marchés tennis (audit Congobet + Apollo 2026-08-13) ═══
+  // Team wins a set (2-way Y/N) — Congobet 10050/10053, Apollo 211/212
+  for (const side of ['home', 'away']) {
+    const yk = `tt_${side}_wins_a_set_yes`, nk = `tt_${side}_wins_a_set_no`;
+    const lbl = side === 'home' ? 'J1' : 'J2';
+    const fam = `${lbl} gagne un set`;
+    if (oa[yk] && ob[nk]) pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    if (ob[yk] && oa[nk]) pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+  }
+  // 6-0 possible (Y/N) — Congobet 10049, Apollo 852
+  if (oa.set_60_yes && ob.set_60_no) pushArb(out, 'Set 6-0 possible', 'Oui', oa.set_60_yes, bookA, 'Non', ob.set_60_no, bookB, idsOf(oa, 'set_60_yes'), idsOf(ob, 'set_60_no'));
+  if (ob.set_60_yes && oa.set_60_no) pushArb(out, 'Set 6-0 possible', 'Oui', ob.set_60_yes, bookB, 'Non', oa.set_60_no, bookA, idsOf(ob, 'set_60_yes'), idsOf(oa, 'set_60_no'));
+
   return out;
 }
 

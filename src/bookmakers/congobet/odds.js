@@ -331,6 +331,28 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
         readTotal(items, total, `${pfx}over_${total}`, `${pfx}under_${total}`);
       }
     }
+    // ═══ Nouveaux marchés tennis (audit 2026-08-13) ══════════════════
+    // 10049 "Y aura-t-il un 6-0 ?" (Y/N)
+    else if (id === 10049) {
+      for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put('set_60_yes', it);
+        else if (/non|no/.test(s)) put('set_60_no', it);
+      }
+    }
+    // 10050/10053 Team wins a set (2-way Y/N)
+    else if (id === 10050 || id === 10053) {
+      const teamPart = (bt.name || '').replace(/gagnera un set/i, '').replace(/[?]/g, '').trim();
+      const sH = tokenOverlap(teamPart, home), sA = tokenOverlap(teamPart, away);
+      const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side !== null) for (const it of items) {
+        const s = (it.shortName || '').toLowerCase();
+        if (/oui|yes/.test(s)) put(`tt_${side}_wins_a_set_yes`, it);
+        else if (/non|no/.test(s)) put(`tt_${side}_wins_a_set_no`, it);
+      }
+    }
+    // 10159 Nombre de jeux Pair/Impair (match)
+    else if (id === 10159) readOddEven(items, '');
   }
   return odds;
 }

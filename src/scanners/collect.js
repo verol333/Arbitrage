@@ -657,6 +657,14 @@ function marketKeyFromOpp(o) {
   if (fam === 'BTTS chaque MT') return { a: 'btts_each_half_yes', b: 'btts_each_half_no' };
   // Over 1.5 each half
   if (fam === 'Plus 1.5 buts chaque MT') return { a: 'over_1.5_each_half_yes', b: 'over_1.5_each_half_no' };
+  // Tennis Team wins a set — "J1 gagne un set" / "J2 gagne un set"
+  const winsSet = fam.match(/^(J1|J2) gagne un set$/);
+  if (winsSet) {
+    const side = winsSet[1] === 'J1' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_a_set_yes`, b: `tt_${side}_wins_a_set_no` };
+  }
+  // Tennis 6-0 possible
+  if (fam === 'Set 6-0 possible') return { a: 'set_60_yes', b: 'set_60_no' };
   // Team totals (Dom. / Ext.)
   const ttMatch = fam.match(/^Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
   if (ttMatch) {
