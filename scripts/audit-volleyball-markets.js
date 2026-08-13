@@ -1,73 +1,130 @@
-// Probe API Betclic (offer.cdn.betclic.fr) — découverte structure endpoints foot.
-// Test direct fetch (sans Byparr) puis via Byparr si besoin.
-const BC_HDR = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0.0.0 Safari/537.36',
-  'Accept': 'application/json',
-  'Accept-Language': 'fr-FR,fr;q=0.9',
-  'Origin': 'https://www.betclic.fr',
-  'Referer': 'https://www.betclic.fr/',
-};
+// Audit exhaustif Congobet + Apollo foot : dump TOUS les marchés dispos
+// sur 3 matchs récents, identifier ceux non parsés actuellement.
+import congobet from '../src/bookmakers/congobet/index.js';
+import apollo from '../src/bookmakers/apollo/index.js';
+import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
+import { apolloGet } from '../src/bookmakers/apollo/api.js';
 
-async function fetch1(label, url) {
-  const t0 = Date.now();
-  try {
-    const res = await fetch(url, { headers: BC_HDR, signal: AbortSignal.timeout(15000) });
-    const txt = await res.text().catch(() => '');
-    console.log(`[${label}] HTTP=${res.status} size=${txt.length}b (${Date.now()-t0}ms)`);
-    return { status: res.status, body: txt };
-  } catch (e) {
-    console.log(`[${label}] ERR ${e.message}`);
-    return null;
-  }
-}
+// IDs déjà parsés (extraits de src/bookmakers/congobet/odds.js)
+const CONGOBET_PARSED = new Set([
+  10001, 10008, 10010, 10003, 10055, 10056, 10015, 10016, 10031, 10022, // FT
+  10007, 10104, 10028, 10011, 10108, 10109, 10107, 10113, 10106,          // 1MT
+  10024, 10120, 10029, 10030, 10124, 10125, 10123, 10127, 10119,          // 2MT
+  10147, 10504, 10153, 10146,                                             // Corners
+  10009, 10021, 10025, 10026, 10027, 10039, 10040, 10116, 10117,          // Explicitement ignorés (combos)
+  10309, 10310, 10312, 10489,
+]);
 
-async function fetchJSON(label, url) {
-  const r = await fetch1(label, url);
-  if (!r || r.status !== 200) return null;
-  try { return JSON.parse(r.body); } catch { console.log(`  ${label} : not JSON, preview: ${r.body.slice(0,200)}`); return null; }
-}
+// Apollo BetTypeKeys déjà parsés
+const APOLLO_PARSED = new Set([
+  1, 3, 4, 43, 45, 47, 60, 598, 599, 41, 531,               // FT
+  42, 200, 606, 5000, 952, 4035, 4037, 4038,                // 1MT
+  546, 201, 607, 5001, 953, 4036, 4041, 4042,               // 2MT
+  127, 128, 129, 5002,                                       // Corners
+]);
 
-(async () => {
-  const base = 'https://offer.cdn.betclic.fr/api/pub/v2';
-  const qp = 'application=2&countrycode=fr&language=fr&sitecode=frfr';
+async function auditCongobet() {
+  console.log('\n==============================');
+  console.log('=== CONGOBET FOOT AUDIT ===');
+  console.log('==============================');
+  const matches = await congobet.listMatches({ sport: 'football', horizonHours: 72 });
+  console.log(`Total matchs : ${matches.length}`);
+  if (!matches.length) { console.log('AUCUN MATCH — abort'); return; }
 
-  // Étape 1 : lister les sports
-  console.log('\n=== Étape 1 : SPORTS list ===');
-  const sports = await fetchJSON('sports', `${base}/sports?${qp}`);
-  if (Array.isArray(sports)) {
-    sports.forEach((s) => console.log(`  id=${s.id} name="${s.name}" comps=${s.competition_count || '?'}`));
-  } else if (sports) {
-    console.log('  keys:', Object.keys(sports));
-    console.log('  preview:', JSON.stringify(sports).slice(0, 500));
-  }
+  // Prendre 3 matchs représentatifs
+  const sample = matches.slice(0, 3);
+  const inventaire = new Map();  // betTypeId → { name, count, sampleShortName }
 
-  // Étape 2 : chercher le sport football (id probablement = 1)
-  console.log('\n=== Étape 2 : FOOTBALL competitions ===');
-  for (const sid of [1, 2, 3, 4, 5, 6, 7, 8]) {
-    const j = await fetchJSON(`sport/${sid}/competitions`, `${base}/sports/${sid}/competitions?${qp}`);
-    if (Array.isArray(j) && j.length) {
-      console.log(`  sportId=${sid}: ${j.length} compétitions`);
-      j.slice(0, 5).forEach((c) => console.log(`    id=${c.id} name="${c.name}" matches=${c.match_count || '?'}`));
-      break;
-    } else if (j) {
-      console.log(`  sportId=${sid}: keys=${Object.keys(j).join(',')}`);
+  for (const m of sample) {
+    console.log(`\n>>> [${m.league}] ${m.home} vs ${m.away} (id=${m.id})`);
+    const json = await congoJson(`${CONGO_API}events/${m.id}`);
+    if (!json?.eventBetTypes) { console.log('   pas de eventBetTypes'); continue; }
+    for (const bt of json.eventBetTypes) {
+      const id = Number(bt.betTypeId);
+      const norm = id >= 20000 && id < 30000 ? id - 10000 : id;
+      const items = (bt.eventBetTypeItems || []).filter(it => it.active && it.bettingAllowed);
+      if (!items.length) continue;
+      const key = norm;
+      if (!inventaire.has(key)) {
+        inventaire.set(key, {
+          rawId: id, name: bt.name, matchCount: 0, sampleItems: []
+        });
+      }
+      const entry = inventaire.get(key);
+      entry.matchCount++;
+      if (entry.sampleItems.length < 3) {
+        for (const it of items.slice(0, 3)) {
+          entry.sampleItems.push(it.shortName);
+        }
+      }
     }
   }
 
-  // Étape 3 : essayons v3 aussi
-  console.log('\n=== Étape 3 : v3 endpoints ===');
-  const base3 = 'https://offer.cdn.betclic.fr/api/pub/v3';
-  await fetch1('v3 sports', `${base3}/sports?${qp}`);
-  await fetch1('v3 sports/football', `${base3}/sports/football?${qp}`);
-  await fetch1('v3 sports/1/matches', `${base3}/sports/1/matches?${qp}`);
+  console.log('\n--- CONGOBET FOOT : INVENTAIRE TOUS betTypeId ---');
+  const sorted = [...inventaire.entries()].sort((a, b) => a[0] - b[0]);
+  const parsed = [], notParsed = [];
+  for (const [id, info] of sorted) {
+    const status = CONGOBET_PARSED.has(id) ? '✅ PARSÉ' : '❌ NON PARSÉ';
+    const line = `  id=${id} ${status} "${info.name}" (${info.matchCount} matchs, items: ${info.sampleItems.slice(0, 3).join(' | ')})`;
+    if (CONGOBET_PARSED.has(id)) parsed.push(line); else notParsed.push(line);
+  }
+  console.log('\n[NON PARSÉS - À EXPLORER]');
+  notParsed.forEach(l => console.log(l));
+  console.log(`\n[Résumé] Parsés: ${parsed.length} | Non parsés: ${notParsed.length}`);
+}
 
-  // Étape 4 : essai endpoint "top matches" ou "highlights"
-  console.log('\n=== Étape 4 : autres endpoints candidats ===');
-  await fetch1('matches upcoming', `${base}/matches/upcoming?${qp}&sportId=1`);
-  await fetch1('sports/1/matches', `${base}/sports/1/matches?${qp}`);
-  await fetch1('matches', `${base}/matches?${qp}&sportId=1`);
-  await fetch1('events', `${base}/events?${qp}&sportId=1`);
-  await fetch1('sports/football-sfootball', `${base}/sports/football-sfootball?${qp}`);
+async function auditApollo() {
+  console.log('\n==============================');
+  console.log('=== APOLLO FOOT AUDIT ===');
+  console.log('==============================');
+  const matches = await apollo.listMatches({ sport: 'football' });
+  console.log(`Total matchs : ${matches.length}`);
+  if (!matches.length) { console.log('AUCUN MATCH — abort'); return; }
 
+  const sample = matches.slice(0, 3);
+  const inventaire = new Map();
+
+  for (const m of sample) {
+    console.log(`\n>>> [${m.league}] ${m.home} vs ${m.away} (id=${m.id})`);
+    // Apollo requiert IncludeBetTypeNames=true pour avoir les noms des marchés
+    const j = await apolloGet(`/sport/offer/v3/match/offers?MatchId=${m.id}&IncludeBetTypeNames=true`);
+    const offers = j?.Offers || j?.BasicOffer || [];
+    if (!offers.length) { console.log('   pas de Offers'); continue; }
+    for (const o of offers) {
+      const key = Number(o.BetTypeKey);
+      const oddsCount = (o.Odds || []).length;
+      if (!oddsCount) continue;
+      if (!inventaire.has(key)) {
+        inventaire.set(key, {
+          name: o.BetTypeName || o.BetTypeKey, matchCount: 0, sampleOdds: []
+        });
+      }
+      const entry = inventaire.get(key);
+      entry.matchCount++;
+      if (entry.sampleOdds.length < 3) {
+        for (const od of (o.Odds || []).slice(0, 3)) {
+          entry.sampleOdds.push(`${od.Type}:${od.Name}`);
+        }
+      }
+    }
+  }
+
+  console.log('\n--- APOLLO FOOT : INVENTAIRE TOUS BetTypeKey ---');
+  const sorted = [...inventaire.entries()].sort((a, b) => a[0] - b[0]);
+  const parsed = [], notParsed = [];
+  for (const [id, info] of sorted) {
+    const status = APOLLO_PARSED.has(id) ? '✅ PARSÉ' : '❌ NON PARSÉ';
+    const line = `  key=${id} ${status} "${info.name}" (${info.matchCount} matchs, samples: ${info.sampleOdds.slice(0, 3).join(' | ')})`;
+    if (APOLLO_PARSED.has(id)) parsed.push(line); else notParsed.push(line);
+  }
+  console.log('\n[NON PARSÉS - À EXPLORER]');
+  notParsed.forEach(l => console.log(l));
+  console.log(`\n[Résumé] Parsés: ${parsed.length} | Non parsés: ${notParsed.length}`);
+}
+
+(async () => {
+  await auditCongobet();
+  await auditApollo();
+  console.log('\n=== FIN ===');
   process.exit(0);
 })();

@@ -4,63 +4,20 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    services:
-      byparr:
-        image: ghcr.io/thephaseless/byparr:latest
-        ports: ['8191:8191']
-        options: --shm-size=1g
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for Byparr
-        run: for i in {1..90}; do curl -sf http://localhost:8191/docs >/dev/null 2>&1 && break; sleep 2; done
-
-      - name: FULL DUMP oauth/token supergooal
-        run: |
-          echo "=== Full response supergooal.cg/oauth/token ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.post","url":"https://supergooal.cg/oauth/token","maxTimeout":30000,"postData":"grant_type=client_credentials&client_id=4","headers":{"Content-Type":"application/x-www-form-urlencoded"}}' \
-            > /tmp/o.json
-          echo "--- outer keys ---"
-          jq 'keys' /tmp/o.json
-          echo ""
-          echo "--- solution ---"
-          jq '.solution.status,.solution.url,.solution.headers,.solution.cookies' /tmp/o.json
-          echo ""
-          echo "--- solution.response raw (first 3000 chars) ---"
-          jq -r '.solution.response' /tmp/o.json | head -c 3000
-          echo ""
-          echo ""
-          echo "--- solution.response as plain text without HTML wrapper ---"
-          jq -r '.solution.response' /tmp/o.json | sed 's/<[^>]*>//g' | head -c 2000
-
-      - name: Test différentes variantes OAuth SuperGooal
-        run: |
-          test_v() {
-            local label="$1"; local body="$2"
-            echo ""
-            echo "=== $label ==="
-            echo "  body: $body"
-            curl -s -X POST http://localhost:8191/v1 \
-              -H 'Content-Type: application/json' \
-              -d "{\"cmd\":\"request.post\",\"url\":\"https://supergooal.cg/oauth/token\",\"maxTimeout\":30000,\"postData\":\"$body\",\"headers\":{\"Content-Type\":\"application/x-www-form-urlencoded\"}}" \
-              > /tmp/v.json
-            echo "  HTTP=$(jq -r '.solution.status' /tmp/v.json)"
-            jq -r '.solution.response' /tmp/v.json | sed 's/<[^>]*>//g' | head -c 400
-            echo ""
-          }
-          test_v "no params" ""
-          test_v "grant_type only" "grant_type=client_credentials"
-          test_v "password grant anon" "grant_type=password&username=&password=&client_id=4"
-          test_v "with scope" "grant_type=client_credentials&client_id=4&scope=read"
-          test_v "with client_secret vide" "grant_type=client_credentials&client_id=4&client_secret="
-
-      - name: Try meridianbet alt paths + POST init
-        run: |
-          echo "=== meridianbet online-api /api/v2/init POST ==="
-          curl -s -X POST http://localhost:8191/v1 \
-            -H 'Content-Type: application/json' \
-            -d '{"cmd":"request.post","url":"https://online.meridianbet.com/api/v2/init","maxTimeout":30000,"postData":""}' \
-            > /tmp/i.json
-          echo "  HTTP=$(jq -r '.solution.status' /tmp/i.json)"
-          jq -r '.solution.response' /tmp/i.json | sed 's/<[^>]*>//g' | head -c 400
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        working-directory: arbitrage-service
+        run: npm install --production --no-audit --no-fund
+      - name: Symlink node_modules
+        run: ln -sfn arbitrage-service/node_modules node_modules
+      - name: Run audit Congobet + Apollo marchés
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+        run: node scripts/audit-volleyball-markets.js
