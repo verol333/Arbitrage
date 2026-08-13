@@ -622,6 +622,41 @@ function marketKeyFromOpp(o) {
     const side = csMatch[1] === 'Domicile' ? 'home' : 'away';
     return { a: `cs_${side}_yes`, b: `cs_${side}_no` };
   }
+  // 1MT/2MT Clean Sheet team
+  const partCs = fam.match(/^(1MT|2MT) Clean Sheet (Domicile|Extérieur)$/);
+  if (partCs) {
+    const pfx = partCs[1] === '1MT' ? 'ht_' : 'h2_';
+    const side = partCs[2] === 'Domicile' ? 'home' : 'away';
+    return { a: `${pfx}cs_${side}_yes`, b: `${pfx}cs_${side}_no` };
+  }
+  // Team scores each half
+  const scoreEach = fam.match(/^(Domicile|Extérieur) marque chaque mi-temps$/);
+  if (scoreEach) {
+    const side = scoreEach[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_score_each_half_yes`, b: `tt_${side}_score_each_half_no` };
+  }
+  // Team wins both halves
+  const winsBoth = fam.match(/^(Domicile|Extérieur) gagne les 2 MT$/);
+  if (winsBoth) {
+    const side = winsBoth[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_both_halves_yes`, b: `tt_${side}_wins_both_halves_no` };
+  }
+  // Team wins to nil
+  const winsNil = fam.match(/^(Domicile|Extérieur) gagne sans encaisser$/);
+  if (winsNil) {
+    const side = winsNil[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_to_nil_yes`, b: `tt_${side}_wins_to_nil_no` };
+  }
+  // Team wins at least one half
+  const winsAtLeast = fam.match(/^(Domicile|Extérieur) gagne au moins 1 MT$/);
+  if (winsAtLeast) {
+    const side = winsAtLeast[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `tt_${side}_wins_atleast_one_half_yes`, b: `tt_${side}_wins_atleast_one_half_no` };
+  }
+  // BTTS each half
+  if (fam === 'BTTS chaque MT') return { a: 'btts_each_half_yes', b: 'btts_each_half_no' };
+  // Over 1.5 each half
+  if (fam === 'Plus 1.5 buts chaque MT') return { a: 'over_1.5_each_half_yes', b: 'over_1.5_each_half_no' };
   // Team totals (Dom. / Ext.)
   const ttMatch = fam.match(/^Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
   if (ttMatch) {
