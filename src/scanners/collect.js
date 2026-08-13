@@ -608,7 +608,19 @@ function marketKeyFromOpp(o) {
     if (fam.startsWith('1MT')) return { a: 'ht_odd', b: 'ht_even' };
     if (fam.startsWith('2MT')) return { a: 'h2_odd', b: 'h2_even' };
     if (fam.startsWith('Corners')) return { a: 'cor_odd', b: 'cor_even' };
+    // Team goals Pair/Impair — "Buts Domicile Pair/Impair" / "Buts Extérieur Pair/Impair"
+    const teamOE = fam.match(/^Buts (Domicile|Extérieur) Pair\/Impair$/);
+    if (teamOE) {
+      const side = teamOE[1] === 'Domicile' ? 'home' : 'away';
+      return { a: `tt_${side}_odd`, b: `tt_${side}_even` };
+    }
     return { a: 'odd', b: 'even' };
+  }
+  // Clean Sheet — "Clean Sheet Domicile" / "Clean Sheet Extérieur" (2-way Y/N)
+  const csMatch = fam.match(/^Clean Sheet (Domicile|Extérieur)$/);
+  if (csMatch) {
+    const side = csMatch[1] === 'Domicile' ? 'home' : 'away';
+    return { a: `cs_${side}_yes`, b: `cs_${side}_no` };
   }
   // Team totals (Dom. / Ext.)
   const ttMatch = fam.match(/^Total (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);

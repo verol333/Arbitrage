@@ -74,6 +74,16 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   eachOdd(offers, 129, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.cor_odd = c; else if (s.includes('even') || s.includes('pair')) odds.cor_even = c; });
   eachOdd(offers, 5002, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_ht_under_${l}`] = c; else if (s.includes('over')) odds[`cor_ht_over_${l}`] = c; });
 
+  // ─── Nouveaux marchés Apollo foot (audit 2026-08-13) ───────────────
+  // Team Clean Sheet home/away (yes/no) - BetTypeKey 901/902
+  // samples: 1:yes | 2:no (Type=1 = Yes, Type=2 = No)
+  eachOdd(offers, 901, (t, _n, c) => { if (t === '1') odds.cs_home_yes = c; else if (t === '2') odds.cs_home_no = c; });
+  eachOdd(offers, 902, (t, _n, c) => { if (t === '1') odds.cs_away_yes = c; else if (t === '2') odds.cs_away_no = c; });
+  // Team goals odd/even home/away - BetTypeKey 965/966
+  // samples: 1:Even | 2:Odd (Type=1 = Even, Type=2 = Odd)
+  eachOdd(offers, 965, (t, _n, c) => { if (t === '1') odds.tt_home_even = c; else if (t === '2') odds.tt_home_odd = c; });
+  eachOdd(offers, 966, (t, _n, c) => { if (t === '1') odds.tt_away_even = c; else if (t === '2') odds.tt_away_odd = c; });
+
   return odds;
 }
 

@@ -388,6 +388,27 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
       pushArb(out, fam, `${teamLbl} +${l}`, ob[ok], bookB, `${teamLbl} −${l}`, oa[uk], bookA, idsOf(ob, ok), idsOf(oa, uk));
     }
   }
+  // ═══ Nouveaux marchés cross-book (audit Congobet + Apollo 2026-08-13) ═══
+  // Team Clean Sheet (2-way Yes/No) — Congobet 10013/10014, Apollo 901/902
+  for (const side of ['home', 'away']) {
+    const yk = `cs_${side}_yes`, nk = `cs_${side}_no`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `Clean Sheet ${lbl}`;
+    if (oa[yk] && ob[nk] && crossBookImpliedProbOK(oa, ob, yk, nk)) {
+      pushArb(out, fam, 'Oui', oa[yk], bookA, 'Non', ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+    }
+    if (ob[yk] && oa[nk] && crossBookImpliedProbOK(ob, oa, yk, nk)) {
+      pushArb(out, fam, 'Oui', ob[yk], bookB, 'Non', oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+    }
+  }
+  // Team goals Odd/Even (2-way) — Congobet 10089/10090, Apollo 965/966
+  for (const side of ['home', 'away']) {
+    const ok = `tt_${side}_odd`, ek = `tt_${side}_even`;
+    const lbl = side === 'home' ? 'Domicile' : 'Extérieur';
+    const fam = `Buts ${lbl} Pair/Impair`;
+    pushArb(out, fam, 'Impair', oa[ok], bookA, 'Pair', ob[ek], bookB, idsOf(oa, ok), idsOf(ob, ek));
+    pushArb(out, fam, 'Impair', ob[ok], bookB, 'Pair', oa[ek], bookA, idsOf(ob, ok), idsOf(oa, ek));
+  }
   // Note : les opps 3-way (1ère équipe à marquer, mi-temps la plus prolifique)
   // étaient génerées via pushArb3 mais leur `market_family` "... (3 issues)"
   // n'est pas reconstructible par marketKeyFromOpp, donc rejetées noKey au
