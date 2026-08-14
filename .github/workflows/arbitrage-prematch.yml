@@ -41,7 +41,10 @@ jobs:
           key: npm-${{ hashFiles('arbitrage-service/package.json') }}
 
       - name: Install dependencies
-        run: npm install --production
+        run: npm install
+
+      - name: Build bundle depuis src (garantit prod == dernier code source)
+        run: npm run build
 
       - name: Run prematch scan loop
         run: node dist/action.min.js prematch
