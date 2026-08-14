@@ -137,6 +137,97 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   eachOddL(offers, 965, (t, n, c, _s, d, od) => { if (t === '1') p('tt_home_even', c, d, n, od.Id); else if (t === '2') p('tt_home_odd', c, d, n, od.Id); });
   eachOddL(offers, 966, (t, n, c, _s, d, od) => { if (t === '1') p('tt_away_even', c, d, n, od.Id); else if (t === '2') p('tt_away_odd', c, d, n, od.Id); });
 
+  // ─── P3 : marchés secondaires ajoutés (audit 2026-08-14) ──────────
+  // Ajouts conservateurs, cross-book garantis, sans combos ni score-based
+  // handicap (ces derniers = fake arb potentiel, cf. task 133 sportybet G91/G92).
+  // Chaque BetTypeKey a une Description non-ambiguë + outcomes 2-way ou 3-way
+  // avec Type numérique clair.
+
+  // BetTypeKey=11 : HT/FT — 9 outcomes (1/1, 1/X, 1/2, X/1, X/X, X/2, 2/1, 2/X, 2/2).
+  // Type est déjà au format "ht/ft" (ex "1/X"), transcrit tel quel en clé.
+  eachOddL(offers, 11, (t, n, c, _s, d, od) => {
+    const m = String(t).match(/^([1X2])\/([1X2])$/);
+    if (!m) return;
+    p(`htft_${m[1]}_${m[2]}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=575 : Last team to score (3-way 1/X/2 avec X=None goal).
+  eachOddL(offers, 575, (t, n, c, _s, d, od) => {
+    if (t === '1') p('last_home', c, d, n, od.Id);
+    else if (t === 'X') p('last_none', c, d, n, od.Id);
+    else if (t === '2') p('last_away', c, d, n, od.Id);
+  });
+  // BetTypeKey=900 : Home to score in both halves (yes/no).
+  eachOddL(offers, 900, (t, n, c, _s, d, od) => {
+    if (t === '1') p('tt_home_scores_both_halves_yes', c, d, n, od.Id);
+    else if (t === '2') p('tt_home_scores_both_halves_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=909 : Away to score in both halves (yes/no).
+  eachOddL(offers, 909, (t, n, c, _s, d, od) => {
+    if (t === '1') p('tt_away_scores_both_halves_yes', c, d, n, od.Id);
+    else if (t === '2') p('tt_away_scores_both_halves_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=905 : Both halves over 1.5 goals (yes/no).
+  eachOddL(offers, 905, (t, n, c, _s, d, od) => {
+    if (t === '1') p('both_halves_over_1.5_yes', c, d, n, od.Id);
+    else if (t === '2') p('both_halves_over_1.5_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=906 : Both halves under 1.5 goals (yes/no).
+  eachOddL(offers, 906, (t, n, c, _s, d, od) => {
+    if (t === '1') p('both_halves_under_1.5_yes', c, d, n, od.Id);
+    else if (t === '2') p('both_halves_under_1.5_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=907 : Home to win either half (yes/no).
+  eachOddL(offers, 907, (t, n, c, _s, d, od) => {
+    if (t === '1') p('home_win_either_half_yes', c, d, n, od.Id);
+    else if (t === '2') p('home_win_either_half_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=908 : Away to win either half (yes/no).
+  eachOddL(offers, 908, (t, n, c, _s, d, od) => {
+    if (t === '1') p('away_win_either_half_yes', c, d, n, od.Id);
+    else if (t === '2') p('away_win_either_half_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=3004 : Home Win To Nil (yes=1 / no=2).
+  eachOddL(offers, 3004, (t, n, c, _s, d, od) => {
+    if (t === '1') p('home_win_to_nil_yes', c, d, n, od.Id);
+    else if (t === '2') p('home_win_to_nil_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=3005 : Away Win To Nil (yes=1 / no=2).
+  eachOddL(offers, 3005, (t, n, c, _s, d, od) => {
+    if (t === '1') p('away_win_to_nil_yes', c, d, n, od.Id);
+    else if (t === '2') p('away_win_to_nil_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=979 : Multigoals FT — outcomes "0", "1-2", "1-3", "1-4", "1-5", "1-6",
+  // "2-3", "2-4", "3-4", "4+", etc. On garde la clé = range tel quel (normalisée).
+  eachOddL(offers, 979, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=980 : 1st Half Multigoals.
+  eachOddL(offers, 980, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`ht_multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=981 : 2nd Half Multigoals.
+  eachOddL(offers, 981, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`h2_multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=982 : Team 1 (home) Multigoals.
+  eachOddL(offers, 982, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`tt_home_multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=983 : Team 2 (away) Multigoals.
+  eachOddL(offers, 983, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`tt_away_multigoal_${range}`, c, d, n, od.Id);
+  });
+
   return odds;
 }
 
