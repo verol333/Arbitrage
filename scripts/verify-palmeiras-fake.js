@@ -1,69 +1,90 @@
-// Vérification directe du match "Palmeiras Sao Joao U20 vs Comercial Tiete U20"
-// sur 1xBet et BetMomo pour identifier fake arb signalé par user (2026-08-14).
-// Opp reportée : 1xBet match_1=3.65 + BetMomo dc_X2=6.20 → +56% profit.
-// Suspect : cotes contradictoires (Palmeiras=27% vs 16%X2 impliquerait Palm=84%).
+// Investigation "Palmeiras Sao Joao U20 vs Comercial Tiete U20" (fake arb user 2026-08-14).
+// UI a affiché 1xBet match_1=3.65 + BetMomo dc_X2=6.20 → +56% (coupon HZ4VM).
+// Etape 1 (déjà fait) : le match n'existe pas chez 1xBet ni BetMomo (Palmeiras SJ =
+// Serie B U20 brésilienne, ces books ne l'ont pas).
+// Etape 2 (script actuel) : scanner TOUS les books pour trouver qui a réellement
+// ce match, et voir si Sociedade Esportiva Palmeiras (Serie A) est ce qui a
+// été apparié faussement.
 import xbet from '../src/bookmakers/xbet/index.js';
 import betmomo from '../src/bookmakers/betmomo/index.js';
+import yellowbet from '../src/bookmakers/yellowbet/index.js';
+import betpawa from '../src/bookmakers/betpawa/index.js';
+import sportybet from '../src/bookmakers/sportybet/index.js';
+import onewin from '../src/bookmakers/onewin/index.js';
+import congobet from '../src/bookmakers/congobet/index.js';
+import apollo from '../src/bookmakers/apollo/index.js';
+import premierbet from '../src/bookmakers/premierbet/index.js';
+import { orientation } from '../src/core/matching.js';
+import { teamSim } from '../src/core/text.js';
 
-const NEEDLE_HOME = /palmeiras.*sao.*joao|palmeiras\s*sj/i;
-const NEEDLE_AWAY = /comercial.*tiet[eé]/i;
+const BOOKS = { xbet, betmomo, yellowbet, betpawa, sportybet, onewin, congobet, apollo, premierbet };
 
-function find(matches, book) {
-  const hits = matches.filter((m) => {
-    const s = `${m.home} ${m.away}`.toLowerCase();
-    return NEEDLE_HOME.test(s) && NEEDLE_AWAY.test(s);
-  });
-  console.log(`\n[${book}] matches trouvés: ${hits.length}`);
-  for (const h of hits) {
-    console.log(`   id=${h.id}  ${h.home} vs ${h.away}  (${h.league || '?'})  kick=${h.kickoff || h.start || '?'}`);
-  }
-  return hits;
+function findPalm(matches, bookKey) {
+  const hits = matches.filter((m) => /palmeiras/i.test(`${m.home} ${m.away}`));
+  return hits.map((h) => ({
+    book: bookKey, id: h.id, home: h.home, away: h.away,
+    league: h.league || '', start: h.start || h.kickoff || null,
+  }));
 }
 
 async function main() {
-  console.log('▶ Verify Palmeiras SJ U20 vs Comercial Tiete U20\n');
+  console.log('▶ Cross-book Palmeiras SJ U20 vs Comercial Tiete U20 investigation\n');
+  const catalogs = {};
+  const errs = {};
+  const proms = Object.entries(BOOKS).map(async ([k, b]) => {
+    try {
+      catalogs[k] = await b.listMatches({ sport: 'football', live: false });
+    } catch (e) {
+      errs[k] = e.message;
+      catalogs[k] = [];
+    }
+  });
+  await Promise.all(proms);
 
-  const [xMatches, bmMatches] = await Promise.all([
-    xbet.listMatches({ sport: 'football', live: false }).catch((e) => { console.log('xbet list err:', e.message); return []; }),
-    betmomo.listMatches({ sport: 'football', live: false }).catch((e) => { console.log('betmomo list err:', e.message); return []; }),
-  ]);
-  console.log(`1xBet total: ${xMatches.length}   BetMomo total: ${bmMatches.length}`);
+  console.log('Catalogue totals + errors:');
+  for (const [k, arr] of Object.entries(catalogs)) {
+    console.log(`  ${k}\t${arr.length}${errs[k] ? '  ERR:' + errs[k] : ''}`);
+  }
+  console.log('');
 
-  const xHits = find(xMatches, '1xBet');
-  const bmHits = find(bmMatches, 'BetMomo');
-
-  if (!xHits.length || !bmHits.length) {
-    console.log('\n⚠️ Match introuvable sur au moins un book. Recherche large "palmeiras" :');
-    const xLarge = xMatches.filter((m) => /palmeiras/i.test(`${m.home} ${m.away}`)).slice(0, 10);
-    const bmLarge = bmMatches.filter((m) => /palmeiras/i.test(`${m.home} ${m.away}`)).slice(0, 10);
-    console.log(`[1xBet] palmeiras candidates (${xLarge.length}):`);
-    for (const m of xLarge) console.log(`   ${m.home} vs ${m.away}  kick=${m.kickoff || m.start}`);
-    console.log(`[BetMomo] palmeiras candidates (${bmLarge.length}):`);
-    for (const m of bmLarge) console.log(`   ${m.home} vs ${m.away}  kick=${m.kickoff || m.start}`);
+  // 1. Chercher Palmeiras dans chaque book
+  console.log('═══ Toutes les entrées "palmeiras" par book ═══');
+  const allPalm = [];
+  for (const [k, arr] of Object.entries(catalogs)) {
+    const hits = findPalm(arr, k);
+    console.log(`\n[${k}] ${hits.length} matchs palmeiras :`);
+    for (const h of hits) {
+      const startStr = h.start ? new Date(h.start).toISOString() : '?';
+      console.log(`   ${h.home} vs ${h.away}  |  ${h.league}  |  kick=${startStr}`);
+    }
+    allPalm.push(...hits);
   }
 
-  // Fetch odds pour chaque hit
-  for (const m of xHits.slice(0, 2)) {
-    console.log(`\n═══ 1xBet parseur odds pour: ${m.home} vs ${m.away} ═══`);
-    try {
-      const parsed = await xbet.getOdds(m, { sport: 'football' });
-      const keys = ['match_1', 'match_X', 'match_2', 'dc_1X', 'dc_12', 'dc_X2'];
-      for (const k of keys) console.log(`   ${k}\t= ${parsed[k] ?? '(absent)'}`);
-    } catch (e) { console.log(`   ⚠️ getOdds err: ${e.message}`); }
+  // 2. Match spécifique "Sao Joao" OU "Comercial"
+  console.log('\n═══ Matchs contenant "Sao Joao" OU "Comercial Tiete" (fuzzy) ═══');
+  for (const [k, arr] of Object.entries(catalogs)) {
+    const hits = arr.filter((m) => {
+      const s = `${m.home} ${m.away}`.toLowerCase();
+      return /sao\s*joao|s[aã]o.*jo[aã]o/i.test(s) || /comercial.*tiet/i.test(s);
+    });
+    if (hits.length) {
+      console.log(`\n[${k}] ${hits.length} matchs :`);
+      for (const m of hits) console.log(`   ${m.home} vs ${m.away}  |  ${m.league}  |  kick=${m.start ? new Date(m.start).toISOString() : '?'}`);
+    }
   }
 
-  for (const m of bmHits.slice(0, 2)) {
-    console.log(`\n═══ BetMomo parseur odds pour: ${m.home} vs ${m.away} ═══`);
-    try {
-      const parsed = await betmomo.getOdds(m, { sport: 'football' });
-      const keys = ['match_1', 'match_X', 'match_2', 'dc_1X', 'dc_12', 'dc_X2'];
-      for (const k of keys) console.log(`   ${k}\t= ${parsed[k] ?? '(absent)'}`);
-      // Détail natif du dc_X2 si présent
-      if (parsed._ids?.dc_X2) {
-        const ids = parsed._ids.dc_X2;
-        console.log(`   ↳ dc_X2 natif: market="${ids.market_name_native}" selection="${ids.selection_name_native}" eventName="${ids.eventName}"`);
-      }
-    } catch (e) { console.log(`   ⚠️ getOdds err: ${e.message}`); }
+  // 3. Simuler le matching : ref = "Palmeiras Sao Joao U20 vs Comercial Tiete U20"
+  //    contre les candidats "SE Palmeiras vs ???" de chaque book pour voir si
+  //    modifiersMatch les rejette (test unitaire).
+  console.log('\n═══ Simulation matching : ref vs candidats SE Palmeiras ═══');
+  const ref = { home: 'Palmeiras Sao Joao U20', away: 'Comercial Tiete U20' };
+  console.log(`ref: ${ref.home} vs ${ref.away}`);
+  for (const h of allPalm) {
+    const shH = teamSim(ref.home, h.home);
+    const shA = teamSim(ref.away, h.away);
+    const ori = orientation(ref.home, ref.away, h.home, h.away);
+    console.log(`  [${h.book}] ${h.home} vs ${h.away}`);
+    console.log(`    teamSim home=${shH.toFixed(3)} away=${shA.toFixed(3)}  orient=${ori}`);
   }
 
   console.log('\n▶ Fin.');
