@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build": "esbuild ../src/cli.js --bundle --platform=node --format=esm --target=node20 --minify --packages=external --outfile=dist/action.min.js"
+  },
   "engines": {
     "node": ">=20.0.0"
   },
