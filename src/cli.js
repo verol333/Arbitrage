@@ -129,22 +129,23 @@ async function doScan({ live, sport }) {
 }
 
 async function doAllSports({ live }) {
-  // Foot + tennis en PARALLELE (pas de priorite : les deux sont equivalents).
-  const results = await Promise.allSettled(SPORTS.map(sport => doScan({ live, sport })));
+  // Tous les sports en PARALLELE. ENVOI STREAMING : chaque sport est POSTe des
+  // que SON scan finit, au lieu d'attendre que le sport le plus lent termine.
+  // Avant : un surebet foot detecte a t+8s n'etait envoye qu'a t+50s (fin du
+  // cycle complet) — en live la cote etait deja morte. Le webhook range chaque
+  // opp par son champ .sport et ne supprime rien : un POST par sport est donc
+  // strictement equivalent, mais immediat.
   const totals = {};
-  const resultsBySport = {};
-  results.forEach((r, i) => {
-    const sport = SPORTS[i];
-    if (r.status === 'fulfilled') {
-      totals[sport] = r.value.opportunities?.length ?? 0;
-      resultsBySport[sport] = r.value;
-    } else {
+  await Promise.all(SPORTS.map(async (sport) => {
+    try {
+      const result = await doScan({ live, sport });
+      totals[sport] = result.opportunities?.length ?? 0;
+      await notifyWebhookMerged({ [sport]: result }, { live });
+    } catch (e) {
       totals[sport] = 'ERR';
-      log(`  ⚠️ ${sport} scan erreur: ${r.reason?.message || r.reason}`);
+      log(`  ⚠️ ${sport} scan erreur: ${e?.message || e}`);
     }
-  });
-  // UN SEUL webhook fusionne pour eviter que le 2e ecrase le 1er cote backend.
-  await notifyWebhookMerged(resultsBySport, { live });
+  }));
   return totals;
 }
 
