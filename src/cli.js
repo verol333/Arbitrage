@@ -105,6 +105,16 @@ async function notifyWebhookMerged(resultsBySport, { live = false } = {}) {
 const mode = process.argv[2] || 'prematch';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Watchdog : un cycle bloque (socket keep-alive mort, promesse jamais resolue)
+// ne doit JAMAIS figer la boucle. On log et on passe au cycle suivant.
+const CYCLE_TIMEOUT_PREMATCH_MS = 240_000;
+const CYCLE_TIMEOUT_LIVE_MS = 120_000;
+function withTimeout(promise, ms, label) {
+  let t;
+  const guard = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`watchdog: ${label} > ${ms / 1000}s`)), ms); });
+  return Promise.race([promise, guard]).finally(() => clearTimeout(t));
+}
+
 // Multi-sport : SCAN_SPORTS="football,tennis" scanne les deux en parallele.
 const SPORTS = (process.env.SCAN_SPORTS || 'football').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -138,6 +148,7 @@ async function doAllSports({ live }) {
   return totals;
 }
 
+async function main() {
 if (mode === 'prematch') {
   const durMin = parseInt(process.env.PREMATCH_DURATION_MINUTES || '0', 10);
   if (durMin > 0) {
@@ -147,7 +158,7 @@ if (mode === 'prematch') {
     log(`▶ Scan PRÉMATCH LOOP sports=[${SPORTS.join(',')}] — boucle ${durMin} min, intervalle ${interval / 1000}s`);
     while (Date.now() < end) {
       try {
-        const totals = await doAllSports({ live: false });
+        const totals = await withTimeout(doAllSports({ live: false }), CYCLE_TIMEOUT_PREMATCH_MS, 'cycle prematch');
         cycles++;
         const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
         log(`  cycle ${cycles}: ${summary}`);
@@ -161,7 +172,7 @@ if (mode === 'prematch') {
     log(`✅ Prématch loop terminé — ${cycles} cycles (${durMin} min)`);
   } else {
     log(`▶ Scan PRÉMATCH sports=[${SPORTS.join(',')}] (parallele)`);
-    const totals = await doAllSports({ live: false });
+    const totals = await withTimeout(doAllSports({ live: false }), CYCLE_TIMEOUT_PREMATCH_MS, 'cycle prematch');
     const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
     log(`✅ Prématch terminé — ${summary}`);
   }
@@ -173,7 +184,7 @@ if (mode === 'prematch') {
   log(`▶ Scan LIVE sports=[${SPORTS.join(',')}] — boucle ${duration} min, intervalle ${interval / 1000}s`);
   while (Date.now() < end) {
     try {
-      const totals = await doAllSports({ live: true });
+      const totals = await withTimeout(doAllSports({ live: true }), CYCLE_TIMEOUT_LIVE_MS, 'cycle live');
       cycles++;
       const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
       log(`  cycle ${cycles}: ${summary}`);
@@ -189,4 +200,12 @@ if (mode === 'prematch') {
   console.error(`Mode inconnu : ${mode}. Utilisez "prematch" ou "live".`);
   process.exit(1);
 }
-process.exit(0);
+}
+
+// Le top-level await faisait sortir Node en code 13 ("Unsettled Top-Level
+// Await") des qu'une promesse restait pendante et que la boucle d'evenements
+// se vidait : le scan mourait en pleine course. main() + handle keep-alive.
+const keepAlive = setInterval(() => {}, 60_000);
+main()
+  .catch((e) => { console.error(`[fatal] ${e?.stack || e?.message || String(e)}`); })
+  .finally(() => { clearInterval(keepAlive); process.exit(0); });
