@@ -1,0 +1,18 @@
+name: Verify Palmeiras Fake Arb
+on:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps + symlink
+        run: |
+          cd arbitrage-service
+          npm install --no-audit --no-fund
+          cd ..
+          ln -sfn arbitrage-service/node_modules node_modules
+      - run: node scripts/verify-palmeiras-fake.js
