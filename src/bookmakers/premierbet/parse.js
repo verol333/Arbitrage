@@ -10,46 +10,64 @@ function cleanName(n) {
   return String(n || '').replace(/\[\d+:\d+\]/g, '').trim();
 }
 
-function byName(outcomes) {
+// byNameFull retourne { label: outcomeObject } au lieu de { label: cote }.
+// Utilisé par les helpers refactorés pour retrouver l'outcome complet et son
+// nom natif exact (o.name) au moment d'écrire dans _ids.
+function byNameFull(outcomes) {
   const map = {};
   for (const o of (outcomes || [])) {
     const v = Number(o.value);
-    if (Number.isFinite(v) && v > 1) map[cleanName(o.name)] = v;
+    if (Number.isFinite(v) && v > 1) map[cleanName(o.name)] = o;
   }
   return map;
 }
 
+// Helper écrit odds[key] = v ET odds._ids[key] avec les 3 champs libellés natifs
+// (P2 dev report 2026-08-14). PremierBet n'expose pas de coupon code natif dans
+// l'API guineegames — seuls les libellés sont capturés.
+function pbPut(odds, key, v, m, outcomeName) {
+  odds[key] = v;
+  if (!odds._ids) odds._ids = {};
+  odds._ids[key] = {
+    market_name_native: m?.name ? String(m.name) : null,
+    selection_name_native: outcomeName ? String(outcomeName) : null,
+    market_path_native: null,
+  };
+}
+
 // Helpers réutilisables (mêmes formats prematch/live pour les markets sans score suffix)
 function put1x2(m, pfx, odds) {
-  const p = byName(m.outcomes);
-  if (p['1']) odds[`${pfx}match_1`] = p['1'];
-  if (p['X'] || p['x']) odds[`${pfx}match_X`] = p['X'] || p['x'];
-  if (p['2']) odds[`${pfx}match_2`] = p['2'];
+  const p = byNameFull(m.outcomes);
+  const o1 = p['1']; const oX = p['X'] || p['x']; const o2 = p['2'];
+  if (o1) pbPut(odds, `${pfx}match_1`, Number(o1.value), m, o1.name);
+  if (oX) pbPut(odds, `${pfx}match_X`, Number(oX.value), m, oX.name);
+  if (o2) pbPut(odds, `${pfx}match_2`, Number(o2.value), m, o2.name);
 }
 function putDC(m, pfx, odds) {
-  const p = byName(m.outcomes);
-  if (p['1X'] || p['1x']) odds[`${pfx}dc_1X`] = p['1X'] || p['1x'];
-  if (p['12']) odds[`${pfx}dc_12`] = p['12'];
-  if (p['X2'] || p['x2']) odds[`${pfx}dc_X2`] = p['X2'] || p['x2'];
+  const p = byNameFull(m.outcomes);
+  const o1X = p['1X'] || p['1x']; const o12 = p['12']; const oX2 = p['X2'] || p['x2'];
+  if (o1X) pbPut(odds, `${pfx}dc_1X`, Number(o1X.value), m, o1X.name);
+  if (o12) pbPut(odds, `${pfx}dc_12`, Number(o12.value), m, o12.name);
+  if (oX2) pbPut(odds, `${pfx}dc_X2`, Number(oX2.value), m, oX2.name);
 }
 function putBtts(m, pfx, odds) {
-  const p = byName(m.outcomes);
+  const p = byNameFull(m.outcomes);
   const yes = p['Oui'] || p['Yes'] || p['oui'] || p['yes'];
   const no = p['Non'] || p['No'] || p['non'] || p['no'];
-  if (yes) odds[`${pfx}btts_yes`] = yes;
-  if (no) odds[`${pfx}btts_no`] = no;
+  if (yes) pbPut(odds, `${pfx}btts_yes`, Number(yes.value), m, yes.name);
+  if (no) pbPut(odds, `${pfx}btts_no`, Number(no.value), m, no.name);
 }
 function putDnb(m, pfx, odds) {
-  const p = byName(m.outcomes);
-  if (p['1']) odds[`${pfx}dnb_1`] = p['1'];
-  if (p['2']) odds[`${pfx}dnb_2`] = p['2'];
+  const p = byNameFull(m.outcomes);
+  if (p['1']) pbPut(odds, `${pfx}dnb_1`, Number(p['1'].value), m, p['1'].name);
+  if (p['2']) pbPut(odds, `${pfx}dnb_2`, Number(p['2'].value), m, p['2'].name);
 }
 function putOddEven(m, pfx, odds) {
-  const p = byName(m.outcomes);
+  const p = byNameFull(m.outcomes);
   const odd = p['Impair'] || p['Odd'] || p['impair'] || p['odd'];
   const even = p['Pair'] || p['Even'] || p['pair'] || p['even'];
-  if (odd) odds[`${pfx}odd`] = odd;
-  if (even) odds[`${pfx}even`] = even;
+  if (odd) pbPut(odds, `${pfx}odd`, Number(odd.value), m, odd.name);
+  if (even) pbPut(odds, `${pfx}even`, Number(even.value), m, even.name);
 }
 function putTotalMultiLine(m, pfx, odds) {
   for (const o of (m.outcomes || [])) {
@@ -60,8 +78,8 @@ function putTotalMultiLine(m, pfx, odds) {
     const nm = String(o.name || '').toLowerCase();
     const v = Number(o.value);
     if (!Number.isFinite(v) || v <= 1) continue;
-    if (/plus|over|\+/.test(nm)) odds[`${pfx}over_${line}`] = v;
-    else if (/moins|under/.test(nm)) odds[`${pfx}under_${line}`] = v;
+    if (/plus|over|\+/.test(nm)) pbPut(odds, `${pfx}over_${line}`, v, m, o.name);
+    else if (/moins|under/.test(nm)) pbPut(odds, `${pfx}under_${line}`, v, m, o.name);
   }
 }
 function putTeamTotalMultiLine(m, side, pfx, odds) {
@@ -73,8 +91,8 @@ function putTeamTotalMultiLine(m, side, pfx, odds) {
     const nm = String(o.name || '').toLowerCase();
     const v = Number(o.value);
     if (!Number.isFinite(v) || v <= 1) continue;
-    if (/plus|over|\+/.test(nm)) odds[`${pfx}tt_${side}_over_${line}`] = v;
-    else if (/moins|under/.test(nm)) odds[`${pfx}tt_${side}_under_${line}`] = v;
+    if (/plus|over|\+/.test(nm)) pbPut(odds, `${pfx}tt_${side}_over_${line}`, v, m, o.name);
+    else if (/moins|under/.test(nm)) pbPut(odds, `${pfx}tt_${side}_under_${line}`, v, m, o.name);
   }
 }
 function putHcpMultiLine(m, pfx, odds) {
@@ -86,18 +104,18 @@ function putHcpMultiLine(m, pfx, odds) {
     const nm = String(o.name || '').trim();
     const v = Number(o.value);
     if (!Number.isFinite(v) || v <= 1) continue;
-    if (nm === '1') odds[`${pfx}hcp_home_${line}`] = v;
-    else if (nm === '2') odds[`${pfx}hcp_away_${line}`] = v;
+    if (nm === '1') pbPut(odds, `${pfx}hcp_home_${line}`, v, m, o.name);
+    else if (nm === '2') pbPut(odds, `${pfx}hcp_away_${line}`, v, m, o.name);
   }
 }
 function putHighestScoringHalf(m, odds) {
-  const p = byName(m.outcomes);
+  const p = byNameFull(m.outcomes);
   const first = p['1er'] || p['1ère Mi-Temps'] || p['1ere Mi-Temps'];
   const second = p['2ème'] || p['2ème Mi-Temps'] || p['2eme Mi-Temps'];
   const equal = p['Egalité'] || p['Égalité'] || p['Equal'];
-  if (first) odds.half_most_ht = first;
-  if (second) odds.half_most_h2 = second;
-  if (equal) odds.half_most_equal = equal;
+  if (first) pbPut(odds, 'half_most_ht', Number(first.value), m, first.name);
+  if (second) pbPut(odds, 'half_most_h2', Number(second.value), m, second.name);
+  if (equal) pbPut(odds, 'half_most_equal', Number(equal.value), m, equal.name);
 }
 
 // ─── MAPPING PREMATCH (dump F12 initial) ─────────────────────────
@@ -193,7 +211,7 @@ function parseLive(markets, odds) {
 }
 
 export function premierbetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (sport === 'tennis') parseTennis(markets, odds);
   else if (sport === 'basket') parseBasket(markets, odds);
   else if (sport === 'hockey') parseHockey(markets, odds);
@@ -209,9 +227,9 @@ export function premierbetFlatOdds(markets, { live = false, sport = 'football' }
 // Handicap : outcome.handicap = ligne (signe inclus).
 // ═══════════════════════════════════════════════════════════════
 function putTennisWinner(m, pfx, odds) {
-  const p = byName(m.outcomes);
-  if (p['1']) odds[`${pfx}match_1`] = p['1'];
-  if (p['2']) odds[`${pfx}match_2`] = p['2'];
+  const p = byNameFull(m.outcomes);
+  if (p['1']) pbPut(odds, `${pfx}match_1`, Number(p['1'].value), m, p['1'].name);
+  if (p['2']) pbPut(odds, `${pfx}match_2`, Number(p['2'].value), m, p['2'].name);
 }
 // FIX fake arb tennis 40% : ne PAS flipper le signe pour l'outcome "2".
 // PB fournit deja les 2 outcomes complementaires avec leurs signes propres :
@@ -227,8 +245,8 @@ function putTennisHcp(m, pfx, odds) {
     const h = o.handicap != null ? Number(String(o.handicap).replace(/^\+/, '')) : null;
     if (h == null || !isHalfLine(Math.abs(h))) continue;
     const nm = cleanName(o.name);
-    if (nm === '1') odds[`${pfx}hcp_home_${h}`] = v;
-    else if (nm === '2') odds[`${pfx}hcp_away_${h}`] = v;
+    if (nm === '1') pbPut(odds, `${pfx}hcp_home_${h}`, v, m, o.name);
+    else if (nm === '2') pbPut(odds, `${pfx}hcp_away_${h}`, v, m, o.name);
   }
 }
 function putTennisTotal(m, pfx, odds) {
@@ -238,8 +256,8 @@ function putTennisTotal(m, pfx, odds) {
     const h = o.handicap != null ? Number(String(o.handicap).replace(/^\+/, '')) : null;
     if (h == null || !isHalfLine(h)) continue;
     const nm = (o.name || '').toLowerCase().trim();
-    if (/plus|over/.test(nm)) odds[`${pfx}over_${h}`] = v;
-    else if (/moins|under/.test(nm)) odds[`${pfx}under_${h}`] = v;
+    if (/plus|over/.test(nm)) pbPut(odds, `${pfx}over_${h}`, v, m, o.name);
+    else if (/moins|under/.test(nm)) pbPut(odds, `${pfx}under_${h}`, v, m, o.name);
   }
 }
 

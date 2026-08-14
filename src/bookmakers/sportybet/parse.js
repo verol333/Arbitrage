@@ -33,6 +33,9 @@ function putSb(odds, key, v, m, o) {
     marketId: String(m?.id ?? ''),
     outcomeId: o?.id != null ? String(o.id) : (o?.desc ?? null),
     specifier: m?.specifier || null,
+    market_name_native: String(m?.desc ?? m?.name ?? ''),
+    selection_name_native: String(o?.desc ?? o?.name ?? ''),
+    market_path_native: null,
   };
 }
 

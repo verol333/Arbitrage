@@ -48,16 +48,28 @@ import { isHalfLine } from '../../core/markets.js';
 // /api/sportsbook/v3/booking-number, format { selections:[{type:"COMBO",
 // selections:[priceId,...]}] }). Chaque price BetPawa a un id numerique
 // unique (p.id) — c'est le seul ID necessaire pour SaveCoupon.
+// Contexte module-scope pour libellé natif du marché courant. Les helpers put1x2/
+// putDC/putTotal reçoivent des prices sans référence au market — plutôt que de
+// refactorer 49 sites d'appel, on assigne _bpMarketName au début de chaque
+// boucle for (const market of ...) via setBpMarket().
+let _bpMarketName = null;
+function setBpMarket(name) { _bpMarketName = name ? String(name) : null; }
 function putBp(odds, key, v, p) {
   odds[key] = v;
   if (!odds._ids) odds._ids = {};
-  odds._ids[key] = { priceId: p?.id != null ? Number(p.id) : null };
+  odds._ids[key] = {
+    priceId: p?.id != null ? Number(p.id) : null,
+    market_name_native: _bpMarketName,
+    selection_name_native: String(p?.name ?? p?.displayName ?? ''),
+    market_path_native: null,
+  };
 }
 
 export function betpawaTennisFlatOdds(eventJson) {
   const odds = { _ids: {} };
   if (!eventJson?.markets?.length) return odds;
   for (const market of eventJson.markets) {
+    setBpMarket(market?.marketType?.name);
     const marketId = String(market?.marketType?.id ?? '');
     const rows = market.row || [];
     if (!rows.length) continue;
@@ -167,6 +179,7 @@ export function betpawaBasketFlatOdds(eventJson) {
   const odds = { _ids: {} };
   if (!eventJson?.markets?.length) return odds;
   for (const market of eventJson.markets) {
+    setBpMarket(market?.marketType?.name);
     const marketId = String(market?.marketType?.id ?? '');
     const rows = Array.isArray(market.row) ? market.row : [];
     if (!rows.length) continue;
@@ -216,6 +229,7 @@ export function betpawaFlatOdds(eventJson) {
   if (!eventJson?.markets?.length) return odds;
 
   for (const market of eventJson.markets) {
+    setBpMarket(market?.marketType?.name);
     const marketId = String(market?.marketType?.id ?? '');
     const prices = flattenPrices(market.row);
     if (!prices.length) continue;

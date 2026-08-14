@@ -21,6 +21,9 @@ function putBm(odds, k, v, m, e) {
     gameId: e?.game_id ?? e?.gameId ?? null,
     base: e?.base ?? null,
     price: v,
+    market_name_native: String(m?.name ?? ''),
+    selection_name_native: String(e?.name ?? ''),
+    market_path_native: m?.group_name ? String(m.group_name) : null,
   };
 }
 

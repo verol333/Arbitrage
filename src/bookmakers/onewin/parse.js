@@ -9,10 +9,20 @@ import { tokenOverlap } from '../../core/text.js';
 // { coupons: [{ oddId: String }] }). L'oddId natif est odd.id, format
 // "<groupId>:<uniqueId>:<outcome>" (ex "10:21612258419570790:1"). matchId est
 // ajoute par collect.js depuis match.id.
+// Contexte module-scope pour libellé natif du marché courant (assigné par
+// setWinMarket au début de chaque boucle for (const [rawName, ...]) sur
+// Object.entries(groups)). Évite un refactor de dizaines de sites d'appel.
+let _winMarketName = null;
+function setWinMarket(name) { _winMarketName = name ? String(name) : null; }
 function putWin(odds, key, o) {
   odds[key] = Number(o.cf);
   if (!odds._ids) odds._ids = {};
-  odds._ids[key] = { oddId: o.id != null ? String(o.id) : null };
+  odds._ids[key] = {
+    oddId: o.id != null ? String(o.id) : null,
+    market_name_native: _winMarketName,
+    selection_name_native: String(o?.name ?? o?.outcome ?? ''),
+    market_path_native: null,
+  };
 }
 
 // Convertit les groupes tennis 1win → cotes plates canoniques.
@@ -26,6 +36,7 @@ export function winTennisFlatOdds(groups, names) {
   const active = (list) => (list || []).filter((o) => o?.status === 1 && Number(o.cf) > 1);
 
   for (const [rawName, rawList] of Object.entries(groups)) {
+    setWinMarket(rawName);
     const low = rawName.toLowerCase().trim();
     const list = active(rawList);
     if (!list.length) continue;
@@ -173,6 +184,7 @@ export function winBasketFlatOdds(groups, names) {
   }
 
   for (const [rawName, rawList] of Object.entries(groups)) {
+    setWinMarket(rawName);
     const list = active(rawList);
     if (!list.length) continue;
     const { pfx, base, rawBase } = stripPeriod(rawName);
@@ -278,6 +290,7 @@ export function winFlatOdds(groups, names) {
   const active = (list) => (list || []).filter((o) => o?.status === 1 && Number(o.cf) > 1);
 
   for (const [rawName, rawList] of Object.entries(groups)) {
+    setWinMarket(rawName);
     const low = rawName.toLowerCase().trim();
     const list = active(rawList);
     if (!list.length) continue;
