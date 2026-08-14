@@ -204,6 +204,13 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         // Voir docs/coupon-codes-research.md pour matrice books generables.
         // YellowBet/BetMomo : coupon_data reste null (403 CF sur SaveCoupon
         // impossible a bypass depuis Deno) → pas de bouton "Generer" cote UI.
+        // Extraction libellés natifs bookmaker (fix dev report 2026-08-14 :
+        // l'utilisateur doit voir le libellé EXACT du book, jamais traduit ni
+        // reformulé, pour retrouver le pari dans l'app quand pas de code coupon).
+        // Les 3 champs sont émis par les parseurs dans _ids[key] et retirés ici
+        // avant buildCoupon pour ne pas polluer le coupon envoyé à SaveCoupon.
+        const legAlabels = extractNativeLabels(a.leg_a_ids);
+        const legBlabels = extractNativeLabels(a.leg_b_ids);
         const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt, live, matches[a.leg_a_book]);
         const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt, live, matches[a.leg_b_book]);
         // Nettoyer les IDs internes (transportes via pushArb) avant envoi
@@ -217,6 +224,12 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
           kickoff_iso: ref.start ? new Date(ref.start).toISOString() : null,
           ...idFields(matches),
           status: 'live',
+          leg_a_market_name_native: legAlabels.market,
+          leg_a_selection_name_native: legAlabels.selection,
+          leg_a_market_path_native: legAlabels.path,
+          leg_b_market_name_native: legBlabels.market,
+          leg_b_selection_name_native: legBlabels.selection,
+          leg_b_market_path_native: legBlabels.path,
           leg_a_coupon: legAcoupon,
           leg_b_coupon: legBcoupon,
           ...(live ? {
@@ -413,10 +426,15 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
   const confirmedAtMs = Date.now();
   const rejectReasons = { noKey: 0, noOddsA: 0, noOddsB: 0, missingFresh: 0, badRange: 0, noArb: 0, lowProfit: 0, capMax: 0, unstableDrift: 0 };
   // Seuil de drift entre cote candidate (readOdds cache) et cote fresh (confirm noCache).
-  // Si une cote a bougé de plus de ce seuil, l'opp est instable → rejet.
-  // Detecte : parseurs qui retournent des spikes, caches proxies qui donnent des
-  // reponses obsoletes, marches qui bougent trop vite (arb ephemere non exploitable).
+  // Deux checks combinés (rejet si UN des deux dépasse) :
+  //   - Absolu : 0.10 (catch mouvements erratiques bas-cotes ex 1.5 → 1.7)
+  //   - Relatif : 3% (catch mouvements hautes-cotes ex 5.0 → 5.20 = drift 4%)
+  // Le check relatif était demandé par le dev (2026-08-14) suite au bug
+  // Clean Sheet Apollo — n'attrape pas les mismaps parseur (mêmes 2 reads
+  // renvoient la même valeur fausse) mais coupe les arbs éphémères qui n'ont
+  // plus la même cote entre détection et confirmation.
   const DRIFT_MAX = 0.10;
+  const DRIFT_REL_MAX = 0.03;
   const driftSamples = [];
   const rejectByBook = {};
   const trackReject = (o, reason) => {
@@ -447,8 +465,11 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     const candB = Number(o.leg_b_odd) || null;
     const driftA = candA ? Math.abs(freshA - candA) : 0;
     const driftB = candB ? Math.abs(freshB - candB) : 0;
+    const driftRelA = candA ? driftA / candA : 0;
+    const driftRelB = candB ? driftB / candB : 0;
     driftSamples.push({ book_a: o.leg_a_book, book_b: o.leg_b_book, driftA, driftB });
     if (driftA > DRIFT_MAX || driftB > DRIFT_MAX) { trackReject(o, 'unstableDrift'); continue; }
+    if (driftRelA > DRIFT_REL_MAX || driftRelB > DRIFT_REL_MAX) { trackReject(o, 'unstableDrift'); continue; }
     const invSum = 1 / freshA + 1 / freshB;
     if (invSum >= 1) { trackReject(o, 'noArb'); continue; }
     const profit = (1 - invSum) * 100;
@@ -896,10 +917,29 @@ export function shortMatchLabel(home, away) {
 //
 // L'eventId (match.id du book) est ajoute pour les books ou le SaveCoupon en
 // a besoin (SportyBet, 1win). Les autres l'ont deja dans les ids natifs.
+// Extrait les 3 libellés natifs bookmaker de _ids[key] et les RETIRE de l'objet
+// (via delete direct) pour qu'ils ne polluent pas le coupon SaveCoupon.
+// Chaque parseur enrichi (Apollo, Congobet, ...) doit émettre ces 3 clés dans
+// _ids[key]. Les parseurs non enrichis retournent { market:null, ... }.
+export function extractNativeLabels(ids) {
+  if (!ids) return { market: null, selection: null, path: null };
+  const out = {
+    market: ids.market_name_native || null,
+    selection: ids.selection_name_native || null,
+    path: ids.market_path_native || null,
+  };
+  delete ids.market_name_native;
+  delete ids.selection_name_native;
+  delete ids.market_path_native;
+  return out;
+}
+
 function buildCoupon(book, ids, matchId, price, readAt, live, match) {
   // Pas d'ids extraits par le parseur → coupon non generable pour cette cote
   // (le parseur du book n'a pas encore ete enrichi ou marche non supporte).
-  if (!ids) return null;
+  // Object vide = seulement des labels natifs qui ont été extraits par
+  // extractNativeLabels — pas non plus de coupon possible.
+  if (!ids || Object.keys(ids).length === 0) return null;
   const coupon = { book, price, read_at: readAt };
   // Injecter eventId pour SportyBet (natif : "sr:match:X")
   if (book === 'sportybet' && matchId != null) coupon.eventId = String(matchId);

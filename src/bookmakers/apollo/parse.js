@@ -3,6 +3,7 @@
 // cet BetTypeKey et on émet les clés d'odds standardisées.
 import { isHalfLine } from '../../core/markets.js';
 
+// eachOdd conserve son ancienne signature (t, name, c, sbv) pour compat.
 function eachOdd(offers, key, cb) {
   for (const o of offers) {
     if (String(o.BetTypeKey) !== String(key)) continue;
@@ -11,6 +12,34 @@ function eachOdd(offers, key, cb) {
       if (!isNaN(c) && c > 1) cb(String(od.Type || ''), (od.Name || '').toString(), c, o.Sbv);
     }
   }
+}
+
+// eachOddL — variante qui passe aussi la Description de l'offer (pour libellé
+// natif marché) et l'Odd complet (pour libellé natif sélection). Utilisée par
+// les marchés enrichis pour dev report P2 (2026-08-14). Chaque callback reçoit :
+//   (type, name, cote, sbv, description, oddObj)
+function eachOddL(offers, key, cb) {
+  for (const o of offers) {
+    if (String(o.BetTypeKey) !== String(key)) continue;
+    const desc = o.Description || o.Name || '';
+    for (const od of o.Odds || []) {
+      const c = parseFloat(od.Odd);
+      if (!isNaN(c) && c > 1) cb(String(od.Type || ''), (od.Name || '').toString(), c, o.Sbv, desc, od);
+    }
+  }
+}
+
+// Helper : set odds[key] + _ids[key] avec libellés natifs Apollo. Path composé
+// depuis Description (fallback identique au market_name_native). Le SelectionId
+// (od.Id) est aussi stocké — utile si un jour Apollo expose SaveCoupon.
+function putOdd(odds, key, cote, description, selectionName, oddId) {
+  odds[key] = cote;
+  odds._ids[key] = {
+    market_name_native: description,
+    selection_name_native: selectionName,
+    market_path_native: `Football > ${description}`,
+    ...(oddId != null ? { apolloOddId: String(oddId) } : {}),
+  };
 }
 
 export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
@@ -32,53 +61,57 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // Hockey Apollo : sportId=398 identifie mais catalogue actuellement vide
   // (0 matchs 72h probe). BetTypeKeys non probes. Retour vide securite.
   if (sport === 'hockey') return {};
-  const odds = {};
+  const odds = { _ids: {} };
   if (!offers || !offers.length) return odds;
+  // Shorthand : p(key, cote, description, selection_name, oddId).
+  // Émet odds[key] + odds._ids[key] = { market_name_native, selection_name_native,
+  // market_path_native, apolloOddId }. Extrait par extractNativeLabels (collect.js).
+  const p = (key, c, d, n, id) => putOdd(odds, key, c, d, n, id);
 
   // ─── Fulltime ─────────────────────────────────────────────────────
-  eachOdd(offers, 1, (t, _n, c) => { if (t === '1') odds.match_1 = c; else if (t === 'X') odds.match_X = c; else if (t === '2') odds.match_2 = c; });
-  eachOdd(offers, 3, (t, _n, c) => { if (t === '1X') odds.dc_1X = c; else if (t === '12') odds.dc_12 = c; else if (t === 'X2') odds.dc_X2 = c; });
-  eachOdd(offers, 4, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`hcp_home_${l}`] = c; else if (t === '2') odds[`hcp_away_${-l}`] = c; });
-  eachOdd(offers, 43, (t, _n, c) => { if (t === '1') odds.btts_yes = c; else if (t === '2') odds.btts_no = c; });
-  eachOdd(offers, 45, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.odd = c; else if (s.includes('even') || s.includes('pair')) odds.even = c; });
-  eachOdd(offers, 47, (t, _n, c) => { if (t === '1') odds.dnb_1 = c; else if (t === '2') odds.dnb_2 = c; });
-  eachOdd(offers, 60, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`match_under_${l}`] = c; else if (s.includes('over')) odds[`match_over_${l}`] = c; });
-  eachOdd(offers, 598, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`tt_home_under_${l}`] = c; else if (s.includes('over')) odds[`tt_home_over_${l}`] = c; });
-  eachOdd(offers, 599, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`tt_away_under_${l}`] = c; else if (s.includes('over')) odds[`tt_away_over_${l}`] = c; });
-  eachOdd(offers, 41, (t, _n, c) => { if (t === '1') odds.fts_home = c; else if (t === '2') odds.fts_away = c; else if (t === 'X') odds.fts_none = c; });
-  eachOdd(offers, 531, (t, _n, c) => { if (t === '1') odds.half_most_ht = c; else if (t === '2') odds.half_most_h2 = c; else if (t === 'X') odds.half_most_equal = c; });
+  eachOddL(offers, 1, (t, n, c, _s, d, od) => { if (t === '1') p('match_1', c, d, n, od.Id); else if (t === 'X') p('match_X', c, d, n, od.Id); else if (t === '2') p('match_2', c, d, n, od.Id); });
+  eachOddL(offers, 3, (t, n, c, _s, d, od) => { if (t === '1X') p('dc_1X', c, d, n, od.Id); else if (t === '12') p('dc_12', c, d, n, od.Id); else if (t === 'X2') p('dc_X2', c, d, n, od.Id); });
+  eachOddL(offers, 4, (t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') p(`hcp_home_${l}`, c, d, n, od.Id); else if (t === '2') p(`hcp_away_${-l}`, c, d, n, od.Id); });
+  eachOddL(offers, 43, (t, n, c, _s, d, od) => { if (t === '1') p('btts_yes', c, d, n, od.Id); else if (t === '2') p('btts_no', c, d, n, od.Id); });
+  eachOddL(offers, 45, (_t, n, c, _s, d, od) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) p('odd', c, d, n, od.Id); else if (s.includes('even') || s.includes('pair')) p('even', c, d, n, od.Id); });
+  eachOddL(offers, 47, (t, n, c, _s, d, od) => { if (t === '1') p('dnb_1', c, d, n, od.Id); else if (t === '2') p('dnb_2', c, d, n, od.Id); });
+  eachOddL(offers, 60, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`match_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`match_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 598, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`tt_home_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`tt_home_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 599, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`tt_away_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`tt_away_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 41, (t, n, c, _s, d, od) => { if (t === '1') p('fts_home', c, d, n, od.Id); else if (t === '2') p('fts_away', c, d, n, od.Id); else if (t === 'X') p('fts_none', c, d, n, od.Id); });
+  eachOddL(offers, 531, (t, n, c, _s, d, od) => { if (t === '1') p('half_most_ht', c, d, n, od.Id); else if (t === '2') p('half_most_h2', c, d, n, od.Id); else if (t === 'X') p('half_most_equal', c, d, n, od.Id); });
 
   // ─── 1ère mi-temps ────────────────────────────────────────────────
-  eachOdd(offers, 42, (t, _n, c) => {
-    if (t === '1') odds.ht_match_1 = c; else if (t === 'X') odds.ht_match_X = c; else if (t === '2') odds.ht_match_2 = c;
-    else if (t === '1X') odds.ht_dc_1X = c; else if (t === '12') odds.ht_dc_12 = c; else if (t === 'X2') odds.ht_dc_X2 = c;
+  eachOddL(offers, 42, (t, n, c, _s, d, od) => {
+    if (t === '1') p('ht_match_1', c, d, n, od.Id); else if (t === 'X') p('ht_match_X', c, d, n, od.Id); else if (t === '2') p('ht_match_2', c, d, n, od.Id);
+    else if (t === '1X') p('ht_dc_1X', c, d, n, od.Id); else if (t === '12') p('ht_dc_12', c, d, n, od.Id); else if (t === 'X2') p('ht_dc_X2', c, d, n, od.Id);
   });
-  eachOdd(offers, 200, (t, _n, c) => { if (t === '1') odds.ht_dnb_1 = c; else if (t === '2') odds.ht_dnb_2 = c; });
-  eachOdd(offers, 606, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.ht_odd = c; else if (s.includes('even') || s.includes('pair')) odds.ht_even = c; });
-  eachOdd(offers, 5000, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`ht_under_${l}`] = c; else if (s.includes('over')) odds[`ht_over_${l}`] = c; });
-  eachOdd(offers, 952, (t, _n, c) => { if (t === '1') odds.ht_btts_yes = c; else if (t === '2') odds.ht_btts_no = c; });
-  eachOdd(offers, 4035, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`ht_hcp_home_${l}`] = c; else if (t === '2') odds[`ht_hcp_away_${-l}`] = c; });
-  eachOdd(offers, 4037, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`ht_tt_home_under_${l}`] = c; else if (t === '2') odds[`ht_tt_home_over_${l}`] = c; });
-  eachOdd(offers, 4038, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`ht_tt_away_under_${l}`] = c; else if (s.includes('over')) odds[`ht_tt_away_over_${l}`] = c; });
+  eachOddL(offers, 200, (t, n, c, _s, d, od) => { if (t === '1') p('ht_dnb_1', c, d, n, od.Id); else if (t === '2') p('ht_dnb_2', c, d, n, od.Id); });
+  eachOddL(offers, 606, (_t, n, c, _s, d, od) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) p('ht_odd', c, d, n, od.Id); else if (s.includes('even') || s.includes('pair')) p('ht_even', c, d, n, od.Id); });
+  eachOddL(offers, 5000, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`ht_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`ht_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 952, (t, n, c, _s, d, od) => { if (t === '1') p('ht_btts_yes', c, d, n, od.Id); else if (t === '2') p('ht_btts_no', c, d, n, od.Id); });
+  eachOddL(offers, 4035, (t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') p(`ht_hcp_home_${l}`, c, d, n, od.Id); else if (t === '2') p(`ht_hcp_away_${-l}`, c, d, n, od.Id); });
+  eachOddL(offers, 4037, (t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') p(`ht_tt_home_under_${l}`, c, d, n, od.Id); else if (t === '2') p(`ht_tt_home_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 4038, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`ht_tt_away_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`ht_tt_away_over_${l}`, c, d, n, od.Id); });
 
   // ─── 2ème mi-temps ────────────────────────────────────────────────
-  eachOdd(offers, 546, (t, _n, c) => {
-    if (t === '1') odds.h2_match_1 = c; else if (t === 'X') odds.h2_match_X = c; else if (t === '2') odds.h2_match_2 = c;
-    else if (t === '1X') odds.h2_dc_1X = c; else if (t === '12') odds.h2_dc_12 = c; else if (t === 'X2') odds.h2_dc_X2 = c;
+  eachOddL(offers, 546, (t, n, c, _s, d, od) => {
+    if (t === '1') p('h2_match_1', c, d, n, od.Id); else if (t === 'X') p('h2_match_X', c, d, n, od.Id); else if (t === '2') p('h2_match_2', c, d, n, od.Id);
+    else if (t === '1X') p('h2_dc_1X', c, d, n, od.Id); else if (t === '12') p('h2_dc_12', c, d, n, od.Id); else if (t === 'X2') p('h2_dc_X2', c, d, n, od.Id);
   });
-  eachOdd(offers, 201, (t, _n, c) => { if (t === '1') odds.h2_dnb_1 = c; else if (t === '2') odds.h2_dnb_2 = c; });
-  eachOdd(offers, 607, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.h2_odd = c; else if (s.includes('even') || s.includes('pair')) odds.h2_even = c; });
-  eachOdd(offers, 5001, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`h2_under_${l}`] = c; else if (s.includes('over')) odds[`h2_over_${l}`] = c; });
-  eachOdd(offers, 953, (t, _n, c) => { if (t === '1') odds.h2_btts_yes = c; else if (t === '2') odds.h2_btts_no = c; });
-  eachOdd(offers, 4036, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`h2_hcp_home_${l}`] = c; else if (t === '2') odds[`h2_hcp_away_${-l}`] = c; });
-  eachOdd(offers, 4041, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`h2_tt_home_under_${l}`] = c; else if (s.includes('over')) odds[`h2_tt_home_over_${l}`] = c; });
-  eachOdd(offers, 4042, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`h2_tt_away_under_${l}`] = c; else if (s.includes('over')) odds[`h2_tt_away_over_${l}`] = c; });
+  eachOddL(offers, 201, (t, n, c, _s, d, od) => { if (t === '1') p('h2_dnb_1', c, d, n, od.Id); else if (t === '2') p('h2_dnb_2', c, d, n, od.Id); });
+  eachOddL(offers, 607, (_t, n, c, _s, d, od) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) p('h2_odd', c, d, n, od.Id); else if (s.includes('even') || s.includes('pair')) p('h2_even', c, d, n, od.Id); });
+  eachOddL(offers, 5001, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`h2_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`h2_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 953, (t, n, c, _s, d, od) => { if (t === '1') p('h2_btts_yes', c, d, n, od.Id); else if (t === '2') p('h2_btts_no', c, d, n, od.Id); });
+  eachOddL(offers, 4036, (t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') p(`h2_hcp_home_${l}`, c, d, n, od.Id); else if (t === '2') p(`h2_hcp_away_${-l}`, c, d, n, od.Id); });
+  eachOddL(offers, 4041, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`h2_tt_home_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`h2_tt_home_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 4042, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`h2_tt_away_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`h2_tt_away_over_${l}`, c, d, n, od.Id); });
 
   // ─── Corners ──────────────────────────────────────────────────────
-  eachOdd(offers, 127, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_under_${l}`] = c; else if (s.includes('over')) odds[`cor_over_${l}`] = c; });
-  eachOdd(offers, 128, (t, _n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') odds[`cor_hcp_home_${l}`] = c; else if (t === '2') odds[`cor_hcp_away_${-l}`] = c; });
-  eachOdd(offers, 129, (_t, n, c) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) odds.cor_odd = c; else if (s.includes('even') || s.includes('pair')) odds.cor_even = c; });
-  eachOdd(offers, 5002, (_t, n, c, sbv) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) odds[`cor_ht_under_${l}`] = c; else if (s.includes('over')) odds[`cor_ht_over_${l}`] = c; });
+  eachOddL(offers, 127, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`cor_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`cor_over_${l}`, c, d, n, od.Id); });
+  eachOddL(offers, 128, (t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; if (t === '1') p(`cor_hcp_home_${l}`, c, d, n, od.Id); else if (t === '2') p(`cor_hcp_away_${-l}`, c, d, n, od.Id); });
+  eachOddL(offers, 129, (_t, n, c, _s, d, od) => { const s = n.toLowerCase(); if (s.includes('odd') || s.includes('impair')) p('cor_odd', c, d, n, od.Id); else if (s.includes('even') || s.includes('pair')) p('cor_even', c, d, n, od.Id); });
+  eachOddL(offers, 5002, (_t, n, c, sbv, d, od) => { const l = parseFloat(sbv); if (!isHalfLine(l)) return; const s = n.toLowerCase(); if (s.includes('under')) p(`cor_ht_under_${l}`, c, d, n, od.Id); else if (s.includes('over')) p(`cor_ht_over_${l}`, c, d, n, od.Id); });
 
   // ─── Nouveaux marchés Apollo foot (audit 2026-08-13) ───────────────
   // Team Clean Sheet home/away (yes/no) - BetTypeKey 9980/9979
@@ -89,19 +122,19 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // Type=2=No. Confirmé sur 2 matchs indépendants (SC Verl vs Duisburg,
   // Dresden vs Darmstadt) + 5 exemples user (Verl, Mjällby, Zenit, Neom,
   // Omonia — ratios envoyée/vraie 1.26 à 1.96, non constants).
-  eachOdd(offers, 9980, (t, _n, c) => { if (t === '1') odds.cs_home_yes = c; else if (t === '2') odds.cs_home_no = c; });
-  eachOdd(offers, 9979, (t, _n, c) => { if (t === '1') odds.cs_away_yes = c; else if (t === '2') odds.cs_away_no = c; });
+  eachOddL(offers, 9980, (t, n, c, _s, d, od) => { if (t === '1') p('cs_home_yes', c, d, n, od.Id); else if (t === '2') p('cs_home_no', c, d, n, od.Id); });
+  eachOddL(offers, 9979, (t, n, c, _s, d, od) => { if (t === '1') p('cs_away_yes', c, d, n, od.Id); else if (t === '2') p('cs_away_no', c, d, n, od.Id); });
   // 1st Half Clean Sheet home/away - BetTypeKey 958/959 (Description="1st Half
   // - Clean Sheet Home/Away Team", 1=yes, 2=no).
-  eachOdd(offers, 958, (t, _n, c) => { if (t === '1') odds.ht_cs_home_yes = c; else if (t === '2') odds.ht_cs_home_no = c; });
-  eachOdd(offers, 959, (t, _n, c) => { if (t === '1') odds.ht_cs_away_yes = c; else if (t === '2') odds.ht_cs_away_no = c; });
+  eachOddL(offers, 958, (t, n, c, _s, d, od) => { if (t === '1') p('ht_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('ht_cs_home_no', c, d, n, od.Id); });
+  eachOddL(offers, 959, (t, n, c, _s, d, od) => { if (t === '1') p('ht_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('ht_cs_away_no', c, d, n, od.Id); });
   // 2nd Half Clean Sheet home/away - BetTypeKey 960/961.
-  eachOdd(offers, 960, (t, _n, c) => { if (t === '1') odds.h2_cs_home_yes = c; else if (t === '2') odds.h2_cs_home_no = c; });
-  eachOdd(offers, 961, (t, _n, c) => { if (t === '1') odds.h2_cs_away_yes = c; else if (t === '2') odds.h2_cs_away_no = c; });
+  eachOddL(offers, 960, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_home_no', c, d, n, od.Id); });
+  eachOddL(offers, 961, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_away_no', c, d, n, od.Id); });
   // Team goals odd/even home/away - BetTypeKey 965/966
   // samples: 1:Even | 2:Odd (Type=1 = Even, Type=2 = Odd)
-  eachOdd(offers, 965, (t, _n, c) => { if (t === '1') odds.tt_home_even = c; else if (t === '2') odds.tt_home_odd = c; });
-  eachOdd(offers, 966, (t, _n, c) => { if (t === '1') odds.tt_away_even = c; else if (t === '2') odds.tt_away_odd = c; });
+  eachOddL(offers, 965, (t, n, c, _s, d, od) => { if (t === '1') p('tt_home_even', c, d, n, od.Id); else if (t === '2') p('tt_home_odd', c, d, n, od.Id); });
+  eachOddL(offers, 966, (t, n, c, _s, d, od) => { if (t === '1') p('tt_away_even', c, d, n, od.Id); else if (t === '2') p('tt_away_odd', c, d, n, od.Id); });
 
   return odds;
 }
