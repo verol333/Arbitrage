@@ -93,9 +93,22 @@ function applyAliases(s) {
   return out.trim();
 }
 
+// Tokens de CATEGORIE / GENRE (u20, women, reserves, ii...) : ce ne sont jamais
+// des noms d'equipe. Ils sont deja verifies separement (modifiersMatch dans
+// matching.js) et, laisses dans la tokenisation, ils gonflaient artificiellement
+// teamSim : tokenOverlap divise par min(nb tokens), donc "Comercial Tiete U20"
+// vs "EC XV de Jau U20" partageaient le seul token "u20" -> overlap 1/2 = 0.50,
+// au-dessus du seuil kickoff-tight (0.40). Comme tous les matchs d'un
+// championnat de jeunes demarrent a la meme heure, dt=0 n'ecartait rien :
+// "Palmeiras Sao Joao U20 vs Comercial Tiete U20" (Serie B U20) etait apparie a
+// "SE Palmeiras U20 vs EC XV de Jau U20" (Serie A U20) chez BetMomo -> surebets
+// fantomes a +56% sur un match introuvable chez l'autre book.
+const CATEGORY_TOKENS = /\b(u1[5-9]|u2[0-3]|women|wom|femmes|feminin|dames|ladies|youth|junior|jrs?|reserves?|amateur|iii|ii)\b/g;
+
 export function norm(s) {
   return applyAliases(s).toLowerCase()
     .replace(/\b(fc|cf|sc|ac|afc|cd|ec|sd|fk|as|us|ss|rfc|bsc|vfb|tsv|sv|rc|ogc|ssc|club|deportivo|universidad|u\.|de|del|do|da|et|les|the|al|el)\b/g, ' ')
+    .replace(CATEGORY_TOKENS, ' ')
     .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
