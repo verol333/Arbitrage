@@ -1,4 +1,5 @@
 node_modules/
+arbitrage-service/dist/
 package-lock.json
 .env
 .env.local
