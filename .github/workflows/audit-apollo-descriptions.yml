@@ -9,4 +9,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: node scripts/audit-apollo-descriptions.js
+      - name: Install deps + symlink
+        run: |
+          cd arbitrage-service
+          npm install --no-audit --no-fund
+          cd ..
+          ln -sfn arbitrage-service/node_modules node_modules
+      - run: node scripts/audit-p3-unparsed-markets.js
