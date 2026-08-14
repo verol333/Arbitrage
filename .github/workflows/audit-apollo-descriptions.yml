@@ -15,4 +15,4 @@ jobs:
           npm install --no-audit --no-fund
           cd ..
           ln -sfn arbitrage-service/node_modules node_modules
-      - run: node scripts/probe-tt-sport-ids.js
+      - run: node scripts/verify-sportybet-tt.js

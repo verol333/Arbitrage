@@ -45,8 +45,13 @@ const MARKET_IDS_HOCKEY = '1,10,18,16,26,27,29,86';
 // 311=1st set O/E, 26=O/E match, 196=Exact sets. Note pas de 187/188 (game hcp),
 // remplaces par 309 (point handicap sets).
 const MARKET_IDS_VOLLEYBALL = '186,202,309,311,26,196,201';
-export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4', volleyball: 'sr:sport:23' };
-export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY, volleyball: MARKET_IDS_VOLLEYBALL };
+export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4', volleyball: 'sr:sport:23', table_tennis: 'sr:sport:20' };
+// Table Tennis : SR utilise les mêmes market IDs que tennis (structure sets identique).
+// 186=Winner, 187=Points handicap, 188=Set handicap, 189=Total points match,
+// 190/191=TT home/away total points, 196=Total sets exact, 202=Set N winner,
+// 203=Set N points handicap, 204=Set N total points, 314=Total sets O/U.
+// Confirmé via probe SportyBet 2026-08-14 : sr:sport:20 retourne 50 matchs TT.
+export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY, volleyball: MARKET_IDS_VOLLEYBALL, table_tennis: MARKET_IDS_TENNIS };
 
 // Rotation d'user-agents pour eviter les 403 Cloudflare rate-limit.
 // Diag 5books tennis a montre : Chrome 151 marche, autres UAs parfois bloques.
