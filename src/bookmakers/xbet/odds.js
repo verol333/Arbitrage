@@ -17,10 +17,20 @@ function iterate(g, cb) {
 // pour permettre au backend de generer un code coupon (endpoint 1xBet/Megapari
 // SaveCoupon existant en prod : megapariCoupon). gameId + kind sont ajoutes
 // par collect.js. i.P est present pour Total/Handicap/TT lines, sinon null.
+// P2 libellés natifs : GetGameZip ne retourne que des codes numériques (G, T, P) —
+// aucun libellé textuel côté API. On laisse market_name_native/selection_name_native
+// à null (règle : ne jamais fabriquer un libellé). Résolution possible via l'endpoint
+// séparé /GetTypeList mais trop coûteux par match — TODO cache global.
 function put1x(odds, key, i, c) {
   odds[key] = c;
   if (!odds._ids) odds._ids = {};
-  odds._ids[key] = { betType: i.T, param: i.P ?? null };
+  odds._ids[key] = {
+    betType: i.T,
+    param: i.P ?? null,
+    market_name_native: null,
+    selection_name_native: null,
+    market_path_native: null,
+  };
 }
 
 function parseGE(GE, odds, prefix = '') {

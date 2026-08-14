@@ -40,6 +40,9 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
         oddName: String(o?.n ?? ''),
         oddDisplayName: String(o?.n ?? ''),
         oddPrice: c,
+        market_name_native: String(mkt?.n || ''),
+        selection_name_native: String(o?.n ?? ''),
+        market_path_native: null,
       };
     }
   };
@@ -268,6 +271,9 @@ export function yellowbetTennisFlatOdds(bts, { home = '', away = '' } = {}) {
         betTypeId: mkt?.id, betTypeName: String(mkt?.n || ''),
         oddKey: String(o?.n ?? ''), oddName: String(o?.n ?? ''),
         oddDisplayName: String(o?.n ?? ''), oddPrice: c,
+        market_name_native: String(mkt?.n || ''),
+        selection_name_native: String(o?.n ?? ''),
+        market_path_native: null,
       };
     }
   };
@@ -412,6 +418,9 @@ export function yellowbetBasketFlatOdds(bts, { live = false } = {}) {
         oddName: String(o?.n ?? ''),
         oddDisplayName: String(o?.n ?? ''),
         oddPrice: c,
+        market_name_native: String(mkt?.n || ''),
+        selection_name_native: String(o?.n ?? ''),
+        market_path_native: null,
       };
     }
   };
