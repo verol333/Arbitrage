@@ -11,9 +11,27 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
   const home = json.homeTeamName || ''; const away = json.awayTeamName || '';
   const odds = { _ids: {} };
   // Helper : ecrit odds[key] = value ET odds._ids[key] = { eventBetTypeItemId,
-  // totalOdds } pour permettre au backend de generer un code coupon (endpoint
-  // /api/betting/get-my-code, format attendu par Congobet SaveCoupon).
-  const put = (key, it) => { odds[key] = Number(it.odds); odds._ids[key] = { eventBetTypeItemId: it.id, totalOdds: Number(it.odds) }; };
+  // totalOdds, market_name_native, selection_name_native, market_path_native }
+  // pour permettre au backend de generer un code coupon (endpoint
+  // /api/betting/get-my-code, format attendu par Congobet SaveCoupon) ET pour
+  // que l'utilisateur puisse retrouver le pari manuellement dans l'app quand
+  // pas de code coupon (dev report P2 2026-08-14).
+  // currentBt est mis à jour à chaque iteration de la boucle principale — put
+  // lit le bt courant en closure pour capturer le libellé natif du marché.
+  let currentBt = null;
+  const put = (key, it) => {
+    odds[key] = Number(it.odds);
+    odds._ids[key] = {
+      eventBetTypeItemId: it.id,
+      totalOdds: Number(it.odds),
+      market_name_native: currentBt?.name || null,
+      selection_name_native: it.shortName || null,
+      // Congobet expose bt.name (libellé du marché) mais pas le chemin complet
+      // du menu ("Plus de paris > Buts par équipe > ..."). market_path_native
+      // reste null — le UI peut fallback sur market_name_native pour recherche.
+      market_path_native: null,
+    };
+  };
   const ctxNum = (bt, key) => {
     try { const c = JSON.parse(bt.betTypeContext || '{}'); if (c[key] != null) return parseFloat(String(c[key])); } catch { /* ignore */ }
     return null;
@@ -74,6 +92,7 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
   for (const bt of json.eventBetTypes) {
     const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
     if (!items.length) continue;
+    currentBt = bt;  // capture pour put() → libellés natifs marché
     // Congobet préfixe les betTypeIds en LIVE avec 2xxxx (au lieu de 1xxxx en
     // prématch). Ex : 20001 (live) === 10001 (prématch) = Résultat du match.
     // Sans normalisation, 0 marché parsé sur tous les matchs live.
@@ -370,7 +389,17 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
 // IGNORE : 10186 (game-level trop specifique), 10492 (6-way score exact).
 function congobetTableTennis(json) {
   const odds = { _ids: {} };
-  const put = (key, it) => { odds[key] = Number(it.odds); odds._ids[key] = { eventBetTypeItemId: it.id, totalOdds: Number(it.odds) }; };
+  let currentBt = null;
+  const put = (key, it) => {
+    odds[key] = Number(it.odds);
+    odds._ids[key] = {
+      eventBetTypeItemId: it.id,
+      totalOdds: Number(it.odds),
+      market_name_native: currentBt?.name || null,
+      selection_name_native: it.shortName || null,
+      market_path_native: null,
+    };
+  };
   const ctxNum = (bt, key) => {
     try { const c = JSON.parse(bt.betTypeContext || '{}'); if (c[key] != null) return parseFloat(String(c[key])); } catch { /* ignore */ }
     return null;
@@ -396,6 +425,7 @@ function congobetTableTennis(json) {
   for (const bt of json.eventBetTypes) {
     const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
     if (!items.length) continue;
+    currentBt = bt;  // capture pour put() → libellés natifs marché TT
     const rawId = Number(bt.betTypeId);
     const id = rawId >= 20000 && rawId < 30000 ? rawId - 10000 : rawId;
     // Winner 2-way (TT est 2-way, pas de nul).
@@ -454,7 +484,17 @@ function congobetTableTennis(json) {
 //                 10209 (marge), 10211 (result+total).
 function congobetBasket(json) {
   const odds = { _ids: {} };
-  const put = (key, it) => { odds[key] = Number(it.odds); odds._ids[key] = { eventBetTypeItemId: it.id, totalOdds: Number(it.odds) }; };
+  let currentBt = null;
+  const put = (key, it) => {
+    odds[key] = Number(it.odds);
+    odds._ids[key] = {
+      eventBetTypeItemId: it.id,
+      totalOdds: Number(it.odds),
+      market_name_native: currentBt?.name || null,
+      selection_name_native: it.shortName || null,
+      market_path_native: null,
+    };
+  };
   const ctxNum = (bt, key) => {
     try { const c = JSON.parse(bt.betTypeContext || '{}'); if (c[key] != null) return parseFloat(String(c[key])); } catch { /* ignore */ }
     return null;
@@ -541,6 +581,7 @@ function congobetBasket(json) {
   for (const bt of json.eventBetTypes) {
     const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
     if (!items.length) continue;
+    currentBt = bt;  // capture pour put() → libellés natifs marché basket
     const rawId = Number(bt.betTypeId);
     const id = rawId >= 20000 && rawId < 30000 ? rawId - 10000 : rawId;
     const total = ctxNum(bt, 'total');

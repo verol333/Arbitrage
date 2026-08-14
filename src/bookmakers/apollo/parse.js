@@ -29,15 +29,16 @@ function eachOddL(offers, key, cb) {
   }
 }
 
-// Helper : set odds[key] + _ids[key] avec libellés natifs Apollo. Path composé
-// depuis Description (fallback identique au market_name_native). Le SelectionId
-// (od.Id) est aussi stocké — utile si un jour Apollo expose SaveCoupon.
+// Helper : set odds[key] + _ids[key] avec libellés natifs Apollo. Apollo n'expose
+// pas le chemin de navigation ("Football > Plus de paris > Clean Sheet") dans
+// /match/offers — market_path_native reste null. Le SelectionId (od.Id) est
+// stocké dans apolloOddId au cas ou Apollo exposera SaveCoupon un jour.
 function putOdd(odds, key, cote, description, selectionName, oddId) {
   odds[key] = cote;
   odds._ids[key] = {
     market_name_native: description,
     selection_name_native: selectionName,
-    market_path_native: `Football > ${description}`,
+    market_path_native: null,
     ...(oddId != null ? { apolloOddId: String(oddId) } : {}),
   };
 }
