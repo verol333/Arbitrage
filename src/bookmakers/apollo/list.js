@@ -41,6 +41,20 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
       if (isVirtual(m.TeamHome, m.TeamAway, leagueName)) continue;
       seen.add(m.Id);
       const liveMeta = live ? apolloLiveMeta(m) : null;
+      // ⚠️ Apollo IGNORE le paramètre Live=true : son endpoint /sports/offer
+      // renvoie TOUT le catalogue pré-match (constaté 2026-08-15 : 795 "live"
+      // en football, aucun match commencé, aucune méta live). Ce catalogue
+      // géant devenait le catalogue de BASE de l'alignement live (le plus
+      // gros gagne) — l'alignement live était donc ancré sur des matchs qui
+      // ne sont pas en cours, d'où très peu d'appariements réels.
+      // On ne garde donc en live QUE les matchs réellement en cours : méta
+      // live présente, ou coup d'envoi déjà passé. Si Apollo expose un jour
+      // du vrai live, il sera capté automatiquement.
+      if (live) {
+        const started = m.MatchStartTime ? new Date(m.MatchStartTime).getTime() <= Date.now() : false;
+        const hasLiveMeta = !!(m.LiveStatusString || m.Result || m.MatchResult || (Array.isArray(m.MatchResults) && m.MatchResults.length));
+        if (!started && !hasLiveMeta) continue;
+      }
       out.push({
         id: m.Id, home: m.TeamHome, away: m.TeamAway,
         league: leagueName,
