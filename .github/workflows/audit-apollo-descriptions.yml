@@ -15,4 +15,4 @@ jobs:
           npm install --no-audit --no-fund
           cd ..
           ln -sfn arbitrage-service/node_modules node_modules
-      - run: node scripts/audit-apollo-descriptions.js
+      - run: node scripts/probe-1win-tt-groups.js
