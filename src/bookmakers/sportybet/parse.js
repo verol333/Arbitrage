@@ -33,6 +33,9 @@ function putSb(odds, key, v, m, o) {
     marketId: String(m?.id ?? ''),
     outcomeId: o?.id != null ? String(o.id) : (o?.desc ?? null),
     specifier: m?.specifier || null,
+    market_name_native: String(m?.desc ?? m?.name ?? ''),
+    selection_name_native: String(o?.desc ?? o?.name ?? ''),
+    market_path_native: null,
   };
 }
 
@@ -41,6 +44,10 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
   if (sport === 'basket') return sportybetBasketFlatOdds(markets);
   if (sport === 'hockey') return sportybetHockeyFlatOdds(markets);
   if (sport === 'volleyball') return sportybetVolleyballFlatOdds(markets);
+  // Table tennis SR : structure sets identique tennis (Winner=186, Sets=196,
+  // Total points=189, HCP=187, Set N winner=202). Points au lieu de games mais
+  // convention keys identique : match_1/2, s1/s2_match_1/2, match_over_L, etc.
+  if (sport === 'table_tennis') return sportybetTennisFlatOdds(markets);
   const odds = { _ids: {} };
   if (!Array.isArray(markets)) return odds;
 

@@ -17,10 +17,20 @@ function iterate(g, cb) {
 // pour permettre au backend de generer un code coupon (endpoint 1xBet/Megapari
 // SaveCoupon existant en prod : megapariCoupon). gameId + kind sont ajoutes
 // par collect.js. i.P est present pour Total/Handicap/TT lines, sinon null.
+// P2 libellés natifs : GetGameZip ne retourne que des codes numériques (G, T, P) —
+// aucun libellé textuel côté API. On laisse market_name_native/selection_name_native
+// à null (règle : ne jamais fabriquer un libellé). Résolution possible via l'endpoint
+// séparé /GetTypeList mais trop coûteux par match — TODO cache global.
 function put1x(odds, key, i, c) {
   odds[key] = c;
   if (!odds._ids) odds._ids = {};
-  odds._ids[key] = { betType: i.T, param: i.P ?? null };
+  odds._ids[key] = {
+    betType: i.T,
+    param: i.P ?? null,
+    market_name_native: null,
+    selection_name_native: null,
+    market_path_native: null,
+  };
 }
 
 function parseGE(GE, odds, prefix = '') {
@@ -189,6 +199,14 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
       if (i.T === 182) put1x(odds, 'even', i, c);
       if (i.T === 183) put1x(odds, 'odd', i, c);
     });
+    return odds;
+  }
+  // Table Tennis 1xBet : structure similaire volleyball (2-way winner G=1 T=1/T=3
+  // sans nul). Sets à 11 points, best-of-5 (ou 7 selon compétition). Réutilise
+  // parseBasketGE pour Winner 2-way + Total points + Handicap. TT peut aussi
+  // exposer sets via G=343 (probe futur).
+  if (sport === 'table_tennis') {
+    parseBasketGE(GE, odds, '');
     return odds;
   }
   parseGE(GE, odds, '');

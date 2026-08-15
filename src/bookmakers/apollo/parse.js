@@ -137,6 +137,97 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   eachOddL(offers, 965, (t, n, c, _s, d, od) => { if (t === '1') p('tt_home_even', c, d, n, od.Id); else if (t === '2') p('tt_home_odd', c, d, n, od.Id); });
   eachOddL(offers, 966, (t, n, c, _s, d, od) => { if (t === '1') p('tt_away_even', c, d, n, od.Id); else if (t === '2') p('tt_away_odd', c, d, n, od.Id); });
 
+  // ─── P3 : marchés secondaires ajoutés (audit 2026-08-14) ──────────
+  // Ajouts conservateurs, cross-book garantis, sans combos ni score-based
+  // handicap (ces derniers = fake arb potentiel, cf. task 133 sportybet G91/G92).
+  // Chaque BetTypeKey a une Description non-ambiguë + outcomes 2-way ou 3-way
+  // avec Type numérique clair.
+
+  // BetTypeKey=11 : HT/FT — 9 outcomes (1/1, 1/X, 1/2, X/1, X/X, X/2, 2/1, 2/X, 2/2).
+  // Type est déjà au format "ht/ft" (ex "1/X"), transcrit tel quel en clé.
+  eachOddL(offers, 11, (t, n, c, _s, d, od) => {
+    const m = String(t).match(/^([1X2])\/([1X2])$/);
+    if (!m) return;
+    p(`htft_${m[1]}_${m[2]}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=575 : Last team to score (3-way 1/X/2 avec X=None goal).
+  eachOddL(offers, 575, (t, n, c, _s, d, od) => {
+    if (t === '1') p('last_home', c, d, n, od.Id);
+    else if (t === 'X') p('last_none', c, d, n, od.Id);
+    else if (t === '2') p('last_away', c, d, n, od.Id);
+  });
+  // BetTypeKey=900 : Home to score in both halves (yes/no).
+  eachOddL(offers, 900, (t, n, c, _s, d, od) => {
+    if (t === '1') p('tt_home_scores_both_halves_yes', c, d, n, od.Id);
+    else if (t === '2') p('tt_home_scores_both_halves_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=909 : Away to score in both halves (yes/no).
+  eachOddL(offers, 909, (t, n, c, _s, d, od) => {
+    if (t === '1') p('tt_away_scores_both_halves_yes', c, d, n, od.Id);
+    else if (t === '2') p('tt_away_scores_both_halves_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=905 : Both halves over 1.5 goals (yes/no).
+  eachOddL(offers, 905, (t, n, c, _s, d, od) => {
+    if (t === '1') p('both_halves_over_1.5_yes', c, d, n, od.Id);
+    else if (t === '2') p('both_halves_over_1.5_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=906 : Both halves under 1.5 goals (yes/no).
+  eachOddL(offers, 906, (t, n, c, _s, d, od) => {
+    if (t === '1') p('both_halves_under_1.5_yes', c, d, n, od.Id);
+    else if (t === '2') p('both_halves_under_1.5_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=907 : Home to win either half (yes/no).
+  eachOddL(offers, 907, (t, n, c, _s, d, od) => {
+    if (t === '1') p('home_win_either_half_yes', c, d, n, od.Id);
+    else if (t === '2') p('home_win_either_half_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=908 : Away to win either half (yes/no).
+  eachOddL(offers, 908, (t, n, c, _s, d, od) => {
+    if (t === '1') p('away_win_either_half_yes', c, d, n, od.Id);
+    else if (t === '2') p('away_win_either_half_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=3004 : Home Win To Nil (yes=1 / no=2).
+  eachOddL(offers, 3004, (t, n, c, _s, d, od) => {
+    if (t === '1') p('home_win_to_nil_yes', c, d, n, od.Id);
+    else if (t === '2') p('home_win_to_nil_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=3005 : Away Win To Nil (yes=1 / no=2).
+  eachOddL(offers, 3005, (t, n, c, _s, d, od) => {
+    if (t === '1') p('away_win_to_nil_yes', c, d, n, od.Id);
+    else if (t === '2') p('away_win_to_nil_no', c, d, n, od.Id);
+  });
+  // BetTypeKey=979 : Multigoals FT — outcomes "0", "1-2", "1-3", "1-4", "1-5", "1-6",
+  // "2-3", "2-4", "3-4", "4+", etc. On garde la clé = range tel quel (normalisée).
+  eachOddL(offers, 979, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=980 : 1st Half Multigoals.
+  eachOddL(offers, 980, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`ht_multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=981 : 2nd Half Multigoals.
+  eachOddL(offers, 981, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`h2_multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=982 : Team 1 (home) Multigoals.
+  eachOddL(offers, 982, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`tt_home_multigoal_${range}`, c, d, n, od.Id);
+  });
+  // BetTypeKey=983 : Team 2 (away) Multigoals.
+  eachOddL(offers, 983, (t, n, c, _s, d, od) => {
+    const range = String(t).trim().replace(/\s+/g, '');
+    if (!range) return;
+    p(`tt_away_multigoal_${range}`, c, d, n, od.Id);
+  });
+
   return odds;
 }
 
@@ -145,29 +236,28 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
 // Probe 2026-08-13 : NBA Detroit Pistons vs Boston Celtics + 31 autres.
 // ═══════════════════════════════════════════════════════════════
 function apolloBasketFlatOdds(offers) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!offers || !offers.length) return odds;
+  const p = (key, c, d, n, id) => putOdd(odds, key, c, d, n, id);
   // key=20 Winner 2-way (incl OT) — vrai winner basket cross-book
-  eachOdd(offers, 20, (t, _n, c) => {
-    if (t === '1') odds.match_1 = c;
-    else if (t === '2') odds.match_2 = c;
+  eachOddL(offers, 20, (t, n, c, _s, d, od) => {
+    if (t === '1') p('match_1', c, d, n, od.Id);
+    else if (t === '2') p('match_2', c, d, n, od.Id);
   });
   // key=1004 Total Points (Sbv=line, tip 1=under, tip 2=over — pattern Apollo)
-  eachOdd(offers, 1004, (t, _n, c, sbv) => {
+  eachOddL(offers, 1004, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
-    if (t === '1') odds[`match_under_${l}`] = c;
-    else if (t === '2') odds[`match_over_${l}`] = c;
+    if (t === '1') p(`match_under_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`match_over_${l}`, c, d, n, od.Id);
   });
   // key=1003 Handicap Points (Sbv=line, tip 1=home, tip 2=away avec inv sign)
-  eachOdd(offers, 1003, (t, _n, c, sbv) => {
+  eachOddL(offers, 1003, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(Math.abs(l))) return;
-    if (t === '1') odds[`hcp_home_${l}`] = c;
-    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+    if (t === '1') p(`hcp_home_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`hcp_away_${-l}`, c, d, n, od.Id);
   });
-  // key=1 reste ignoré (3-way avec draw = reglementaire, pas cross-book pour basket
-  // vs 2-way incl OT qui est le vrai marché arbitrable)
   return odds;
 }
 
@@ -178,85 +268,83 @@ function apolloBasketFlatOdds(offers) {
 // (documente dans BetTypeInfo API) → t=1 mappe Under, t=2 mappe Over.
 // ═══════════════════════════════════════════════════════════════
 function apolloTennisFlatOdds(offers) {
-  const odds = {};
+  const odds = { _ids: {} };
   if (!offers || !offers.length) return odds;
+  const p = (key, c, d, n, id) => putOdd(odds, key, c, d, n, id);
 
   // Match Winner (2-way tennis) — BetTypeKey=20, "Two-Way Basic Offer"
-  eachOdd(offers, 20, (t, _n, c) => {
-    if (t === '1') odds.match_1 = c;
-    else if (t === '2') odds.match_2 = c;
+  eachOddL(offers, 20, (t, n, c, _s, d, od) => {
+    if (t === '1') p('match_1', c, d, n, od.Id);
+    else if (t === '2') p('match_2', c, d, n, od.Id);
   });
   // 1st Set Winner — BetTypeKey=502, "1. set"
-  eachOdd(offers, 502, (t, _n, c) => {
-    if (t === '1') odds.s1_match_1 = c;
-    else if (t === '2') odds.s1_match_2 = c;
+  eachOddL(offers, 502, (t, n, c, _s, d, od) => {
+    if (t === '1') p('s1_match_1', c, d, n, od.Id);
+    else if (t === '2') p('s1_match_2', c, d, n, od.Id);
   });
   // 2nd Set Winner — BetTypeKey=558, "2. set"
-  eachOdd(offers, 558, (t, _n, c) => {
-    if (t === '1') odds.s2_match_1 = c;
-    else if (t === '2') odds.s2_match_2 = c;
+  eachOddL(offers, 558, (t, n, c, _s, d, od) => {
+    if (t === '1') p('s2_match_1', c, d, n, od.Id);
+    else if (t === '2') p('s2_match_2', c, d, n, od.Id);
   });
   // Game Handicap — BetTypeKey=910, "Handicap games", Sbv=line
-  eachOdd(offers, 910, (t, _n, c, sbv) => {
+  eachOddL(offers, 910, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(Math.abs(l))) return;
-    if (t === '1') odds[`hcp_home_${l}`] = c;
-    else if (t === '2') odds[`hcp_away_${-l}`] = c;
+    if (t === '1') p(`hcp_home_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`hcp_away_${-l}`, c, d, n, od.Id);
   });
-  // Total Games Match — BetTypeKey=911, "Total games". "tip 1=under, tip 2=over".
-  eachOdd(offers, 911, (t, _n, c, sbv) => {
+  // Total Games/Points Match — BetTypeKey=911. "tip 1=under, tip 2=over".
+  eachOddL(offers, 911, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
-    if (t === '1') odds[`match_under_${l}`] = c;
-    else if (t === '2') odds[`match_over_${l}`] = c;
+    if (t === '1') p(`match_under_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`match_over_${l}`, c, d, n, od.Id);
   });
   // Home Total Games — BetTypeKey=841. "tip 1=under, tip 2=over"
-  eachOdd(offers, 841, (t, _n, c, sbv) => {
+  eachOddL(offers, 841, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
-    if (t === '1') odds[`tt_home_under_${l}`] = c;
-    else if (t === '2') odds[`tt_home_over_${l}`] = c;
+    if (t === '1') p(`tt_home_under_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`tt_home_over_${l}`, c, d, n, od.Id);
   });
   // Away Total Games — BetTypeKey=842. "tip 1=under, tip 2=over"
-  eachOdd(offers, 842, (t, _n, c, sbv) => {
+  eachOddL(offers, 842, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
-    if (t === '1') odds[`tt_away_under_${l}`] = c;
-    else if (t === '2') odds[`tt_away_over_${l}`] = c;
+    if (t === '1') p(`tt_away_under_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`tt_away_over_${l}`, c, d, n, od.Id);
   });
-  // 1st Set Total Games — BetTypeKey=597, "1st Set - Total Games". "tip 1=under, tip 2=over"
-  eachOdd(offers, 597, (t, _n, c, sbv) => {
+  // 1st Set Total Games — BetTypeKey=597. "tip 1=under, tip 2=over"
+  eachOddL(offers, 597, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(l)) return;
-    if (t === '1') odds[`s1_under_${l}`] = c;
-    else if (t === '2') odds[`s1_over_${l}`] = c;
+    if (t === '1') p(`s1_under_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`s1_over_${l}`, c, d, n, od.Id);
   });
   // 1st Set Game Handicap — BetTypeKey=988
-  eachOdd(offers, 988, (t, _n, c, sbv) => {
+  eachOddL(offers, 988, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(Math.abs(l))) return;
-    if (t === '1') odds[`s1_hcp_home_${l}`] = c;
-    else if (t === '2') odds[`s1_hcp_away_${-l}`] = c;
+    if (t === '1') p(`s1_hcp_home_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`s1_hcp_away_${-l}`, c, d, n, od.Id);
   });
   // Set Handicap (±1.5) — BetTypeKey=914, "Handicap sets"
-  eachOdd(offers, 914, (t, _n, c, sbv) => {
+  eachOddL(offers, 914, (t, n, c, sbv, d, od) => {
     const l = parseFloat(sbv);
     if (!isHalfLine(Math.abs(l))) return;
-    if (t === '1') odds[`hcp_sets_home_${l}`] = c;
-    else if (t === '2') odds[`hcp_sets_away_${-l}`] = c;
+    if (t === '1') p(`hcp_sets_home_${l}`, c, d, n, od.Id);
+    else if (t === '2') p(`hcp_sets_away_${-l}`, c, d, n, od.Id);
   });
   // Total Sets (2 or 3) — BetTypeKey=915, "Total Number of Sets"
-  eachOdd(offers, 915, (t, _n, c) => {
-    if (t === '2') odds.total_sets_2 = c;
-    else if (t === '3') odds.total_sets_3 = c;
+  eachOddL(offers, 915, (t, n, c, _s, d, od) => {
+    if (t === '2') p('total_sets_2', c, d, n, od.Id);
+    else if (t === '3') p('total_sets_3', c, d, n, od.Id);
   });
   // ─── Nouveaux marchés Apollo tennis (audit 2026-08-13) ─────────────
-  // key=211 Player 1 wins a set (Yes/No)
-  eachOdd(offers, 211, (t, _n, c) => { if (t === '1') odds.tt_home_wins_a_set_yes = c; else if (t === '2') odds.tt_home_wins_a_set_no = c; });
-  // key=212 Player 2 wins a set (Yes/No)
-  eachOdd(offers, 212, (t, _n, c) => { if (t === '1') odds.tt_away_wins_a_set_yes = c; else if (t === '2') odds.tt_away_wins_a_set_no = c; });
-  // key=852 "Will there be a 6-0 set?" (Yes/No)
-  eachOdd(offers, 852, (t, _n, c) => { if (t === '1') odds.set_60_yes = c; else if (t === '2') odds.set_60_no = c; });
+  eachOddL(offers, 211, (t, n, c, _s, d, od) => { if (t === '1') p('tt_home_wins_a_set_yes', c, d, n, od.Id); else if (t === '2') p('tt_home_wins_a_set_no', c, d, n, od.Id); });
+  eachOddL(offers, 212, (t, n, c, _s, d, od) => { if (t === '1') p('tt_away_wins_a_set_yes', c, d, n, od.Id); else if (t === '2') p('tt_away_wins_a_set_no', c, d, n, od.Id); });
+  eachOddL(offers, 852, (t, n, c, _s, d, od) => { if (t === '1') p('set_60_yes', c, d, n, od.Id); else if (t === '2') p('set_60_no', c, d, n, od.Id); });
 
   return odds;
 }

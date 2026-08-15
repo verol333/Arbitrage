@@ -4,7 +4,9 @@ import { teamSim } from '../../core/text.js';
 // Sport IDs 1xBet (standards) : 1=Football, 2=Ice Hockey, 3=Basketball,
 // 4=Tennis, 12=Volleyball.
 // Volleyball 1xbet : sid=6 (confirme via probe 2026-08-11, 20 matchs Pan American Cup + club).
-const SPORT_IDS = { football: 1, tennis: 4, basket: 3, hockey: 2, volleyball: 6 };
+// Table Tennis 1xbet : sid=10 (confirmé via hint utilisateur 2026-08-15 —
+// URL 1xbet.cg/fr/line/table-tennis avec Get1x2_VZip?sports=10).
+const SPORT_IDS = { football: 1, tennis: 4, basket: 3, hockey: 2, volleyball: 6, table_tennis: 10 };
 
 function isRealChamp(name) {
   return !/spéci|special|alternative|player|joueur|team vs|vs player|winner|vainqueur|to win|outright|long.?term|handicap match|first goalscorer|corner match|booking|cards?( match)?/i.test(name || '');
