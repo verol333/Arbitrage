@@ -201,6 +201,14 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     });
     return odds;
   }
+  // Table Tennis 1xBet : structure similaire volleyball (2-way winner G=1 T=1/T=3
+  // sans nul). Sets à 11 points, best-of-5 (ou 7 selon compétition). Réutilise
+  // parseBasketGE pour Winner 2-way + Total points + Handicap. TT peut aussi
+  // exposer sets via G=343 (probe futur).
+  if (sport === 'table_tennis') {
+    parseBasketGE(GE, odds, '');
+    return odds;
+  }
   parseGE(GE, odds, '');
   parseMainOnly(GE, odds);
 

@@ -34,6 +34,11 @@ export function betmomoFlatOdds(markets, { sport = 'football' } = {}) {
   // Volleyball : structure sets similaire tennis (P1P2 winner, SetWinner s1/s2/s3,
   // Handicap points, MatchTotal points, Sets Handicap, Odd/Even).
   if (sport === 'volleyball') return betmomoTennisFlatOdds(markets);
+  // Table Tennis : structure sets identique tennis. Probe match 30574743
+  // 2026-08-15 confirme type=P1P2 (Match Winner). Réutilise parseur tennis
+  // (P1P2→match_1/2, SetWinner→sN_match_*, etc.) — les marchés non exposés
+  // ne remonteront simplement pas dans _ids.
+  if (sport === 'table_tennis') return betmomoTennisFlatOdds(markets);
   const odds = { _ids: {} };
   const evs = (m) => (Array.isArray(m.event) ? m.event : Object.values(m.event || {}));
   const price = (e) => Number(e.price);

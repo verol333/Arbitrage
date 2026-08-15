@@ -7,7 +7,10 @@ export const BETMOMO_SITE_ID = 122;
 // Sport IDs BetMomo (via SWARM sport list) : 1=Football, 2=Ice Hockey,
 // 3=Basketball, 4=Tennis, 5=Volleyball.
 // Volleyball BetMomo : sid=5 (documente commentaire origine ligne 7).
-export const BETMOMO_SID = { football: 1, tennis: 4, basket: 3, hockey: 2, volleyball: 5 };
+// Table Tennis BetMomo : sid=41 (confirmé via SWARM sport list 2026-08-15 —
+// name="Table Tennis", alias absent). Cross-check match 30574743 renvoie
+// 1 market type=P1P2 (Match Winner) → catalogue TT limité au Winner.
+export const BETMOMO_SID = { football: 1, tennis: 4, basket: 3, hockey: 2, volleyball: 5, table_tennis: 41 };
 
 export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
   return new Promise((resolve, reject) => {
