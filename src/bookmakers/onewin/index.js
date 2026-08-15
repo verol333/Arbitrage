@@ -7,7 +7,7 @@ export default {
   label: '1win',
   supports: { prematch: true, live: true },
   async listMatches({ live = false, sport = 'football' } = {}) {
-    if (!['football', 'tennis', 'basket', 'hockey', 'volleyball'].includes(sport)) return [];
+    if (!['football', 'tennis', 'basket', 'hockey', 'volleyball', 'table_tennis'].includes(sport)) return [];
     return live ? listLive(sport) : listPrematch(sport);
   },
   async getOdds(match, opts = {}) {
@@ -17,7 +17,7 @@ export default {
     // Volleyball : structure sets identique tennis (Winner 2-way + s1/s2/s3 winner
     // + Handicap points + Total points + Nth set Handicap/Total). winTennisFlatOdds
     // gere les noms "Winner", "Handicap", "Total", "Nth set. ...".
-    const flat = opts.sport === 'tennis' || opts.sport === 'volleyball' ? winTennisFlatOdds
+    const flat = opts.sport === 'tennis' || opts.sport === 'volleyball' || opts.sport === 'table_tennis' ? winTennisFlatOdds
                : opts.sport === 'basket' ? winBasketFlatOdds
                : winFlatOdds;
     return flat(groups, { home: match.home, away: match.away });
@@ -35,7 +35,7 @@ export default {
     }
     const out = new Map();
     // Volleyball : structure sets identique tennis.
-    const flat = opts.sport === 'tennis' || opts.sport === 'volleyball' ? winTennisFlatOdds
+    const flat = opts.sport === 'tennis' || opts.sport === 'volleyball' || opts.sport === 'table_tennis' ? winTennisFlatOdds
                : opts.sport === 'basket' ? winBasketFlatOdds
                : winFlatOdds;
     for (const m of matches) {
