@@ -22,8 +22,12 @@ function apolloLiveMeta(m) {
 export async function listMatches({ live = false, maxMatches = 1500, sport = 'football' } = {}) {
   const sid = APOLLO_SID[sport];
   if (!sid) return [];
-  const now = new Date().toISOString();
-  const dateTo = '2046-04-07T22:59:59.000Z';
+  // ⚠️ LIVE : Apollo ne renvoie que les matchs dont le coup d'envoi tombe DANS
+  // la fenêtre demandée. Avec DateFrom=maintenant, les matchs EN COURS étaient
+  // donc tous exclus → apollo:0 en live (constaté 2026-08-15). On demande la
+  // fenêtre [-6 h → maintenant], qui ne contient que des matchs déjà commencés.
+  const now = new Date(Date.now() - (live ? 6 * 3600 * 1000 : 0)).toISOString();
+  const dateTo = live ? new Date().toISOString() : '2046-04-07T22:59:59.000Z';
   const out = [];
   const seen = new Set();
   const isVirtual = (h, a, lg) => /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(`${h} ${a} ${lg}`);
