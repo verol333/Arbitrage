@@ -32,7 +32,9 @@ const HDR = {
 // BASKET (incl OT) : 219=Winner, 223=Asian Hcp, 225=Total, 227=Home TT, 228=Away TT, 229=Odd/Even.
 //                    60=1H 1X2, 66=1H Asian Hcp, 68=1H Total, 83=2H 1X2.
 //                    235=Q1-Q4 1X2 (spec.quarternr), 303=Q1-Q4 Hcp, 236=Q1-Q4 Total, 304=Q1-Q4 O/E.
-const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,29,60,68';
+// Extension 2026-08-17 : ajout Corners (162 1X2, 165 Handicap, 166 Total, 172 O/E,
+// 173 1H 1X2, 176 1H Handicap, 177 1H Total, 183 1H O/E) — parseur ajouté simultanément.
+const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,29,60,68,162,165,166,172,173,176,177,183';
 const MARKET_IDS_TENNIS = '186,187,188,189,190,191,196,198,202,203,204,314';
 // Ajout audit 2026-08-11 : 74 (1H O/E), 88 (2H Asian Hcp), 94 (2H O/E)
 const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,74,83,88,94,235,236,303,304';

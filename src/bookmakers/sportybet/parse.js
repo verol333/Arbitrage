@@ -141,6 +141,63 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
       // ─── 1MT Over/Under (specifier "total=X.X") ──────────────────
       case '68': putTotal(odds, m, 'ht_'); break;
 
+      // ─── Corners (audit 2026-08-17 : SB expose 14 variantes corners) ───
+      // 166 = Corners Over/Under (specifier "total=X.X", desc "Over X.X"/"Under X.X")
+      case '166': putTotal(odds, m, 'cor_'); break;
+      // 165 = Corner Handicap (specifier "hcp=X.X", desc "Home (-X.X)"/"Away (+X.X)")
+      case '165': putAsianHcp(odds, m, 'cor_'); break;
+      // 172 = Odd/Even Corners
+      case '172': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'odd' || d === 'impair') putSb(odds, 'cor_odd', v, m, o);
+          else if (d === 'even' || d === 'pair') putSb(odds, 'cor_even', v, m, o);
+        }
+        break;
+      }
+      // 162 = Corners 1X2 (Home/Draw/Away = équipe avec le + de corners)
+      case '162': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home' || d === '1') putSb(odds, 'cor_match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'cor_match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'cor_match_2', v, m, o);
+        }
+        break;
+      }
+      // ─── Corners 1ère mi-temps ───────────────────────────────────
+      // 177 = 1st Half Total Corners (Over/Under)
+      case '177': putTotal(odds, m, 'cor_ht_'); break;
+      // 176 = 1st Half Corner Handicap
+      case '176': putAsianHcp(odds, m, 'cor_ht_'); break;
+      // 183 = 1st Half Odd/Even Corners
+      case '183': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'odd' || d === 'impair') putSb(odds, 'cor_ht_odd', v, m, o);
+          else if (d === 'even' || d === 'pair') putSb(odds, 'cor_ht_even', v, m, o);
+        }
+        break;
+      }
+      // 173 = 1st Half Corner 1X2
+      case '173': {
+        for (const o of outcomes) {
+          const v = Number(o?.odds);
+          if (!Number.isFinite(v) || v <= 1) continue;
+          const d = String(o?.desc || '').toLowerCase();
+          if (d === 'home' || d === '1') putSb(odds, 'cor_ht_match_1', v, m, o);
+          else if (d === 'draw' || d === 'x') putSb(odds, 'cor_ht_match_X', v, m, o);
+          else if (d === 'away' || d === '2') putSb(odds, 'cor_ht_match_2', v, m, o);
+        }
+        break;
+      }
+
       default: break;  // Autres marchés ignorés (combos, spécifiques, variantes Early Payout).
     }
   }

@@ -623,6 +623,15 @@ function marketKeyFromOpp(o) {
     const l = parseFloat(corHcp[1]);
     return { a: `cor_hcp_home_${l}`, b: `cor_hcp_away_${-l}` };
   }
+  // Corners 1MT handicap (nouveau 2026-08-17)
+  const corHtHcp = fam.match(/^Corners 1MT Handicap\s*([+-]?\d+(?:\.\d+)?)$/);
+  if (corHtHcp) {
+    const l = parseFloat(corHtHcp[1]);
+    return { a: `cor_ht_hcp_home_${l}`, b: `cor_ht_hcp_away_${-l}` };
+  }
+  // Corners Vainqueur (3-way : couvre match_1 + match_2, Draw à l'implicite)
+  if (fam === 'Corners Vainqueur') return { a: 'cor_match_1', b: 'cor_match_2' };
+  if (fam === 'Corners 1MT Vainqueur') return { a: 'cor_ht_match_1', b: 'cor_ht_match_2' };
   // BTTS
   if (fam === 'BTTS') return { a: 'btts_yes', b: 'btts_no' };
   if (fam === '1MT BTTS') return { a: 'ht_btts_yes', b: 'ht_btts_no' };
@@ -631,6 +640,7 @@ function marketKeyFromOpp(o) {
   if (/Pair\/Impair/.test(fam)) {
     if (fam.startsWith('1MT')) return { a: 'ht_odd', b: 'ht_even' };
     if (fam.startsWith('2MT')) return { a: 'h2_odd', b: 'h2_even' };
+    if (fam.startsWith('Corners 1MT')) return { a: 'cor_ht_odd', b: 'cor_ht_even' };
     if (fam.startsWith('Corners')) return { a: 'cor_odd', b: 'cor_even' };
     // Team goals Pair/Impair — "Buts Domicile Pair/Impair" / "Buts Extérieur Pair/Impair"
     const teamOE = fam.match(/^Buts (Domicile|Extérieur) Pair\/Impair$/);

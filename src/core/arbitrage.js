@@ -367,6 +367,22 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, `Corners 1MT Total ${l}`, `+${l}`, oa[`cor_ht_over_${l}`], bookA, `−${l}`, ob[`cor_ht_under_${l}`], bookB, idsOf(oa, `cor_ht_over_${l}`), idsOf(ob, `cor_ht_under_${l}`));
     pushArb(out, `Corners 1MT Total ${l}`, `+${l}`, ob[`cor_ht_over_${l}`], bookB, `−${l}`, oa[`cor_ht_under_${l}`], bookA, idsOf(ob, `cor_ht_over_${l}`), idsOf(oa, `cor_ht_under_${l}`));
   }
+  // Corners 1MT handicap.
+  for (const l of linesOf(oa, ob, /^cor_ht_hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const hk = `cor_ht_hcp_home_${l}`, ak = `cor_ht_hcp_away_${-parseFloat(l)}`;
+    const fam = `Corners 1MT Handicap ${parseFloat(l) > 0 ? '+' + l : l}`;
+    pushArb(out, fam, `Dom. ${parseFloat(l) > 0 ? '+' + l : l}`, oa[hk], bookA, `Ext. ${-parseFloat(l) > 0 ? '+' + (-parseFloat(l)) : -parseFloat(l)}`, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
+    pushArb(out, fam, `Dom. ${parseFloat(l) > 0 ? '+' + l : l}`, ob[hk], bookB, `Ext. ${-parseFloat(l) > 0 ? '+' + (-parseFloat(l)) : -parseFloat(l)}`, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+  }
+  // Corners 1MT pair/impair.
+  pushArb(out, 'Corners 1MT Pair/Impair', 'Impair', oa.cor_ht_odd, bookA, 'Pair', ob.cor_ht_even, bookB, idsOf(oa, 'cor_ht_odd'), idsOf(ob, 'cor_ht_even'));
+  pushArb(out, 'Corners 1MT Pair/Impair', 'Impair', ob.cor_ht_odd, bookB, 'Pair', oa.cor_ht_even, bookA, idsOf(ob, 'cor_ht_odd'), idsOf(oa, 'cor_ht_even'));
+  // Corners Matchbet 1X2 (FT) — 3-way avec pushArbPeriodWinner.
+  pushArbPeriodWinner(out, 'Corners', oa, ob, bookA, bookB, 'cor_');
+  pushArbPeriodWinner(out, 'Corners', ob, oa, bookB, bookA, 'cor_');
+  // Corners Matchbet 1X2 (1MT) — 3-way.
+  pushArbPeriodWinner(out, 'Corners 1MT', oa, ob, bookA, bookB, 'cor_ht_');
+  pushArbPeriodWinner(out, 'Corners 1MT', ob, oa, bookB, bookA, 'cor_ht_');
   // HT/H2 individual totals (par mi-temps).
   for (const [pfx, lbl] of [['ht_', '1MT'], ['h2_', '2MT']]) {
     for (const [side, teamLbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
