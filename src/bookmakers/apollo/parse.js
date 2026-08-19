@@ -129,6 +129,11 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // - Clean Sheet Home/Away Team", 1=yes, 2=no).
   eachOddL(offers, 958, (t, n, c, _s, d, od) => { if (t === '1') p('ht_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('ht_cs_home_no', c, d, n, od.Id); });
   eachOddL(offers, 959, (t, n, c, _s, d, od) => { if (t === '1') p('ht_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('ht_cs_away_no', c, d, n, od.Id); });
+  // 2nd Half Clean Sheet home/away - BetTypeKey 960/961 (verifie 2026-08-19 :
+  // "2nd Half - Clean Sheet Home/Away Team", 1=yes, 2=no). SportyBet expose
+  // les memes marches (96/97), la comparaison h2_cs_* est donc possible.
+  eachOddL(offers, 960, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_home_no', c, d, n, od.Id); });
+  eachOddL(offers, 961, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_away_no', c, d, n, od.Id); });
   // 2nd Half Clean Sheet home/away - BetTypeKey 960/961.
   eachOddL(offers, 960, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_home_no', c, d, n, od.Id); });
   eachOddL(offers, 961, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_away_no', c, d, n, od.Id); });
