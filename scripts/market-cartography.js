@@ -21,7 +21,7 @@ import { isNewFamily } from '../src/cartography/supported.js';
 const BOOKS = [betpawa, sportybet, betmomo, yellowbet, congobet, apollo, onewin];
 
 const arg = (k, d) => {
-  const hit = process.argv.find((a) => a.startsWith(\`--\${k}=\`));
+  const hit = process.argv.find((a) => a.startsWith(`--${k}=`));
   return hit ? hit.split('=')[1] : d;
 };
 const SPORT = arg('sport', process.env.CARTO_SPORT || 'football');
@@ -34,13 +34,13 @@ async function scanBook(book) {
   try {
     list = await book.listMatches({ live: LIVE, sport: SPORT }) || [];
   } catch (e) {
-    out.errors.push(\`list: \${e.message}\`);
+    out.errors.push(`list: ${e.message}`);
     return out;
   }
   const picked = list.slice(0, PER_BOOK);
   for (const m of picked) {
     const res = await dumpRawMarkets(book.key, m, { live: LIVE });
-    if (!res.ok) { out.errors.push(\`\${m.id}: \${res.reason}\`); continue; }
+    if (!res.ok) { out.errors.push(`${m.id}: ${res.reason}`); continue; }
     out.matches += 1;
     out.markets += res.markets.length;
     for (const mk of res.markets) {
@@ -60,7 +60,7 @@ const main = async () => {
   for (const b of BOOKS) {
     const r = await scanBook(b);
     results.push(r);
-    console.log(\`[\${r.book}] matchs=\${r.matches} marches_bruts=\${r.markets} signatures=\${r.sigs.size}\${r.errors.length ? ' err=' + r.errors.slice(0, 2).join(' / ') : ''}\`);
+    console.log(`[${r.book}] matchs=${r.matches} marches_bruts=${r.markets} signatures=${r.sigs.size}${r.errors.length ? ' err=' + r.errors.slice(0, 2).join(' / ') : ''}`);
   }
 
   // Croisement inter-books : une signature n'est arbitrable que si ≥2 books la proposent.
@@ -77,13 +77,13 @@ const main = async () => {
 
   console.log('\\n=== MARCHÉS CORRÉLABLES NOUVEAUX (≥2 books, non exploités) ===');
   for (const e of nouveaux.slice(0, 80)) {
-    console.log(\`\${e.sig.padEnd(46)} \${String(e.books.length).padStart(2)} books : \${e.books.join(',')}  ex="\${e.sample}"\`);
+    console.log(`${e.sig.padEnd(46)} ${String(e.books.length).padStart(2)} books : ${e.books.join(',')}  ex="${e.sample}"`);
   }
 
   console.log('\\n=== PAR BOOKMAKER ===');
   for (const r of results) {
     const mine = nouveaux.filter((e) => e.books.includes(r.book)).length;
-    console.log(\`\${r.book.padEnd(11)} signatures=\${String(r.sigs.size).padStart(4)}  nouveaux_correlables=\${mine}\`);
+    console.log(`${r.book.padEnd(11)} signatures=${String(r.sigs.size).padStart(4)}  nouveaux_correlables=${mine}`);
   }
 
   const report = {
@@ -94,9 +94,9 @@ const main = async () => {
     linkable: linkable.map((e) => ({ ...e, nouveau: isNewFamily(e.family) })),
   };
   fs.mkdirSync('reports', { recursive: true });
-  const file = path.join('reports', \`cartography-\${SPORT}\${LIVE ? '-live' : ''}.json\`);
+  const file = path.join('reports', `cartography-${SPORT}${LIVE ? '-live' : ''}.json`);
   fs.writeFileSync(file, JSON.stringify(report, null, 2));
-  console.log(\`\\nRapport écrit : \${file} (\${report.duration_sec}s)\`);
+  console.log(`\\nRapport écrit : ${file} (${report.duration_sec}s)`);
 };
 
 main().catch((e) => { console.error(e); process.exit(1); });
