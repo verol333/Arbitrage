@@ -25,6 +25,21 @@ function lowerBound(arr, target) {
   return lo;
 }
 
+// Ecart de coup d'envoi tolere entre deux bookmakers pour un MEME match.
+// Les books suivent tous le meme flux (Betradar) : l'heure est identique a la
+// minute. 10 min couvre les arrondis/decalages de publication, sans jamais
+// pouvoir relier deux rencontres differentes.
+export const KICKOFF_MAX_DT = 10 * 60 * 1000;
+
+// Meme journee calendaire (UTC) — garde-fou supplementaire contre les affiches
+// identiques programmees a la meme heure mais des jours differents.
+export function sameCalendarDay(a, b) {
+  const da = new Date(a), db = new Date(b);
+  return da.getUTCFullYear() === db.getUTCFullYear()
+    && da.getUTCMonth() === db.getUTCMonth()
+    && da.getUTCDate() === db.getUTCDate();
+}
+
 export function orientation(refHome, refAway, cHome, cAway) {
   const straight = (teamSim(refHome, cHome) + teamSim(refAway, cAway)) / 2;
   const crossed = (teamSim(refHome, cAway) + teamSim(refAway, cHome)) / 2;
@@ -95,9 +110,7 @@ function modifiersMatch(refHome, refAway, cHome, cAway) {
 // base d'autres books, générant des faux arbs et des alertes prématch sur
 // matchs qui avaient déjà commencé.
 export function matchBook(ref, cands, used, { requireStart = false } = {}) {
-  const HARD_DT = 30 * 60 * 1000;
   const TIGHT_DT = 3 * 60 * 1000; // ±3 min = kickoff quasi-identique
-  const NO_START_MIN_SIM = 0.90;   // seuil strict pour candidat sans startTime
   let best = null, bestScore = -1, bestDt = null;
   // AMBIGUITE : garder tous les candidats qui passent les filtres. Si a la
   // fin on a plusieurs candidats "aveugles" (sans startTime ni league) avec
@@ -113,13 +126,18 @@ export function matchBook(ref, cands, used, { requireStart = false } = {}) {
     // faux appariements (matchs live BetPawa apparaissant en prématch)
     // tout en gardant les vrais matchs communs (BetPawa suit Betradar
     // comme les autres books → noms généralement identiques).
-    if (requireStart && !c.start) {
-      const sh0 = teamSim(ref.home, c.home);
-      const sa0 = teamSim(ref.away, c.away);
-      if (Math.min(sh0, sa0) < NO_START_MIN_SIM) continue;
-    }
-    const dt = (ref.start && c.start) ? Math.abs(ref.start - c.start) : null;
-    if (dt !== null && dt > HARD_DT) continue;
+    // ⚠️ VERIFICATION DE DATE/HEURE OBLIGATOIRE (19/08).
+    // Cause du bug utilisateur : un candidat sans startTime (BetPawa) pouvait
+    // s'apparier a n'importe quelle date pourvu que les noms se ressemblent
+    // (dt=null etait accepte). Resultat : "FC Bayern Munich vs VfB Stuttgart"
+    // du jour chez Congobet apparie au MEME affiche d'une journee suivante chez
+    // BetPawa -> faux surebet, argent perdu. Desormais : les deux cotes doivent
+    // annoncer un coup d'envoi connu, le meme jour calendaire (UTC) et a moins
+    // de KICKOFF_MAX_DT l'une de l'autre. Aucun appariement "aveugle".
+    if (!ref.start || !c.start) continue;
+    const dt = Math.abs(ref.start - c.start);
+    if (dt > KICKOFF_MAX_DT) continue;
+    if (!sameCalendarDay(ref.start, c.start)) continue;
     if (!modifiersMatch(ref.home, ref.away, c.home, c.away)) continue;
     const sh = teamSim(ref.home, c.home);
     const sa = teamSim(ref.away, c.away);
@@ -219,12 +237,13 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
   // sim < 0.60 quand noms commencent par lettres différentes = rejeté de toute
   // façon par matchBook (minTeam=0.60).
   const candsIn = (bookKey, refHome, refStart) => {
-    const bucket = noStart.get(bookKey)?.get(firstChar(refHome)) || [];
-    if (!refStart) return bucket;
+    // Les matchs sans coup d'envoi connu ne sont plus candidats : la
+    // verification date/heure est obligatoire (voir matchBook).
+    if (!refStart) return [];
     const arr = sortedByStart.get(bookKey);
     const lo = lowerBound(arr, refStart - HARD_DT);
     const hi = lowerBound(arr, refStart + HARD_DT + 1);
-    return arr.slice(lo, hi).concat(bucket);
+    return arr.slice(lo, hi);
   };
   const used = new Map(); // bookKey → Set<id>
   for (const b of books) used.set(b, new Set());
@@ -247,6 +266,7 @@ export function alignCatalogs(catalogs, { minBooks = 2, horizonMs = null } = {})
     for (const m of catalogs.get(b)) {
       if (used.get(b).has(m.id)) continue;
       if (!inHorizon(m)) continue;
+      if (!m.start) continue; // sans coup d'envoi connu : jamais appariable
       const ref = { home: m.home, away: m.away, start: m.start, league: m.league };
       const matches = { [b]: m };
       used.get(b).add(m.id);
