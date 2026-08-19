@@ -33,12 +33,20 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
   const isVirtual = (h, a, lg) => /\bsrl\b|simulated|\besoccer\b|e-?soccer|\bcyber\b|\bvirtual\b|\besports?\b|\bfifa\b/i.test(`${h} ${a} ${lg}`);
   const PAGE = 200;
   for (let offset = 0; offset < maxMatches; offset += PAGE) {
-    let path = `/sport/offer/v3/sports/offer?Offset=${offset}&Limit=${PAGE}&DateFrom=${now}&DateTo=${dateTo}&SportIds=${sid}`;
-    if (live) path += '&Live=true';
+    // LIVE : Apollo expose un endpoint dedie /sports/live qui ne renvoie QUE
+    // les matchs en cours (avec LiveStatusString). L'ancien /sports/offer avec
+    // Live=true renvoyait 0 match.
+    let path = live
+      ? '/sport/offer/v3/sports/live'
+      : `/sport/offer/v3/sports/offer?Offset=${offset}&Limit=${PAGE}&DateFrom=${now}&DateTo=${dateTo}&SportIds=${sid}`;
     const j = await apolloGet(path);
-    if (!j?.Response) break;
+    // /sports/live renvoie un tableau de sports ; /sports/offer un { Response }.
+    const sports = live
+      ? (Array.isArray(j) ? j.filter((s) => s.Id === sid) : [])
+      : (j?.Response || null);
+    if (!sports) break;
     let added = 0;
-    for (const s of j.Response) for (const c of s.Categories || []) for (const l of c.Leagues || []) for (const m of l.Matches || []) {
+    for (const s of sports) for (const c of s.Categories || []) for (const l of c.Leagues || []) for (const m of l.Matches || []) {
       if (!m.Id || !m.TeamHome || !m.TeamAway) continue;
       if (seen.has(m.Id)) continue;
       const leagueName = `${c.Name} / ${l.Name}`;
@@ -68,7 +76,7 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
       });
       added++;
     }
-    if (!added) break;
+    if (!added || live) break; // /sports/live n'est pas pagine
   }
   return out;
 }
