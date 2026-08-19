@@ -13,6 +13,14 @@ export const SUPPORTED_FAMILIES = new Set([
   'corners|match|handicap|FT', 'corners|match|odd_even|FT',
   'cards_yellow|match|over_under|FT',
   'cards|match|over_under|FT',
+  // Vague 1 (2026-08-19) : clean sheet, pair/impair par equipe, corners par equipe.
+  'other|home|binary|FT', 'other|away|binary|FT',
+  'other|home|binary|1H', 'other|away|binary|1H',
+  'other|home|binary|2H', 'other|away|binary|2H',
+  'other|home|two_way|FT', 'other|away|two_way|FT',
+  'goals|home|odd_even|FT', 'goals|away|odd_even|FT',
+  'corners|home|over_under|FT', 'corners|away|over_under|FT',
+  'corners|home|over_under|1H', 'corners|away|over_under|1H',
 ]);
 
 export const isNewFamily = (family) => !SUPPORTED_FAMILIES.has(family);
