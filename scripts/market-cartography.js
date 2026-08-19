@@ -26,7 +26,7 @@ const arg = (k, d) => {
 };
 const SPORT = arg('sport', process.env.CARTO_SPORT || 'football');
 const LIVE = process.argv.includes('--live') || process.env.CARTO_LIVE === 'true';
-const PER_BOOK = Number(arg('matches', process.env.CARTO_MATCHES || 3));
+const PER_BOOK = Number(arg('matches', process.env.CARTO_MATCHES || 5));
 
 async function scanBook(book) {
   const out = { book: book.key, label: book.label, matches: 0, markets: 0, errors: [], sigs: new Map() };
