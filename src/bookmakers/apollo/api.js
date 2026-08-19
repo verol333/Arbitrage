@@ -9,9 +9,18 @@
 import { fetchJson } from '../../net/fetcher.js';
 
 const SPORT_API = 'https://sportapis-apollo.webapis.sk/SportsOfferApi/api';
+// ⚠️ CAUSE REELLE des reponses vides (trouvee 2026-08-19) : ce n'etait PAS un
+// blocage d'IP. L'API Apollo exige l'en-tete TerminalId (DefaultTerminalId=33,
+// lu sur /EvonaApi/api/terminal/configuration/client/<clientId>). Sans lui elle
+// repond 200 avec un catalogue vide. Avec lui : 1050 matchs foot en direct
+// depuis GitHub Actions, sans proxy.
+const TERMINAL_ID = '33';
 const HEADERS = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
+  TerminalId: TERMINAL_ID,
+  LanguageId: 'fr',
+  'Device-Type': 'mobile',
   Origin: 'https://m.apollogames.cg',
   Referer: 'https://m.apollogames.cg/',
   'User-Agent': 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36',
@@ -46,7 +55,11 @@ function isValidResponse(j) {
 export async function apolloGet(path) {
   const url = `${SPORT_API}${path}`;
 
-  // 1re priorite : CF Worker Apollo dedie (le worker force les headers upstream).
+  // 1re priorite : appel DIRECT avec TerminalId (verifie OK depuis Actions).
+  const direct = await fetchJson(url, { headers: HEADERS, timeoutMs: 20_000 });
+  if (isValidResponse(direct)) return direct;
+
+  // 2e : CF Worker Apollo dedie (le worker force les headers upstream).
   const proxiedCf = `${APOLLO_CF_WORKER}/?url=${encodeURIComponent(url)}`;
   const j1 = await fetchJson(proxiedCf, { timeoutMs: 15_000 });
   if (isValidResponse(j1)) return j1;
