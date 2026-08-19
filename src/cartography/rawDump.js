@@ -81,7 +81,7 @@ export function extractMarkets(payload, { maxDepth = 8 } = {}) {
   // Dédoublonnage : un même marché peut être vu à deux profondeurs.
   const byKey = new Map();
   for (const m of markets) {
-    const key = \`\${m.market_name}::\${m.selections.map((s) => s.name + s.odds).sort().join('|')}\`;
+    const key = `${m.market_name}::${m.selections.map((s) => s.name + s.odds).sort().join('|')}`;
     if (!byKey.has(key)) byKey.set(key, m);
   }
   return [...byKey.values()];
@@ -93,7 +93,7 @@ const DUMPERS = {
   sportybet: (m, { live }) => sbFetchEvent(m.id, { live }),
   betmomo: (m) => betmomoOdds(m.id),
   yellowbet: (m) => fetchMatchBts(m.id),
-  congobet: (m) => congoJson(\`\${CONGO_API}events/\${m.id}\`, { noCache: true }),
+  congobet: (m) => congoJson(`${CONGO_API}events/${m.id}`, { noCache: true }),
   apollo: async (m) => { const map = await apolloOffers([m.id]); return map.get(m.id) || []; },
   '1win': async (m) => { const map = await winOddsWS([m.id]); return map.get(m.id) || map.get(String(m.id)) || []; },
 };
