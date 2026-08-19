@@ -1,10 +1,9 @@
 // Apollo Games — sportapis-apollo.webapis.sk.
 // L'API renvoie [] silencieusement quand l'IP source n'est pas whitelistée
-// (blacklist datacenter GitHub Actions/AWS/etc. observée 2026-08-19 : audit
-// couverture → 0 matchs listés alors que l'app mobile marche normalement).
-// Fix : cascade CF Workers privés (même pattern que xbet), fallback direct
-// fetch en dernier recours. Les CF Workers présentent une IP Cloudflare
-// traitée comme trafic navigateur légitime par Apollo.
+// (blacklist datacenter GitHub Actions observée 2026-08-19 : audit couverture
+// → 0 matchs listés alors que l'app mobile marche normalement).
+// Fix : cascade proxies publics gratuits (memes que xbet). Le premier qui
+// renvoie une reponse non-vide gagne. Direct fetch en dernier recours.
 import { fetchJson } from '../../net/fetcher.js';
 
 const SPORT_API = 'https://sportapis-apollo.webapis.sk/SportsOfferApi/api';
@@ -20,25 +19,38 @@ const HEADERS = {
 // Table Tennis Apollo : sid=417 (confirmé F12 user 2026-08-13 Czech Liga Pro).
 export const APOLLO_SID = { football: 388, tennis: 389, basket: 391, hockey: 398, volleyball: 397, table_tennis: 417 };
 
-// CF Workers privés — mêmes que xbet (réutilisation infra existante).
-const CF_WORKERS = [
-  'https://hidden-pine-7436.veolalex3.workers.dev',
-  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
+// Proxies gratuits (memes que xbet). Cascade jusqu'a ce qu'un renvoie du contenu.
+// - allorigins.win : très fiable, cache 5min côté serveur
+// - codetabs.com/v1/proxy : maintenu, gratuit
+// - corsproxy.io : rapide, illimité, gratuit
+// - thingproxy.freeboard.io : legacy mais stable
+const PUBLIC_PROXIES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
-let cfCursor = 0;
+let pubCursor = 0;
+
+// Considere "OK" une reponse qui contient au moins un champ Response non-vide,
+// OU un objet non-vide. Reject les [] silencieux d'Apollo (soft-block).
+function isValidResponse(j) {
+  if (!j) return false;
+  if (Array.isArray(j)) return j.length > 0;
+  if (typeof j !== 'object') return false;
+  return Object.keys(j).length > 0;
+}
 
 export async function apolloGet(path) {
   const url = `${SPORT_API}${path}`;
-  // Cascade CF Workers (round-robin) → si tous KO, direct fetch.
-  const start = cfCursor++ % CF_WORKERS.length;
-  for (let i = 0; i < CF_WORKERS.length; i++) {
-    const w = CF_WORKERS[(start + i) % CF_WORKERS.length];
-    const proxied = `${w}/?url=${encodeURIComponent(url)}`;
-    const j = await fetchJson(proxied, { headers: HEADERS, timeoutMs: 15_000 });
-    // Apollo renvoie [] quand blacklisté. Un array vide OU un objet vide = échec.
-    // On considère "OK" uniquement si on a un objet non-vide (au minimum { Response: [...] }).
-    if (j && typeof j === 'object' && !Array.isArray(j) && Object.keys(j).length > 0) return j;
+  // Cascade proxies publics (round-robin) → premier qui renvoie du contenu gagne.
+  const start = pubCursor++ % PUBLIC_PROXIES.length;
+  for (let i = 0; i < PUBLIC_PROXIES.length; i++) {
+    const builder = PUBLIC_PROXIES[(start + i) % PUBLIC_PROXIES.length];
+    const proxied = builder(url);
+    const j = await fetchJson(proxied, { headers: HEADERS, timeoutMs: 12_000 });
+    if (isValidResponse(j)) return j;
   }
-  // Dernier recours : direct fetch (peut renvoyer [] mais mieux que rien).
+  // Dernier recours : direct fetch (peut renvoyer [] mais mieux que null).
   return fetchJson(url, { headers: HEADERS, timeoutMs: 20_000 });
 }
