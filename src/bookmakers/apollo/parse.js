@@ -2,6 +2,7 @@
 // Chaque BetTypeKey correspond à un marché. On lit tous les offers avec
 // cet BetTypeKey et on émet les clés d'odds standardisées.
 import { isHalfLine } from '../../core/markets.js';
+import { normalizeApolloOffers } from './legacyKeys.js';
 
 // eachOdd conserve son ancienne signature (t, name, c, sbv) pour compat.
 function eachOdd(offers, key, cb) {
@@ -43,7 +44,11 @@ function putOdd(odds, key, cote, description, selectionName, oddId) {
   };
 }
 
-export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
+export function apolloFlatOdds(rawOffers, { sport = 'football' } = {}) {
+  // Apollo a change le format de BetTypeKey le 19/08/2026 ("5_-1" au lieu de 5) :
+  // sans cette retraduction, AUCUN marche Apollo n'etait reconnu et le book
+  // ressortait toujours sans cote. Voir legacyKeys.js.
+  const offers = normalizeApolloOffers(rawOffers, sport);
   if (sport === 'tennis') return apolloTennisFlatOdds(offers);
   // Volleyball Apollo : structure sets identique tennis (BetTypeKey 20 winner,
   // 502/558 s1/s2 winner, 910 hcp games, 911 total games/points, 914 total sets).
