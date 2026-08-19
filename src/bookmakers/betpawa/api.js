@@ -49,26 +49,41 @@ export function buildEventsListUrl({ eventType = 'UPCOMING', categories = [CATEG
   return `${BASE}/api/sportsbook/v4/events/lists/by-queries?q=${encodeURIComponent(JSON.stringify(q))}`;
 }
 
-// Extraction ASCII strings du protobuf pour trouver les IDs matchs.
+// Extraction ASCII strings + offsets byte du protobuf.
+// Retourne { strings, offsets } où offsets[i] = position byte du strings[i]
+// dans le buffer. Permet d'associer chaque match ID à ses champs adjacents
+// (name, startTime, competition) par proximité byte.
 export async function bpFetchList(url, timeoutMs = 20_000) {
   try {
     const res = await fetch(url, { headers: HDR_LIST, signal: AbortSignal.timeout(timeoutMs) });
-    if (!res.ok) { console.log(`[betpawa/list] status=${res.status}`); return []; }
+    if (!res.ok) { console.log(`[betpawa/list] status=${res.status}`); return { strings: [], offsets: [] }; }
     const buf = new Uint8Array(await res.arrayBuffer());
     const strings = [];
+    const offsets = [];
     let cur = '';
+    let curStart = 0;
     for (let i = 0; i < buf.length; i++) {
       const b = buf[i];
-      if (b >= 32 && b <= 126) cur += String.fromCharCode(b);
-      else { if (cur.length > 2) strings.push(cur); cur = ''; }
+      if (b >= 32 && b <= 126) {
+        if (cur.length === 0) curStart = i;
+        cur += String.fromCharCode(b);
+      } else {
+        if (cur.length > 2) { strings.push(cur); offsets.push(curStart); }
+        cur = '';
+      }
     }
-    if (cur.length > 2) strings.push(cur);
-    return strings.map(s => s.replace(/^["']|["']$/g, '').trim());
+    if (cur.length > 2) { strings.push(cur); offsets.push(curStart); }
+    // Nettoyage : ôte les guillemets encadrants qui traînent
+    const cleaned = strings.map(s => s.replace(/^["']|["']$/g, '').trim());
+    return { strings: cleaned, offsets };
   } catch (e) {
     console.log(`[betpawa/list] err=${e.message}`);
-    return [];
+    return { strings: [], offsets: [] };
   }
 }
+
+// Regex ISO timestamp : "2026-08-19T17:00:00" (optionnel .SSS, Z, ou offset)
+export const ISO_TS_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
 
 // Cache TTL court (30s) des event payloads — list.js populate pour extraire
 // startTime, puis getOdds réutilise (évite doublement les requêtes API).
