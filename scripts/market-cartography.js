@@ -24,9 +24,9 @@ const arg = (k, d) => {
   const hit = process.argv.find((a) => a.startsWith(\`--\${k}=\`));
   return hit ? hit.split('=')[1] : d;
 };
-const SPORT = arg('sport', 'football');
-const LIVE = process.argv.includes('--live');
-const PER_BOOK = Number(arg('matches', 3));
+const SPORT = arg('sport', process.env.CARTO_SPORT || 'football');
+const LIVE = process.argv.includes('--live') || process.env.CARTO_LIVE === 'true';
+const PER_BOOK = Number(arg('matches', process.env.CARTO_MATCHES || 3));
 
 async function scanBook(book) {
   const out = { book: book.key, label: book.label, matches: 0, markets: 0, errors: [], sigs: new Map() };
