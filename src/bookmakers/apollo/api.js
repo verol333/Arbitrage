@@ -2,12 +2,10 @@
 // L'API renvoie [] silencieusement quand l'IP source n'est pas whitelistée
 // (blacklist datacenter GitHub Actions/AWS/etc. observée 2026-08-19 : audit
 // couverture → 0 matchs listés alors que l'app mobile marche normalement).
-// Fallback : on route via CF Worker (proxy déjà utilisé pour BetPawa),
-// qui présente une IP Cloudflare traitée comme trafic navigateur légitime.
-// Fetch direct conservé en fallback si CF_WORKER_PROXY_URL absent.
+// Fix : cascade CF Workers privés (même pattern que xbet), fallback direct
+// fetch en dernier recours. Les CF Workers présentent une IP Cloudflare
+// traitée comme trafic navigateur légitime par Apollo.
 import { fetchJson } from '../../net/fetcher.js';
-import { proxyFetchJson } from '../../net/fetcher.js';
-import { config } from '../../config.js';
 
 const SPORT_API = 'https://sportapis-apollo.webapis.sk/SportsOfferApi/api';
 const HEADERS = {
@@ -22,17 +20,25 @@ const HEADERS = {
 // Table Tennis Apollo : sid=417 (confirmé F12 user 2026-08-13 Czech Liga Pro).
 export const APOLLO_SID = { football: 388, tennis: 389, basket: 391, hockey: 398, volleyball: 397, table_tennis: 417 };
 
+// CF Workers privés — mêmes que xbet (réutilisation infra existante).
+const CF_WORKERS = [
+  'https://hidden-pine-7436.veolalex3.workers.dev',
+  'https://billowing-sea-2d8e.alvecapital60.workers.dev',
+];
+let cfCursor = 0;
+
 export async function apolloGet(path) {
   const url = `${SPORT_API}${path}`;
-  // Priorite CF Worker si configure : l'IP Cloudflare passe le filtre Apollo.
-  // Fallback direct fetch sinon (peut retourner [] mais au moins ne casse pas
-  // les envs qui n'ont pas de proxy).
-  if (config.proxy.cfworkerUrl) {
-    return proxyFetchJson(url, {
-      mode: 'cfworker',
-      setHeaders: HEADERS,
-      timeoutMs: 20_000,
-    });
+  // Cascade CF Workers (round-robin) → si tous KO, direct fetch.
+  const start = cfCursor++ % CF_WORKERS.length;
+  for (let i = 0; i < CF_WORKERS.length; i++) {
+    const w = CF_WORKERS[(start + i) % CF_WORKERS.length];
+    const proxied = `${w}/?url=${encodeURIComponent(url)}`;
+    const j = await fetchJson(proxied, { headers: HEADERS, timeoutMs: 15_000 });
+    // Apollo renvoie [] quand blacklisté. Un array vide OU un objet vide = échec.
+    // On considère "OK" uniquement si on a un objet non-vide (au minimum { Response: [...] }).
+    if (j && typeof j === 'object' && !Array.isArray(j) && Object.keys(j).length > 0) return j;
   }
+  // Dernier recours : direct fetch (peut renvoyer [] mais mieux que rien).
   return fetchJson(url, { headers: HEADERS, timeoutMs: 20_000 });
 }
