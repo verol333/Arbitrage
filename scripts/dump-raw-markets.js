@@ -49,7 +49,8 @@ function extract_congobet(raw) {
   const bts = raw?.eventBetTypes || [];
   for (const bt of bts) {
     const marketName = bt.name || '?';
-    for (const it of bt.items || []) {
+    // Congobet utilise bt.eventBetTypeItems (pas bt.items)
+    for (const it of bt.eventBetTypeItems || []) {
       const c = parseFloat(it.odds);
       if (isNaN(c) || c <= 1) continue;
       out.push({ market: String(marketName), selection: String(it.shortName || it.name || '?'), odds: c });
@@ -109,11 +110,22 @@ function extract_betpawa(raw) {
   const out = [];
   const markets = raw?.markets || [];
   for (const m of markets) {
-    const marketName = m.name || m.marketTypeName || `market-${m.id}`;
-    for (const p of m.prices || []) {
-      const c = parseFloat(p.price);
-      if (isNaN(c) || c <= 1) continue;
-      out.push({ market: String(marketName), selection: String(p.name || '?'), odds: c });
+    // Betpawa : nom du marche dans m.marketType.name (pas m.name)
+    const marketName = m.marketType?.name || m.name || `market-${m.id}`;
+    // Structure : m.row[] where chaque row contient prices[]
+    const rows = Array.isArray(m.row) ? m.row : [];
+    for (const row of rows) {
+      const prices = row.prices || [];
+      const rowSuffix = row.name && row.name !== marketName ? ` — ${row.name}` : '';
+      for (const p of prices) {
+        const c = parseFloat(p.price);
+        if (isNaN(c) || c <= 1) continue;
+        out.push({
+          market: String(marketName) + rowSuffix,
+          selection: String(p.name || p.selectionName || '?'),
+          odds: c,
+        });
+      }
     }
   }
   return out;
