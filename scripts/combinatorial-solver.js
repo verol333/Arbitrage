@@ -71,7 +71,7 @@ function classifyPart(part) {
 // Detecte les marches combines (ex: "Under 2.5 & Yes", "1/no", "Home & Over 1.5")
 function trySplitCombined(market, selection) {
   let raw = selection.toLowerCase().replace(/\[[^\]]*\]/g, '').trim();
-  const parts = raw.split(/\s*[&/]\s*/).map(x => x.trim()).filter(Boolean);
+  const parts = raw.split(/\s*[&/]\s*|\s+-\s+/).map(x => x.trim()).filter(Boolean);
   if (parts.length < 2) return null;
   const masks = [];
   for (const part of parts) {
