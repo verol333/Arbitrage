@@ -137,6 +137,7 @@ function isSupportedMarket(m) {
   return WHITELIST_MARKETS.some(re => re.test(m));
 }
 
+const _skippedMarkets = new Set();
 function classifyOutcome({ market, selection, odds }) {
   const m = String(market).toLowerCase();
   const s = String(selection).toLowerCase();
@@ -145,7 +146,10 @@ function classifyOutcome({ market, selection, odds }) {
   if (odds >= 40) return null;
 
   // FIX #4 : whitelist stricte — skip tout marche non explicitement supporte
-  if (!isSupportedMarket(m)) return null;
+  if (!isSupportedMarket(m)) {
+    _skippedMarkets.add(m);
+    return null;
+  }
 
   // Skip les marches HT-only (pas classifiables sans le score MT)
   if (/1[eè]re mi[- ]?temps|1st half|2nd half|2[eè]me mi[- ]?temps|halftime\/fulltime|halftime|halftime\s*correct/i.test(m)) return null;
@@ -617,5 +621,11 @@ for (const [i, o] of allOpps.slice(0, 30).entries()) {
   console.log('');
 }
 
-console.log(`Fin. Duree ${((Date.now()-t0)/1000).toFixed(1)}s`);
+if (_skippedMarkets.size > 0) {
+  console.log(`\n─── MARCHES IGNORES (${_skippedMarkets.size} types non classifies) ───`);
+  const sorted = [..._skippedMarkets].sort();
+  for (const m of sorted) console.log(`  ✗ ${m}`);
+}
+
+console.log(`\nFin. Duree ${((Date.now()-t0)/1000).toFixed(1)}s`);
 process.exit(0);
