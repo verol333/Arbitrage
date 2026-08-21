@@ -46,18 +46,65 @@ function maskFromPredicate(pred) {
   return m;
 }
 
+// ─── Sous-classifieurs pour marches combines ─────────────────────────────
+function classifyPart(part) {
+  const p = part.trim().toLowerCase();
+  if (/^1$|^home$|^(hôte|domicile)$/.test(p)) return maskFromPredicate((h,a) => h > a);
+  if (/^x$|^draw$|^nul|^tie$|^egalit[eé]$/.test(p)) return maskFromPredicate((h,a) => h === a);
+  if (/^2$|^away$|^ext[eé]rieur$|^visiteur$/.test(p)) return maskFromPredicate((h,a) => a > h);
+  if (/^1x$|^home\/draw$/.test(p)) return maskFromPredicate((h,a) => h >= a);
+  if (/^x2$|^draw\/away$/.test(p)) return maskFromPredicate((h,a) => a >= h);
+  if (/^12$|^home\/away$/.test(p)) return maskFromPredicate((h,a) => h !== a);
+  if (/^yes$|^oui$|^y$/.test(p)) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
+  if (/^no$|^non$|^n$/.test(p)) return maskFromPredicate((h,a) => h === 0 || a === 0);
+  let ov = p.match(/^over\s*([\d.]+)$|^plus (?:de )?([\d.]+)$|^>\s*([\d.]+)$/);
+  if (ov) { const line = parseFloat(ov[1] || ov[2] || ov[3]); return maskFromPredicate((h,a) => (h + a) > line); }
+  let un = p.match(/^under\s*([\d.]+)$|^moins (?:de )?([\d.]+)$|^<\s*([\d.]+)$/);
+  if (un) { const line = parseFloat(un[1] || un[2] || un[3]); return maskFromPredicate((h,a) => (h + a) < line); }
+  const sc = p.match(/^(\d+)\s*[:\-]\s*(\d+)$/);
+  if (sc) return cellBit(parseInt(sc[1]), parseInt(sc[2]));
+  return null;
+}
+
+// Detecte les marches combines (ex: "Under 2.5 & Yes", "1/no", "Home & Over 1.5")
+function trySplitCombined(market, selection) {
+  let raw = selection.toLowerCase().replace(/\[[^\]]*\]/g, '').trim();
+  const parts = raw.split(/\s*[&/]\s*/).map(x => x.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const masks = [];
+  for (const part of parts) {
+    const mm = classifyPart(part);
+    if (mm == null) return null;
+    masks.push(mm);
+  }
+  let combined = masks[0];
+  for (let i = 1; i < masks.length; i++) combined &= masks[i];
+  if (combined === 0n) return null;
+  return combined;
+}
+
 // ─── Classification d'un outcome en bitmask ────────────────────────────────
 // Retourne le bitmask ou null si l'outcome n'est pas classifiable (HT-based, corners, cards, etc.)
-function classifyOutcome({ market, selection }) {
+function classifyOutcome({ market, selection, odds }) {
   const m = String(market).toLowerCase();
   const s = String(selection).toLowerCase();
 
+  // FIX #2 : filtre cotes phantom (rarement placables au montant reel)
+  if (odds >= 50) return null;
+
   // Skip les marches HT-only (pas classifiables sans le score MT)
   if (/1[eè]re mi[- ]?temps|1st half|2nd half|2[eè]me mi[- ]?temps|halftime\/fulltime|halftime|halftime\s*correct/i.test(m)) return null;
-  if (/goalnr|xth goal|minsnr|match result after/i.test(m)) return null;
+  if (/^1\. halftime|^2\. halftime|1st half|2nd half|ht\/ft|hi-temps|mi-temps|résultat mi-temps|mi temps|premi[eè]re|deuxi[eè]me/i.test(m)) return null;
+  if (/goalnr|xth goal|minsnr|match result after|when.*first goal|quand.*premier/i.test(m)) return null;
   if (/corner|carton|card|shot|foul|offside|throw/i.test(m)) return null;
   if (/first to score|first team|first goal|premier but|1er but/i.test(m)) return null;
   if (/half time with more|halftime with more|mi-temps.*plus|excluded goals/i.test(m)) return null;
+  if (/multiscores/i.test(m)) return null; // trop complexes a parser (1:0, 2:0 or 3:0)
+  if (/goal bounds/i.test(m)) return null; // ambigu (parfois home only, parfois away)
+
+  // FIX #1 : marches COMBINES (X & Y, X/Y) — decompose et intersect les masks
+  const combined = trySplitCombined(m, s);
+  if (combined) return combined;
 
   // ─ Correct Score (m == "correct score" ou "score exact" ou "score:")
   if (/correct score$|score exact$|^score$/i.test(m) || m === 'score exact') {
@@ -259,7 +306,7 @@ function groupByMask(outcomes) {
   const groups = new Map(); // maskStr → { mask, entries: [{book, market, selection, odds}] }
   for (const o of outcomes) {
     const mask = classifyOutcome(o);
-    if (!mask) continue;
+    if (!mask || mask === 0n || mask === ALL_CELLS_MASK) continue; // skip trivial masks
     const key = mask.toString(16);
     if (!groups.has(key)) groups.set(key, { mask, entries: [] });
     groups.get(key).entries.push(o);
