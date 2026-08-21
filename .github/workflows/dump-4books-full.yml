@@ -1,4 +1,4 @@
-name: Dump 4 books × 2 matchs (marchés complets + arb)
+name: ÉTAPE 1 — Dump 4 books × 2 matchs (JSON artifact)
 on: { workflow_dispatch: {} }
 jobs:
   dump:
@@ -13,7 +13,7 @@ jobs:
           if [ -f package.json ]; then npm install --production --no-audit --no-fund
           else cd arbitrage-service && npm install --production --no-audit --no-fund && cd .. && ln -sfn arbitrage-service/node_modules node_modules
           fi
-      - name: Dump
+      - name: Dump marchés (étape 1 seule)
         env:
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
@@ -22,3 +22,9 @@ jobs:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
         run: node scripts/dump-4books-full.js
+      - name: Upload JSON dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: 4books-full-markets
+          path: output/*.json
+          retention-days: 30
