@@ -315,12 +315,23 @@ function classifyOutcome({ market, selection, odds }) {
     return null;
   }
 
+  // ─ Handicap 1X2 / European Handicap with [N] format (BetPawa: "Handicap 1X2 - FT [3]")
+  // Three-way market (1/X/2) — must be checked BEFORE Asian Handicap
+  const hcp1x2Match = m.match(/handicap\s*1x2[^[]*\[\s*(-?[\d.]+)\s*\]/i);
+  if (hcp1x2Match) {
+    const line = parseFloat(hcp1x2Match[1]);
+    if (/^1$/i.test(s) || /^home$/i.test(s)) return maskFromPredicate((h,a) => (h + line) > a);
+    if (/^x$/i.test(s) || /^draw$/i.test(s) || /^nul/i.test(s)) return maskFromPredicate((h,a) => (h + line) === a);
+    if (/^2$/i.test(s) || /^away$/i.test(s)) return maskFromPredicate((h,a) => a > (h + line));
+    return null;
+  }
+
   // ─ Asian Handicap (line ±X.5 ou ±X) via [Y] dans market ou handicap nu (1win)
   const ahMatch = m.match(/(?:handicap|asian handicap)[^[]*\[\s*(-?[\d.]+)\s*\]/i);
   if (ahMatch) {
     const line = parseFloat(ahMatch[1]);
     if (/^1|home/i.test(s)) return maskFromPredicate((h,a) => (h + line) > a);
-    if (/^2|away/i.test(s)) return maskFromPredicate((h,a) => (a + Math.abs(line)) > h);
+    if (/^2|away/i.test(s)) return maskFromPredicate((h,a) => a > (h + line));
     return null;
   }
   if (/^handicap$/i.test(m)) {
@@ -328,7 +339,7 @@ function classifyOutcome({ market, selection, odds }) {
     if (lineMatch) {
       const line = parseFloat(lineMatch[1]);
       if (/^1|home|w1/i.test(s) || s.indexOf('-') === -1) return maskFromPredicate((h,a) => (h + line) > a);
-      if (/^2|away|w2/i.test(s)) return maskFromPredicate((h,a) => (a + Math.abs(line)) > h);
+      if (/^2|away|w2/i.test(s)) return maskFromPredicate((h,a) => a > (h + line));
     }
     return null;
   }

@@ -13,7 +13,7 @@ jobs:
           if [ -f package.json ]; then npm install --production --no-audit --no-fund
           else cd arbitrage-service && npm install --production --no-audit --no-fund && cd .. && ln -sfn arbitrage-service/node_modules node_modules
           fi
-          npm install --no-save undici
+          cd arbitrage-service && npm install --no-save undici
       - name: Run pattern scanner
         env:
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
