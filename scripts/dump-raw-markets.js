@@ -15,13 +15,11 @@ import { apolloGet } from '../src/bookmakers/apollo/api.js';
 import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
 
 const BOOKS = ['1xbet', '1win', 'congobet', 'betpawa', 'yellowbet', 'sportybet', 'apollo'];
-// Cherche ces matchs (grands matchs Champions League / MLS ce soir)
-const TARGET_MATCHES = [
-  { home: 'Celtic', away: 'LASK' },
-  { home: 'Slovan Bratislava', away: 'NK Celje' },
-  { home: 'Hapoel Be', away: 'Sabah' },   // Beer Sheva vs Sabah FK
-  { home: 'NEC', away: 'Bodo' },
-];
+// TOP_MATCHES_COUNT : on recupere automatiquement les N matchs les plus populaires
+// (i.e. presents sur le max de books) plutot que de hardcoder des matchs precis
+// (risque d'etre perimes). Chaque match populaire aura probablement une longue
+// liste de marches exotiques → jackpot pour combinatoire.
+const TOP_MATCHES_COUNT = 3;
 
 // ─── Extraction generique d'odds dans un JSON ────────────────────────────
 // On scanne recursivement l'objet, on collecte toutes les paires
@@ -112,27 +110,27 @@ for (const key of BOOKS) {
 }
 console.log('');
 
-// 2. Pour chaque match cible, trouve l'ID sur chaque book
-function findMatchId(matches, home, away) {
-  const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const h = norm(home);
-  const a = norm(away);
-  return matches.find((m) => {
-    const mh = norm(m.home);
-    const ma = norm(m.away);
-    return (mh.includes(h) || h.includes(mh)) && (ma.includes(a) || a.includes(ma));
-  });
-}
+// 2. Alignement auto : trouve les TOP_MATCHES_COUNT matchs presents sur le max de books
+const entries = alignCatalogs(catalogs, { minBooks: 4, horizonMs: Date.now() + 48 * 3600 * 1000 });
+// Trie par (nb books couverts, kickoff proche)
+entries.sort((a, b) => {
+  const na = Object.keys(a.matches).length;
+  const nb = Object.keys(b.matches).length;
+  if (nb !== na) return nb - na;
+  return (a.ref.start || 0) - (b.ref.start || 0);
+});
+const topEntries = entries.slice(0, TOP_MATCHES_COUNT);
+console.log(`\n${topEntries.length} matchs top populaires selectionnes :`);
+for (const e of topEntries) console.log(`  ${e.ref.home} vs ${e.ref.away} — ${Object.keys(e.matches).length} books — ${e.ref.start ? new Date(e.ref.start).toISOString() : 'no start'}`);
 
-for (const target of TARGET_MATCHES) {
+for (const entry of topEntries) {
+  const target = { home: entry.ref.home, away: entry.ref.away };
   console.log(`\n╔══════════════════════════════════════════════════════════════╗`);
   console.log(`║  ${target.home} vs ${target.away}`);
   console.log(`╚══════════════════════════════════════════════════════════════╝`);
   for (const key of BOOKS) {
-    const matches = catalogs.get(key);
-    if (!matches) { console.log(`\n[${key}] pas de catalogue`); continue; }
-    const m = findMatchId(matches, target.home, target.away);
-    if (!m) { console.log(`\n[${key}] match NON TROUVE`); continue; }
+    const m = entry.matches[key];
+    if (!m) { console.log(`\n[${key}] match NON TROUVE (alignCatalogs pas de correspondance)`); continue; }
     console.log(`\n[${key}] matchId=${m.id} (${m.home} vs ${m.away})`);
     const { raw, keys, err, skipped } = await rawMarketsFor(key, m.id);
     if (err) { console.log(`  ❌ ${err}`); continue; }
