@@ -21,29 +21,117 @@ const BOOKS = ['1xbet', '1win', 'congobet', 'betpawa', 'yellowbet', 'sportybet',
 // liste de marches exotiques → jackpot pour combinatoire.
 const TOP_MATCHES_COUNT = 3;
 
-// ─── Extraction generique d'odds dans un JSON ────────────────────────────
-// On scanne recursivement l'objet, on collecte toutes les paires
-// { potential_market_name, potential_outcome_name, odds_value }.
-function extractOdds(obj, path = '') {
-  const results = [];
-  if (obj == null || typeof obj !== 'object') return results;
-  if (Array.isArray(obj)) {
-    for (let i = 0; i < obj.length; i++) results.push(...extractOdds(obj[i], `${path}[${i}]`));
-    return results;
+// ─── Extracteurs par book (adaptes a leur structure JSON) ─────────────────
+// Chaque extracteur retourne : [{ market, selection, odds, line? }]
+// market = famille (ex: "Total Buts", "Correct Score")
+// selection = valeur (ex: "Over 2.5", "1-0")
+function extract_xbet(raw) {
+  const out = [];
+  const groups = raw?.Value?.GE || [];
+  for (const g of groups) {
+    const marketId = g.G || g.T || '';
+    const marketName = g.N || `bet-type-${marketId}`;
+    for (const sub of g.E || []) {
+      const items = Array.isArray(sub) ? sub : [sub];
+      for (const it of items) {
+        const c = parseFloat(it.C);
+        if (isNaN(c) || c <= 1) continue;
+        const sel = it.N || `T${it.T}${it.P != null ? `_P${it.P}` : ''}`;
+        out.push({ market: String(marketName), selection: String(sel), odds: c, line: it.P ?? null });
+      }
+    }
   }
-  // Heuristique : si l'objet ressemble a { name/label + odds/coefficient/value }
-  const name = obj.Name || obj.name || obj.label || obj.T || obj.title || obj.n || null;
-  const oddsVal = obj.coefficient || obj.Coefficient || obj.C || obj.odds || obj.value || obj.Value || obj.k || obj.p || obj.price;
-  if (typeof oddsVal === 'number' && oddsVal >= 1.01 && oddsVal <= 500 && name) {
-    results.push({ name: String(name).slice(0, 60), odds: oddsVal, path });
-  } else if (typeof oddsVal === 'string' && /^\d+(\.\d+)?$/.test(oddsVal)) {
-    const v = parseFloat(oddsVal);
-    if (v >= 1.01 && v <= 500 && name) results.push({ name: String(name).slice(0, 60), odds: v, path });
+  return out;
+}
+
+function extract_congobet(raw) {
+  const out = [];
+  const bts = raw?.eventBetTypes || [];
+  for (const bt of bts) {
+    const marketName = bt.name || '?';
+    for (const it of bt.items || []) {
+      const c = parseFloat(it.odds);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: String(it.shortName || it.name || '?'), odds: c });
+    }
   }
-  for (const [k, v] of Object.entries(obj)) {
-    if (typeof v === 'object') results.push(...extractOdds(v, `${path}.${k}`));
+  return out;
+}
+
+function extract_sportybet(raw) {
+  const out = [];
+  const markets = raw?.data?.markets || raw?.markets || [];
+  for (const m of markets) {
+    const marketName = m.name || `market-${m.id}`;
+    const spec = m.specifier ? ` [${m.specifier}]` : '';
+    for (const o of m.outcomes || []) {
+      const c = parseFloat(o.odds);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: `${o.desc || o.name || '?'}${spec}`, odds: c });
+    }
   }
-  return results;
+  return out;
+}
+
+function extract_apollo(raw) {
+  const out = [];
+  const offers = raw?.Offers || raw?.BasicOffer ? [raw.BasicOffer, ...(raw.Offers || [])].filter(Boolean) : [];
+  const allOffers = raw?.Offers || [];
+  for (const o of allOffers) {
+    const marketName = o.Description || `bettype-${o.BetTypeKey}`;
+    const sbv = o.Sbv ? ` [${o.Sbv}]` : '';
+    for (const od of o.Odds || []) {
+      const c = parseFloat(od.Odd);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: `${od.Name || od.Type || '?'}${sbv}`, odds: c });
+    }
+  }
+  return out;
+}
+
+function extract_yellowbet(raw) {
+  const out = [];
+  const bts = Array.isArray(raw) ? raw : (raw?.data?.bts || raw?.bts || []);
+  for (const bt of bts) {
+    const marketName = bt.n || `bet-${bt.id || '?'}`;
+    const items = bt.odds || bt.o || [];
+    for (const o of items) {
+      const c = parseFloat(o.p);
+      if (isNaN(c) || c <= 1) continue;
+      const line = o.l != null ? ` [${o.l}]` : '';
+      out.push({ market: String(marketName), selection: `${o.n || o.id || '?'}${line}`, odds: c });
+    }
+  }
+  return out;
+}
+
+function extract_betpawa(raw) {
+  const out = [];
+  const markets = raw?.markets || [];
+  for (const m of markets) {
+    const marketName = m.name || m.marketTypeName || `market-${m.id}`;
+    for (const p of m.prices || []) {
+      const c = parseFloat(p.price);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: String(p.name || '?'), odds: c });
+    }
+  }
+  return out;
+}
+
+const EXTRACTORS = {
+  '1xbet': extract_xbet,
+  'congobet': extract_congobet,
+  'sportybet': extract_sportybet,
+  'apollo': extract_apollo,
+  'yellowbet': extract_yellowbet,
+  'betpawa': extract_betpawa,
+};
+
+function extractOdds(raw, bookKey) {
+  const fn = EXTRACTORS[bookKey];
+  if (!fn) return [];
+  try { return fn(raw); } catch (e) { return []; }
 }
 
 // Fonction generique pour recuperer les cotes brutes d'un match.
@@ -136,28 +224,20 @@ for (const entry of topEntries) {
     if (err) { console.log(`  ❌ ${err}`); continue; }
     if (skipped) { console.log(`  ⏭️ ${skipped}`); continue; }
     if (!raw) { console.log(`  ⚠️ raw vide`); continue; }
-    console.log(`  Top-level keys : ${keys.slice(0, 12).join(', ')}${keys.length > 12 ? '...' : ''}`);
-    const odds = extractOdds(raw);
-    // Dedupliquer par (name, odds) car certains books repetent
-    const uniq = new Map();
-    for (const o of odds) {
-      const k = `${o.name}|${o.odds}`;
-      if (!uniq.has(k)) uniq.set(k, o);
-    }
-    const all = [...uniq.values()];
-    console.log(`  📊 ${all.length} outcomes uniques trouves (${odds.length} bruts)`);
-    // Grouper par "premier mot" du name (heuristique : famille de marche)
+    console.log(`  Top-level keys : ${keys.slice(0, 10).join(', ')}${keys.length > 10 ? '...' : ''}`);
+    const odds = extractOdds(raw, key);
+    console.log(`  📊 ${odds.length} outcomes extraits`);
+    // Grouper par famille de marche
     const byFam = new Map();
-    for (const o of all) {
-      const fam = String(o.name).split(/[\s:]+/)[0].slice(0, 20);
-      if (!byFam.has(fam)) byFam.set(fam, []);
-      byFam.get(fam).push(o);
+    for (const o of odds) {
+      if (!byFam.has(o.market)) byFam.set(o.market, []);
+      byFam.get(o.market).push(o);
     }
     const fams = [...byFam.entries()].sort((a, b) => b[1].length - a[1].length);
-    console.log(`  🎯 Familles marches (top 25) :`);
-    for (const [fam, arr] of fams.slice(0, 25)) {
-      const sample = arr.slice(0, 3).map(o => `${o.name}@${o.odds.toFixed(2)}`).join(' | ');
-      console.log(`     ${fam.padEnd(22)} × ${String(arr.length).padStart(4)} : ${sample}`);
+    console.log(`  🎯 ${fams.length} marches distincts :`);
+    for (const [fam, arr] of fams.slice(0, 30)) {
+      const sample = arr.slice(0, 4).map(o => `${o.selection}@${o.odds.toFixed(2)}`).join(' | ');
+      console.log(`     ${fam.slice(0, 45).padEnd(45)} × ${String(arr.length).padStart(3)} : ${sample.slice(0, 100)}`);
     }
   }
 }
