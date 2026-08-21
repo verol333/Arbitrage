@@ -16,8 +16,10 @@ import { fetchMatchBts as ybFetchBts } from '../src/bookmakers/yellowbet/api.js'
 import { sbFetchEvent } from '../src/bookmakers/sportybet/api.js';
 import { apolloGet } from '../src/bookmakers/apollo/api.js';
 import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
+import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
+import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 
-const BOOKS = ['congobet', 'betpawa', 'sportybet', 'apollo'];  // 1xbet IDs opaques
+const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
 const TOP_MATCHES = 5;
 const MIN_PROFIT = 0.05; // 5% pour voir les plus rentables (on ajustera)
 const GRID = 8; // grille scores 0..7 pour home et away = 64 cellules
@@ -333,16 +335,92 @@ function extract_betpawa(raw) {
   return out;
 }
 
+const XBET_TYPE_NAMES = {
+  1: 'Home', 2: 'Draw', 3: 'Away',
+  4: '1X', 5: '12', 6: 'X2',
+  7: 'Home', 8: 'Away',
+  9: 'Over', 10: 'Under',
+  11: 'Over', 12: 'Under', 13: 'Over', 14: 'Under',
+  180: 'Yes', 181: 'No',
+  182: 'Even', 183: 'Odd',
+  703: 'Home', 704: 'Away',
+  923: 'Home', 924: 'Away', 925: 'No Goal',
+  1305: '1st Half', 1306: '2nd Half', 1307: 'Equal',
+};
+const XBET_GROUP_MAP = {
+  1: 'Match Result', 8: 'Double Chance', 17: 'Over/Under',
+  19: 'Both Teams To Score', 2: 'Handicap', 14: 'Odd/Even',
+  9: 'Draw No Bet', 169: 'First Team To Score',
+  15: 'Team 1 Total', 62: 'Team 2 Total', 445: 'Half With Most Goals',
+  11581: 'Match Result',
+};
+function extract_1xbet(raw) {
+  const out = [];
+  const GE = raw?.Value?.GE || [];
+  for (const ge of GE) {
+    const groupName = XBET_GROUP_MAP[ge.G] || ge.GN || `G${ge.G}`;
+    if (!ge.E) continue;
+    for (const sub of ge.E) {
+      for (const it of (Array.isArray(sub) ? sub : [sub])) {
+        if (it?.C == null) continue;
+        const c = parseFloat(it.C);
+        if (isNaN(c) || c <= 1) continue;
+        let sel = it.N || XBET_TYPE_NAMES[it.T] || `T${it.T}`;
+        if (it.P != null && (it.T === 9 || it.T === 10 || it.T === 11 || it.T === 12 || it.T === 13 || it.T === 14)) {
+          sel = `${sel} ${it.P}`;
+        }
+        if (it.P != null && (it.T === 7 || it.T === 8)) {
+          sel = `${sel} (${it.P > 0 ? '+' : ''}${it.P})`;
+        }
+        out.push({ market: groupName, selection: sel, odds: c });
+      }
+    }
+  }
+  // Subgames — score exact souvent dans sous-jeux
+  const SG = raw?.Value?.SG || [];
+  for (const sg of SG) {
+    const pn = (sg.PN || '').toLowerCase();
+    if (/score exact|correct score/i.test(pn)) {
+      // fetch would be needed — for now just flag
+      out.push({ market: 'Correct Score (subgame)', selection: 'NEEDS_FETCH', odds: 0 });
+    }
+  }
+  return out;
+}
+function extract_1win(raw) {
+  const out = [];
+  for (const [groupName, oddsList] of Object.entries(raw || {})) {
+    for (const o of oddsList || []) {
+      if (!o || o.status !== 1) continue;
+      const c = Number(o.cf);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: groupName, selection: String(o.name || o.outcome || '?'), odds: c });
+    }
+  }
+  return out;
+}
+
 async function fetchRawFor(bookKey, matchId) {
   try {
     if (bookKey === 'betpawa') return await bpFetchEvent(matchId, 15_000);
     if (bookKey === 'sportybet') return await sbFetchEvent(matchId, { live: false });
     if (bookKey === 'apollo') return await apolloGet(`/sport/offer/v3/match/offers?MatchId=${matchId}`);
     if (bookKey === 'congobet') return await congoJson(`${CONGO_API}events/${matchId}`);
+    if (bookKey === '1xbet') {
+      const url = `${FEED}/service-api/LineFeed/GetGameZip?id=${matchId}&lng=fr&isSubGames=true&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
+      return await viaWorker(url);
+    }
+    if (bookKey === '1win') {
+      const raw = await fetchOddsWS([matchId], { timeoutMs: 20000, quietMs: 3000 });
+      return raw.get(matchId) || raw.get(String(matchId)) || {};
+    }
   } catch { return null; }
   return null;
 }
-const EXTRACTORS = { sportybet: extract_sportybet, apollo: extract_apollo, congobet: extract_congobet, betpawa: extract_betpawa };
+const EXTRACTORS = {
+  sportybet: extract_sportybet, apollo: extract_apollo, congobet: extract_congobet,
+  betpawa: extract_betpawa, '1xbet': extract_1xbet, '1win': extract_1win,
+};
 
 // ─── Enumeration & solveur ─────────────────────────────────────────────────
 // Regroupe les outcomes par bitmask → { mask: { book: bestOdds } } puis {mask: [{book, odds}]}
