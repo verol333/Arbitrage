@@ -74,8 +74,15 @@ function trySplitCombined(market, selection) {
   let raw = selection.toLowerCase().replace(/\[[^\]]*\]/g, '').trim();
   const parts = raw.split(/\s*[&/]\s*|\s+-\s+|\s+and\s+/).map(x => x.trim()).filter(Boolean);
   if (parts.length < 2) return null;
+  // Extract line from market name brackets (e.g., "Double Chance and Totals - FT [1.5]" → 1.5)
+  const marketLineMatch = market.match(/\[\s*([\d.]+)\s*\]/);
+  const marketLine = marketLineMatch ? marketLineMatch[1] : null;
   const masks = [];
-  for (const part of parts) {
+  for (let part of parts) {
+    // Bare "over"/"under" without a number — append line from market name
+    if (marketLine && /^(over|under|plus|moins)$/i.test(part)) {
+      part = part + ' ' + marketLine;
+    }
     const mm = classifyPart(part);
     if (mm == null) return null;
     masks.push(mm);
