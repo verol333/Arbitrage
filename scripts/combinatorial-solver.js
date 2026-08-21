@@ -194,7 +194,33 @@ function isSupportedMarket(m) {
 }
 
 const _skippedMarkets = new Set();
-function classifyOutcome({ market, selection, odds }) {
+function teamMatchScore(market, team) {
+  if (!team) return 0;
+  const ml = market.toLowerCase();
+  const words = team.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+  if (words.length === 0) return 0;
+  let matched = 0;
+  for (const w of words) if (ml.includes(w)) matched++;
+  return matched / words.length;
+}
+
+function isAwayTeamInMarket(market, homeTeam, awayTeam) {
+  if (!homeTeam || !awayTeam) return false;
+  const homeScore = teamMatchScore(market, homeTeam);
+  const awayScore = teamMatchScore(market, awayTeam);
+  if (awayScore >= 0.5 && awayScore > homeScore) return true;
+  return false;
+}
+
+function isHomeTeamInMarket(market, homeTeam, awayTeam) {
+  if (!homeTeam || !awayTeam) return false;
+  const homeScore = teamMatchScore(market, homeTeam);
+  const awayScore = teamMatchScore(market, awayTeam);
+  if (homeScore >= 0.5 && homeScore > awayScore) return true;
+  return false;
+}
+
+function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   const m = String(market).toLowerCase();
   const s = String(selection).toLowerCase();
 
@@ -210,6 +236,7 @@ function classifyOutcome({ market, selection, odds }) {
   // Skip les marches HT-only (pas classifiables sans le score MT)
   if (/1[eè]re mi[- ]?temps|1st half|2nd half|2[eè]me mi[- ]?temps|halftime\/fulltime|halftime|halftime\s*correct/i.test(m)) return null;
   if (/^1\. halftime|^2\. halftime|1st half|2nd half|ht\/ft|hi-temps|mi-temps|résultat mi-temps|mi temps|premi[eè]re|deuxi[eè]me/i.test(m)) return null;
+  if (/- [12]h\b/i.test(m)) return null;
   if (/goalnr|xth goal|minsnr|match result after|when.*first goal|quand.*premier/i.test(m)) return null;
   if (/corner|carton|card|shot|foul|offside|throw/i.test(m)) return null;
   if (/first to score|first team|first goal|premier but|1er but/i.test(m)) return null;
@@ -353,7 +380,11 @@ function classifyOutcome({ market, selection, odds }) {
   }
 
   // ─ Team totals Home (Team 1 Total [X.Y] / nombre de buts de HOME / total score O/U home)
-  const isHomeTotal = /team 1 total|total score over\/under - ft - home team|nombre de buts de\s|total de buts de\s/i.test(m)
+  const hasFrenchTeamTotal = /nombre de buts de\s|total de buts de\s/i.test(m);
+  const teamTotalIsAway = hasFrenchTeamTotal
+    ? (/away|ext[eé]rieur|team 2/i.test(m) || isAwayTeamInMarket(m, homeTeam, awayTeam))
+    : false;
+  const isHomeTotal = (!teamTotalIsAway && (hasFrenchTeamTotal || /team 1 total|total score over\/under - ft - home team/i.test(m)))
     && !/away|ext[eé]rieur|team 2/i.test(m);
   if (isHomeTotal) {
     let line = NaN;
@@ -368,7 +399,7 @@ function classifyOutcome({ market, selection, odds }) {
   }
   // ─ Team totals Away (Team 2 Total [X.Y] / nombre de buts de AWAY)
   const isAwayTotal = /team 2 total|total score over\/under - ft - away team/i.test(m)
-    || (/nombre de buts de\s|total de buts de\s/i.test(m) && /away|ext[eé]rieur|team 2/i.test(m));
+    || teamTotalIsAway;
   if (isAwayTotal) {
     let line = NaN;
     const lm = m.match(/\[\s*([\d.]+)\s*\]/);
@@ -382,12 +413,16 @@ function classifyOutcome({ market, selection, odds }) {
   }
   // ─ Exact team goals (CongoBet: "nombre exact de buts inscrits par X")
   if (/nombre exact de buts inscrits par/i.test(m)) {
+    const isAway = isAwayTeamInMarket(m, homeTeam, awayTeam);
     const nMatch = s.match(/^(\d+)$/);
     if (nMatch) {
       const n = parseInt(nMatch[1]);
-      return maskFromPredicate((h,_a) => h === n);
+      return isAway ? maskFromPredicate((_h,a) => a === n) : maskFromPredicate((h,_a) => h === n);
     }
-    if (/^(\d+)\+$/.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,_a) => h >= n); }
+    if (/^(\d+)\+$/.test(s)) {
+      const n = parseInt(RegExp.$1);
+      return isAway ? maskFromPredicate((_h,a) => a >= n) : maskFromPredicate((h,_a) => h >= n);
+    }
     return null;
   }
 
@@ -408,8 +443,27 @@ function classifyOutcome({ market, selection, odds }) {
 
   // ─ Clean Sheet / Win to Nil (exclude combined markets with " ou " — those are different markets)
   if (/to win to nil|gagne sans encaisser|clean sheet|n'encaisse pas de but/i.test(m) && !/ ou /i.test(m)) {
-    if (/home|1|oui/i.test(s) && /home|domicile/i.test(m)) return maskFromPredicate((h,a) => h > 0 && a === 0);
-    if (/away|2|oui/i.test(s) && /away|ext/i.test(m)) return maskFromPredicate((h,a) => a > 0 && h === 0);
+    if (/home|domicile/i.test(m)) {
+      if (/yes|oui|^1$/i.test(s)) return maskFromPredicate((h,a) => h > 0 && a === 0);
+      if (/no|non|^2$/i.test(s)) return maskFromPredicate((h,a) => !(h > 0 && a === 0));
+      return null;
+    }
+    if (/away|ext[eé]rieur/i.test(m)) {
+      if (/yes|oui|^1$/i.test(s)) return maskFromPredicate((h,a) => a > 0 && h === 0);
+      if (/no|non|^2$/i.test(s)) return maskFromPredicate((h,a) => !(a > 0 && h === 0));
+      return null;
+    }
+    const awayInMarket = isAwayTeamInMarket(m, homeTeam, awayTeam);
+    if (awayInMarket) {
+      if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => a > 0 && h === 0);
+      if (/no|non/i.test(s)) return maskFromPredicate((h,a) => !(a > 0 && h === 0));
+      return null;
+    }
+    if (isHomeTeamInMarket(m, homeTeam, awayTeam)) {
+      if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => h > 0 && a === 0);
+      if (/no|non/i.test(s)) return maskFromPredicate((h,a) => !(h > 0 && a === 0));
+      return null;
+    }
     if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => (h > 0 && a === 0) || (a > 0 && h === 0));
     if (/no|non/i.test(s)) return maskFromPredicate((h,a) => !((h > 0 && a === 0) || (a > 0 && h === 0)));
     if (/^home$|^1$/i.test(s)) return maskFromPredicate((h,a) => h > 0 && a === 0);
@@ -729,7 +783,7 @@ for (const entry of top) {
     if (!EXTRACTORS[book]) continue;
     const raw = await fetchRawFor(book, m.id);
     if (!raw) { console.log(`  [${book}] raw KO`); continue; }
-    const bookOuts = (await extractWithSubgames(book, raw)).map(o => ({ ...o, book }));
+    const bookOuts = (await extractWithSubgames(book, raw)).map(o => ({ ...o, book, homeTeam: entry.ref.home, awayTeam: entry.ref.away }));
     console.log(`  [${book}] ${bookOuts.length} outcomes`);
     outcomes.push(...bookOuts);
   }
