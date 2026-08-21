@@ -406,8 +406,8 @@ function classifyOutcome({ market, selection, odds }) {
     return null;
   }
 
-  // ─ Clean Sheet / Win to Nil
-  if (/to win to nil|gagne sans encaisser|clean sheet|n'encaisse pas de but/i.test(m)) {
+  // ─ Clean Sheet / Win to Nil (exclude combined markets with " ou " — those are different markets)
+  if (/to win to nil|gagne sans encaisser|clean sheet|n'encaisse pas de but/i.test(m) && !/ ou /i.test(m)) {
     if (/home|1|oui/i.test(s) && /home|domicile/i.test(m)) return maskFromPredicate((h,a) => h > 0 && a === 0);
     if (/away|2|oui/i.test(s) && /away|ext/i.test(m)) return maskFromPredicate((h,a) => a > 0 && h === 0);
     if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => (h > 0 && a === 0) || (a > 0 && h === 0));
