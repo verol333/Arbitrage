@@ -12,7 +12,7 @@ import { bpFetchEvent } from '../src/bookmakers/betpawa/api.js';
 import { fetchMatchBts as ybFetchBts, evapi as yellowbetGet } from '../src/bookmakers/yellowbet/api.js';
 import { sbFetchEvent } from '../src/bookmakers/sportybet/api.js';
 import { apolloGet } from '../src/bookmakers/apollo/api.js';
-import { evapi as congobetGet } from '../src/bookmakers/congobet/api.js';
+import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
 
 const BOOKS = ['1xbet', '1win', 'congobet', 'betpawa', 'yellowbet', 'sportybet', 'apollo'];
 // Cherche ces matchs (grands matchs Champions League / MLS ce soir)
@@ -68,7 +68,7 @@ async function rawMarketsFor(bookKey, matchId) {
       return { raw: j, keys: Object.keys(j || {}) };
     }
     if (bookKey === 'congobet') {
-      const j = await congobetGet(`https://congobet.cg/services/evapi/event/GetEventDetails?id=${matchId}`);
+      const j = await congoJson(`${CONGO_API}events/${matchId}`);
       return { raw: j, keys: Object.keys(j || {}) };
     }
     if (bookKey === '1xbet') {
