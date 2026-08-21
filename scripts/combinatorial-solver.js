@@ -241,6 +241,27 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   if (/multiscores/i.test(m)) return null; // trop complexes a parser (1:0, 2:0 or 3:0)
   if (/goal bounds/i.test(m)) return null; // ambigu (parfois home only, parfois away)
 
+  // ─ Winning Margin (SportyBet, Congobet, BetPawa) — AVANT trySplitCombined
+  // car les selections "2 / >2" seraient mal interpretees par classifyPart
+  // qui lirait ">2" comme "total > 2" au lieu de "marge > 2"
+  if (/winning margin|marge du vainqueur|ecart entre [eé]quipes|ecart de buts/i.test(m)) {
+    if (/home by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a === n); }
+    if (/home by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a >= n); }
+    if (/away by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h === n); }
+    if (/away by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h >= n); }
+    if (/match nul|draw/i.test(s)) return maskFromPredicate((h,a) => h === a);
+    const frMatch = s.match(/^([12x])\s*\/\s*([><=])\s*(\d+)$/i);
+    if (frMatch) {
+      const [, side, op, nStr] = frMatch;
+      const n = parseInt(nStr);
+      const diff = (h, a) => side === '1' ? h - a : (side === '2' ? a - h : 0);
+      if (op === '>') return maskFromPredicate((h,a) => diff(h,a) > n);
+      if (op === '=') return maskFromPredicate((h,a) => diff(h,a) === n);
+      if (op === '<') return maskFromPredicate((h,a) => diff(h,a) < n);
+    }
+    return null;
+  }
+
   // FIX #1 : marches COMBINES (X & Y, X/Y) — decompose et intersect les masks
   const combined = trySplitCombined(m, s);
   if (combined) return combined;
@@ -321,26 +342,6 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     }
     const plusMatch = s.match(/^(\d+)\+$/);
     if (plusMatch) return maskFromPredicate((h,a) => goalFn(h,a) >= parseInt(plusMatch[1]));
-    return null;
-  }
-
-  // ─ Winning Margin (SportyBet, Congobet, BetPawa)
-  if (/winning margin|marge du vainqueur|ecart entre [eé]quipes|ecart de buts/i.test(m)) {
-    if (/home by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a === n); }
-    if (/home by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a >= n); }
-    if (/away by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h === n); }
-    if (/away by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h >= n); }
-    if (/match nul|draw/i.test(s)) return maskFromPredicate((h,a) => h === a);
-    // Formats FR : "1 / >2" = home wins by more than 2, "1 / =1" = home wins by exactly 1
-    const frMatch = s.match(/^([12x])\s*\/\s*([><=])\s*(\d+)$/i);
-    if (frMatch) {
-      const [, side, op, nStr] = frMatch;
-      const n = parseInt(nStr);
-      const diff = (h, a) => side === '1' ? h - a : (side === '2' ? a - h : 0);
-      if (op === '>') return maskFromPredicate((h,a) => diff(h,a) > n);
-      if (op === '=') return maskFromPredicate((h,a) => diff(h,a) === n);
-      if (op === '<') return maskFromPredicate((h,a) => diff(h,a) < n);
-    }
     return null;
   }
 
