@@ -61,19 +61,7 @@ const PATTERNS = [
   { name: 'G1_H2_Hcp_+1.5', family: 'G', slots: ['h2_hcp_home_1.5', 'h2_hcp_away_-1.5'] },
 
   // === Famille H : Team Totals complémentaires ===
-  // Home O/U X.5 = 2-way partition sur h uniquement. Pour couvrir tout (h,a),
-  // on cross-produit avec Away O/U. Pattern 4-way:
-  { name: 'H1_TT_home_away_0.5', family: 'H',
-    slots4way: {
-      tt_home_under_0.5: 'h=0',
-      tt_home_over_0.5: 'h>=1',
-      tt_away_under_0.5: 'a=0',
-      tt_away_over_0.5: 'a>=1',
-    },
-    // Ces 4 slots ne sont pas mutuellement exclusifs. On les traite en 2 patterns 2-way :
-    slots: ['tt_home_over_0.5', 'tt_home_under_0.5'],
-  },
-  // Chaque Team O/U seul = 2-way arb sur les buts d'UNE équipe (impartition tot).
+  // Chaque Team O/U seul = 2-way arb sur les buts d'UNE équipe uniquement.
   { name: 'H1a_TThome_0.5', family: 'H', slots: ['tt_home_over_0.5', 'tt_home_under_0.5'] },
   { name: 'H1a_TThome_1.5', family: 'H', slots: ['tt_home_over_1.5', 'tt_home_under_1.5'] },
   { name: 'H1a_TThome_2.5', family: 'H', slots: ['tt_home_over_2.5', 'tt_home_under_2.5'] },
