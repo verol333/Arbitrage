@@ -107,12 +107,14 @@ const WHITELIST_MARKETS = [
   /^over\/under$/,
   /^total goals$/,
   /^total goals \[[\d.]+\]$/,
+  /^total$/,
   /^nombre de buts$/,
   /^multigoals?$/,
   /^winning margin$/,
   /^marge du vainqueur$/,
   /^ecart entre [eé]quipes$/,
   /^ecart de buts$/,
+  /^handicap$/,
   /^handicap goals\s+\d+:\d+$/,
   /^handicap goals \[-?[\d.]+\]$/,
   /^handicap europ[eé]en$/,
@@ -123,6 +125,13 @@ const WHITELIST_MARKETS = [
   /^matchbet and totals \[[\d.]+\]$/,
   /^1x2 \& over\/under$/,
   /^double chance \& total$/,
+  /^full time result$/,
+  /^full time result \(regular time\)$/,
+  /^result$/,
+  /^match winner$/,
+  /^double chance \(regular time\)$/,
+  /^draw no bet$/,
+  /^odd\/even$/,
 ];
 function isSupportedMarket(m) {
   return WHITELIST_MARKETS.some(re => re.test(m));
@@ -167,11 +176,11 @@ function classifyOutcome({ market, selection, odds }) {
   if (/^1x2$|^basic offer$|^match result$|nombre de buts.*(r[eé]sultat|match)/i.test(m) === false) {
     // Fallback : par nom de selection pur pour 1X2
   }
-  const isBasic1x2 = /^(1x2|basic offer|match result)$/i.test(m);
+  const isBasic1x2 = /^(1x2|basic offer|match result|full time result|full time result \(regular time\)|result|match winner)$/i.test(m);
   if (isBasic1x2) {
-    if (/^(home|1)$/i.test(s)) return maskFromPredicate((h,a) => h > a);
+    if (/^(home|1|w1)$/i.test(s)) return maskFromPredicate((h,a) => h > a);
     if (/^(draw|x)$/i.test(s)) return maskFromPredicate((h,a) => h === a);
-    if (/^(away|2)$/i.test(s)) return maskFromPredicate((h,a) => a > h);
+    if (/^(away|2|w2)$/i.test(s)) return maskFromPredicate((h,a) => a > h);
     return null;
   }
 
@@ -191,8 +200,8 @@ function classifyOutcome({ market, selection, odds }) {
   }
 
   // ─ Over/Under totaux match (Total goals X.Y ou Over/Under X.Y)
-  const totalLineMatch = m.match(/(?:total goals?|nombre de buts|over\/under)\s*\[?([\d.]+)\]?/i);
-  if (totalLineMatch || /^over\/under$|^nombre de buts$|^total goals$/.test(m)) {
+  const totalLineMatch = m.match(/(?:total goals?|nombre de buts|over\/under|^total)\s*\[?([\d.]+)\]?/i);
+  if (totalLineMatch || /^over\/under$|^nombre de buts$|^total goals$|^total$/.test(m)) {
     // Chercher line dans market OU dans selection
     let line = totalLineMatch ? parseFloat(totalLineMatch[1]) : NaN;
     if (isNaN(line)) {
@@ -250,12 +259,21 @@ function classifyOutcome({ market, selection, odds }) {
     return null;
   }
 
-  // ─ Asian Handicap (line ±X.5 ou ±X) via [Y] dans market
-  const ahMatch = m.match(/handicap\s*goals?\s*\[\s*(-?[\d.]+)\s*\]/i);
+  // ─ Asian Handicap (line ±X.5 ou ±X) via [Y] dans market ou handicap nu (1win)
+  const ahMatch = m.match(/handicap\s*(?:goals?)?\s*\[\s*(-?[\d.]+)\s*\]/i);
   if (ahMatch) {
     const line = parseFloat(ahMatch[1]);
     if (/^1|home/i.test(s)) return maskFromPredicate((h,a) => (h + line) > a);
-    if (/^2|away/i.test(s)) return maskFromPredicate((h,a) => (a + Math.abs(line)) > h); // convention ambigue
+    if (/^2|away/i.test(s)) return maskFromPredicate((h,a) => (a + Math.abs(line)) > h);
+    return null;
+  }
+  if (/^handicap$/i.test(m)) {
+    const lineMatch = s.match(/(-?\d+(?:\.\d+)?)/);
+    if (lineMatch) {
+      const line = parseFloat(lineMatch[1]);
+      if (/^1|home|w1/i.test(s) || s.indexOf('-') === -1) return maskFromPredicate((h,a) => (h + line) > a);
+      if (/^2|away|w2/i.test(s)) return maskFromPredicate((h,a) => (a + Math.abs(line)) > h);
+    }
     return null;
   }
 
@@ -324,11 +342,12 @@ function extract_betpawa(raw) {
   for (const mk of raw?.markets || []) {
     const marketName = mk.marketType?.name || mk.name || `m${mk.id}`;
     for (const row of (mk.row || [])) {
-      const suffix = row.name && row.name !== marketName ? ` — ${row.name}` : '';
+      const spec = row?.specifier || {};
+      const lineSuffix = spec.total ? ` [${spec.total}]` : (spec.hcp ? ` [${spec.hcp}]` : '');
       for (const p of (row.prices || [])) {
-        const c = parseFloat(p.price);
+        const c = parseFloat(p.odds);
         if (isNaN(c) || c <= 1) continue;
-        out.push({ market: `${marketName}${suffix}`, selection: String(p.name || '?'), odds: c });
+        out.push({ market: `${marketName}${lineSuffix}`, selection: String(p.name || p.displayName || '?'), odds: c });
       }
     }
   }
@@ -376,14 +395,32 @@ function extract_1xbet(raw) {
       }
     }
   }
-  // Subgames — score exact souvent dans sous-jeux
+  return out;
+}
+async function fetch1xbetSubgames(raw) {
+  const out = [];
   const SG = raw?.Value?.SG || [];
   for (const sg of SG) {
     const pn = (sg.PN || '').toLowerCase();
-    if (/score exact|correct score/i.test(pn)) {
-      // fetch would be needed — for now just flag
-      out.push({ market: 'Correct Score (subgame)', selection: 'NEEDS_FETCH', odds: 0 });
-    }
+    if (!/score exact|correct score/i.test(pn)) continue;
+    const sid = sg.I;
+    if (!sid) continue;
+    try {
+      const sd = await viaWorker(`${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`);
+      const GEsub = sd?.Value?.GE || [];
+      for (const ge of GEsub) {
+        if (!ge.E) continue;
+        for (const sub of ge.E) {
+          for (const it of (Array.isArray(sub) ? sub : [sub])) {
+            if (it?.C == null) continue;
+            const c = parseFloat(it.C);
+            if (isNaN(c) || c <= 1) continue;
+            const sel = it.N || `${it.T}`;
+            out.push({ market: 'Correct Score', selection: sel, odds: c });
+          }
+        }
+      }
+    } catch {}
   }
   return out;
 }
@@ -421,6 +458,14 @@ const EXTRACTORS = {
   sportybet: extract_sportybet, apollo: extract_apollo, congobet: extract_congobet,
   betpawa: extract_betpawa, '1xbet': extract_1xbet, '1win': extract_1win,
 };
+async function extractWithSubgames(bookKey, raw) {
+  const base = EXTRACTORS[bookKey] ? EXTRACTORS[bookKey](raw) : [];
+  if (bookKey === '1xbet') {
+    const sgOuts = await fetch1xbetSubgames(raw);
+    base.push(...sgOuts);
+  }
+  return base;
+}
 
 // ─── Enumeration & solveur ─────────────────────────────────────────────────
 // Regroupe les outcomes par bitmask → { mask: { book: bestOdds } } puis {mask: [{book, odds}]}
@@ -495,7 +540,10 @@ function findCoverageSets(items, minProfit) {
       }
     }
   }
-  return opps;
+  return opps.filter(o => {
+    const books = new Set(o.picks.map(p => p.book));
+    return books.size >= 2;
+  });
 }
 
 function popcount(bi) {
@@ -538,7 +586,7 @@ for (const entry of top) {
     if (!EXTRACTORS[book]) continue;
     const raw = await fetchRawFor(book, m.id);
     if (!raw) { console.log(`  [${book}] raw KO`); continue; }
-    const bookOuts = EXTRACTORS[book](raw).map(o => ({ ...o, book }));
+    const bookOuts = (await extractWithSubgames(book, raw)).map(o => ({ ...o, book }));
     console.log(`  [${book}] ${bookOuts.length} outcomes`);
     outcomes.push(...bookOuts);
   }
