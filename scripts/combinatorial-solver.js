@@ -308,15 +308,22 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
 
   // ─ Multigoals (SportyBet, Apollo, Congobet, BetPawa)
   if (/multigoal/i.test(m)) {
-    if (/^0$/.test(s)) return cellBit(0, 0);
+    const mgHome = /home|domicile/i.test(m);
+    const mgAway = /away|ext[eé]rieur/i.test(m);
+    const goalFn = mgHome ? (h,_a) => h : (mgAway ? (_h,a) => a : (h,a) => h + a);
+    if (/^0$/.test(s)) {
+      if (mgHome) return maskFromPredicate((h,_a) => h === 0);
+      if (mgAway) return maskFromPredicate((_h,a) => a === 0);
+      return cellBit(0, 0);
+    }
     const rangeMatch = s.match(/^(\d+)\s*[-–]\s*(\d+)$/);
     if (rangeMatch) {
       const lo = parseInt(rangeMatch[1]);
       const hi = parseInt(rangeMatch[2]);
-      return maskFromPredicate((h,a) => (h + a) >= lo && (h + a) <= hi);
+      return maskFromPredicate((h,a) => goalFn(h,a) >= lo && goalFn(h,a) <= hi);
     }
     const plusMatch = s.match(/^(\d+)\+$/);
-    if (plusMatch) return maskFromPredicate((h,a) => (h + a) >= parseInt(plusMatch[1]));
+    if (plusMatch) return maskFromPredicate((h,a) => goalFn(h,a) >= parseInt(plusMatch[1]));
     return null;
   }
 
