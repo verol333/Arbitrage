@@ -85,12 +85,56 @@ function trySplitCombined(market, selection) {
 
 // ─── Classification d'un outcome en bitmask ────────────────────────────────
 // Retourne le bitmask ou null si l'outcome n'est pas classifiable (HT-based, corners, cards, etc.)
+// WHITELIST stricte des marches supportes. Tout marche non dans cette liste
+// est skippe pour eviter les faux positifs sur des marches exotiques
+// (ex: "Away Team Or GG/NG", "GG/NG 2+", "Matchbet + BTTS" combines complexes).
+const WHITELIST_MARKETS = [
+  /^correct score$/,
+  /^score exact$/,
+  /^score$/,
+  /^1x2$/,
+  /^basic offer$/,
+  /^match result$/,
+  /^double chance$/,
+  /^double chance \(match\)$/,
+  /^both teams to score$/,
+  /^btts$/,
+  /^les deux [eé]quipes marquent$/,
+  /^gg\/ng$/,
+  /^goal\/no goal$/,
+  /^over\/under$/,
+  /^total goals$/,
+  /^total goals \[[\d.]+\]$/,
+  /^nombre de buts$/,
+  /^multigoals?$/,
+  /^winning margin$/,
+  /^marge du vainqueur$/,
+  /^ecart entre [eé]quipes$/,
+  /^ecart de buts$/,
+  /^handicap goals\s+\d+:\d+$/,
+  /^handicap goals \[-?[\d.]+\]$/,
+  /^handicap europ[eé]en$/,
+  /^nombre exact de buts$/,
+  /^exact goals$/,
+  /^r[eé]sultat du match et nombre de buts$/,
+  /^double chance et nombre de buts$/,
+  /^matchbet and totals \[[\d.]+\]$/,
+  /^1x2 \& over\/under$/,
+  /^double chance \& total$/,
+];
+function isSupportedMarket(m) {
+  return WHITELIST_MARKETS.some(re => re.test(m));
+}
+
 function classifyOutcome({ market, selection, odds }) {
   const m = String(market).toLowerCase();
   const s = String(selection).toLowerCase();
 
-  // FIX #2 : filtre cotes phantom (rarement placables au montant reel)
-  if (odds >= 50) return null;
+  // FIX #2 : filtre cotes phantom
+  if (odds >= 40) return null;
+
+  // FIX #4 : whitelist stricte — skip tout marche non explicitement supporte
+  if (!isSupportedMarket(m)) return null;
 
   // Skip les marches HT-only (pas classifiables sans le score MT)
   if (/1[eè]re mi[- ]?temps|1st half|2nd half|2[eè]me mi[- ]?temps|halftime\/fulltime|halftime|halftime\s*correct/i.test(m)) return null;
