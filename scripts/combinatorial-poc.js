@@ -7,9 +7,10 @@
 import { bookmakersByKey } from '../src/bookmakers/index.js';
 import { alignCatalogs } from '../src/core/matching.js';
 
-const BOOKS = ['xbet', 'onewin', 'congobet', 'betpawa', 'yellowbet', 'sportybet', 'apollo'];
+const BOOKS = ['1xbet', '1win', 'congobet', 'betpawa', 'yellowbet', 'sportybet', 'apollo'];
 const MIN_PROFIT = 0.10; // seuil 10%
 const SAMPLE_MATCHES_MAX = 200; // limite pour tenir dans 15 min
+const DEBUG_KEYS = true; // dump les 30 premieres cles par book sur 1 match
 
 // ─── Coverage patterns ────────────────────────────────────────────────────
 // Chaque pattern definit un set de "slots" ; chaque slot exige une cle-marche
@@ -138,6 +139,25 @@ console.log(`  Sample : ${sample.length}\n`);
 console.log('── Phase 3 : fetch cotes ──');
 const perMatch = await fetchOddsForAligned(sample, catalogs);
 console.log('');
+
+// 3bis. DEBUG : dump les cles emises par chaque book sur le 1er match avec le max de books
+if (DEBUG_KEYS) {
+  console.log('── Phase 3bis : dump cles par book (debug) ──');
+  let bestMatch = null;
+  let bestBookCount = 0;
+  for (const [uidKey, data] of perMatch) {
+    const bookCount = Object.values(data.books).filter((b) => b.odds && Object.keys(b.odds).length > 0).length;
+    if (bookCount > bestBookCount) { bestBookCount = bookCount; bestMatch = data; }
+  }
+  if (bestMatch) {
+    console.log(`  Match sample : ${bestMatch.home} vs ${bestMatch.away} (${bestBookCount} books avec cotes)`);
+    for (const [bookKey, bd] of Object.entries(bestMatch.books)) {
+      const keys = bd.odds ? Object.keys(bd.odds).filter((k) => !k.startsWith('_')).sort() : [];
+      console.log(`  [${bookKey}] ${keys.length} keys : ${keys.slice(0, 30).join(', ')}${keys.length > 30 ? '...' : ''}`);
+    }
+    console.log('');
+  }
+}
 
 // 4. Application patterns
 console.log('── Phase 4 : evaluation patterns ──');
