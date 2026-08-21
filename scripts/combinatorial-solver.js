@@ -1,0 +1,404 @@
+#!/usr/bin/env node
+// SOLVEUR COMBINATOIRE : cherche des coverage sets multi-books multi-marches
+// qui garantissent un profit >= seuil, en exploitant les marches exotiques
+// (Correct Score, Winning Margin, Ecart de buts, HT/FT, Multigoals).
+//
+// Approche :
+//  1. Fetch raw data pour top N matchs populaires (congobet, sportybet, apollo)
+//  2. Extract tous les outcomes normalises {market, selection, odds, book}
+//  3. Encode chaque outcome vers un bitmask de scores gagnants (grille 10x10 = 100 bits)
+//  4. Pour chaque match, evalue les PATTERNS predefinis + enumeration limitee
+//  5. Reporte les opps triees par profit descendant
+import { bookmakersByKey } from '../src/bookmakers/index.js';
+import { alignCatalogs } from '../src/core/matching.js';
+import { bpFetchEvent } from '../src/bookmakers/betpawa/api.js';
+import { fetchMatchBts as ybFetchBts } from '../src/bookmakers/yellowbet/api.js';
+import { sbFetchEvent } from '../src/bookmakers/sportybet/api.js';
+import { apolloGet } from '../src/bookmakers/apollo/api.js';
+import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
+
+const BOOKS = ['congobet', 'betpawa', 'sportybet', 'apollo'];  // 1xbet IDs opaques
+const TOP_MATCHES = 5;
+const MIN_PROFIT = 0.05; // 5% pour voir les plus rentables (on ajustera)
+const GRID = 8; // grille scores 0..7 pour home et away = 64 cellules
+const OVERFLOW_BIT = GRID * GRID; // bit 64 : "score au dela de la grille"
+
+// ─── Score coverage : chaque outcome → bitmask sur 65 bits ────────────────
+// Cellule (h, a) = bit index h*GRID + a. Bit OVERFLOW_BIT (64) = tout score
+// h ≥ GRID ou a ≥ GRID.
+const ALL_CELLS_MASK = ((1n << BigInt(OVERFLOW_BIT + 1)) - 1n);
+
+function cellBit(h, a) {
+  if (h >= GRID || a >= GRID) return 1n << BigInt(OVERFLOW_BIT);
+  return 1n << BigInt(h * GRID + a);
+}
+
+// Construit une mask a partir d'un predicat (h,a) → bool
+function maskFromPredicate(pred) {
+  let m = 0n;
+  for (let h = 0; h < GRID; h++) for (let a = 0; a < GRID; a++) {
+    if (pred(h, a)) m |= cellBit(h, a);
+  }
+  // Overflow : on l'inclut si le predicat est vrai pour au moins un score "grand"
+  if (pred(GRID, 0) || pred(0, GRID) || pred(GRID, GRID)) {
+    m |= 1n << BigInt(OVERFLOW_BIT);
+  }
+  return m;
+}
+
+// ─── Classification d'un outcome en bitmask ────────────────────────────────
+// Retourne le bitmask ou null si l'outcome n'est pas classifiable (HT-based, corners, cards, etc.)
+function classifyOutcome({ market, selection }) {
+  const m = String(market).toLowerCase();
+  const s = String(selection).toLowerCase();
+
+  // Skip les marches HT-only (pas classifiables sans le score MT)
+  if (/1[eè]re mi[- ]?temps|1st half|2nd half|2[eè]me mi[- ]?temps|halftime\/fulltime|halftime|halftime\s*correct/i.test(m)) return null;
+  if (/goalnr|xth goal|minsnr|match result after/i.test(m)) return null;
+  if (/corner|carton|card|shot|foul|offside|throw/i.test(m)) return null;
+  if (/first to score|first team|first goal|premier but|1er but/i.test(m)) return null;
+  if (/half time with more|halftime with more|mi-temps.*plus|excluded goals/i.test(m)) return null;
+
+  // ─ Correct Score (m == "correct score" ou "score exact" ou "score:")
+  if (/correct score$|score exact$|^score$/i.test(m) || m === 'score exact') {
+    const mm = s.match(/^(\d+)\s*[:\-]\s*(\d+)$/);
+    if (mm) return cellBit(parseInt(mm[1]), parseInt(mm[2]));
+    // "Any Other Home Win" etc.
+    if (/any other home|autre score victoire domicile/i.test(s)) return maskFromPredicate((h,a) => h > a && (h >= 4 || a >= 3)); // au-dela
+    if (/any other away|autre score victoire ext/i.test(s)) return maskFromPredicate((h,a) => a > h && (a >= 4 || h >= 3));
+    if (/any other draw|autre score nul/i.test(s)) return maskFromPredicate((h,a) => h === a && h >= 3);
+    return null;
+  }
+
+  // ─ 1X2 Basic / Match Result
+  if (/^1x2$|^basic offer$|^match result$|nombre de buts.*(r[eé]sultat|match)/i.test(m) === false) {
+    // Fallback : par nom de selection pur pour 1X2
+  }
+  const isBasic1x2 = /^(1x2|basic offer|match result)$/i.test(m);
+  if (isBasic1x2) {
+    if (/^(home|1)$/i.test(s)) return maskFromPredicate((h,a) => h > a);
+    if (/^(draw|x)$/i.test(s)) return maskFromPredicate((h,a) => h === a);
+    if (/^(away|2)$/i.test(s)) return maskFromPredicate((h,a) => a > h);
+    return null;
+  }
+
+  // ─ Double Chance
+  if (/double chance$|double chance \(match\)$/i.test(m) || m === 'double chance') {
+    if (/1x|home\/draw|home or draw/i.test(s)) return maskFromPredicate((h,a) => h >= a);
+    if (/x2|draw\/away|draw or away/i.test(s)) return maskFromPredicate((h,a) => a >= h);
+    if (/12|home\/away|home or away/i.test(s)) return maskFromPredicate((h,a) => h !== a);
+    return null;
+  }
+
+  // ─ BTTS (both teams to score)
+  if (/both teams to score$|btts$|les deux [eé]quipes marquent$|gg\/ng/i.test(m)) {
+    if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
+    if (/no|non/i.test(s)) return maskFromPredicate((h,a) => h === 0 || a === 0);
+    return null;
+  }
+
+  // ─ Over/Under totaux match (Total goals X.Y ou Over/Under X.Y)
+  const totalLineMatch = m.match(/(?:total goals?|nombre de buts|over\/under)\s*\[?([\d.]+)\]?/i);
+  if (totalLineMatch || /^over\/under$|^nombre de buts$|^total goals$/.test(m)) {
+    // Chercher line dans market OU dans selection
+    let line = totalLineMatch ? parseFloat(totalLineMatch[1]) : NaN;
+    if (isNaN(line)) {
+      const selLine = s.match(/(?:over|under|plus|moins|>|<)\s*(?:de\s*)?([\d.]+)/i);
+      if (selLine) line = parseFloat(selLine[1]);
+    }
+    if (!isNaN(line)) {
+      if (/over|plus|>/i.test(s)) return maskFromPredicate((h,a) => (h + a) > line);
+      if (/under|moins|</i.test(s)) return maskFromPredicate((h,a) => (h + a) < line);
+    }
+    return null;
+  }
+
+  // ─ Multigoals (SportyBet, Apollo, Congobet)
+  if (/^multigoals$/i.test(m) || /multigoal/i.test(m)) {
+    if (/^0$/.test(s)) return cellBit(0, 0);
+    const rangeMatch = s.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+    if (rangeMatch) {
+      const lo = parseInt(rangeMatch[1]);
+      const hi = parseInt(rangeMatch[2]);
+      return maskFromPredicate((h,a) => (h + a) >= lo && (h + a) <= hi);
+    }
+    const plusMatch = s.match(/^(\d+)\+$/);
+    if (plusMatch) return maskFromPredicate((h,a) => (h + a) >= parseInt(plusMatch[1]));
+    return null;
+  }
+
+  // ─ Winning Margin (SportyBet, Congobet "Marge du vainqueur")
+  if (/winning margin|marge du vainqueur|ecart entre [eé]quipes/i.test(m)) {
+    if (/home by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a === n); }
+    if (/home by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a >= n); }
+    if (/away by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h === n); }
+    if (/away by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h >= n); }
+    if (/match nul|draw/i.test(s)) return maskFromPredicate((h,a) => h === a);
+    // Formats FR : "1 / >2" = home wins by more than 2, "1 / =1" = home wins by exactly 1
+    const frMatch = s.match(/^([12x])\s*\/\s*([><=])\s*(\d+)$/i);
+    if (frMatch) {
+      const [, side, op, nStr] = frMatch;
+      const n = parseInt(nStr);
+      const diff = (h, a) => side === '1' ? h - a : (side === '2' ? a - h : 0);
+      if (op === '>') return maskFromPredicate((h,a) => diff(h,a) > n);
+      if (op === '=') return maskFromPredicate((h,a) => diff(h,a) === n);
+      if (op === '<') return maskFromPredicate((h,a) => diff(h,a) < n);
+    }
+    return null;
+  }
+
+  // ─ Handicap Européen (0:1, 1:0, 0:2, etc.)
+  const hcpEurMatch = m.match(/handicap\s*(?:européen|europ|goals)?\s*(\d+):(\d+)/i);
+  if (hcpEurMatch) {
+    const [hh, aa] = [parseInt(hcpEurMatch[1]), parseInt(hcpEurMatch[2])];
+    if (/^1$/i.test(s) || /^home$/i.test(s)) return maskFromPredicate((h,a) => (h + hh) > (a + aa));
+    if (/^x$/i.test(s) || /^draw$/i.test(s)) return maskFromPredicate((h,a) => (h + hh) === (a + aa));
+    if (/^2$/i.test(s) || /^away$/i.test(s)) return maskFromPredicate((h,a) => (a + aa) > (h + hh));
+    return null;
+  }
+
+  // ─ Asian Handicap (line ±X.5 ou ±X) via [Y] dans market
+  const ahMatch = m.match(/handicap\s*goals?\s*\[\s*(-?[\d.]+)\s*\]/i);
+  if (ahMatch) {
+    const line = parseFloat(ahMatch[1]);
+    if (/^1|home/i.test(s)) return maskFromPredicate((h,a) => (h + line) > a);
+    if (/^2|away/i.test(s)) return maskFromPredicate((h,a) => (a + Math.abs(line)) > h); // convention ambigue
+    return null;
+  }
+
+  // ─ Team totals (Team 1 goals [X.Y] / Total de buts de X)
+  const t1Match = m.match(/team 1 - goals\s*\[\s*([\d.]+)\s*\]|total de buts de\s+(.+)/i);
+  if (t1Match) {
+    // On skip pour l'instant les team totals (complexe)
+    return null;
+  }
+  const t2Match = m.match(/team 2 - goals\s*\[\s*([\d.]+)\s*\]/i);
+  if (t2Match) return null;
+
+  // ─ Nombre exact de buts (Congobet)
+  if (/nombre exact de buts$|^exact goals$/i.test(m)) {
+    const nMatch = s.match(/^(\d+)$/);
+    if (nMatch) return maskFromPredicate((h,a) => (h + a) === parseInt(nMatch[1]));
+    if (/^(\d+)\+$/.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => (h + a) >= n); }
+    return null;
+  }
+
+  return null; // marche non classifiable
+}
+
+// ─── Extracteurs ───────────────────────────────────────────────────────────
+function extract_sportybet(raw) {
+  const out = [];
+  const markets = raw?.data?.markets || raw?.markets || [];
+  for (const m of markets) {
+    const marketName = m.name || `market-${m.id}`;
+    const spec = m.specifier ? ` [${m.specifier}]` : '';
+    for (const o of m.outcomes || []) {
+      const c = parseFloat(o.odds);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: `${o.desc || '?'}${spec}`, odds: c });
+    }
+  }
+  return out;
+}
+function extract_apollo(raw) {
+  const out = [];
+  for (const o of raw?.Offers || []) {
+    const marketName = o.Description || `bettype-${o.BetTypeKey}`;
+    const sbv = o.Sbv ? ` [${o.Sbv}]` : '';
+    for (const od of o.Odds || []) {
+      const c = parseFloat(od.Odd);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: `${od.Name || od.Type || '?'}${sbv}`, odds: c });
+    }
+  }
+  return out;
+}
+function extract_congobet(raw) {
+  const out = [];
+  for (const bt of raw?.eventBetTypes || []) {
+    const marketName = bt.name || '?';
+    for (const it of bt.eventBetTypeItems || []) {
+      const c = parseFloat(it.odds);
+      if (isNaN(c) || c <= 1) continue;
+      out.push({ market: String(marketName), selection: String(it.shortName || it.name || '?'), odds: c });
+    }
+  }
+  return out;
+}
+function extract_betpawa(raw) {
+  const out = [];
+  for (const mk of raw?.markets || []) {
+    const marketName = mk.marketType?.name || mk.name || `m${mk.id}`;
+    for (const row of (mk.row || [])) {
+      const suffix = row.name && row.name !== marketName ? ` — ${row.name}` : '';
+      for (const p of (row.prices || [])) {
+        const c = parseFloat(p.price);
+        if (isNaN(c) || c <= 1) continue;
+        out.push({ market: `${marketName}${suffix}`, selection: String(p.name || '?'), odds: c });
+      }
+    }
+  }
+  return out;
+}
+
+async function fetchRawFor(bookKey, matchId) {
+  try {
+    if (bookKey === 'betpawa') return await bpFetchEvent(matchId, 15_000);
+    if (bookKey === 'sportybet') return await sbFetchEvent(matchId, { live: false });
+    if (bookKey === 'apollo') return await apolloGet(`/sport/offer/v3/match/offers?MatchId=${matchId}`);
+    if (bookKey === 'congobet') return await congoJson(`${CONGO_API}events/${matchId}`);
+  } catch { return null; }
+  return null;
+}
+const EXTRACTORS = { sportybet: extract_sportybet, apollo: extract_apollo, congobet: extract_congobet, betpawa: extract_betpawa };
+
+// ─── Enumeration & solveur ─────────────────────────────────────────────────
+// Regroupe les outcomes par bitmask → { mask: { book: bestOdds } } puis {mask: [{book, odds}]}
+function groupByMask(outcomes) {
+  const groups = new Map(); // maskStr → { mask, entries: [{book, market, selection, odds}] }
+  for (const o of outcomes) {
+    const mask = classifyOutcome(o);
+    if (!mask) continue;
+    const key = mask.toString(16);
+    if (!groups.has(key)) groups.set(key, { mask, entries: [] });
+    groups.get(key).entries.push(o);
+  }
+  // Pour chaque groupe, prend le meilleur book (odds max)
+  const uniq = [];
+  for (const g of groups.values()) {
+    let best = null;
+    for (const e of g.entries) {
+      if (!best || e.odds > best.odds) best = e;
+    }
+    uniq.push({ mask: g.mask, book: best.book, market: best.market, selection: best.selection, odds: best.odds });
+  }
+  return uniq;
+}
+
+// Trouve toutes les combinaisons de 2..4 items dont mask.or = ALL_CELLS_MASK.
+// Prune : commence par les items dont la mask est LA PLUS LARGE.
+function findCoverageSets(items, minProfit) {
+  const arr = items.slice().sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)));
+  const N = arr.length;
+  const opps = [];
+
+  // 2-combos
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const union = arr[i].mask | arr[j].mask;
+      if (union !== ALL_CELLS_MASK) continue;
+      const sumInv = 1 / arr[i].odds + 1 / arr[j].odds;
+      if (sumInv < 1 - minProfit) opps.push({ picks: [arr[i], arr[j]], profit: 1 - sumInv, size: 2 });
+    }
+  }
+  // 3-combos
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const m2 = arr[i].mask | arr[j].mask;
+      const invPartial = 1 / arr[i].odds + 1 / arr[j].odds;
+      if (invPartial >= 1 - minProfit) continue; // early prune
+      for (let k = j + 1; k < N; k++) {
+        const union = m2 | arr[k].mask;
+        if (union !== ALL_CELLS_MASK) continue;
+        const sumInv = invPartial + 1 / arr[k].odds;
+        if (sumInv < 1 - minProfit) opps.push({ picks: [arr[i], arr[j], arr[k]], profit: 1 - sumInv, size: 3 });
+      }
+    }
+  }
+  // 4-combos (cost = O(N^4), limit N for tractability)
+  const LIM = Math.min(N, 80);
+  for (let i = 0; i < LIM; i++) {
+    for (let j = i + 1; j < LIM; j++) {
+      const inv2 = 1 / arr[i].odds + 1 / arr[j].odds;
+      if (inv2 >= 1 - minProfit) continue;
+      const m2 = arr[i].mask | arr[j].mask;
+      for (let k = j + 1; k < LIM; k++) {
+        const inv3 = inv2 + 1 / arr[k].odds;
+        if (inv3 >= 1 - minProfit) continue;
+        const m3 = m2 | arr[k].mask;
+        for (let l = k + 1; l < LIM; l++) {
+          const union = m3 | arr[l].mask;
+          if (union !== ALL_CELLS_MASK) continue;
+          const sumInv = inv3 + 1 / arr[l].odds;
+          if (sumInv < 1 - minProfit) opps.push({ picks: [arr[i], arr[j], arr[k], arr[l]], profit: 1 - sumInv, size: 4 });
+        }
+      }
+    }
+  }
+  return opps;
+}
+
+function popcount(bi) {
+  let n = 0n;
+  while (bi > 0n) { n += bi & 1n; bi >>= 1n; }
+  return n;
+}
+
+// ─── Main ──────────────────────────────────────────────────────────────────
+console.log('═══════════════════════════════════════════════════════════════');
+console.log('  SOLVEUR COMBINATOIRE — coverage sets multi-books multi-markets');
+console.log(`  Books analyses : ${BOOKS.join(', ')}`);
+console.log(`  Seuil profit : ${(MIN_PROFIT*100).toFixed(0)}%   Top ${TOP_MATCHES} matchs`);
+console.log('═══════════════════════════════════════════════════════════════\n');
+
+const t0 = Date.now();
+
+const catalogs = new Map();
+for (const key of BOOKS) {
+  const book = bookmakersByKey[key];
+  if (!book) continue;
+  try {
+    const matches = await book.listMatches({ live: false, sport: 'football', horizonHours: 30 });
+    catalogs.set(key, matches);
+    console.log(`[${key}] ${matches.length} matchs listes`);
+  } catch (e) { console.log(`[${key}] KO ${e.message}`); }
+}
+
+const entries = alignCatalogs(catalogs, { minBooks: 3, horizonMs: Date.now() + 48 * 3600 * 1000 });
+entries.sort((a, b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
+const top = entries.slice(0, TOP_MATCHES);
+console.log(`\n${top.length} matchs top selectionnes\n`);
+
+const allOpps = [];
+
+for (const entry of top) {
+  console.log(`\n▓▓ ${entry.ref.home} vs ${entry.ref.away} — ${Object.keys(entry.matches).length} books`);
+  const outcomes = [];
+  for (const [book, m] of Object.entries(entry.matches)) {
+    if (!EXTRACTORS[book]) continue;
+    const raw = await fetchRawFor(book, m.id);
+    if (!raw) { console.log(`  [${book}] raw KO`); continue; }
+    const bookOuts = EXTRACTORS[book](raw).map(o => ({ ...o, book }));
+    console.log(`  [${book}] ${bookOuts.length} outcomes`);
+    outcomes.push(...bookOuts);
+  }
+  console.log(`  → TOTAL ${outcomes.length} outcomes cross-book`);
+
+  // Classifie + regroupe
+  const items = groupByMask(outcomes);
+  console.log(`  → ${items.length} masks uniques (apres dedup + best book)`);
+
+  // Cherche coverage sets
+  const opps = findCoverageSets(items, MIN_PROFIT);
+  console.log(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
+  for (const o of opps) {
+    allOpps.push({ ...o, match: `${entry.ref.home} vs ${entry.ref.away}` });
+  }
+}
+
+allOpps.sort((a, b) => b.profit - a.profit);
+
+console.log(`\n═══════════════════════════════════════════════════════════════`);
+console.log(`  TOP OPPORTUNITES COMBINATOIRES (${allOpps.length} au total)`);
+console.log(`═══════════════════════════════════════════════════════════════\n`);
+for (const [i, o] of allOpps.slice(0, 30).entries()) {
+  console.log(`#${i+1} PROFIT ${(o.profit*100).toFixed(1)}%  (${o.size} sel)  ${o.match}`);
+  for (const p of o.picks) {
+    console.log(`  • [${p.book.padEnd(10)}] ${p.market.slice(0, 40).padEnd(40)} → ${p.selection.slice(0, 30).padEnd(30)} @ ${p.odds.toFixed(2)}`);
+  }
+  console.log('');
+}
+
+console.log(`Fin. Duree ${((Date.now()-t0)/1000).toFixed(1)}s`);
+process.exit(0);
