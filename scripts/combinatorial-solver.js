@@ -57,8 +57,9 @@ function classifyPart(part) {
   if (/^1x$|^home\/draw$/.test(p)) return maskFromPredicate((h,a) => h >= a);
   if (/^x2$|^draw\/away$/.test(p)) return maskFromPredicate((h,a) => a >= h);
   if (/^12$|^home\/away$/.test(p)) return maskFromPredicate((h,a) => h !== a);
-  if (/^yes$|^oui$|^y$/.test(p)) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
-  if (/^no$|^non$|^n$/.test(p)) return maskFromPredicate((h,a) => h === 0 || a === 0);
+  if (/^yes$|^oui$|^y$|^both teams (?:to )?score$|^btts$/.test(p)) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
+  if (/^no$|^non$|^n$|^both teams not to score$|^no btts$/.test(p)) return maskFromPredicate((h,a) => h === 0 || a === 0);
+  if (/^dr$/.test(p)) return maskFromPredicate((h,a) => h === a);
   let ov = p.match(/^over\s*([\d.]+)$|^plus (?:de )?([\d.]+)$|^>\s*([\d.]+)$/);
   if (ov) { const line = parseFloat(ov[1] || ov[2] || ov[3]); return maskFromPredicate((h,a) => (h + a) > line); }
   let un = p.match(/^under\s*([\d.]+)$|^moins (?:de )?([\d.]+)$|^<\s*([\d.]+)$/);
@@ -71,7 +72,7 @@ function classifyPart(part) {
 // Detecte les marches combines (ex: "Under 2.5 & Yes", "1/no", "Home & Over 1.5")
 function trySplitCombined(market, selection) {
   let raw = selection.toLowerCase().replace(/\[[^\]]*\]/g, '').trim();
-  const parts = raw.split(/\s*[&/]\s*|\s+-\s+/).map(x => x.trim()).filter(Boolean);
+  const parts = raw.split(/\s*[&/]\s*|\s+-\s+|\s+and\s+/).map(x => x.trim()).filter(Boolean);
   if (parts.length < 2) return null;
   const masks = [];
   for (const part of parts) {
