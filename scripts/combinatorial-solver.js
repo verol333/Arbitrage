@@ -91,47 +91,95 @@ function trySplitCombined(market, selection) {
 // est skippe pour eviter les faux positifs sur des marches exotiques
 // (ex: "Away Team Or GG/NG", "GG/NG 2+", "Matchbet + BTTS" combines complexes).
 const WHITELIST_MARKETS = [
-  /^correct score$/,
-  /^score exact$/,
-  /^score$/,
-  /^1x2$/,
-  /^basic offer$/,
-  /^match result$/,
-  /^double chance$/,
-  /^double chance \(match\)$/,
-  /^both teams to score$/,
-  /^btts$/,
-  /^les deux [eé]quipes marquent$/,
-  /^gg\/ng$/,
-  /^goal\/no goal$/,
-  /^over\/under$/,
-  /^total goals$/,
-  /^total goals \[[\d.]+\]$/,
-  /^total$/,
-  /^nombre de buts$/,
-  /^multigoals?$/,
-  /^winning margin$/,
-  /^marge du vainqueur$/,
-  /^ecart entre [eé]quipes$/,
-  /^ecart de buts$/,
-  /^handicap$/,
-  /^handicap goals\s+\d+:\d+$/,
-  /^handicap goals \[-?[\d.]+\]$/,
-  /^handicap europ[eé]en$/,
-  /^nombre exact de buts$/,
-  /^exact goals$/,
-  /^r[eé]sultat du match et nombre de buts$/,
-  /^double chance et nombre de buts$/,
-  /^matchbet and totals \[[\d.]+\]$/,
-  /^1x2 \& over\/under$/,
-  /^double chance \& total$/,
-  /^full time result$/,
-  /^full time result \(regular time\)$/,
-  /^result$/,
-  /^match winner$/,
-  /^double chance \(regular time\)$/,
-  /^draw no bet$/,
-  /^odd\/even$/,
+  // ── Correct Score ──
+  /^correct score/i,
+  /^score exact/i,
+  /^score$/i,
+
+  // ── 1X2 / Match Result ──
+  /^1x2$/i,
+  /^1x2 - ft$/i,
+  /^basic offer$/i,
+  /^match result$/i,
+  /^r[eé]sultat du match$/i,
+  /^full time result/i,
+  /^result$/i,
+  /^match winner$/i,
+
+  // ── Double Chance ──
+  /^double chance/i,
+
+  // ── Draw No Bet ──
+  /^draw no bet/i,
+  /^victoire d'une des deux [eé]quipes$/i,
+
+  // ── BTTS ──
+  /^both teams to score/i,
+  /^btts/i,
+  /^les deux [eé]quipes marquent/i,
+  /^gg\/ng/i,
+  /^goal\/no goal/i,
+
+  // ── Over/Under total match ──
+  /^over\/under/i,
+  /^total goals/i,
+  /^total$/i,
+  /^nombre de buts$/i,
+  /^total score over\/under - ft$/i,
+
+  // ── Team Totals ──
+  /^total score over\/under - ft - home team/i,
+  /^total score over\/under - ft - away team/i,
+  /^team 1 total$/i,
+  /^team 2 total$/i,
+  /^nombre de buts de /i,
+  /^total de buts de /i,
+  /^nombre exact de buts inscrits par /i,
+
+  // ── Multigoals ──
+  /^multigoals?/i,
+
+  // ── Winning Margin ──
+  /^winning margin/i,
+  /^marge du vainqueur/i,
+  /^ecart entre [eé]quipes/i,
+  /^ecart de buts/i,
+
+  // ── Handicap ──
+  /^handicap$/i,
+  /^handicap goals/i,
+  /^handicap europ[eé]en/i,
+  /^handicap 1x2 - ft/i,
+  /^asian handicap - ft/i,
+
+  // ── Exact Goals ──
+  /^nombre exact de buts$/i,
+  /^exact (?:number of )?goals$/i,
+
+  // ── Odd/Even ──
+  /^odd\s*\/\s*even/i,
+
+  // ── Combined markets ──
+  /^r[eé]sultat du match et nombre de buts$/i,
+  /^double chance et nombre de buts$/i,
+  /^matchbet and totals/i,
+  /^1x2 \& over\/under$/i,
+  /^1x2 and totals/i,
+  /^1x2 and both teams to score/i,
+  /^double chance \& total$/i,
+  /^double chance and totals/i,
+  /^result and both teams to score/i,
+  /^result and total/i,
+  /^total and both teams to score/i,
+  /^les deux [eé]quipes marquent et nombre de buts$/i,
+  /^r[eé]sultat du match et les deux [eé]quipes marquent$/i,
+  /^double chance et les deux [eé]quipes marquent$/i,
+
+  // ── Clean Sheet / Win to Nil ──
+  /^to win to nil/i,
+  /^clean sheet/i,
+  /gagne sans encaisser/i,
+  /n'encaisse pas de but/i,
 ];
 function isSupportedMarket(m) {
   return WHITELIST_MARKETS.some(re => re.test(m));
@@ -165,8 +213,8 @@ function classifyOutcome({ market, selection, odds }) {
   const combined = trySplitCombined(m, s);
   if (combined) return combined;
 
-  // ─ Correct Score (m == "correct score" ou "score exact" ou "score:")
-  if (/correct score$|score exact$|^score$/i.test(m) || m === 'score exact') {
+  // ─ Correct Score
+  if (/correct score|score exact|^score$/i.test(m)) {
     const mm = s.match(/^(\d+)\s*[:\-]\s*(\d+)$/);
     if (mm) return cellBit(parseInt(mm[1]), parseInt(mm[2]));
     // "Any Other Home Win" etc.
@@ -177,10 +225,7 @@ function classifyOutcome({ market, selection, odds }) {
   }
 
   // ─ 1X2 Basic / Match Result
-  if (/^1x2$|^basic offer$|^match result$|nombre de buts.*(r[eé]sultat|match)/i.test(m) === false) {
-    // Fallback : par nom de selection pur pour 1X2
-  }
-  const isBasic1x2 = /^(1x2|basic offer|match result|full time result|full time result \(regular time\)|result|match winner)$/i.test(m);
+  const isBasic1x2 = /^(1x2|1x2 - ft|basic offer|match result|r[eé]sultat du match|full time result|full time result \(regular time\)|result|match winner)$/i.test(m);
   if (isBasic1x2) {
     if (/^(home|1|w1)$/i.test(s)) return maskFromPredicate((h,a) => h > a);
     if (/^(draw|x)$/i.test(s)) return maskFromPredicate((h,a) => h === a);
@@ -189,23 +234,30 @@ function classifyOutcome({ market, selection, odds }) {
   }
 
   // ─ Double Chance
-  if (/double chance$|double chance \(match\)$/i.test(m) || m === 'double chance') {
+  if (/^double chance/i.test(m)) {
     if (/1x|home\/draw|home or draw/i.test(s)) return maskFromPredicate((h,a) => h >= a);
     if (/x2|draw\/away|draw or away/i.test(s)) return maskFromPredicate((h,a) => a >= h);
     if (/12|home\/away|home or away/i.test(s)) return maskFromPredicate((h,a) => h !== a);
     return null;
   }
 
+  // ─ Draw No Bet
+  if (/^draw no bet/i.test(m) || /victoire d'une des deux/i.test(m)) {
+    if (/^1$|^home$/i.test(s)) return maskFromPredicate((h,a) => h > a);
+    if (/^2$|^away$/i.test(s)) return maskFromPredicate((h,a) => a > h);
+    return null;
+  }
+
   // ─ BTTS (both teams to score)
-  if (/both teams to score$|btts$|les deux [eé]quipes marquent$|gg\/ng/i.test(m)) {
+  if (/both teams to score|btts|les deux [eé]quipes marquent|gg\/ng|goal\/no goal/i.test(m)) {
     if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
     if (/no|non/i.test(s)) return maskFromPredicate((h,a) => h === 0 || a === 0);
     return null;
   }
 
   // ─ Over/Under totaux match (Total goals X.Y ou Over/Under X.Y)
-  const totalLineMatch = m.match(/(?:total goals?|nombre de buts|over\/under|^total)\s*\[?([\d.]+)\]?/i);
-  if (totalLineMatch || /^over\/under$|^nombre de buts$|^total goals$|^total$/.test(m)) {
+  const totalLineMatch = m.match(/(?:total goals?|nombre de buts|over\/under|total score over\/under - ft|^total)\s*\[?([\d.]+)\]?/i);
+  if (totalLineMatch || /^over\/under|^nombre de buts$|^total goals|^total$|^total score over\/under - ft$/i.test(m)) {
     // Chercher line dans market OU dans selection
     let line = totalLineMatch ? parseFloat(totalLineMatch[1]) : NaN;
     if (isNaN(line)) {
@@ -219,8 +271,8 @@ function classifyOutcome({ market, selection, odds }) {
     return null;
   }
 
-  // ─ Multigoals (SportyBet, Apollo, Congobet)
-  if (/^multigoals$/i.test(m) || /multigoal/i.test(m)) {
+  // ─ Multigoals (SportyBet, Apollo, Congobet, BetPawa)
+  if (/multigoal/i.test(m)) {
     if (/^0$/.test(s)) return cellBit(0, 0);
     const rangeMatch = s.match(/^(\d+)\s*[-–]\s*(\d+)$/);
     if (rangeMatch) {
@@ -233,8 +285,8 @@ function classifyOutcome({ market, selection, odds }) {
     return null;
   }
 
-  // ─ Winning Margin (SportyBet, Congobet "Marge du vainqueur")
-  if (/winning margin|marge du vainqueur|ecart entre [eé]quipes/i.test(m)) {
+  // ─ Winning Margin (SportyBet, Congobet, BetPawa)
+  if (/winning margin|marge du vainqueur|ecart entre [eé]quipes|ecart de buts/i.test(m)) {
     if (/home by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a === n); }
     if (/home by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a >= n); }
     if (/away by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h === n); }
@@ -254,7 +306,7 @@ function classifyOutcome({ market, selection, odds }) {
   }
 
   // ─ Handicap Européen (0:1, 1:0, 0:2, etc.)
-  const hcpEurMatch = m.match(/handicap\s*(?:européen|europ|goals)?\s*(\d+):(\d+)/i);
+  const hcpEurMatch = m.match(/handicap\s*(?:européen|europ|goals|1x2 - ft)?\s*(\d+):(\d+)/i);
   if (hcpEurMatch) {
     const [hh, aa] = [parseInt(hcpEurMatch[1]), parseInt(hcpEurMatch[2])];
     if (/^1$/i.test(s) || /^home$/i.test(s)) return maskFromPredicate((h,a) => (h + hh) > (a + aa));
@@ -264,7 +316,7 @@ function classifyOutcome({ market, selection, odds }) {
   }
 
   // ─ Asian Handicap (line ±X.5 ou ±X) via [Y] dans market ou handicap nu (1win)
-  const ahMatch = m.match(/handicap\s*(?:goals?)?\s*\[\s*(-?[\d.]+)\s*\]/i);
+  const ahMatch = m.match(/(?:handicap|asian handicap)[^[]*\[\s*(-?[\d.]+)\s*\]/i);
   if (ahMatch) {
     const line = parseFloat(ahMatch[1]);
     if (/^1|home/i.test(s)) return maskFromPredicate((h,a) => (h + line) > a);
@@ -281,24 +333,72 @@ function classifyOutcome({ market, selection, odds }) {
     return null;
   }
 
-  // ─ Team totals (Team 1 goals [X.Y] / Total de buts de X)
-  const t1Match = m.match(/team 1 - goals\s*\[\s*([\d.]+)\s*\]|total de buts de\s+(.+)/i);
-  if (t1Match) {
-    // On skip pour l'instant les team totals (complexe)
+  // ─ Team totals Home (Team 1 Total [X.Y] / nombre de buts de HOME / total score O/U home)
+  const isHomeTotal = /team 1 total|total score over\/under - ft - home team|nombre de buts de\s|total de buts de\s/i.test(m)
+    && !/away|ext[eé]rieur|team 2/i.test(m);
+  if (isHomeTotal) {
+    let line = NaN;
+    const lm = m.match(/\[\s*([\d.]+)\s*\]/);
+    if (lm) line = parseFloat(lm[1]);
+    if (isNaN(line)) { const sl = s.match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
+    if (!isNaN(line)) {
+      if (/over|plus|>/i.test(s)) return maskFromPredicate((h,_a) => h > line);
+      if (/under|moins|</i.test(s)) return maskFromPredicate((h,_a) => h < line);
+    }
     return null;
   }
-  const t2Match = m.match(/team 2 - goals\s*\[\s*([\d.]+)\s*\]/i);
-  if (t2Match) return null;
+  // ─ Team totals Away (Team 2 Total [X.Y] / nombre de buts de AWAY)
+  const isAwayTotal = /team 2 total|total score over\/under - ft - away team/i.test(m)
+    || (/nombre de buts de\s|total de buts de\s/i.test(m) && /away|ext[eé]rieur|team 2/i.test(m));
+  if (isAwayTotal) {
+    let line = NaN;
+    const lm = m.match(/\[\s*([\d.]+)\s*\]/);
+    if (lm) line = parseFloat(lm[1]);
+    if (isNaN(line)) { const sl = s.match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
+    if (!isNaN(line)) {
+      if (/over|plus|>/i.test(s)) return maskFromPredicate((_h,a) => a > line);
+      if (/under|moins|</i.test(s)) return maskFromPredicate((_h,a) => a < line);
+    }
+    return null;
+  }
+  // ─ Exact team goals (CongoBet: "nombre exact de buts inscrits par X")
+  if (/nombre exact de buts inscrits par/i.test(m)) {
+    const nMatch = s.match(/^(\d+)$/);
+    if (nMatch) {
+      const n = parseInt(nMatch[1]);
+      return maskFromPredicate((h,_a) => h === n);
+    }
+    if (/^(\d+)\+$/.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,_a) => h >= n); }
+    return null;
+  }
 
-  // ─ Nombre exact de buts (Congobet)
-  if (/nombre exact de buts$|^exact goals$/i.test(m)) {
+  // ─ Nombre exact de buts total (Congobet)
+  if (/^nombre exact de buts$|^exact (?:number of )?goals$/i.test(m)) {
     const nMatch = s.match(/^(\d+)$/);
     if (nMatch) return maskFromPredicate((h,a) => (h + a) === parseInt(nMatch[1]));
     if (/^(\d+)\+$/.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => (h + a) >= n); }
     return null;
   }
 
-  return null; // marche non classifiable
+  // ─ Odd/Even
+  if (/odd\s*\/\s*even/i.test(m)) {
+    if (/odd|impair/i.test(s)) return maskFromPredicate((h,a) => (h + a) % 2 === 1);
+    if (/even|pair/i.test(s)) return maskFromPredicate((h,a) => (h + a) % 2 === 0);
+    return null;
+  }
+
+  // ─ Clean Sheet / Win to Nil
+  if (/to win to nil|gagne sans encaisser|clean sheet|n'encaisse pas de but/i.test(m)) {
+    if (/home|1|oui/i.test(s) && /home|domicile/i.test(m)) return maskFromPredicate((h,a) => h > 0 && a === 0);
+    if (/away|2|oui/i.test(s) && /away|ext/i.test(m)) return maskFromPredicate((h,a) => a > 0 && h === 0);
+    if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => (h > 0 && a === 0) || (a > 0 && h === 0));
+    if (/no|non/i.test(s)) return maskFromPredicate((h,a) => !((h > 0 && a === 0) || (a > 0 && h === 0)));
+    if (/^home$|^1$/i.test(s)) return maskFromPredicate((h,a) => h > 0 && a === 0);
+    if (/^away$|^2$/i.test(s)) return maskFromPredicate((h,a) => a > 0 && h === 0);
+    return null;
+  }
+
+  return null;
 }
 
 // ─── Extracteurs ───────────────────────────────────────────────────────────
@@ -376,6 +476,26 @@ const XBET_GROUP_MAP = {
   9: 'Draw No Bet', 169: 'First Team To Score',
   15: 'Team 1 Total', 62: 'Team 2 Total', 445: 'Half With Most Goals',
   11581: 'Match Result',
+  // Groupes football additionnels (dérivés des APIs 1xBet)
+  27: 'Correct Score',
+  21: 'Winning Margin',
+  20: 'Exact Goals',
+  28: 'Double Chance HT',
+  30: 'Over/Under HT',
+  31: 'BTTS HT',
+  37: 'HT/FT',
+  43: 'Handicap HT',
+  111: 'Race To X Goals',
+  114: 'Score in Both Halves',
+  118: 'Win Both Halves',
+  119: 'Win Either Half',
+  127: 'Clean Sheet Home',
+  128: 'Clean Sheet Away',
+  129: 'Win To Nil Home',
+  130: 'Win To Nil Away',
+  136: 'Multigoals',
+  237: 'Asian Handicap',
+  1845: 'European Handicap',
 };
 function extract_1xbet(raw) {
   const out = [];
