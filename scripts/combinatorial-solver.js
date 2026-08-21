@@ -340,7 +340,7 @@ function classifyOutcome({ market, selection, odds }) {
     if (lineMatch) {
       const line = parseFloat(lineMatch[1]);
       if (/^1|home|w1/i.test(s) || s.indexOf('-') === -1) return maskFromPredicate((h,a) => (h + line) > a);
-      if (/^2|away|w2/i.test(s)) return maskFromPredicate((h,a) => a > (h + line));
+      if (/^2|away|w2/i.test(s)) return maskFromPredicate((h,a) => (a + line) > h);
     }
     return null;
   }
