@@ -22,16 +22,15 @@ import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
 const TOP_MATCHES = 5;
 const MIN_PROFIT = 0.05; // 5% pour voir les plus rentables (on ajustera)
-const GRID = 8; // grille scores 0..7 pour home et away = 64 cellules
-const OVERFLOW_BIT = GRID * GRID; // bit 64 : "score au dela de la grille"
+const GRID = 15; // grille scores 0..14 pour home et away = 225 cellules
+// Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
 
-// ─── Score coverage : chaque outcome → bitmask sur 65 bits ────────────────
-// Cellule (h, a) = bit index h*GRID + a. Bit OVERFLOW_BIT (64) = tout score
-// h ≥ GRID ou a ≥ GRID.
-const ALL_CELLS_MASK = ((1n << BigInt(OVERFLOW_BIT + 1)) - 1n);
+// ─── Score coverage : chaque outcome → bitmask sur 225 bits ────────────────
+// Cellule (h, a) = bit index h*GRID + a.
+const ALL_CELLS_MASK = ((1n << BigInt(GRID * GRID)) - 1n);
 
 function cellBit(h, a) {
-  if (h >= GRID || a >= GRID) return 1n << BigInt(OVERFLOW_BIT);
+  if (h >= GRID || a >= GRID) return 0n; // score impossible en football (15+)
   return 1n << BigInt(h * GRID + a);
 }
 
@@ -41,10 +40,8 @@ function maskFromPredicate(pred) {
   for (let h = 0; h < GRID; h++) for (let a = 0; a < GRID; a++) {
     if (pred(h, a)) m |= cellBit(h, a);
   }
-  // Overflow : on l'inclut si le predicat est vrai pour au moins un score "grand"
-  if (pred(GRID, 0) || pred(0, GRID) || pred(GRID, GRID)) {
-    m |= 1n << BigInt(OVERFLOW_BIT);
-  }
+  // Pas de bit overflow — la grille 15x15 couvre tous les scores
+  // realistes en football (aucun match ne finit 15+ buts/equipe)
   return m;
 }
 
