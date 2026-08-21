@@ -92,7 +92,7 @@ async function rawMarketsFor(bookKey, matchId) {
 console.log('═══════════════════════════════════════════════════════════════');
 console.log('  DUMP BRUT DES MARCHES — decouverte marches non exploites');
 console.log(`  Books  : ${BOOKS.join(', ')}`);
-console.log(`  Cibles : ${TARGET_MATCHES.map(m => `${m.home} vs ${m.away}`).join(' | ')}`);
+console.log(`  Auto-select : top ${TOP_MATCHES_COUNT} matchs les plus populaires`);
 console.log('═══════════════════════════════════════════════════════════════\n');
 
 // 1. Liste les matchs par book pour trouver les IDs des cibles
