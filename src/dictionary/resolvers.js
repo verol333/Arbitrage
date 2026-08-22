@@ -457,13 +457,22 @@ function resolveBetpawa({ market, selection, homeTeam, awayTeam }) {
     }
   }
 
-  // Asian Handicap - FT [line]
+  // Asian Handicap - FT [line]  (convention betpawa : ligne appliquée au HOME)
+  // "1" : home avec handicap +line → (h + line) > a
+  // "2" : away avec handicap -line implicite → (a - line) > h = (a + (-line)) > h
   const ahMatch = m.match(/^asian handicap - ft \[(-?\d+(?:\.\d+)?)\]$/);
   if (ahMatch) {
     const line = parseFloat(ahMatch[1]);
     if (isQuarter(line)) return null;
-    if (s === '1' || s === 'home') return { family: `HANDICAP_ASIAN_${line}`, selection: 'home', pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
-    if (s === '2' || s === 'away') return { family: `HANDICAP_ASIAN_${line}`, selection: 'away', pred: (h,a) => a > (h + line), refund: (h,a) => (h + line) === a };
+    if (s === '1' || s === 'home') {
+      return { family: `HANDICAP_HOME_${line}`, selection: 'home',
+               pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
+    }
+    if (s === '2' || s === 'away') {
+      const awayLine = -line;
+      return { family: `HANDICAP_AWAY_${awayLine}`, selection: 'away',
+               pred: (h,a) => (a + awayLine) > h, refund: (h,a) => (a + awayLine) === h };
+    }
   }
 
   // Handicap 1X2 - FT [line] (3-way)
@@ -616,7 +625,9 @@ function resolve1win({ market, selection, homeTeam, awayTeam }) {
     return null;
   }
 
-  // Handicap nu 1win (format "W1 (-1.5)" ou "Home (-0.5)")
+  // Handicap 1win : la ligne est PORTEE PAR LA SELECTION.
+  // "W1 (-1.5)" = home reçoit -1.5 → home wins si (h - 1.5) > a
+  // "W2 (-1.5)" = AWAY reçoit -1.5 → away wins si (a - 1.5) > h
   if (m === 'handicap') {
     const p = selection.match(/^(w1|w2|home|away|1|2)\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)$/i);
     if (p) {
@@ -624,8 +635,12 @@ function resolve1win({ market, selection, homeTeam, awayTeam }) {
       const line = parseFloat(hcpStr);
       if (isQuarter(line)) return null;
       const isHome = /^(w1|home|1)$/i.test(side);
-      if (isHome) return { family: `HANDICAP_ASIAN_${line}`, selection: 'home', pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
-      return { family: `HANDICAP_ASIAN_${line}`, selection: 'away', pred: (h,a) => a > (h + line), refund: (h,a) => (h + line) === a };
+      if (isHome) {
+        return { family: `HANDICAP_HOME_${line}`, selection: 'home',
+                 pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
+      }
+      return { family: `HANDICAP_AWAY_${line}`, selection: 'away',
+               pred: (h,a) => (a + line) > h, refund: (h,a) => (a + line) === h };
     }
   }
 
@@ -710,13 +725,20 @@ function resolve1xbet({ market, selection, homeTeam, awayTeam }) {
     const n = s.match(/^(\d+)$/);
     if (n) { const num=parseInt(n[1]); return { family: `EXACT_GOALS_${num}`, selection: `=${num}`, pred: (h,a) => (h+a) === num }; }
   }
+  // 1xbet Handicap : ligne PORTEE PAR LA SELECTION
+  // "Home (-2.5)" = home reçoit -2.5, gagne si (h - 2.5) > a
+  // "Away (-2.5)" = away reçoit -2.5, gagne si (a - 2.5) > h
   if (m === 'handicap') {
     const p = s.match(/^(home|away)\s*\((-?\d+(?:\.\d+)?)\)$/i);
     if (p) {
       const line = parseFloat(p[2]);
       if (isQuarter(line)) return null;
-      if (/home/i.test(p[1])) return { family: `HANDICAP_ASIAN_${line}`, selection: 'home', pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
-      return { family: `HANDICAP_ASIAN_${line}`, selection: 'away', pred: (h,a) => a > (h + line), refund: (h,a) => (h + line) === a };
+      if (/home/i.test(p[1])) {
+        return { family: `HANDICAP_HOME_${line}`, selection: 'home',
+                 pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
+      }
+      return { family: `HANDICAP_AWAY_${line}`, selection: 'away',
+               pred: (h,a) => (a + line) > h, refund: (h,a) => (a + line) === h };
     }
   }
   return null;
