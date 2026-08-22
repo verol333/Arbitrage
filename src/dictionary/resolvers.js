@@ -39,6 +39,16 @@ function resolveCongobet({ market, selection, homeTeam, awayTeam }) {
   const m = norm(market);
   const s = norm(selection);
 
+  // SKIP TOTAL des marches combines OU / mi-temps / halves — EN PREMIER
+  // (car "X gagne ou ..." se termine parfois par "n'encaisse pas de but",
+  //  ce qui matcherait par erreur le handler CLEAN SHEET plus bas)
+  if (/\bgagne ou\b/i.test(m)) return null;
+  if (/mi-temps.*fin de match|halftime|halves|marque a chaque mi-temps|score exact a la mi-temps/i.test(m)) return null;
+  if (m === 'match nul ou les deux equipes marquent') return null;
+  if (m === "match nul ou au moins une equipe n'encaisse pas de but") return null;
+  if (/^au moins une equipe/i.test(m)) return null; // combine ambigu
+  if (/^les deux equipes/i.test(m) && m !== 'les deux equipes marquent' && m !== 'les deux equipes marquent et nombre de buts') return null;
+
   // 1X2
   if (m === 'resultat du match') {
     if (s === '1') return { family: 'MATCH_1X2', selection: '1', pred: F.MATCH_1X2.selections['1'].pred, label: F.MATCH_1X2.selections['1'].label };
@@ -293,12 +303,6 @@ function resolveCongobet({ market, selection, homeTeam, awayTeam }) {
     }
     return null;
   }
-
-  // SKIP explicitement : "X gagne ou ..." (combines complexes), HT/FT, halves
-  if (/gagne ou /i.test(m)) return null;
-  if (/mi-temps.*fin de match|halftime|halves|marque a chaque mi-temps/i.test(m)) return null;
-  if (m === 'match nul ou les deux equipes marquent') return null;
-  if (m === "match nul ou au moins une equipe n'encaisse pas de but") return null;
 
   return null;
 }
