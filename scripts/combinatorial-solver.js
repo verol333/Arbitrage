@@ -26,7 +26,15 @@ const GRID = 15; // grille scores 0..14 pour home et away = 225 cellules
 // Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
 
 const _skippedWinMargin = new Set();
-let _classifiedCount = 0, _nullCount = 0, _trivialCount = 0;
+let _classifiedCount = 0, _nullCount = 0, _trivialCount = 0, _quarterLineSkipped = 0;
+
+// Detecte les lignes a quart (0.25, 0.75, 1.25, 1.75, ...) qui produisent
+// des demi-gains/demi-pertes incompatibles avec le modele binaire de bitmask.
+// Seules les demi-lignes (0.5, 1.5, 2.5) et les lignes entieres sont fiables.
+function isQuarterLine(line) {
+  const frac = Math.abs(line) % 0.5;
+  return frac > 0.01 && frac < 0.49;
+}
 
 // ─── Score coverage : chaque outcome → bitmask sur 225 bits ────────────────
 // Cellule (h, a) = bit index h*GRID + a.
@@ -61,9 +69,9 @@ function classifyPart(part) {
   if (/^no$|^non$|^n$|^both teams not to score$|^no btts$/.test(p)) return maskFromPredicate((h,a) => h === 0 || a === 0);
   if (/^dr$/.test(p)) return maskFromPredicate((h,a) => h === a);
   let ov = p.match(/^over\s*([\d.]+)$|^plus (?:de )?([\d.]+)$|^>\s*([\d.]+)$/);
-  if (ov) { const line = parseFloat(ov[1] || ov[2] || ov[3]); return maskFromPredicate((h,a) => (h + a) > line); }
+  if (ov) { const line = parseFloat(ov[1] || ov[2] || ov[3]); if (isQuarterLine(line)) { _quarterLineSkipped++; return null; } return maskFromPredicate((h,a) => (h + a) > line); }
   let un = p.match(/^under\s*([\d.]+)$|^moins (?:de )?([\d.]+)$|^<\s*([\d.]+)$/);
-  if (un) { const line = parseFloat(un[1] || un[2] || un[3]); return maskFromPredicate((h,a) => (h + a) < line); }
+  if (un) { const line = parseFloat(un[1] || un[2] || un[3]); if (isQuarterLine(line)) { _quarterLineSkipped++; return null; } return maskFromPredicate((h,a) => (h + a) < line); }
   const sc = p.match(/^(\d+)\s*[:\-]\s*(\d+)$/);
   if (sc) return cellBit(parseInt(sc[1]), parseInt(sc[2]));
   return null;
@@ -269,6 +277,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     if (hcpMatch) {
       const [, side, hcpStr] = hcpMatch;
       const hcp = parseFloat(hcpStr);
+      if (isQuarterLine(hcp)) { _quarterLineSkipped++; return null; }
       if (side === '1') return maskFromPredicate((h,a) => (h - a) + hcp > 0);
       if (side === '2') return maskFromPredicate((h,a) => (a - h) + hcp > 0);
       if (side.toLowerCase() === 'x') return maskFromPredicate((h,a) => Math.abs(h - a) + hcp === 0);
@@ -336,6 +345,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
       if (selLine) line = parseFloat(selLine[1]);
     }
     if (!isNaN(line)) {
+      if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       if (/over|plus|>/i.test(s)) return maskFromPredicate((h,a) => (h + a) > line);
       if (/under|moins|</i.test(s)) return maskFromPredicate((h,a) => (h + a) < line);
     }
@@ -388,6 +398,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   const ahMatch = m.match(/(?:handicap|asian handicap)[^[]*\[\s*(-?[\d.]+)\s*\]/i);
   if (ahMatch) {
     const line = parseFloat(ahMatch[1]);
+    if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
     if (/^1|home/i.test(s)) return maskFromPredicate((h,a) => (h + line) > a);
     if (/^2|away/i.test(s)) return maskFromPredicate((h,a) => a > (h + line));
     return null;
@@ -396,6 +407,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     const lineMatch = s.match(/(-?\d+(?:\.\d+)?)/);
     if (lineMatch) {
       const line = parseFloat(lineMatch[1]);
+      if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       const isW1 = /^1\b|^w1\b|^home\b/i.test(s);
       const isW2 = /^2\b|^w2\b|^away\b/i.test(s);
       if (isW1) return maskFromPredicate((h,a) => (h + line) > a);
@@ -421,6 +433,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     if (lm) line = parseFloat(lm[1]);
     if (isNaN(line)) { const sl = s.match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
     if (!isNaN(line)) {
+      if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       if (/over|plus|>/i.test(s)) return maskFromPredicate((h,_a) => h > line);
       if (/under|moins|</i.test(s)) return maskFromPredicate((h,_a) => h < line);
     }
@@ -435,6 +448,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     if (lm) line = parseFloat(lm[1]);
     if (isNaN(line)) { const sl = s.match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
     if (!isNaN(line)) {
+      if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       if (/over|plus|>/i.test(s)) return maskFromPredicate((_h,a) => a > line);
       if (/under|moins|</i.test(s)) return maskFromPredicate((_h,a) => a < line);
     }
@@ -824,11 +838,11 @@ for (const entry of top) {
   console.log(`  → TOTAL ${outcomes.length} outcomes cross-book`);
 
   // Classifie + regroupe
-  _classifiedCount = 0; _nullCount = 0; _trivialCount = 0;
+  _classifiedCount = 0; _nullCount = 0; _trivialCount = 0; _quarterLineSkipped = 0;
   const items = groupByMask(outcomes);
   _classifiedCount = items.length;
   const uniqueMasks = new Set(items.map(i => i.mask.toString(16))).size;
-  console.log(`  → CLASSIF: ${uniqueMasks} masks uniques, ${_classifiedCount} items (mask×book), ${_nullCount} null, ${_trivialCount} triviaux`);
+  console.log(`  → CLASSIF: ${uniqueMasks} masks uniques, ${_classifiedCount} items (mask×book), ${_nullCount} null, ${_trivialCount} triviaux, ${_quarterLineSkipped} quarter-line skippés`);
   console.log(`  → Taux classification: ${outcomes.length ? ((outcomes.length - _nullCount) / outcomes.length * 100).toFixed(1) : 0}%`);
 
   // Cherche coverage sets
