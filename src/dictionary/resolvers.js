@@ -39,15 +39,17 @@ function resolveCongobet({ market, selection, homeTeam, awayTeam }) {
   const m = norm(market);
   const s = norm(selection);
 
-  // SKIP TOTAL des marches combines OU / mi-temps / halves — EN PREMIER
-  // (car "X gagne ou ..." se termine parfois par "n'encaisse pas de but",
-  //  ce qui matcherait par erreur le handler CLEAN SHEET plus bas)
-  if (/\bgagne ou\b/i.test(m)) return null;
+  // SKIP TOTAL des marches non fin-de-match ou combines complexes — EN PREMIER
+  // Sans ce SKIP, "X gagne ou..." et "1ere mi-temps - X n'encaisse pas de but"
+  // sont mal capturés par les handlers plus bas (endsWith).
+  if (/\bgagne ou\b/i.test(m)) return null; // combined OR complex
+  if (/^1[eè]re mi-temps|^2[eè]me mi-temps|^premi[eè]re mi-temps|^deuxi[eè]me mi-temps|^1[eè]re periode|^2[eè]me periode/i.test(m)) return null;
   if (/mi-temps.*fin de match|halftime|halves|marque a chaque mi-temps|score exact a la mi-temps/i.test(m)) return null;
   if (m === 'match nul ou les deux equipes marquent') return null;
   if (m === "match nul ou au moins une equipe n'encaisse pas de but") return null;
-  if (/^au moins une equipe/i.test(m)) return null; // combine ambigu
+  if (/^au moins une equipe/i.test(m)) return null;
   if (/^les deux equipes/i.test(m) && m !== 'les deux equipes marquent' && m !== 'les deux equipes marquent et nombre de buts') return null;
+  if (/1re mi[- ]?temps|2eme mi[- ]?temps|- 1h\b|- 2h\b/i.test(m)) return null;
 
   // 1X2
   if (m === 'resultat du match') {
