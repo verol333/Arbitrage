@@ -21,9 +21,12 @@ import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 
 const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
 const TOP_MATCHES = 5;
-const MIN_PROFIT = 0.05; // 5% pour voir les plus rentables (on ajustera)
+const MIN_PROFIT = parseFloat(process.env.MIN_PROFIT || '0'); // 0% = tout montrer pour diagnostic
 const GRID = 15; // grille scores 0..14 pour home et away = 225 cellules
 // Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
+
+const _skippedWinMargin = new Set();
+let _classifiedCount = 0, _nullCount = 0, _trivialCount = 0;
 
 // ─── Score coverage : chaque outcome → bitmask sur 225 bits ────────────────
 // Cellule (h, a) = bit index h*GRID + a.
@@ -245,11 +248,13 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   // car les selections "2 / >2" seraient mal interpretees par classifyPart
   // qui lirait ">2" comme "total > 2" au lieu de "marge > 2"
   if (/winning margin|marge du vainqueur|ecart entre [eé]quipes|ecart de buts/i.test(m)) {
-    if (/home by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a === n); }
+    // N+ AVANT N pour eviter que "home by 2+" soit capture par "home by (\d+)" exact
     if (/home by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a >= n); }
-    if (/away by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h === n); }
+    if (/home by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => h - a === n); }
     if (/away by (\d+)\+/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h >= n); }
-    if (/match nul|draw/i.test(s)) return maskFromPredicate((h,a) => h === a);
+    if (/away by (\d+)/i.test(s)) { const n = parseInt(RegExp.$1); return maskFromPredicate((h,a) => a - h === n); }
+    if (/match nul|draw|nul/i.test(s)) return maskFromPredicate((h,a) => h === a);
+    // Format CongoBet FR : "1 / >2", "2 / =1", "x / <3"
     const frMatch = s.match(/^([12x])\s*\/\s*([><=])\s*(\d+)$/i);
     if (frMatch) {
       const [, side, op, nStr] = frMatch;
@@ -259,6 +264,9 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
       if (op === '=') return maskFromPredicate((h,a) => diff(h,a) === n);
       if (op === '<') return maskFromPredicate((h,a) => diff(h,a) < n);
     }
+    // Format BetPawa EN : "Home by 1", "Away by 2+", "No Goal / Draw"
+    if (/no goal|scoreless/i.test(s)) return maskFromPredicate((h,a) => h === 0 && a === 0);
+    _skippedWinMargin.add(`[${m}] → "${s}"`);
     return null;
   }
 
@@ -675,7 +683,8 @@ function groupByMask(outcomes) {
   const groups = new Map(); // maskStr → { mask, entries: [{book, market, selection, odds}] }
   for (const o of outcomes) {
     const mask = classifyOutcome(o);
-    if (!mask || mask === 0n || mask === ALL_CELLS_MASK) continue; // skip trivial masks
+    if (!mask) { _nullCount++; continue; }
+    if (mask === 0n || mask === ALL_CELLS_MASK) { _trivialCount++; continue; }
     const key = mask.toString(16);
     if (!groups.has(key)) groups.set(key, { mask, entries: [] });
     groups.get(key).entries.push(o);
@@ -795,14 +804,46 @@ for (const entry of top) {
   console.log(`  → TOTAL ${outcomes.length} outcomes cross-book`);
 
   // Classifie + regroupe
+  _classifiedCount = 0; _nullCount = 0; _trivialCount = 0;
   const items = groupByMask(outcomes);
-  console.log(`  → ${items.length} masks uniques (apres dedup + best book)`);
+  _classifiedCount = items.length;
+  console.log(`  → CLASSIF: ${_classifiedCount} masks uniques, ${_nullCount} null (non classifies), ${_trivialCount} triviaux`);
+  console.log(`  → Taux classification: ${outcomes.length ? ((outcomes.length - _nullCount) / outcomes.length * 100).toFixed(1) : 0}%`);
 
   // Cherche coverage sets
   const opps = findCoverageSets(items, MIN_PROFIT);
   console.log(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
   for (const o of opps) {
     allOpps.push({ ...o, match: `${entry.ref.home} vs ${entry.ref.away}` });
+  }
+
+  // DIAGNOSTIC : top 5 meilleures couvertures partielles (2-items) multi-book
+  if (opps.length === 0 && items.length >= 2) {
+    const arr = items.slice().sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)));
+    const partials = [];
+    const LIM2 = Math.min(arr.length, 60);
+    for (let i = 0; i < LIM2 && partials.length < 5; i++) {
+      for (let j = i + 1; j < LIM2 && partials.length < 5; j++) {
+        if (arr[i].book === arr[j].book) continue;
+        const union = arr[i].mask | arr[j].mask;
+        const cov = Number(popcount(union));
+        const pct = (cov / (GRID*GRID) * 100).toFixed(1);
+        const sumInv = 1 / arr[i].odds + 1 / arr[j].odds;
+        partials.push({ cov, pct, sumInv, picks: [arr[i], arr[j]] });
+      }
+    }
+    partials.sort((a, b) => b.cov - a.cov);
+    if (partials.length > 0) {
+      console.log(`  ─── TOP COUVERTURES PARTIELLES (2-picks cross-book) ───`);
+      for (const p of partials.slice(0, 3)) {
+        const gap = GRID*GRID - p.cov;
+        const profit = ((1 - p.sumInv) * 100).toFixed(1);
+        console.log(`    ${p.pct}% couvert (${gap} trous) profit_theorique=${profit}%`);
+        for (const pk of p.picks) {
+          console.log(`      [${pk.book}] ${pk.market.slice(0,40)} → ${pk.selection.slice(0,30)} @${pk.odds.toFixed(2)} (${Number(popcount(pk.mask))} cells)`);
+        }
+      }
+    }
   }
 }
 
@@ -817,6 +858,11 @@ for (const [i, o] of allOpps.slice(0, 30).entries()) {
     console.log(`  • [${p.book.padEnd(10)}] ${p.market.slice(0, 40).padEnd(40)} → ${p.selection.slice(0, 30).padEnd(30)} @ ${p.odds.toFixed(2)}`);
   }
   console.log('');
+}
+
+if (_skippedWinMargin.size > 0) {
+  console.log(`\n─── WINNING MARGIN NON CLASSIFIES (${_skippedWinMargin.size}) ───`);
+  for (const m of [..._skippedWinMargin].sort()) console.log(`  ⚠ ${m}`);
 }
 
 if (_skippedMarkets.size > 0) {
