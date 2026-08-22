@@ -3,7 +3,7 @@ on: { workflow_dispatch: {} }
 jobs:
   solve:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
-          SOLVER_TOP_MATCHES: '5'
+          SOLVER_TOP_MATCHES: '30'
           SOLVER_MIN_PROFIT: '0.005'
           SOLVER_BANKROLL: '100000'
         run: node scripts/dictionary-solver.js
