@@ -177,17 +177,32 @@ function resolveCongobet({ market, selection, homeTeam, awayTeam }) {
     return null;
   }
 
-  // Handicap Europeen
+  // Handicap Europeen congobet
+  //   Format A : "1 (+1)" (rare)
+  //   Format B (courant) : "1 (0:1)" = score de départ 0-1 → home +0, away +1
+  //   Format C : "1 (1:0)" = home +1, away +0
   if (m === 'handicap europeen') {
-    // Format specific : "1 (+1)", "X (+1)", "2 (+1)" — la ligne "(+1)" est dans la selection
-    const paren = selection.match(/^([12x])\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)$/i);
-    if (paren) {
-      const [, side, hcpStr] = paren;
+    // Format B/C : "side (H:A)"
+    const pColon = selection.match(/^([12x])\s*\(\s*(\d+)\s*:\s*(\d+)\s*\)$/i);
+    if (pColon) {
+      const [, side, hStr, aStr] = pColon;
+      const hh = parseInt(hStr);
+      const aa = parseInt(aStr);
+      const s2 = side.toLowerCase();
+      if (s2 === '1') return { family: `HANDICAP_EUR_${hh}_${aa}_1`, selection: '1', pred: (h,a) => (h + hh) > (a + aa) };
+      if (s2 === 'x') return { family: `HANDICAP_EUR_${hh}_${aa}_X`, selection: 'X', pred: (h,a) => (h + hh) === (a + aa) };
+      if (s2 === '2') return { family: `HANDICAP_EUR_${hh}_${aa}_2`, selection: '2', pred: (h,a) => (a + aa) > (h + hh) };
+    }
+    // Format A : "1 (+1)" (ligne unique appliquée au home par convention EU)
+    const p = selection.match(/^([12x])\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)$/i);
+    if (p) {
+      const [, side, hcpStr] = p;
       const line = parseFloat(hcpStr);
       if (isQuarter(line)) return null;
-      if (side === '1') return { family: `HANDICAP_1X2_${line}`, selection: '1', pred: (h,a) => (h + line) > a };
-      if (side.toLowerCase() === 'x') return { family: `HANDICAP_1X2_${line}`, selection: 'X', pred: (h,a) => (h + line) === a };
-      if (side === '2') return { family: `HANDICAP_1X2_${line}`, selection: '2', pred: (h,a) => a > (h + line) };
+      const s2 = side.toLowerCase();
+      if (s2 === '1') return { family: `HANDICAP_1X2_${line}`, selection: '1', pred: (h,a) => (h + line) > a };
+      if (s2 === 'x') return { family: `HANDICAP_1X2_${line}`, selection: 'X', pred: (h,a) => (h + line) === a };
+      if (s2 === '2') return { family: `HANDICAP_1X2_${line}`, selection: '2', pred: (h,a) => a > (h + line) };
     }
     return null;
   }
@@ -631,22 +646,31 @@ function resolve1win({ market, selection, homeTeam, awayTeam }) {
     return null;
   }
 
-  // Handicap 1win : la ligne est PORTEE PAR LA SELECTION.
-  // "W1 (-1.5)" = home reçoit -1.5 → home wins si (h - 1.5) > a
-  // "W2 (-1.5)" = AWAY reçoit -1.5 → away wins si (a - 1.5) > h
+  // Handicap 1win : plusieurs formats possibles
+  //   Format A (rare) : "W1 (-1.5)" avec parenthèses
+  //   Format B (courant) : "Bayern Munchen -1.25" — NOM EQUIPE + ligne sans parens
+  //   Format C : "Borussia Dortmund 0" — ligne = 0 (draw no bet)
   if (m === 'handicap') {
-    const p = selection.match(/^(w1|w2|home|away|1|2)\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)$/i);
-    if (p) {
-      const [, side, hcpStr] = p;
+    // Format A : parens
+    const p1 = selection.match(/^(w1|w2|home|away|1|2)\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)$/i);
+    if (p1) {
+      const [, side, hcpStr] = p1;
       const line = parseFloat(hcpStr);
       if (isQuarter(line)) return null;
       const isHome = /^(w1|home|1)$/i.test(side);
-      if (isHome) {
-        return { family: `HANDICAP_HOME_${line}`, selection: 'home',
-                 pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
-      }
-      return { family: `HANDICAP_AWAY_${line}`, selection: 'away',
-               pred: (h,a) => (a + line) > h, refund: (h,a) => (a + line) === h };
+      if (isHome) return { family: `HANDICAP_HOME_${line}`, selection: 'home', pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
+      return { family: `HANDICAP_AWAY_${line}`, selection: 'away', pred: (h,a) => (a + line) > h, refund: (h,a) => (a + line) === h };
+    }
+    // Format B/C : "<teamName> <line>"
+    const p2 = selection.match(/^(.+?)\s+([+-]?\d+(?:\.\d+)?)$/);
+    if (p2) {
+      const [, teamPart, lineStr] = p2;
+      const line = parseFloat(lineStr);
+      if (isQuarter(line)) return null;
+      const isHome = containsTeam(teamPart, homeTeam);
+      const isAway = containsTeam(teamPart, awayTeam);
+      if (isHome && !isAway) return { family: `HANDICAP_HOME_${line}`, selection: 'home', pred: (h,a) => (h + line) > a, refund: (h,a) => (h + line) === a };
+      if (isAway && !isHome) return { family: `HANDICAP_AWAY_${line}`, selection: 'away', pred: (h,a) => (a + line) > h, refund: (h,a) => (a + line) === h };
     }
   }
 
