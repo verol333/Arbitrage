@@ -194,8 +194,21 @@ for (const key of BOOKS) {
 }
 
 const entries = alignCatalogs(catalogs, { minBooks: 3, horizonMs: Date.now() + 48*3600*1000 });
-entries.sort((a, b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
-const top = entries.slice(0, TOP_MATCHES);
+
+// Filtre ligues top-tier (matchs top-scrutees rarement mispricees).
+// Blacklist elargi : major leagues + Champions/Europa League + top American.
+const TOP_LEAGUES = /premier league|bundesliga|la ?liga|serie a|ligue 1|champions league|europa league|world cup|europa conference|copa libertadores|copa america|nations league|mls$|major league soccer|primeira liga|eredivisie|super lig|liga mx|argentine primera|brasil.*serie a|scottish premiership|belgian pro|super league.*swiss/i;
+
+const EXCLUDE_TOP = process.env.SOLVER_EXCLUDE_TOP_LEAGUES !== '0';
+const filtered = EXCLUDE_TOP ? entries.filter(e => {
+  const league = String(e.ref.league || '').toLowerCase();
+  return !TOP_LEAGUES.test(league);
+}) : entries;
+console.log(`${entries.length} matchs alignes >=3 books, ${filtered.length} apres filtre ligues top`);
+
+// Tri : plus de books = matching plus fiable. On garde les matchs avec le max de books.
+filtered.sort((a, b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
+const top = filtered.slice(0, TOP_MATCHES);
 
 const allOpps = [];
 const stats = { totalOutcomes: 0, resolved: 0, unresolved: 0, byBook: {} };
