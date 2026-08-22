@@ -264,6 +264,16 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
       if (op === '=') return maskFromPredicate((h,a) => diff(h,a) === n);
       if (op === '<') return maskFromPredicate((h,a) => diff(h,a) < n);
     }
+    // Format CongoBet FR handicap : "1 (+0.5)", "2 (-1.5)", "x (+0.5)"
+    const hcpMatch = s.match(/^([12x])\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)$/i);
+    if (hcpMatch) {
+      const [, side, hcpStr] = hcpMatch;
+      const hcp = parseFloat(hcpStr);
+      if (side === '1') return maskFromPredicate((h,a) => (h - a) + hcp > 0);
+      if (side === '2') return maskFromPredicate((h,a) => (a - h) + hcp > 0);
+      if (side.toLowerCase() === 'x') return maskFromPredicate((h,a) => Math.abs(h - a) + hcp === 0);
+      return null;
+    }
     // Format BetPawa EN : "Home by 1", "Away by 2+", "No Goal / Draw"
     if (/no goal|scoreless/i.test(s)) return maskFromPredicate((h,a) => h === 0 && a === 0);
     _skippedWinMargin.add(`[${m}] → "${s}"`);
@@ -386,8 +396,14 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     const lineMatch = s.match(/(-?\d+(?:\.\d+)?)/);
     if (lineMatch) {
       const line = parseFloat(lineMatch[1]);
-      if (/^1|home|w1/i.test(s) || s.indexOf('-') === -1) return maskFromPredicate((h,a) => (h + line) > a);
-      if (/^2|away|w2/i.test(s)) return maskFromPredicate((h,a) => (a + line) > h);
+      const isW1 = /^1\b|^w1\b|^home\b/i.test(s);
+      const isW2 = /^2\b|^w2\b|^away\b/i.test(s);
+      if (isW1) return maskFromPredicate((h,a) => (h + line) > a);
+      if (isW2) return maskFromPredicate((h,a) => (a + line) > h);
+      const awayInSel = awayTeam && teamMatchScore(s, awayTeam) >= 0.5;
+      const homeInSel = homeTeam && teamMatchScore(s, homeTeam) >= 0.5;
+      if (homeInSel && !awayInSel) return maskFromPredicate((h,a) => (h + line) > a);
+      if (awayInSel && !homeInSel) return maskFromPredicate((h,a) => (a + line) > h);
     }
     return null;
   }
@@ -447,10 +463,15 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     return null;
   }
 
-  // ─ Odd/Even
+  // ─ Odd/Even (total, home, ou away)
   if (/odd\s*\/\s*even/i.test(m)) {
-    if (/odd|impair/i.test(s)) return maskFromPredicate((h,a) => (h + a) % 2 === 1);
-    if (/even|pair/i.test(s)) return maskFromPredicate((h,a) => (h + a) % 2 === 0);
+    const oeHome = /home|domicile|team\s*1|1st\s*team|[eé]quipe\s*1/i.test(m)
+      || (!(/away|ext[eé]rieur|team\s*2|2nd\s*team|[eé]quipe\s*2/i.test(m)) && isHomeTeamInMarket(m, homeTeam, awayTeam));
+    const oeAway = /away|ext[eé]rieur|team\s*2|2nd\s*team|[eé]quipe\s*2/i.test(m)
+      || (!oeHome && isAwayTeamInMarket(m, homeTeam, awayTeam));
+    const goalFn = oeHome ? (h, _a) => h : (oeAway ? (_h, a) => a : (h, a) => h + a);
+    if (/odd|impair/i.test(s)) return maskFromPredicate((h,a) => goalFn(h,a) % 2 === 1);
+    if (/even|pair/i.test(s)) return maskFromPredicate((h,a) => goalFn(h,a) % 2 === 0);
     return null;
   }
 
@@ -680,23 +701,22 @@ async function extractWithSubgames(bookKey, raw) {
 // ─── Enumeration & solveur ─────────────────────────────────────────────────
 // Regroupe les outcomes par bitmask → { mask: { book: bestOdds } } puis {mask: [{book, odds}]}
 function groupByMask(outcomes) {
-  const groups = new Map(); // maskStr → { mask, entries: [{book, market, selection, odds}] }
+  const groups = new Map(); // maskStr → { mask, byBook: Map<book, bestEntry> }
   for (const o of outcomes) {
     const mask = classifyOutcome(o);
     if (!mask) { _nullCount++; continue; }
     if (mask === 0n || mask === ALL_CELLS_MASK) { _trivialCount++; continue; }
     const key = mask.toString(16);
-    if (!groups.has(key)) groups.set(key, { mask, entries: [] });
-    groups.get(key).entries.push(o);
+    if (!groups.has(key)) groups.set(key, { mask, byBook: new Map() });
+    const g = groups.get(key);
+    const prev = g.byBook.get(o.book);
+    if (!prev || o.odds > prev.odds) g.byBook.set(o.book, o);
   }
-  // Pour chaque groupe, prend le meilleur book (odds max)
   const uniq = [];
   for (const g of groups.values()) {
-    let best = null;
-    for (const e of g.entries) {
-      if (!best || e.odds > best.odds) best = e;
+    for (const entry of g.byBook.values()) {
+      uniq.push({ mask: g.mask, book: entry.book, market: entry.market, selection: entry.selection, odds: entry.odds });
     }
-    uniq.push({ mask: g.mask, book: best.book, market: best.market, selection: best.selection, odds: best.odds });
   }
   return uniq;
 }
@@ -807,7 +827,8 @@ for (const entry of top) {
   _classifiedCount = 0; _nullCount = 0; _trivialCount = 0;
   const items = groupByMask(outcomes);
   _classifiedCount = items.length;
-  console.log(`  → CLASSIF: ${_classifiedCount} masks uniques, ${_nullCount} null (non classifies), ${_trivialCount} triviaux`);
+  const uniqueMasks = new Set(items.map(i => i.mask.toString(16))).size;
+  console.log(`  → CLASSIF: ${uniqueMasks} masks uniques, ${_classifiedCount} items (mask×book), ${_nullCount} null, ${_trivialCount} triviaux`);
   console.log(`  → Taux classification: ${outcomes.length ? ((outcomes.length - _nullCount) / outcomes.length * 100).toFixed(1) : 0}%`);
 
   // Cherche coverage sets
