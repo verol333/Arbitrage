@@ -20,8 +20,10 @@ import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
 import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 
 const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
-const TOP_MATCHES = 5;
+const TOP_MATCHES = parseInt(process.env.SOLVER_TOP_MATCHES || '5', 10);
 const MIN_PROFIT = parseFloat(process.env.MIN_PROFIT || '0'); // 0% = tout montrer pour diagnostic
+const BANKROLL = parseFloat(process.env.SOLVER_BANKROLL || '100000'); // XOF pour calcul mises
+const REQUIRE_DISJOINT = process.env.SOLVER_ALLOW_OVERLAP !== '1'; // par defaut, filtre disjoints
 const GRID = 15; // grille scores 0..14 pour home et away = 225 cellules
 // Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
 
@@ -660,8 +662,9 @@ async function fetch1xbetSubgames(raw) {
             if (it?.C == null) continue;
             const c = parseFloat(it.C);
             if (isNaN(c) || c <= 1) continue;
-            const sel = it.N || `${it.T}`;
-            out.push({ market: 'Correct Score', selection: sel, odds: c });
+            // FIX D : skip si nom absent (Correct Score requiert format "N:M")
+            if (!it.N || !/^\d+\s*[:\-]\s*\d+$/.test(String(it.N).trim())) continue;
+            out.push({ market: 'Correct Score', selection: String(it.N).trim(), odds: c });
           }
         }
       }
@@ -735,60 +738,61 @@ function groupByMask(outcomes) {
   return uniq;
 }
 
-// Trouve toutes les combinaisons de 2..4 items dont mask.or = ALL_CELLS_MASK.
-// Prune : commence par les items dont la mask est LA PLUS LARGE.
+// FIX #3 : rejette les combos avec chevauchement (2 picks couvrant meme cellule)
+// Sans quoi 1-sumInv n'est PAS le vrai profit garanti mais une surassurance.
+function areDisjoint(picks) {
+  let cumul = 0n;
+  for (const p of picks) {
+    if ((cumul & p.mask) !== 0n) return false;
+    cumul |= p.mask;
+  }
+  return true;
+}
+
+// FIX #10 : LIM=80 supprime — enumeration complete 2..4 items.
 function findCoverageSets(items, minProfit) {
   const arr = items.slice().sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)));
   const N = arr.length;
   const opps = [];
+  const record = (picks, sumInv) => {
+    if (REQUIRE_DISJOINT && !areDisjoint(picks)) return;
+    const books = new Set(picks.map(p => p.book));
+    if (books.size < 2) return;
+    opps.push({ picks, profit: 1 - sumInv, sumInv, size: picks.length });
+  };
 
-  // 2-combos
   for (let i = 0; i < N; i++) {
+    const inv1 = 1 / arr[i].odds;
+    if (inv1 >= 1 - minProfit) continue;
     for (let j = i + 1; j < N; j++) {
-      const union = arr[i].mask | arr[j].mask;
-      if (union !== ALL_CELLS_MASK) continue;
-      const sumInv = 1 / arr[i].odds + 1 / arr[j].odds;
-      if (sumInv < 1 - minProfit) opps.push({ picks: [arr[i], arr[j]], profit: 1 - sumInv, size: 2 });
-    }
-  }
-  // 3-combos
-  for (let i = 0; i < N; i++) {
-    for (let j = i + 1; j < N; j++) {
-      const m2 = arr[i].mask | arr[j].mask;
-      const invPartial = 1 / arr[i].odds + 1 / arr[j].odds;
-      if (invPartial >= 1 - minProfit) continue; // early prune
-      for (let k = j + 1; k < N; k++) {
-        const union = m2 | arr[k].mask;
-        if (union !== ALL_CELLS_MASK) continue;
-        const sumInv = invPartial + 1 / arr[k].odds;
-        if (sumInv < 1 - minProfit) opps.push({ picks: [arr[i], arr[j], arr[k]], profit: 1 - sumInv, size: 3 });
-      }
-    }
-  }
-  // 4-combos (cost = O(N^4), limit N for tractability)
-  const LIM = Math.min(N, 80);
-  for (let i = 0; i < LIM; i++) {
-    for (let j = i + 1; j < LIM; j++) {
-      const inv2 = 1 / arr[i].odds + 1 / arr[j].odds;
+      const inv2 = inv1 + 1 / arr[j].odds;
       if (inv2 >= 1 - minProfit) continue;
       const m2 = arr[i].mask | arr[j].mask;
-      for (let k = j + 1; k < LIM; k++) {
+      if (m2 === ALL_CELLS_MASK) record([arr[i], arr[j]], inv2);
+      for (let k = j + 1; k < N; k++) {
         const inv3 = inv2 + 1 / arr[k].odds;
         if (inv3 >= 1 - minProfit) continue;
         const m3 = m2 | arr[k].mask;
-        for (let l = k + 1; l < LIM; l++) {
-          const union = m3 | arr[l].mask;
-          if (union !== ALL_CELLS_MASK) continue;
-          const sumInv = inv3 + 1 / arr[l].odds;
-          if (sumInv < 1 - minProfit) opps.push({ picks: [arr[i], arr[j], arr[k], arr[l]], profit: 1 - sumInv, size: 4 });
+        if (m3 === ALL_CELLS_MASK) record([arr[i], arr[j], arr[k]], inv3);
+        for (let l = k + 1; l < N; l++) {
+          const inv4 = inv3 + 1 / arr[l].odds;
+          if (inv4 >= 1 - minProfit) continue;
+          const m4 = m3 | arr[l].mask;
+          if (m4 === ALL_CELLS_MASK) record([arr[i], arr[j], arr[k], arr[l]], inv4);
         }
       }
     }
   }
-  return opps.filter(o => {
-    const books = new Set(o.picks.map(p => p.book));
-    return books.size >= 2;
-  });
+  return opps;
+}
+
+// FIX #1 : calcule les mises pour bankroll donnee
+function computeStakes(picks, bankroll) {
+  const sumInv = picks.reduce((s, p) => s + 1 / p.odds, 0);
+  const stakes = picks.map(p => (bankroll / p.odds) / sumInv);
+  const total = stakes.reduce((a, b) => a + b, 0);
+  const retour = bankroll / sumInv;
+  return { stakes, total, retour, gainNet: retour - total, roi: (retour - total) / total };
 }
 
 function popcount(bi) {
@@ -826,11 +830,15 @@ const allOpps = [];
 
 for (const entry of top) {
   console.log(`\n▓▓ ${entry.ref.home} vs ${entry.ref.away} — ${Object.keys(entry.matches).length} books`);
+  // FIX #9 : fetch parallele par book
+  const bookMatches = Object.entries(entry.matches).filter(([b]) => EXTRACTORS[b]);
+  const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
+    try { return { book, raw: await fetchRawFor(book, m.id) }; }
+    catch (e) { return { book, raw: null, err: e.message }; }
+  }));
   const outcomes = [];
-  for (const [book, m] of Object.entries(entry.matches)) {
-    if (!EXTRACTORS[book]) continue;
-    const raw = await fetchRawFor(book, m.id);
-    if (!raw) { console.log(`  [${book}] raw KO`); continue; }
+  for (const { book, raw, err } of rawResults) {
+    if (!raw) { console.log(`  [${book}] raw KO ${err || ''}`); continue; }
     const bookOuts = (await extractWithSubgames(book, raw)).map(o => ({ ...o, book, homeTeam: entry.ref.home, awayTeam: entry.ref.away }));
     console.log(`  [${book}] ${bookOuts.length} outcomes`);
     outcomes.push(...bookOuts);
@@ -888,9 +896,12 @@ console.log(`\n═════════════════════�
 console.log(`  TOP OPPORTUNITES COMBINATOIRES (${allOpps.length} au total)`);
 console.log(`═══════════════════════════════════════════════════════════════\n`);
 for (const [i, o] of allOpps.slice(0, 30).entries()) {
-  console.log(`#${i+1} PROFIT ${(o.profit*100).toFixed(1)}%  (${o.size} sel)  ${o.match}`);
-  for (const p of o.picks) {
-    console.log(`  • [${p.book.padEnd(10)}] ${p.market.slice(0, 40).padEnd(40)} → ${p.selection.slice(0, 30).padEnd(30)} @ ${p.odds.toFixed(2)}`);
+  const { stakes, total, retour, gainNet, roi } = computeStakes(o.picks, BANKROLL);
+  console.log(`#${i+1} PROFIT ${(o.profit*100).toFixed(2)}%  (ROI net ${(roi*100).toFixed(2)}%, ${o.size} sel)  ${o.match}`);
+  console.log(`   Bankroll ${BANKROLL.toLocaleString('fr')} XOF → mise ${total.toFixed(0)}, retour garanti ${retour.toFixed(0)}, gain net +${gainNet.toFixed(0)} XOF`);
+  for (let k = 0; k < o.picks.length; k++) {
+    const p = o.picks[k];
+    console.log(`  • [${p.book.padEnd(10)}] ${String(p.market).slice(0, 40).padEnd(40)} → ${String(p.selection).slice(0, 30).padEnd(30)} @ ${p.odds.toFixed(2)}  mise ${stakes[k].toFixed(0)} XOF`);
   }
   console.log('');
 }
