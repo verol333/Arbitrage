@@ -4,6 +4,8 @@ jobs:
   inventory:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,3 +31,14 @@ jobs:
           name: market-inventory
           path: output/market-inventory.*
           retention-days: 60
+      - name: Commit inventory to docs/
+        if: success()
+        run: |
+          mkdir -p docs
+          cp output/market-inventory.md docs/market-inventory.md
+          cp output/market-inventory.json docs/market-inventory.json
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add docs/market-inventory.md docs/market-inventory.json
+          git commit -m "inventaire marches auto-genere" || echo "no changes"
+          git push origin HEAD:main
