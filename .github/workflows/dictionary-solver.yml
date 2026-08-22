@@ -1,0 +1,35 @@
+name: Solveur Dictionnaire (sans regex, mapping explicite)
+on: { workflow_dispatch: {} }
+jobs:
+  solve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        run: |
+          if [ -f package.json ]; then npm install --production --no-audit --no-fund
+          else cd arbitrage-service && npm install --production --no-audit --no-fund && cd .. && ln -sfn arbitrage-service/node_modules node_modules
+          fi
+      - name: Run dictionary solver
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+          SOLVER_TOP_MATCHES: '5'
+          SOLVER_MIN_PROFIT: '0.005'
+          SOLVER_BANKROLL: '100000'
+        run: node scripts/dictionary-solver.js
+      - name: Upload scan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dictionary-scan
+          path: output/dictionary-scan.json
+          retention-days: 30
