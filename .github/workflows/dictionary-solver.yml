@@ -22,10 +22,12 @@ jobs:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
-          SOLVER_TOP_MATCHES: '100'
+          SOLVER_TOP_MATCHES: '200'
           SOLVER_MIN_PROFIT: '0.005'
           SOLVER_BANKROLL: '100000'
           SOLVER_EXCLUDE_TOP_LEAGUES: '1'
+          SOLVER_HORIZON_HOURS: '72'
+          SOLVER_MATCH_BATCH: '6'
         run: node scripts/dictionary-solver.js
       - name: Upload scan
         if: always()

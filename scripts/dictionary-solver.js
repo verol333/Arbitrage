@@ -19,6 +19,8 @@ const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(
 const TOP_MATCHES = parseInt(process.env.SOLVER_TOP_MATCHES || '5', 10);
 const MIN_PROFIT = parseFloat(process.env.SOLVER_MIN_PROFIT || '0.005'); // 0.5% par defaut
 const BANKROLL = parseFloat(process.env.SOLVER_BANKROLL || '100000');
+const HORIZON_H = parseInt(process.env.SOLVER_HORIZON_HOURS || '72', 10);
+const MATCH_BATCH = parseInt(process.env.SOLVER_MATCH_BATCH || '6', 10); // matchs en parallele
 const GRID = 15; // 15x15 = 225 cellules (couvre tout le foot realiste)
 
 const ALL_MASK = (1n << BigInt(GRID * GRID)) - 1n;
@@ -187,13 +189,13 @@ for (const key of BOOKS) {
   const book = bookmakersByKey[key];
   if (!book) continue;
   try {
-    const matches = await book.listMatches({ live: false, sport: 'football', horizonHours: 30 });
+    const matches = await book.listMatches({ live: false, sport: 'football', horizonHours: HORIZON_H });
     catalogs.set(key, matches);
     console.log(`[${key}] ${matches.length} matchs`);
   } catch (e) { console.log(`[${key}] KO ${e.message}`); }
 }
 
-const entries = alignCatalogs(catalogs, { minBooks: 3, horizonMs: Date.now() + 48*3600*1000 });
+const entries = alignCatalogs(catalogs, { minBooks: 3, horizonMs: Date.now() + HORIZON_H*3600*1000 });
 
 // Filtre ligues top-tier (matchs top-scrutees rarement mispricees).
 // Blacklist elargi : major leagues + Champions/Europa League + top American.
@@ -213,33 +215,31 @@ const top = filtered.slice(0, TOP_MATCHES);
 const allOpps = [];
 const stats = { totalOutcomes: 0, resolved: 0, unresolved: 0, byBook: {} };
 
-for (const entry of top) {
-  console.log(`\n▓ ${entry.ref.home} vs ${entry.ref.away}`);
+// Process 1 match : fetch tous books en //, classif, cherche opps
+async function processMatch(entry, idx) {
+  const label = `[${idx+1}/${top.length}] ${entry.ref.home} vs ${entry.ref.away}`;
   const bookMatches = Object.entries(entry.matches).filter(([b]) => BOOKS.includes(b));
   const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
     try { return { book, raw: await fetchRaw(book, m.id) }; } catch (e) { return { book, raw: null }; }
   }));
-
   const items = [];
+  let localTot = 0, localRes = 0, localUnr = 0;
+  const localByBook = {};
   for (const { book, raw } of rawResults) {
-    if (!raw) { console.log(`  [${book}] raw KO`); continue; }
+    if (!raw) continue;
     const outcomes = await extractWithSubgames(book, raw);
-    let resolved = 0;
     for (const o of outcomes) {
-      stats.totalOutcomes++;
-      if (o.odds >= 40) { stats.unresolved++; continue; } // phantom
+      localTot++;
+      if (o.odds >= 40) { localUnr++; continue; }
       const r = resolveOutcome({ book, market: o.market, selection: o.selection, homeTeam: entry.ref.home, awayTeam: entry.ref.away });
-      if (!r) { stats.unresolved++; continue; }
+      if (!r) { localUnr++; continue; }
       const mask = buildMask(r.pred);
-      if (mask === 0n || mask === ALL_MASK) { stats.unresolved++; continue; }
+      if (mask === 0n || mask === ALL_MASK) { localUnr++; continue; }
       items.push({ book, market: o.market, selection: o.selection, odds: o.odds, resolved: r, mask });
-      resolved++;
-      stats.resolved++;
-      stats.byBook[book] = (stats.byBook[book] || 0) + 1;
+      localRes++;
+      localByBook[book] = (localByBook[book] || 0) + 1;
     }
-    console.log(`  [${book}] ${outcomes.length} outcomes → ${resolved} resolus`);
   }
-
   // Dedup : garde meilleure cote par (book, family, selection)
   const uniq = new Map();
   for (const it of items) {
@@ -247,11 +247,23 @@ for (const entry of top) {
     if (!uniq.has(key) || it.odds > uniq.get(key).odds) uniq.set(key, it);
   }
   const pool = [...uniq.values()];
-  console.log(`  ${pool.length} items uniques → recherche coverage sets...`);
-
   const opps = findCoverageSets(pool, MIN_PROFIT);
-  console.log(`  ${opps.length} opportunites disjointes trouvees`);
-  for (const o of opps) allOpps.push({ ...o, match: `${entry.ref.home} vs ${entry.ref.away}` });
+  const oppList = opps.map(o => ({ ...o, match: `${entry.ref.home} vs ${entry.ref.away}` }));
+  console.log(`${label}  outc=${localTot} res=${localRes} pool=${pool.length} opps=${opps.length}`);
+  return { oppList, localTot, localRes, localUnr, localByBook };
+}
+
+// Traite les matchs par batch de MATCH_BATCH en parallele
+for (let b = 0; b < top.length; b += MATCH_BATCH) {
+  const batch = top.slice(b, b + MATCH_BATCH).map((e, k) => processMatch(e, b + k));
+  const results = await Promise.all(batch);
+  for (const r of results) {
+    allOpps.push(...r.oppList);
+    stats.totalOutcomes += r.localTot;
+    stats.resolved += r.localRes;
+    stats.unresolved += r.localUnr;
+    for (const [bk, n] of Object.entries(r.localByBook)) stats.byBook[bk] = (stats.byBook[bk] || 0) + n;
+  }
 }
 
 allOpps.sort((a, b) => b.profit - a.profit);
