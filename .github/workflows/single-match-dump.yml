@@ -22,7 +22,7 @@ jobs:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
-          TARGET_MATCH: 'Boca'
+          TARGET_MATCH: 'Anderlecht'
         run: node scripts/dump-single-match.js
       - name: Commit
         run: |
