@@ -85,9 +85,13 @@ for (const key of BOOKS) {
     console.log(`[${key}] ${ms.length} matchs`);
   } catch (e) { console.log(`[${key}] KO`); }
 }
-const entries = alignCatalogs(catalogs, { minBooks: 4, horizonMs: Date.now() + 30*3600*1000 });
+const entries = alignCatalogs(catalogs, { minBooks: 4, horizonMs: Date.now() + 72*3600*1000 });
 entries.sort((a,b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
-const entry = entries[0];
+// Cible un match précis via env (nom d'équipe), sinon le premier top
+const target = process.env.TARGET_MATCH || '';
+const entry = target
+  ? entries.find(e => (e.ref.home + ' ' + e.ref.away).toLowerCase().includes(target.toLowerCase())) || entries[0]
+  : entries[0];
 if (!entry) { console.log('Aucun match commun'); process.exit(1); }
 console.log(`\n▓ ${entry.ref.home} vs ${entry.ref.away}`);
 
