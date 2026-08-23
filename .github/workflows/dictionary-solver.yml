@@ -23,9 +23,9 @@ jobs:
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
           SOLVER_TOP_MATCHES: '200'
-          SOLVER_MIN_PROFIT: '-0.10'
+          SOLVER_MIN_PROFIT: '0.003'
           SOLVER_BANKROLL: '100000'
-          SOLVER_EXCLUDE_TOP_LEAGUES: '1'
+          SOLVER_EXCLUDE_TOP_LEAGUES: '0'
           SOLVER_HORIZON_HOURS: '72'
           SOLVER_MATCH_BATCH: '6'
         run: node scripts/dictionary-solver.js
