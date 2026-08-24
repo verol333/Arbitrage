@@ -14,6 +14,10 @@ on:
         description: 'Taille de batch (parallelisme)'
         required: false
         default: '15'
+      verify:
+        description: 'Verify mode: dump N premiers matchs (0=scan normal)'
+        required: false
+        default: '0'
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -39,8 +43,10 @@ jobs:
           TOP_MATCHES: ${{ inputs.matches }}
           HORIZON_HOURS: ${{ inputs.horizon }}
           MATCH_BATCH: ${{ inputs.batch }}
+          VERIFY: ${{ inputs.verify }}
         run: node scripts/cross-market-scanner.js
       - name: Commit report
+        if: ${{ inputs.verify == '0' }}
         run: |
           git config user.email actions@github.com
           git config user.name "GitHub Actions"
