@@ -472,9 +472,11 @@ else {
 mkdirSync('docs', { recursive: true });
 writeFileSync('docs/cross-book-market-map.md', md);
 console.log(`\n═══ RESULTATS ═══`);
-console.log(`Catégories trouvées : ${catStats.length}`);
-console.log(`Catégories chez ≥ 2 books : ${catStats.filter(s => s.books.length >= 2).length}`);
-console.log(`Arbs 2-way : ${realArbs.length}`);
-console.log(`Near-misses (marge <5%) : ${arbs2Way.filter(a => a.nearMiss).length}`);
+console.log(`Matchs scannés : ${topEntries.length}`);
+console.log(`Arbs 2-way trouvés : ${allArbs.length}`);
+if (allArbs.length > 0) {
+  console.log(`Top profits :`);
+  for (const a of allArbs.slice(0, 10)) console.log(`  ${(a.profit*100).toFixed(2)}% — ${a.match} — ${a.cat}`);
+}
 console.log(`Fichier : docs/cross-book-market-map.md`);
 process.exit(0);
