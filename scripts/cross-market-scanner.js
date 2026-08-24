@@ -137,7 +137,8 @@ async function extractBetpawa(matchId) {
         }
 
         // ─── 1H markets ─────────────────────────────────
-        if (/Total Score Over\/Under - 1H/i.test(n)) {
+        // EXACT match to avoid "- 1H - Home Team" / "- 1H - Away Team"
+        if (n === 'Total Score Over/Under - 1H') {
           const nameLine = parseLine(sel);
           const line = !isNaN(nameLine) ? nameLine : specTotal;
           if (!isNaN(line)) {
@@ -151,16 +152,16 @@ async function extractBetpawa(matchId) {
             }
           }
         }
-        if (/Correct Score.*1H|1H.*Correct Score/i.test(n) && sel === '0:0') slots.ht_score_0_0 = c;
-        if (/Total Goals Exact.*1H|1H.*Total Goals Exact/i.test(n)) {
+        if (n === 'Correct Score - 1H' && sel === '0:0') slots.ht_score_0_0 = c;
+        if (n === 'Total Goals Exact - 1H') {
           if (sel === '0') slots.ht_exact_0 = c;
           if (sel === '1') slots.ht_exact_1 = c;
         }
-        if (/Both Teams To Score.*1H|1H.*Both Teams To Score/i.test(n)) {
+        if (n === 'Both Teams To Score - 1H') {
           if (/^Oui$|^Yes$/i.test(sel)) slots.ht_btts_yes = c;
           if (/^Non$|^No$/i.test(sel)) slots.ht_btts_no = c;
         }
-        if (/Odd.*Even.*1H|1H.*Odd.*Even/i.test(n)) {
+        if (n === 'Odd / Even - 1H') {
           if (/^Impair$|^Odd$/i.test(sel)) slots.ht_odd = c;
           if (/^Pair$|^Even$/i.test(sel)) slots.ht_even = c;
         }
@@ -372,7 +373,16 @@ async function extract1xbet(matchId) {
 
 // ─── 1WIN extraction ─────────────────────────────────────────
 
-async function extract1win(matchId) {
+function tokenOverlap(a, b) {
+  const ta = a.toLowerCase().split(/[\s\-_.]+/).filter(Boolean);
+  const tb = b.toLowerCase().split(/[\s\-_.]+/).filter(Boolean);
+  if (!ta.length || !tb.length) return 0;
+  let hits = 0;
+  for (const t of ta) if (tb.includes(t)) hits++;
+  return hits / Math.max(ta.length, tb.length);
+}
+
+async function extract1win(matchId, home, away) {
   const raw = await fetchOddsWS([matchId], { timeoutMs: 20000, quietMs: 3000 }).catch(() => new Map());
   const data = raw.get(matchId) || raw.get(String(matchId)) || raw.get(Number(matchId));
   if (!data) return {};
@@ -427,13 +437,13 @@ async function extract1win(matchId) {
 
       // Team totals — group names like "[Team] total"
       if (/\btotal$/i.test(gnl) && gnl !== 'total' && !gnl.startsWith('1st') && !gnl.startsWith('2nd')) {
-        if (/over 0\.5/i.test(name)) {
-          if (!slots.home_over_0_5) slots.home_over_0_5 = c;
-          else if (!slots.away_over_0_5) slots.away_over_0_5 = c;
-        }
-        if (/under 0\.5/i.test(name)) {
-          if (!slots.home_under_0_5) slots.home_under_0_5 = c;
-          else if (!slots.away_under_0_5) slots.away_under_0_5 = c;
+        const teamPart = gn.replace(/\s*total$/i, '').trim();
+        const sH = tokenOverlap(teamPart, home || '');
+        const sA = tokenOverlap(teamPart, away || '');
+        const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+        if (side) {
+          if (/over 0\.5/i.test(name)) slots[`${side}_over_0_5`] = c;
+          if (/under 0\.5/i.test(name)) slots[`${side}_under_0_5`] = c;
         }
       }
     }
@@ -445,7 +455,7 @@ const EXT = {
   betpawa: (m) => extractBetpawa(m.id),
   congobet: (m) => extractCongobet(m.id, m.home, m.away),
   '1xbet': (m) => extract1xbet(m.id),
-  '1win': (m) => extract1win(m.id),
+  '1win': (m) => extract1win(m.id, m.home, m.away),
 };
 
 // ─── Families / Partitions ─────────────────────────────────────
@@ -525,6 +535,36 @@ entries.sort((a, b) => {
 });
 entries = entries.slice(0, TOP_MATCHES);
 console.log(`${entries.length} matchs alignes (>= 2 books)`);
+
+// ─── Verify mode: dump extracted slots for first N matches ────
+const VERIFY = parseInt(process.env.VERIFY || '0', 10);
+if (VERIFY > 0) {
+  const verifyEntries = entries.slice(0, VERIFY);
+  console.log(`\n=== VERIFY MODE: dumping ${verifyEntries.length} matches ===\n`);
+  for (const entry of verifyEntries) {
+    console.log(`--- ${entry.ref.home} vs ${entry.ref.away} ---`);
+    console.log(`  Books: ${Object.keys(entry.matches).join(', ')}`);
+    const bookSlots = {};
+    await Promise.all(Object.entries(entry.matches).map(async ([book, m]) => {
+      if (!EXT[book]) return;
+      try {
+        const matchInfo = { id: m.id, home: entry.ref.home, away: entry.ref.away };
+        bookSlots[book] = await EXT[book](matchInfo);
+      } catch (e) { bookSlots[book] = {}; console.log(`  [${book}] ERR: ${e.message}`); }
+    }));
+    for (const [book, bs] of Object.entries(bookSlots)) {
+      const filled = Object.entries(bs).filter(([, v]) => v > 0);
+      if (!filled.length) { console.log(`  [${book}] (no slots)`); continue; }
+      console.log(`  [${book}] ${filled.length} slots:`);
+      for (const [k, v] of filled.sort((a, b) => a[0].localeCompare(b[0]))) {
+        console.log(`    ${k}: ${v}`);
+      }
+    }
+    console.log();
+  }
+  console.log('=== END VERIFY ===');
+  process.exit(0);
+}
 
 const allArbs = [];
 const familyStats = {};
