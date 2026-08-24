@@ -88,8 +88,12 @@ function categorize(market, selection, homeTeam, awayTeam) {
   const s = String(selection).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const homeN = homeTeam ? homeTeam.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : '';
   const awayN = awayTeam ? awayTeam.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : '';
-  const mentionsHome = homeN && homeN.split(' ').filter(w => w.length >= 4).some(w => m.includes(w));
-  const mentionsAway = awayN && awayN.split(' ').filter(w => w.length >= 4).some(w => m.includes(w));
+  // Exclut les mots génériques (team, club, united, real, city, fc, sc, etc.)
+  const STOPWORDS = new Set(['team','club','united','city','real','fc','ac','sc','cf','ca','cd','ec','sp','fk','sv','sk','fv','tsg','vfb','vfl','vff','1899','borussia','sporting','athletic','atletico','deportivo','deportes','olympique','olympiacos','2000','sport','sports','club','football','fussball']);
+  const homeWords = homeN.split(/\s+/).filter(w => w.length >= 5 && !STOPWORDS.has(w));
+  const awayWords = awayN.split(/\s+/).filter(w => w.length >= 5 && !STOPWORDS.has(w));
+  const mentionsHome = homeWords.length > 0 && homeWords.some(w => m.includes(w));
+  const mentionsAway = awayWords.length > 0 && awayWords.some(w => m.includes(w));
   const isHomeSide = /home|domicile|team\s*1|1ere\s*equipe/.test(m) || (mentionsHome && !mentionsAway);
   const isAwaySide = /away|ext[eé]rieur|team\s*2|2eme\s*equipe/.test(m) || (mentionsAway && !mentionsHome);
 
@@ -139,19 +143,22 @@ function categorize(market, selection, homeTeam, awayTeam) {
     if (k) return { cat: 'HT_FT', selKey: k };
   }
 
-  // 9. Score in both halves - HOME uniquement
-  if (/score in both halves.*home|home.*score.*both halves/.test(m) ||
-      (mentionsHome && !mentionsAway && /marque.*chaque mi-temps|score in both/.test(m))) {
+  // 9-11. Score in both halves : IMPORTANT — d'abord vérifier "both teams"
+  //  (marché des 2 équipes, ne pas confondre avec home/away seul)
+  if (/both teams.*score.*halves|both halves.*both teams|deux equipes marquent.*chaque mi|les deux equipes marquent lors de chaque/.test(m)) {
+    return { cat: 'BTTS_BOTH_HALVES', selKey: extractYesNo(s) };
+  }
+  // Score in both halves - HOME (uniquement UNE équipe)
+  if ((/score in both halves.*home|home.*score.*both halves/.test(m) ||
+       (mentionsHome && !mentionsAway && /marque.*chaque mi-temps|score in both halves/.test(m)))
+      && !/both teams|deux equipes|les 2 equipes/.test(m)) {
     return { cat: 'SCORE_BOTH_HALVES_HOME', selKey: extractYesNo(s) };
   }
-  // 10. Score in both halves - AWAY uniquement
-  if (/score in both halves.*away|away.*score.*both halves/.test(m) ||
-      (mentionsAway && !mentionsHome && /marque.*chaque mi-temps|score in both/.test(m))) {
+  // Score in both halves - AWAY
+  if ((/score in both halves.*away|away.*score.*both halves/.test(m) ||
+       (mentionsAway && !mentionsHome && /marque.*chaque mi-temps|score in both halves/.test(m)))
+      && !/both teams|deux equipes|les 2 equipes/.test(m)) {
     return { cat: 'SCORE_BOTH_HALVES_AWAY', selKey: extractYesNo(s) };
-  }
-  // 11. Les 2 équipes marquent dans chaque MT
-  if (/both teams.*score.*halves|deux equipes marquent.*chaque mi|les deux equipes marquent lors de chaque/.test(m)) {
-    return { cat: 'BTTS_BOTH_HALVES', selKey: extractYesNo(s) };
   }
 
   // 12. Résultat + Total (V1/V2 + TP/TM combined)
