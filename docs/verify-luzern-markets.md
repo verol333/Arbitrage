@@ -4,7 +4,7 @@
 **Ligue** : North American. Leagues Cup
 **Kickoff** : 2026-08-26T00:30:00.000Z
 
-Généré: 2026-08-24T14:30:22.703Z
+Généré: 2026-08-24T14:39:56.686Z
 
 ## Objectif
 
@@ -16,40 +16,9 @@ Identifier chez CHAQUE bookmaker les 3 sélections du pattern :
 
 ---
 
-## 1XBET — 21 outcomes
+## 1XBET — 0 outcomes
 
-### Double Chance (G=8)
-
-| Sélection | Cote |
-|---|---:|
-| `T4` | 1.56 |
-| `T5` | 1.27 |
-| `T6` | 1.42 |
-
-### Handicap (G=2)
-
-| Sélection | Cote |
-|---|---:|
-| `T7 [-2.5]` | 11.00 |
-| `T7 [-2]` | 9.90 |
-| `T7 [-1.5]` | 5.40 |
-| `T7 [-1]` | 4.55 |
-| `T7` | 2.04 |
-| `T7 [1]` | 1.22 |
-| `T7 [1.5]` | 1.14 |
-| `T7 [2]` | 1.01 |
-| `T7 [2.5]` | 1.04 |
-| `T8 [2.5]` | 1.02 |
-| `T8 [2]` | 1.03 |
-| `T8 [1.5]` | 1.09 |
-| `T8 [1]` | 1.13 |
-| `T8` | 1.73 |
-| `T8 [-1]` | 3.50 |
-| `T8 [-1.5]` | 4.33 |
-| `T8 [-2]` | 8.50 |
-| `T8 [-2.5]` | 9.00 |
-
----
+⚠️ Aucun outcome de type Handicap ou Double Chance récupéré.
 
 ## 1WIN — 25 outcomes
 
@@ -81,12 +50,12 @@ Identifier chez CHAQUE bookmaker les 3 sélections du pattern :
 
 | Sélection | Cote |
 |---|---:|
+| `Chicago Fire -1` | 3.43 |
 | `Monterrey 1` | 1.28 |
 | `Monterrey -1` | 4.23 |
-| `Chicago Fire 1` | 1.19 |
-| `Monterrey 0` | 2.08 |
-| `Chicago Fire -1` | 3.43 |
 | `Chicago Fire -1.5` | 4.03 |
+| `Monterrey 0` | 2.07 |
+| `Chicago Fire 1` | 1.19 |
 | `Monterrey 1.5` | 1.21 |
 | `Chicago Fire 0` | 1.74 |
 | `Monterrey -0.5` | 2.76 |
@@ -100,7 +69,7 @@ Identifier chez CHAQUE bookmaker les 3 sélections du pattern :
 
 | Sélection | Cote |
 |---|---:|
-| `Monterrey 0` | 2.04 |
+| `Monterrey 0` | 2.05 |
 | `Chicago Fire 0` | 1.77 |
 
 ---
