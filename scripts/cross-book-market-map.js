@@ -338,17 +338,24 @@ for (const s of catStats) {
     for (let j = i + 1; j < selKeys.length; j++) {
       const k1 = selKeys[i]; const k2 = selKeys[j];
       if (!areOpposites(k1, k2)) continue;
-      // Meilleure cote pour k1 et pour k2, chez books différents
-      let best1 = null, best2 = null;
-      for (const [b, v] of Object.entries(sels[k1])) if (!best1 || v.odds > best1.odds) best1 = { book: b, ...v };
-      for (const [b, v] of Object.entries(sels[k2])) if (!best2 || v.odds > best2.odds) best2 = { book: b, ...v };
-      if (!best1 || !best2 || best1.book === best2.book) continue;
-      const sumInv = 1/best1.odds + 1/best2.odds;
+      // Meilleure paire cross-book : essaie TOUS les couples (book pour k1) × (book pour k2)
+      // avec books différents, garde la meilleure somme des inverses.
+      let bestPair = null;
+      for (const [ba, va] of Object.entries(sels[k1])) {
+        for (const [bb, vb] of Object.entries(sels[k2])) {
+          if (ba === bb) continue; // cross-book obligatoire
+          const sum = 1/va.odds + 1/vb.odds;
+          if (!bestPair || sum < bestPair.sum) {
+            bestPair = { best1: { book: ba, ...va }, best2: { book: bb, ...vb }, sum };
+          }
+        }
+      }
+      if (!bestPair) continue;
+      const sumInv = bestPair.sum;
       if (sumInv < 1) {
-        arbs2Way.push({ cat: s.cat, k1, k2, best1, best2, profit: 1 - sumInv });
+        arbs2Way.push({ cat: s.cat, k1, k2, best1: bestPair.best1, best2: bestPair.best2, profit: 1 - sumInv });
       } else if (sumInv < 1.05) {
-        // near-miss
-        arbs2Way.push({ cat: s.cat, k1, k2, best1, best2, profit: 1 - sumInv, nearMiss: true });
+        arbs2Way.push({ cat: s.cat, k1, k2, best1: bestPair.best1, best2: bestPair.best2, profit: 1 - sumInv, nearMiss: true });
       }
     }
   }
