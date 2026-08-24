@@ -303,7 +303,8 @@ function extractDCBTTS(s) {
 }
 
 // ─── Main ───
-const target = process.env.TARGET_MATCH || '';
+const TOP_MATCHES = parseInt(process.env.TOP_MATCHES || '1', 10);
+const MATCH_BATCH = parseInt(process.env.MATCH_BATCH || '6', 10);
 const catalogs = new Map();
 for (const key of BOOKS) {
   const b = bookmakersByKey[key]; if (!b) continue;
@@ -313,40 +314,95 @@ for (const key of BOOKS) {
     console.log(`[${key}] ${ms.length} matchs`);
   } catch (e) { console.log(`[${key}] KO`); }
 }
-const entries = alignCatalogs(catalogs, { minBooks: 4, horizonMs: Date.now() + 72*3600*1000 });
+const entries = alignCatalogs(catalogs, { minBooks: 3, horizonMs: Date.now() + 72*3600*1000 });
 entries.sort((a,b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
-const entry = target
-  ? entries.find(e => (e.ref.home + ' ' + e.ref.away).toLowerCase().includes(target.toLowerCase())) || entries[0]
-  : entries[0];
-console.log(`\n▓ ${entry.ref.home} vs ${entry.ref.away} (${entry.ref.league || '?'})`);
+const topEntries = entries.slice(0, TOP_MATCHES);
+console.log(`\n${topEntries.length} matchs scannés (top populaires)\n`);
 
-const bookMatches = Object.entries(entry.matches).filter(([b]) => EXT[b]);
-const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
-  try { return { book, raw: await fetchRaw(book, m.id) }; } catch { return { book, raw: null }; }
-}));
-
-// { cat: { selKey: { book: {market, selection, odds} } } }
-const cartography = {};
-const nonCategorized = new Set();
-for (const { book, raw } of rawResults) {
-  if (!raw) { console.log(`  [${book}] KO`); continue; }
-  const outs = EXT[book](raw);
-  let cats = 0, uncats = 0;
-  for (const { market, selection, odds } of outs) {
-    if (odds >= 40) continue;
-    const cls = categorize(market, selection, entry.ref.home, entry.ref.away);
-    if (!cls || !cls.selKey) { uncats++; continue; }
-    cats++;
-    if (!cartography[cls.cat]) cartography[cls.cat] = {};
-    if (!cartography[cls.cat][cls.selKey]) cartography[cls.cat][cls.selKey] = {};
-    // Garde la MEILLEURE cote par book+cat+selKey
-    const prev = cartography[cls.cat][cls.selKey][book];
-    if (!prev || odds > prev.odds) {
-      cartography[cls.cat][cls.selKey][book] = { market, selection, odds };
+// Process 1 match : fetch + categorize + trouve arbs 2-way
+async function processMatch(entry, idx) {
+  const bookMatches = Object.entries(entry.matches).filter(([b]) => EXT[b]);
+  const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
+    try { return { book, raw: await fetchRaw(book, m.id) }; } catch { return { book, raw: null }; }
+  }));
+  const cartography = {};
+  for (const { book, raw } of rawResults) {
+    if (!raw) continue;
+    const outs = EXT[book](raw);
+    for (const { market, selection, odds } of outs) {
+      if (odds >= 40) continue;
+      const cls = categorize(market, selection, entry.ref.home, entry.ref.away);
+      if (!cls || !cls.selKey) continue;
+      if (!cartography[cls.cat]) cartography[cls.cat] = {};
+      if (!cartography[cls.cat][cls.selKey]) cartography[cls.cat][cls.selKey] = {};
+      const prev = cartography[cls.cat][cls.selKey][book];
+      if (!prev || odds > prev.odds) cartography[cls.cat][cls.selKey][book] = { market, selection, odds };
     }
   }
-  console.log(`  [${book}] ${outs.length} outcomes → ${cats} catégorisés`);
+  // Détection arbs 2-way pour ce match
+  const arbs = [];
+  const OPPS = { 'YES': 'NO', 'NO': 'YES' };
+  const opposite = (k1, k2) => {
+    if (OPPS[k1] === k2) return true;
+    const m1 = k1.match(/^OVER_(.+)$/); const m2 = k2.match(/^UNDER_(.+)$/);
+    if (m1 && m2 && m1[1] === m2[1]) return true;
+    const m3 = k1.match(/^UNDER_(.+)$/); const m4 = k2.match(/^OVER_(.+)$/);
+    if (m3 && m4 && m3[1] === m4[1]) return true;
+    if ((k1 === 'ODD' && k2 === 'EVEN') || (k1 === 'EVEN' && k2 === 'ODD')) return true;
+    return false;
+  };
+  for (const [cat, sels] of Object.entries(cartography)) {
+    const keys = Object.keys(sels);
+    for (let i = 0; i < keys.length; i++) for (let j = i+1; j < keys.length; j++) {
+      const k1 = keys[i], k2 = keys[j];
+      if (!opposite(k1, k2)) continue;
+      let bestPair = null;
+      for (const [ba, va] of Object.entries(sels[k1])) {
+        for (const [bb, vb] of Object.entries(sels[k2])) {
+          if (ba === bb) continue;
+          const sum = 1/va.odds + 1/vb.odds;
+          if (!bestPair || sum < bestPair.sum) bestPair = { best1: { book: ba, ...va }, best2: { book: bb, ...vb }, sum };
+        }
+      }
+      if (bestPair && bestPair.sum < 1) arbs.push({ cat, k1, k2, best1: bestPair.best1, best2: bestPair.best2, profit: 1 - bestPair.sum });
+    }
+  }
+  console.log(`[${idx+1}/${topEntries.length}] ${entry.ref.home} vs ${entry.ref.away}  cats=${Object.keys(cartography).length}  arbs=${arbs.length}`);
+  return { entry, arbs };
 }
+
+// Traite par batch en parallèle
+const allArbs = [];
+for (let b = 0; b < topEntries.length; b += MATCH_BATCH) {
+  const batch = topEntries.slice(b, b + MATCH_BATCH).map((e, k) => processMatch(e, b + k));
+  const results = await Promise.all(batch);
+  for (const r of results) for (const a of r.arbs) allArbs.push({ ...a, match: `${r.entry.ref.home} vs ${r.entry.ref.away}`, league: r.entry.ref.league });
+}
+allArbs.sort((a,b) => b.profit - a.profit);
+
+// ─── Cas single match : ancien flow (rétrocompatibilité) ───
+const cartography = {}; // legacy pour l'ancien rapport détaillé, uniquement si TOP_MATCHES=1
+if (TOP_MATCHES === 1 && topEntries[0]) {
+  const entry = topEntries[0];
+  const bookMatches = Object.entries(entry.matches).filter(([b]) => EXT[b]);
+  const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
+    try { return { book, raw: await fetchRaw(book, m.id) }; } catch { return { book, raw: null }; }
+  }));
+  for (const { book, raw } of rawResults) {
+    if (!raw) continue;
+    const outs = EXT[book](raw);
+    for (const { market, selection, odds } of outs) {
+      if (odds >= 40) continue;
+      const cls = categorize(market, selection, entry.ref.home, entry.ref.away);
+      if (!cls || !cls.selKey) continue;
+      if (!cartography[cls.cat]) cartography[cls.cat] = {};
+      if (!cartography[cls.cat][cls.selKey]) cartography[cls.cat][cls.selKey] = {};
+      const prev = cartography[cls.cat][cls.selKey][book];
+      if (!prev || odds > prev.odds) cartography[cls.cat][cls.selKey][book] = { market, selection, odds };
+    }
+  }
+}
+const entry = topEntries[0] || { ref: { home: '?', away: '?' } };
 
 // Cherche paires opposées pour arbs 2-way
 const OPPOSITES = { 'YES': 'NO', 'NO': 'YES' };
@@ -361,84 +417,50 @@ function areOpposites(k1, k2) {
 }
 
 // Rapport
-let md = `# Cartographie cross-book — ${entry.ref.home} vs ${entry.ref.away}\n\n`;
-md += `Ligue: ${entry.ref.league || '?'}\nKickoff: ${entry.ref.start ? new Date(entry.ref.start).toISOString() : '?'}\nGénéré: ${new Date().toISOString()}\n\n`;
+let md = `# Cartographie cross-book — scan ${topEntries.length} matchs\n\n`;
+md += `Généré: ${new Date().toISOString()}\n\n`;
+md += `## Résumé global\n\n`;
+md += `- Matchs scannés : ${topEntries.length}\n`;
+md += `- **Arbs 2-way trouvés : ${allArbs.length}**\n\n`;
 
-// Compte les catégories présentes chez ≥2 books
-md += `## Résumé\n\n`;
-md += `| Catégorie | Books qui la proposent | Nb sélections |\n|---|---|---:|\n`;
-const catStats = [];
-for (const [cat, sels] of Object.entries(cartography)) {
-  const books = new Set();
-  for (const sk of Object.values(sels)) for (const b of Object.keys(sk)) books.add(b);
-  catStats.push({ cat, books: [...books].sort(), nSel: Object.keys(sels).length });
-}
-catStats.sort((a,b) => b.books.length - a.books.length);
-for (const s of catStats) {
-  md += `| **${s.cat}** | ${s.books.join(', ')} (${s.books.length}) | ${s.nSel} |\n`;
-}
-
-// Détails catégorie par catégorie (>= 2 books)
-md += `\n\n## Détails par catégorie (≥ 2 books)\n\n`;
-const arbs2Way = [];
-for (const s of catStats) {
-  if (s.books.length < 2) continue;
-  const sels = cartography[s.cat];
-  md += `\n### ${s.cat}\n\n`;
-  md += `| Sélection | ${s.books.map(b => b + ' cote').join(' | ')} |\n|---|${s.books.map(() => '---').join('|')}|\n`;
-  for (const [selKey, byBook] of Object.entries(sels)) {
-    const cols = s.books.map(b => byBook[b] ? `${byBook[b].odds.toFixed(2)} (${String(byBook[b].selection).slice(0,20)})` : '—');
-    md += `| \`${selKey}\` | ${cols.join(' | ')} |\n`;
-  }
-  // Détection arbs 2-way : paires opposées
-  const selKeys = Object.keys(sels);
-  for (let i = 0; i < selKeys.length; i++) {
-    for (let j = i + 1; j < selKeys.length; j++) {
-      const k1 = selKeys[i]; const k2 = selKeys[j];
-      if (!areOpposites(k1, k2)) continue;
-      // Meilleure paire cross-book : essaie TOUS les couples (book pour k1) × (book pour k2)
-      // avec books différents, garde la meilleure somme des inverses.
-      let bestPair = null;
-      for (const [ba, va] of Object.entries(sels[k1])) {
-        for (const [bb, vb] of Object.entries(sels[k2])) {
-          if (ba === bb) continue; // cross-book obligatoire
-          const sum = 1/va.odds + 1/vb.odds;
-          if (!bestPair || sum < bestPair.sum) {
-            bestPair = { best1: { book: ba, ...va }, best2: { book: bb, ...vb }, sum };
-          }
-        }
-      }
-      if (!bestPair) continue;
-      const sumInv = bestPair.sum;
-      if (sumInv < 1) {
-        arbs2Way.push({ cat: s.cat, k1, k2, best1: bestPair.best1, best2: bestPair.best2, profit: 1 - sumInv });
-      } else if (sumInv < 1.05) {
-        arbs2Way.push({ cat: s.cat, k1, k2, best1: bestPair.best1, best2: bestPair.best2, profit: 1 - sumInv, nearMiss: true });
-      }
-    }
-  }
-}
-
-arbs2Way.sort((a,b) => b.profit - a.profit);
-md += `\n\n## 🎯 Arbitrages 2-way trouvés (profit > 0)\n\n`;
-const realArbs = arbs2Way.filter(a => !a.nearMiss);
-if (realArbs.length === 0) {
-  md += `Aucun arb 2-way avec les sélections opposées.\n`;
+// TOP OPPS (multi-match)
+md += `## 🎯 Arbitrages 2-way trouvés (tous matchs, tri par profit desc)\n\n`;
+if (allArbs.length === 0) {
+  md += `Aucun arb 2-way trouvé sur les ${topEntries.length} matchs scannés.\n\n`;
 } else {
-  for (const [i, a] of realArbs.slice(0, 20).entries()) {
+  for (const [i, a] of allArbs.slice(0, 30).entries()) {
     const bankroll = 100000;
     const sumInv = 1/a.best1.odds + 1/a.best2.odds;
     const s1 = bankroll * (1/a.best1.odds) / sumInv;
     const s2 = bankroll * (1/a.best2.odds) / sumInv;
     const retour = bankroll / sumInv;
-    md += `\n### #${i+1} — PROFIT **${(a.profit*100).toFixed(2)}%** — Catégorie : ${a.cat}\n\n`;
-    md += `Bankroll : 100 000 XOF → gain net garanti **+${(retour - bankroll).toFixed(0)} XOF**\n\n`;
+    md += `\n### #${i+1} — PROFIT **${(a.profit*100).toFixed(2)}%** — ${a.match}\n\n`;
+    md += `Ligue : ${a.league || '?'} | Catégorie : \`${a.cat}\`\n\n`;
+    md += `Bankroll 100 000 XOF → gain net garanti **+${(retour - bankroll).toFixed(0)} XOF**\n\n`;
     md += `| Pari | Book | Marché (nom exact) | Sélection (nom exact) | Cote | Mise |\n|---|---|---|---|---:|---:|\n`;
     md += `| 1 | **${a.best1.book}** | \`${a.best1.market}\` | \`${a.best1.selection}\` | ${a.best1.odds.toFixed(2)} | ${s1.toFixed(0)} XOF |\n`;
     md += `| 2 | **${a.best2.book}** | \`${a.best2.market}\` | \`${a.best2.selection}\` | ${a.best2.odds.toFixed(2)} | ${s2.toFixed(0)} XOF |\n`;
-    md += `\n**Vérification** : Σ 1/cote = 1/${a.best1.odds.toFixed(2)} + 1/${a.best2.odds.toFixed(2)} = ${sumInv.toFixed(4)} < 1 → arb\n`;
+    md += `\n**Vérif** : 1/${a.best1.odds.toFixed(2)} + 1/${a.best2.odds.toFixed(2)} = ${sumInv.toFixed(4)} < 1 → arb réel\n`;
   }
 }
+
+// Cartographie détaillée UNIQUEMENT si 1 seul match
+if (TOP_MATCHES === 1) {
+  md += `\n\n## Cartographie détaillée (match unique)\n\n`;
+  md += `Match : **${entry.ref.home} vs ${entry.ref.away}**\n\n`;
+  md += `| Catégorie | Books | Nb sélections |\n|---|---|---:|\n`;
+  const catStats = [];
+  for (const [cat, sels] of Object.entries(cartography)) {
+    const books = new Set();
+    for (const sk of Object.values(sels)) for (const b of Object.keys(sk)) books.add(b);
+    catStats.push({ cat, books: [...books].sort(), nSel: Object.keys(sels).length });
+  }
+  catStats.sort((a,b) => b.books.length - a.books.length);
+  for (const s of catStats) md += `| **${s.cat}** | ${s.books.join(', ')} (${s.books.length}) | ${s.nSel} |\n`;
+}
+
+// arbs2Way retiré (remplacé par allArbs multi-match)
+const arbs2Way = [];
 md += `\n\n## Near-misses (marge < 5%)\n\n`;
 const near = arbs2Way.filter(a => a.nearMiss).slice(0, 30);
 if (near.length === 0) md += `Aucun.\n`;

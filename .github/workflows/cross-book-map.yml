@@ -3,7 +3,7 @@ on: { workflow_dispatch: {} }
 jobs:
   map:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,8 @@ jobs:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+          TOP_MATCHES: '200'
+          MATCH_BATCH: '6'
         run: node scripts/cross-book-market-map.js
       - name: Commit map
         run: |
