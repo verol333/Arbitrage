@@ -95,6 +95,10 @@ function categorize(market, selection, homeTeam, awayTeam) {
 
   // ─── SKIP 1ère/2ème mi-temps standalone (pas fin de match) ───
   if (/^1ere mi-temps|^2eme mi-temps|^1st half\b|^2nd half\b|- 1h\b|- 2h\b|halftime\/fulltime|correct score.*halftime/.test(m)) return null;
+  // ─── SKIP marchés combinés OR (X gagne ou Y) — sémantique différente ───
+  if (/\bgagne ou\b|\bwin or\b|\s ou (?:les|au moins)/.test(m)) return null;
+  // ─── SKIP marchés partiels de mi-temps (1ère MT / 2ème MT au-dedans) ───
+  if (/en 1ere mi-temps|en 2eme mi-temps|in 1st half|in 2nd half|1ere periode|2eme periode/.test(m)) return null;
 
   // 1. PENALTY dans le match (marqué / manqué)
   if (/(penalty|penalt).*(match|dans le match)|penalty.*award|will.*penalty|penalty.*manque/.test(m) && !/shootout|apres prolongation|penalty.*shootout/.test(m)) {
