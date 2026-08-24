@@ -1,5 +1,11 @@
 name: Vérifie marchés Luzern sur un grand match
-on: { workflow_dispatch: {} }
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Sous-chaine du nom du match (ex: fulham)'
+        required: false
+        default: 'fulham'
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -22,6 +28,7 @@ jobs:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+          TARGET_MATCH: ${{ inputs.target }}
         run: node scripts/verify-luzern-markets.js
       - name: Commit report
         run: |
