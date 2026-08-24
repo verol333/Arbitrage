@@ -22,9 +22,9 @@ jobs:
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
-          TOP_MATCHES: '200'
-          HORIZON_HOURS: '48'
-          MATCH_BATCH: '6'
+          TOP_MATCHES: '500'
+          HORIZON_HOURS: '168'
+          MATCH_BATCH: '20'
         run: node scripts/luzern-pattern-scanner.js
       - name: Commit report
         run: |

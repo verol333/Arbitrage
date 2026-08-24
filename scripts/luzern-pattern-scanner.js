@@ -38,10 +38,18 @@ import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const BOOKS = ['1xbet', '1win', 'congobet', 'betpawa'];
-const TOP_MATCHES = parseInt(process.env.TOP_MATCHES || '200', 10);
-const HORIZON_H = parseInt(process.env.HORIZON_HOURS || '48', 10);
-const MATCH_BATCH = parseInt(process.env.MATCH_BATCH || '6', 10);
+const TOP_MATCHES = parseInt(process.env.TOP_MATCHES || '500', 10);
+const HORIZON_H = parseInt(process.env.HORIZON_HOURS || '168', 10);
+const MATCH_BATCH = parseInt(process.env.MATCH_BATCH || '20', 10);
 const BANKROLL = 100000;
+
+// Top championnats à privilégier (les seuls où le Handicap Européen 0:1 est proposé)
+const TOP_LEAGUES = /premier league|premier-league|primera division|la ?liga|liga(?!\s*mx)|bundesliga|serie a|serie b|serie c|ligue 1|ligue 2|championship|primeira liga|eredivisie|super lig(?!ue)|super league|champions league|europa league|europa conference|conference league|nations league|world cup|copa libertadores|copa sudamericana|copa america|copa argentina|copa del rey|coupe de france|dfb pokal|coppa italia|scottish premier|belgian pro|allsvenskan|superliga|major league soccer|mls$|brasileirao|primera nacional|nacional|argentine|brazil serie|italy|germany|england|spain|france|portugal|holland|netherlands|belgium|scotland|italie|allemagne|angleterre|espagne|france|portugal|hollande|pays.bas|belgique|ecosse|suede|denmark|denmark|swiss|suisse|swiss super|austria autriche|russia|russie/i;
+
+function isTopLeague(league) {
+  if (!league) return false;
+  return TOP_LEAGUES.test(String(league).toLowerCase());
+}
 
 function norm(s) {
   return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ');
@@ -195,9 +203,13 @@ for (const key of BOOKS) {
   } catch (e) { console.log(`[${key}] KO`); }
 }
 const entries = alignCatalogs(catalogs, { minBooks: 2, horizonMs: Date.now() + HORIZON_H*3600*1000 });
-entries.sort((a,b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
-const top = entries.slice(0, TOP_MATCHES);
-console.log(`\n${top.length} matchs à scanner sur ${HORIZON_H}h\n`);
+console.log(`${entries.length} matchs alignés cross-book sur ${HORIZON_H}h`);
+// Filtre : garde uniquement les TOP championnats
+const filtered = entries.filter(e => isTopLeague(e.ref.league));
+console.log(`${filtered.length} matchs après filtre TOP championnats`);
+filtered.sort((a,b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
+const top = filtered.slice(0, TOP_MATCHES);
+console.log(`\n${top.length} matchs à scanner (batch=${MATCH_BATCH})\n`);
 
 async function processMatch(entry, idx) {
   const bookMatches = Object.entries(entry.matches).filter(([b]) => EXTRACT[b]);
