@@ -81,93 +81,120 @@ async function fetchRaw(bk, id) {
 // On regroupe les marchés sémantiquement identiques (peu importe leur nom brut).
 // Chaque catégorie = ensemble de mots-clés + une fonction extract() qui retourne
 // une clé canonique de la sélection (ex "over_2.5" ou "yes").
-function categorize(market, selection) {
+// Categorisation STRICTE : chaque catégorie décrit exactement une même sémantique.
+// Si un marché mentionne une équipe (nom ou home/away), on distingue par équipe.
+function categorize(market, selection, homeTeam, awayTeam) {
   const m = String(market).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const s = String(selection).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const homeN = homeTeam ? homeTeam.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : '';
+  const awayN = awayTeam ? awayTeam.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : '';
+  const mentionsHome = homeN && homeN.split(' ').filter(w => w.length >= 4).some(w => m.includes(w));
+  const mentionsAway = awayN && awayN.split(' ').filter(w => w.length >= 4).some(w => m.includes(w));
+  const isHomeSide = /home|domicile|team\s*1|1ere\s*equipe/.test(m) || (mentionsHome && !mentionsAway);
+  const isAwaySide = /away|ext[eé]rieur|team\s*2|2eme\s*equipe/.test(m) || (mentionsAway && !mentionsHome);
 
-  // 1. PENALTY dans le match
-  if (/penalty|penalt/.test(m) && !/shootout|apres prolongation|penalty.*shootout|penalty.*award/.test(m)) {
+  // ─── SKIP 1ère/2ème mi-temps standalone (pas fin de match) ───
+  if (/^1ere mi-temps|^2eme mi-temps|^1st half\b|^2nd half\b|- 1h\b|- 2h\b|halftime\/fulltime|correct score.*halftime/.test(m)) return null;
+
+  // 1. PENALTY dans le match (marqué / manqué)
+  if (/(penalty|penalt).*(match|dans le match)|penalty.*award|will.*penalty|penalty.*manque/.test(m) && !/shootout|apres prolongation|penalty.*shootout/.test(m)) {
     return { cat: 'PENALTY_MATCH', selKey: extractYesNo(s) };
   }
-  // 2. Cartons rouges
-  if (/red card|carton rouge/.test(m)) {
-    return { cat: 'RED_CARD', selKey: extractYesNo(s) };
+  // 2. Carton rouge dans le match
+  if (/red card|carton rouge/.test(m) && !/away|home|team\s*[12]|equipe/.test(m)) {
+    return { cat: 'RED_CARD_MATCH', selKey: extractYesNo(s) };
   }
-  // 3. Cartons jaunes ou total cartons
-  if (/carton jaune|yellow card|booking|total.*card|total.*carton/.test(m)) {
-    return { cat: 'CARDS_TOTAL', selKey: extractOverUnder(s) || extractYesNo(s) };
+  // 3. Prolongations
+  if (/prolongation|overtime|extra time|will.*overtime/.test(m) && !/penalty/.test(m)) {
+    return { cat: 'OVERTIME_MATCH', selKey: extractYesNo(s) };
   }
-  // 4. Prolongations
-  if (/prolongation|overtime|extra time/.test(m) && !/penalty/.test(m)) {
-    return { cat: 'OVERTIME', selKey: extractYesNo(s) };
-  }
-  // 5. Penalty shootout
-  if (/penalty.*shootout|penalty shootout|séance de penalty|penalt.*apres/.test(m)) {
+  // 4. Penalty shootout
+  if (/penalty.*shootout|penalty shootout|seance de penalty|penalt.*apres/.test(m)) {
     return { cat: 'PENALTY_SHOOTOUT', selKey: extractYesNo(s) };
   }
-  // 6. Qualification
-  if (/qualif|to qualify/.test(m) && !/type/.test(m)) {
-    return { cat: 'QUALIFY', selKey: extractHomeAway(s) };
+  // 5. Qualification (souvent ambigu, on garde brut)
+  if (/^qualif|^to qualify|will.*qualify/.test(m) && !/type/.test(m)) {
+    return { cat: 'QUALIFY_TEAM', selKey: extractHomeAway(s) };
   }
-  // 7. Corners total O/U
-  if (/corner|coin/.test(m) && !/1st|1ere|first|handicap|result|race/.test(m)) {
-    return { cat: 'CORNERS_TOTAL', selKey: extractOverUnder(s) };
+
+  // 6. Corners total match (Over/Under)
+  if (/(corner|coin)/.test(m) && /(over\/under|total|nombre|number of)/.test(m)
+      && !/1st|1ere|first|1h|home|away|team|equipe/.test(m)) {
+    const line = extractOverUnder(s);
+    if (line) return { cat: 'CORNERS_TOTAL_MATCH', selKey: line };
   }
-  // 8. Corners 1X2
-  if (/corner.*result|corner.*1x2|corners.*result/.test(m)) {
-    return { cat: 'CORNERS_1X2', selKey: extractHomeDrawAway(s) };
+
+  // 7. Corners 1X2 (qui aura le plus)
+  if (/corner.*(result|1x2)|corners.*result|plus de corners/.test(m)) {
+    return { cat: 'CORNERS_MATCH_1X2', selKey: extractHomeDrawAway(s) };
   }
-  // 9. Race to N goals
-  if (/race to \d+ goals|race to \d+/.test(m)) {
-    return { cat: 'RACE_TO_N_GOALS', selKey: extractHomeAway(s) };
+
+  // 8. HT/FT (mi-temps / fin de match)
+  if (/^ht.?ft$|halftime.?fulltime|mt.?fin|mi-temps \/ fin de match|resultat mi-temps.*fin/.test(m) && !/correct score|nombre exact|nombre de buts/.test(m)) {
+    const k = extractHTFT(s);
+    if (k) return { cat: 'HT_FT', selKey: k };
   }
-  // 10. HT/FT
-  if (/ht[\s\/]?ft|halftime.?fulltime|mi-temps.*fin de match|mt.?fin/.test(m) && !/correct score/.test(m)) {
-    return { cat: 'HT_FT', selKey: extractHTFT(s) };
+
+  // 9. Score in both halves - HOME uniquement
+  if (/score in both halves.*home|home.*score.*both halves/.test(m) ||
+      (mentionsHome && !mentionsAway && /marque.*chaque mi-temps|score in both/.test(m))) {
+    return { cat: 'SCORE_BOTH_HALVES_HOME', selKey: extractYesNo(s) };
   }
-  // 11. Score in Both Halves (both halves scored)
-  if (/score in both halves|score.*both halves|marque.*chaque mi-temps|marque a chaque/.test(m)) {
-    return { cat: 'SCORE_BOTH_HALVES', selKey: extractYesNo(s) };
+  // 10. Score in both halves - AWAY uniquement
+  if (/score in both halves.*away|away.*score.*both halves/.test(m) ||
+      (mentionsAway && !mentionsHome && /marque.*chaque mi-temps|score in both/.test(m))) {
+    return { cat: 'SCORE_BOTH_HALVES_AWAY', selKey: extractYesNo(s) };
   }
-  // 12. Winning method (regular time / OT / Pens)
-  if (/winning method|methode.*vict/.test(m)) {
-    return { cat: 'WINNING_METHOD', selKey: s };
-  }
-  // 13. Résultat + Total (V1/V2 + TP/TM combined)
-  if (/resultat.*nombre|1x2.*total|matchbet.*total|match.*total|result.*total|resultat.*ou.*nombre/.test(m)) {
-    return { cat: 'RESULT_AND_TOTAL', selKey: extractResultTotal(s) };
-  }
-  // 14. DC + Total
-  if (/double.*chance.*total|double.*chance.*nombre|dc.*total/.test(m)) {
-    return { cat: 'DC_AND_TOTAL', selKey: extractDCTotal(s) };
-  }
-  // 15. Home team clean sheet
-  if (/home.*clean sheet|clean sheet.*home|n'encaisse pas.*domicile/.test(m)) {
-    return { cat: 'CLEAN_SHEET_HOME', selKey: extractYesNo(s) };
-  }
-  // 16. Away team clean sheet
-  if (/away.*clean sheet|clean sheet.*away|n'encaisse pas.*ext/.test(m)) {
-    return { cat: 'CLEAN_SHEET_AWAY', selKey: extractYesNo(s) };
-  }
-  // 17. Home win to nil
-  if (/home.*win to nil|win to nil.*home|gagne sans encaisser.*(?:dom|home)/.test(m)) {
-    return { cat: 'WIN_TO_NIL_HOME', selKey: extractYesNo(s) };
-  }
-  // 18. Away win to nil
-  if (/away.*win to nil|win to nil.*away|gagne sans encaisser.*(?:ext|away)/.test(m)) {
-    return { cat: 'WIN_TO_NIL_AWAY', selKey: extractYesNo(s) };
-  }
-  // 19. Odd/Even total buts
-  if (/odd\s*\/\s*even|even\/odd|pair.*impair/.test(m) && !/home|away|team|equipe/.test(m)) {
-    return { cat: 'ODD_EVEN_TOTAL', selKey: extractOddEven(s) };
-  }
-  // 20. Both teams to score both halves
-  if (/both teams.*score.*halves|both halves.*score.*yes|marque.*chaque mi-temps.*deux|deux.*equipes.*chaque mi/.test(m)) {
+  // 11. Les 2 équipes marquent dans chaque MT
+  if (/both teams.*score.*halves|deux equipes marquent.*chaque mi|les deux equipes marquent lors de chaque/.test(m)) {
     return { cat: 'BTTS_BOTH_HALVES', selKey: extractYesNo(s) };
   }
-  // 21. Goal in time interval
-  if (/intervalle.*temps|goal in interval|goalscored.*minute|but.*minutes|goal in.*minute/.test(m)) {
-    return { cat: 'GOAL_INTERVAL', selKey: s };  // trop varié, on garde brut
+
+  // 12. Résultat + Total (V1/V2 + TP/TM combined)
+  if (/resultat du match et nombre de buts|1x2 and totals|matchbet and totals|result and total|1x2.*over\/under|1x2.*totals/.test(m)) {
+    const k = extractResultTotal(s, m);
+    if (k) return { cat: 'RESULT_AND_TOTAL', selKey: k };
+  }
+  // 13. DC + Total
+  if (/double chance et nombre de buts|double chance and totals|dc.*total|dc.*nombre/.test(m)) {
+    const k = extractDCTotal(s, m);
+    if (k) return { cat: 'DC_AND_TOTAL', selKey: k };
+  }
+  // 14. Résultat + BTTS
+  if (/resultat du match et les deux equipes marquent|result and both teams to score|1x2 and both teams to score|matchbet.*btts/.test(m)) {
+    const k = extractResultBTTS(s);
+    if (k) return { cat: 'RESULT_AND_BTTS', selKey: k };
+  }
+  // 15. DC + BTTS
+  if (/double chance et les deux equipes marquent|double chance and both teams to score|dc.*btts/.test(m)) {
+    const k = extractDCBTTS(s);
+    if (k) return { cat: 'DC_AND_BTTS', selKey: k };
+  }
+
+  // 16. Clean Sheet HOME (equipe home ne concede pas)
+  if (/(clean sheet).*(home|team\s*1)|home.*(clean sheet)/.test(m) ||
+      (mentionsHome && !mentionsAway && /n'encaisse pas de but|clean sheet/.test(m))) {
+    return { cat: 'CLEAN_SHEET_HOME', selKey: extractYesNo(s) };
+  }
+  // 17. Clean Sheet AWAY
+  if (/(clean sheet).*(away|team\s*2)|away.*(clean sheet)/.test(m) ||
+      (mentionsAway && !mentionsHome && /n'encaisse pas de but|clean sheet/.test(m))) {
+    return { cat: 'CLEAN_SHEET_AWAY', selKey: extractYesNo(s) };
+  }
+  // 18. Win to Nil HOME
+  if (/win to nil.*(home|team\s*1)|(home|team\s*1).*win to nil/.test(m) ||
+      (mentionsHome && !mentionsAway && /gagne sans encaisser/.test(m))) {
+    return { cat: 'WIN_TO_NIL_HOME', selKey: extractYesNo(s) };
+  }
+  // 19. Win to Nil AWAY
+  if (/win to nil.*(away|team\s*2)|(away|team\s*2).*win to nil/.test(m) ||
+      (mentionsAway && !mentionsHome && /gagne sans encaisser/.test(m))) {
+    return { cat: 'WIN_TO_NIL_AWAY', selKey: extractYesNo(s) };
+  }
+
+  // 20. Odd/Even total buts match (pas team)
+  if (/^odd\s*\/\s*even$|^even\/odd$|pair\s*.\s*impair|odd\s*.\s*even/.test(m) && !/home|away|team|equipe|1st|2nd|1ere|2eme/.test(m)) {
+    return { cat: 'ODD_EVEN_TOTAL', selKey: extractOddEven(s) };
   }
 
   return null;
@@ -214,34 +241,61 @@ function extractHTFT(s) {
   };
   return `HT_FT_${norm(m[1])}_${norm(m[2])}`;
 }
-function extractResultTotal(s) {
+function extractResultTotal(s, m) {
   const clean = s.replace(/\s+/g, '').toLowerCase();
-  // ex: "1/over2.5", "V1EtTP2.5-Oui", "1&plus2.5"
-  // simple : chercher side + total
-  const side = /^(v?1|home|1|dom)/i.test(clean) ? '1'
-    : /^(v?2|home|2|ext)/i.test(clean) ? '2'
+  const side = /^(v?1|home|dom|1[^02])|^1$/i.test(clean) ? '1'
+    : /^(v?2|ext|2[^0.])|^2$/i.test(clean) ? '2'
     : /^(x|nul|draw)/i.test(clean) ? 'X'
     : null;
-  const ou = clean.match(/(over|plus|tp|>)[\d\.]*?(\d+(?:\.\d+)?)|(under|moins|tm|<)[\d\.]*?(\d+(?:\.\d+)?)/);
-  const yes = /oui|yes/i.test(clean);
-  const no = /non|no/i.test(clean);
-  if (!side) return null;
+  // line dans selection ou dans market
+  let ou = clean.match(/(over|plus|tp|>)\s*[\d\.]*?(\d+(?:\.\d+)?)|(under|moins|tm|<)\s*[\d\.]*?(\d+(?:\.\d+)?)/);
+  let isOver = false, line = null;
   if (ou) {
-    const isOver = ou[1] != null;
-    const line = parseFloat(ou[2] || ou[4]);
-    return `RT_${side}_${isOver ? 'OVER' : 'UNDER'}_${line}${yes ? '_YES' : no ? '_NO' : ''}`;
+    isOver = ou[1] != null;
+    line = parseFloat(ou[2] || ou[4]);
+  } else if (m) {
+    const mLine = String(m).match(/\[(\d+(?:\.\d+)?)\]/);
+    if (mLine) {
+      line = parseFloat(mLine[1]);
+      isOver = /over|plus/i.test(clean);
+    }
   }
-  return null;
+  if (!side || line == null) return null;
+  return `RT_${side}_${isOver ? 'OVER' : 'UNDER'}_${line}`;
 }
-function extractDCTotal(s) {
+function extractDCTotal(s, m) {
   const clean = s.replace(/\s+/g, '').toLowerCase();
   const side = clean.match(/^(1x|x2|12)/);
   if (!side) return null;
-  const ou = clean.match(/(over|plus|>)[\d\.]*?(\d+(?:\.\d+)?)|(under|moins|<)[\d\.]*?(\d+(?:\.\d+)?)/);
-  if (!ou) return null;
-  const isOver = ou[1] != null;
-  const line = parseFloat(ou[2] || ou[4]);
+  let ou = clean.match(/(over|plus|>)\s*[\d\.]*?(\d+(?:\.\d+)?)|(under|moins|<)\s*[\d\.]*?(\d+(?:\.\d+)?)/);
+  let isOver = false, line = null;
+  if (ou) { isOver = ou[1] != null; line = parseFloat(ou[2] || ou[4]); }
+  else if (m) {
+    const mLine = String(m).match(/\[(\d+(?:\.\d+)?)\]/);
+    if (mLine) { line = parseFloat(mLine[1]); isOver = /over|plus/i.test(clean); }
+  }
+  if (line == null) return null;
   return `DCT_${side[1].toUpperCase()}_${isOver ? 'OVER' : 'UNDER'}_${line}`;
+}
+function extractResultBTTS(s) {
+  const clean = s.replace(/\s+/g, '').toLowerCase();
+  const side = /^(v?1|home|dom)|^1[^02]/i.test(clean) ? '1'
+    : /^(v?2|ext)|^2[^0.]/i.test(clean) ? '2'
+    : /^(x|nul|draw)/i.test(clean) ? 'X'
+    : null;
+  const yes = /(oui|yes)/i.test(clean);
+  const no = /(non|no)\b/i.test(clean);
+  if (!side || (!yes && !no)) return null;
+  return `RB_${side}_${yes ? 'YES' : 'NO'}`;
+}
+function extractDCBTTS(s) {
+  const clean = s.replace(/\s+/g, '').toLowerCase();
+  const side = clean.match(/^(1x|x2|12)/);
+  if (!side) return null;
+  const yes = /(oui|yes)/i.test(clean);
+  const no = /(non|no)\b/i.test(clean);
+  if (!yes && !no) return null;
+  return `DCB_${side[1].toUpperCase()}_${yes ? 'YES' : 'NO'}`;
 }
 
 // ─── Main ───
@@ -276,7 +330,7 @@ for (const { book, raw } of rawResults) {
   let cats = 0, uncats = 0;
   for (const { market, selection, odds } of outs) {
     if (odds >= 40) continue;
-    const cls = categorize(market, selection);
+    const cls = categorize(market, selection, entry.ref.home, entry.ref.away);
     if (!cls || !cls.selKey) { uncats++; continue; }
     cats++;
     if (!cartography[cls.cat]) cartography[cls.cat] = {};
@@ -362,14 +416,23 @@ for (const s of catStats) {
 }
 
 arbs2Way.sort((a,b) => b.profit - a.profit);
-md += `\n\n## Arbs 2-way trouvés (profit > 0)\n\n`;
+md += `\n\n## 🎯 Arbitrages 2-way trouvés (profit > 0)\n\n`;
 const realArbs = arbs2Way.filter(a => !a.nearMiss);
 if (realArbs.length === 0) {
   md += `Aucun arb 2-way avec les sélections opposées.\n`;
 } else {
-  md += `| # | Profit | Cat | Book A | Cote A | Book B | Cote B |\n|:-:|---:|---|---|---:|---|---:|\n`;
   for (const [i, a] of realArbs.slice(0, 20).entries()) {
-    md += `| ${i+1} | **${(a.profit*100).toFixed(2)}%** | ${a.cat} | ${a.best1.book} (${a.k1}) | ${a.best1.odds.toFixed(2)} | ${a.best2.book} (${a.k2}) | ${a.best2.odds.toFixed(2)} |\n`;
+    const bankroll = 100000;
+    const sumInv = 1/a.best1.odds + 1/a.best2.odds;
+    const s1 = bankroll * (1/a.best1.odds) / sumInv;
+    const s2 = bankroll * (1/a.best2.odds) / sumInv;
+    const retour = bankroll / sumInv;
+    md += `\n### #${i+1} — PROFIT **${(a.profit*100).toFixed(2)}%** — Catégorie : ${a.cat}\n\n`;
+    md += `Bankroll : 100 000 XOF → gain net garanti **+${(retour - bankroll).toFixed(0)} XOF**\n\n`;
+    md += `| Pari | Book | Marché (nom exact) | Sélection (nom exact) | Cote | Mise |\n|---|---|---|---|---:|---:|\n`;
+    md += `| 1 | **${a.best1.book}** | \`${a.best1.market}\` | \`${a.best1.selection}\` | ${a.best1.odds.toFixed(2)} | ${s1.toFixed(0)} XOF |\n`;
+    md += `| 2 | **${a.best2.book}** | \`${a.best2.market}\` | \`${a.best2.selection}\` | ${a.best2.odds.toFixed(2)} | ${s2.toFixed(0)} XOF |\n`;
+    md += `\n**Vérification** : Σ 1/cote = 1/${a.best1.odds.toFixed(2)} + 1/${a.best2.odds.toFixed(2)} = ${sumInv.toFixed(4)} < 1 → arb\n`;
   }
 }
 md += `\n\n## Near-misses (marge < 5%)\n\n`;
