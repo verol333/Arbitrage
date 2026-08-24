@@ -2,7 +2,7 @@
 
 Ligue: Copa Libertadores
 Kickoff: 2026-08-26T00:30:00.000Z
-Généré: 2026-08-24T02:32:05.617Z
+Généré: 2026-08-24T02:33:51.810Z
 
 ## Résumé
 
@@ -105,14 +105,14 @@ Généré: 2026-08-24T02:32:05.617Z
 | Sélection | betpawa cote | congobet cote |
 |---|---|---|
 | `YES` | 1.87 (Oui) | 1.86 (Oui) |
-| `NO` | 1.84 (Non) | 3.75 (Non) |
+| `NO` | 1.84 (Non) | 1.79 (Non) |
 
 ### CLEAN_SHEET_AWAY
 
 | Sélection | betpawa cote | congobet cote |
 |---|---|---|
 | `YES` | 4.30 (Oui) | 4.70 (Oui) |
-| `NO` | 1.18 (Non) | 2.46 (Non) |
+| `NO` | 1.18 (Non) | 1.16 (Non) |
 
 ### CORNERS_MATCH_1X2
 
@@ -153,28 +153,7 @@ Généré: 2026-08-24T02:32:05.617Z
 
 ## 🎯 Arbitrages 2-way trouvés (profit > 0)
 
-
-### #1 — PROFIT **36.09%** — Catégorie : CLEAN_SHEET_AWAY
-
-Bankroll : 100 000 XOF → gain net garanti **+56479 XOF**
-
-| Pari | Book | Marché (nom exact) | Sélection (nom exact) | Cote | Mise |
-|---|---|---|---|---:|---:|
-| 1 | **betpawa** | `Clean Sheet Away Team - FT` | `Oui` | 4.30 | 36391 XOF |
-| 2 | **congobet** | `Deportes Tolima gagne ou au moins une équipe n'encaisse pas de but` | `Non` | 2.46 | 63609 XOF |
-
-**Vérification** : Σ 1/cote = 1/4.30 + 1/2.46 = 0.6391 < 1 → arb
-
-### #2 — PROFIT **19.86%** — Catégorie : CLEAN_SHEET_HOME
-
-Bankroll : 100 000 XOF → gain net garanti **+24778 XOF**
-
-| Pari | Book | Marché (nom exact) | Sélection (nom exact) | Cote | Mise |
-|---|---|---|---|---:|---:|
-| 1 | **betpawa** | `Clean Sheet Home Team - FT` | `Oui` | 1.87 | 66726 XOF |
-| 2 | **congobet** | `Independiente del Valle gagne ou au moins une équipe n'encaisse pas de but` | `Non` | 3.75 | 33274 XOF |
-
-**Vérification** : Σ 1/cote = 1/1.87 + 1/3.75 = 0.8014 < 1 → arb
+Aucun arb 2-way avec les sélections opposées.
 
 
 ## Near-misses (marge < 5%)
