@@ -15,6 +15,12 @@
 //   J) 1H Odd vs 1H Even cross-book                 (2-way)
 //   K) BTTS Yes vs BTTS No cross-book                (2-way)
 //   L) 1H BTTS Yes vs 1H BTTS No                    (2-way)
+//   M) Over 0.5 vs Under 0.5 cross-book             (2-way)
+//   N) Over 1.5 vs Under 1.5 cross-book             (2-way)
+//   O) Over 2.5 vs Under 2.5 cross-book             (2-way)
+//   P) Home Over 0.5 vs Home Under 0.5 cross-book   (2-way)
+//   Q) Away Over 0.5 vs Away Under 0.5 cross-book   (2-way)
+//   R) 1H Over 1.5 vs 1H Under 1.5 cross-book      (2-way)
 import { bookmakersByKey } from '../src/bookmakers/index.js';
 import { alignCatalogs } from '../src/core/matching.js';
 import { bpFetchEvent } from '../src/bookmakers/betpawa/api.js';
@@ -487,6 +493,18 @@ const FAMILIES = [
     slots: ['btts_yes', 'btts_no'] },
   { id: 'L', name: '1H BTTS Yes vs 1H BTTS No (cross-book)',
     slots: ['ht_btts_yes', 'ht_btts_no'] },
+  { id: 'M', name: 'Over 0.5 vs Under 0.5 (cross-book)',
+    slots: ['over_0_5', 'under_0_5'] },
+  { id: 'N', name: 'Over 1.5 vs Under 1.5 (cross-book)',
+    slots: ['over_1_5', 'under_1_5'] },
+  { id: 'O', name: 'Over 2.5 vs Under 2.5 (cross-book)',
+    slots: ['over_2_5', 'under_2_5'] },
+  { id: 'P', name: 'Home Over 0.5 vs Home Under 0.5 (cross-book)',
+    slots: ['home_over_0_5', 'home_under_0_5'] },
+  { id: 'Q', name: 'Away Over 0.5 vs Away Under 0.5 (cross-book)',
+    slots: ['away_over_0_5', 'away_under_0_5'] },
+  { id: 'R', name: '1H Over 1.5 vs 1H Under 1.5 (cross-book)',
+    slots: ['ht_over_1_5', 'ht_under_1_5'] },
 ];
 
 function checkFamily(family, bookSlots) {
@@ -567,6 +585,7 @@ if (VERIFY > 0) {
 }
 
 const allArbs = [];
+const nearMisses = [];
 const familyStats = {};
 for (const f of FAMILIES) familyStats[f.id] = { tested: 0, bestMargin: -Infinity };
 let processed = 0;
@@ -589,19 +608,23 @@ for (let i = 0; i < entries.length; i += BATCH) {
       familyStats[family.id].tested++;
       if (result.margin > familyStats[family.id].bestMargin)
         familyStats[family.id].bestMargin = result.margin;
+      const entry_details = Object.entries(result)
+        .filter(([k]) => !['ip', 'margin'].includes(k))
+        .map(([slot, info]) => `${slot}: ${info.odds.toFixed(2)} @${info.book}`)
+        .join(' | ');
+      const row = {
+        match: `${entry.ref.home} vs ${entry.ref.away}`,
+        league: entry.ref.league || '?',
+        kickoff: entry.ref.start ? new Date(entry.ref.start).toISOString().slice(0, 16) : '?',
+        family: family.id,
+        familyName: family.name,
+        margin: result.margin,
+        details: entry_details,
+      };
       if (result.margin > 0) {
-        allArbs.push({
-          match: `${entry.ref.home} vs ${entry.ref.away}`,
-          league: entry.ref.league || '?',
-          kickoff: entry.ref.start ? new Date(entry.ref.start).toISOString().slice(0, 16) : '?',
-          family: family.id,
-          familyName: family.name,
-          margin: result.margin,
-          details: Object.entries(result)
-            .filter(([k]) => !['ip', 'margin'].includes(k))
-            .map(([slot, info]) => `${slot}: ${info.odds.toFixed(2)} @${info.book}`)
-            .join(' | '),
-        });
+        allArbs.push(row);
+      } else if (result.margin > -2) {
+        nearMisses.push(row);
       }
     }
     processed++;
@@ -611,6 +634,7 @@ for (let i = 0; i < entries.length; i += BATCH) {
 }
 
 allArbs.sort((a, b) => b.margin - a.margin);
+nearMisses.sort((a, b) => b.margin - a.margin);
 
 // ─── Report ───────────────────────────────────────────────────
 let md = `# Cross-Market Scanner — Resultats\n\n`;
@@ -629,6 +653,17 @@ if (allArbs.length === 0) {
   for (let i = 0; i < allArbs.length; i++) {
     const a = allArbs[i];
     md += `| ${i + 1} | ${a.match} | ${a.league} | ${a.kickoff} | ${a.familyName} | ${a.margin.toFixed(2)}% | ${a.details} |\n`;
+  }
+}
+
+if (nearMisses.length > 0) {
+  const topNear = nearMisses.slice(0, 20);
+  md += `\n## Near misses (marge entre -2% et 0%) — Top ${topNear.length}\n\n`;
+  md += `| # | Match | Famille | Marge | Details |\n`;
+  md += `|---|-------|---------|------:|--------|\n`;
+  for (let i = 0; i < topNear.length; i++) {
+    const a = topNear[i];
+    md += `| ${i + 1} | ${a.match} | ${a.familyName} | ${a.margin.toFixed(2)}% | ${a.details} |\n`;
   }
 }
 
