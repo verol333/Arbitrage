@@ -2,6 +2,7 @@
 // Chaque BetTypeKey correspond à un marché. On lit tous les offers avec
 // cet BetTypeKey et on émet les clés d'odds standardisées.
 import { isHalfLine } from '../../core/markets.js';
+import { normalizeApolloOffers } from './legacyKeys.js';
 
 // eachOdd conserve son ancienne signature (t, name, c, sbv) pour compat.
 function eachOdd(offers, key, cb) {
@@ -43,7 +44,11 @@ function putOdd(odds, key, cote, description, selectionName, oddId) {
   };
 }
 
-export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
+export function apolloFlatOdds(rawOffers, { sport = 'football' } = {}) {
+  // Apollo a change le format de BetTypeKey le 19/08/2026 ("5_-1" au lieu de 5) :
+  // sans cette retraduction, AUCUN marche Apollo n'etait reconnu et le book
+  // ressortait toujours sans cote. Voir legacyKeys.js.
+  const offers = normalizeApolloOffers(rawOffers, sport);
   if (sport === 'tennis') return apolloTennisFlatOdds(offers);
   // Volleyball Apollo : structure sets identique tennis (BetTypeKey 20 winner,
   // 502/558 s1/s2 winner, 910 hcp games, 911 total games/points, 914 total sets).
@@ -129,6 +134,11 @@ export function apolloFlatOdds(offers, { sport = 'football' } = {}) {
   // - Clean Sheet Home/Away Team", 1=yes, 2=no).
   eachOddL(offers, 958, (t, n, c, _s, d, od) => { if (t === '1') p('ht_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('ht_cs_home_no', c, d, n, od.Id); });
   eachOddL(offers, 959, (t, n, c, _s, d, od) => { if (t === '1') p('ht_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('ht_cs_away_no', c, d, n, od.Id); });
+  // 2nd Half Clean Sheet home/away - BetTypeKey 960/961 (verifie 2026-08-19 :
+  // "2nd Half - Clean Sheet Home/Away Team", 1=yes, 2=no). SportyBet expose
+  // les memes marches (96/97), la comparaison h2_cs_* est donc possible.
+  eachOddL(offers, 960, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_home_no', c, d, n, od.Id); });
+  eachOddL(offers, 961, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_away_no', c, d, n, od.Id); });
   // 2nd Half Clean Sheet home/away - BetTypeKey 960/961.
   eachOddL(offers, 960, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_home_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_home_no', c, d, n, od.Id); });
   eachOddL(offers, 961, (t, n, c, _s, d, od) => { if (t === '1') p('h2_cs_away_yes', c, d, n, od.Id); else if (t === '2') p('h2_cs_away_no', c, d, n, od.Id); });

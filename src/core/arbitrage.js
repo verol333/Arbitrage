@@ -288,6 +288,36 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, 'BTTS', 'Oui', oa.btts_yes, bookA, 'Non', ob.btts_no, bookB, idsOf(oa, 'btts_yes'), idsOf(ob, 'btts_no'));
     pushArb(out, 'BTTS', 'Oui', ob.btts_yes, bookB, 'Non', oa.btts_no, bookA, idsOf(ob, 'btts_yes'), idsOf(oa, 'btts_no'));
   }
+  // --- VAGUE 1 : Clean Sheet, Pair/Impair par equipe, corners par equipe ---
+  // Clean Sheet = binaire strictement complementaire.
+  for (const [pfx, per] of [["", ""], ["ht_", "1MT "], ["h2_", "2MT "]]) {
+    for (const [side, lbl] of [["home", "Domicile"], ["away", "Exterieur"]]) {
+      const yk = pfx + "cs_" + side + "_yes", nk = pfx + "cs_" + side + "_no";
+      if (!crossBookImpliedProbOK(oa, ob, yk, nk)) continue;
+      const fam = per + "Clean Sheet " + lbl;
+      pushArb(out, fam, "Oui", oa[yk], bookA, "Non", ob[nk], bookB, idsOf(oa, yk), idsOf(ob, nk));
+      pushArb(out, fam, "Oui", ob[yk], bookB, "Non", oa[nk], bookA, idsOf(ob, yk), idsOf(oa, nk));
+    }
+  }
+  // Pair/Impair du total de buts d une equipe (0 but compte comme pair).
+  for (const [side, lbl] of [["home", "Dom."], ["away", "Ext."]]) {
+    const ok = "tt_" + side + "_odd", ek = "tt_" + side + "_even";
+    const fam = "Pair/Impair " + lbl;
+    pushArb(out, fam, lbl + " Impair", oa[ok], bookA, lbl + " Pair", ob[ek], bookB, idsOf(oa, ok), idsOf(ob, ek));
+    pushArb(out, fam, lbl + " Impair", ob[ok], bookB, lbl + " Pair", oa[ek], bookA, idsOf(ob, ok), idsOf(oa, ek));
+  }
+  // Total corners d une equipe (plein temps et 1MT) - lignes dynamiques.
+  for (const [pfx, per] of [["cor_tt_", "Corners Total "], ["cor_ht_tt_", "Corners 1MT Total "]]) {
+    for (const [side, lbl] of [["home", "Dom."], ["away", "Ext."]]) {
+      const re = new RegExp("^" + pfx + side + "_(?:over|under)_([0-9]+(?:[.][0-9]+)?)$");
+      for (const l of linesOf(oa, ob, re)) {
+        const ok = pfx + side + "_over_" + l, uk = pfx + side + "_under_" + l;
+        const fam = per + lbl + " " + l;
+        pushArb(out, fam, lbl + " +" + l, oa[ok], bookA, lbl + " -" + l, ob[uk], bookB, idsOf(oa, ok), idsOf(ob, uk));
+        pushArb(out, fam, lbl + " +" + l, ob[ok], bookB, lbl + " -" + l, oa[uk], bookA, idsOf(ob, ok), idsOf(oa, uk));
+      }
+    }
+  }
   // Totaux mi-temps et corners.
   for (const [pfx, lbl] of [['ht_', '1MT Total Buts'], ['h2_', '2MT Total Buts'], ['cor_', 'Corners Total']]) {
     for (const l of linesOf(oa, ob, new RegExp(`^${pfx}(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {

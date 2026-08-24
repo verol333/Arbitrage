@@ -1,0 +1,39 @@
+name: Vérifie marchés Luzern sur un grand match
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Sous-chaine du nom du match (ex: fulham)'
+        required: false
+        default: 'fulham'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        run: |
+          if [ -f package.json ]; then npm install --production --no-audit --no-fund
+          else cd arbitrage-service && npm install --production --no-audit --no-fund && cd .. && ln -sfn arbitrage-service/node_modules node_modules
+          fi
+      - name: Run verification
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+          TARGET_MATCH: ${{ inputs.target }}
+        run: node scripts/dump-all-markets.js
+      - name: Commit report
+        run: |
+          git config user.email actions@github.com
+          git config user.name "GitHub Actions"
+          git add docs/dump-all-markets.md docs/verify-luzern-markets.md
+          git commit -m "verify luzern markets auto-genere" || echo "no changes"
+          git push origin HEAD:main

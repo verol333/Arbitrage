@@ -34,7 +34,11 @@ const HDR = {
 //                    235=Q1-Q4 1X2 (spec.quarternr), 303=Q1-Q4 Hcp, 236=Q1-Q4 Total, 304=Q1-Q4 O/E.
 // Extension 2026-08-17 : ajout Corners (162 1X2, 165 Handicap, 166 Total, 172 O/E,
 // 173 1H 1X2, 176 1H Handicap, 177 1H Total, 183 1H O/E) — parseur ajouté simultanément.
-const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,29,60,68,162,165,166,172,173,176,177,183';
+// VAGUE 1 (2026-08-19) : ajout des IDs que parse.js sait deja lire mais qui
+// n'etaient JAMAIS demandes a l'API - les branches du switch ne se declenchaient
+// donc jamais (Clean Sheet 31/32 + 76/77 1MT + 96/97 2MT, Pair/Impair par equipe
+// 27/28, Total corners par equipe 900300/900301).
+const MARKET_IDS_FOOTBALL = '1,10,11,16,18,26,27,28,29,31,32,60,68,76,77,96,97,162,165,166,172,173,176,177,183,900300,900301';
 const MARKET_IDS_TENNIS = '186,187,188,189,190,191,196,198,202,203,204,314';
 // Ajout audit 2026-08-11 : 74 (1H O/E), 88 (2H Asian Hcp), 94 (2H O/E)
 const MARKET_IDS_BASKET = '219,223,225,227,228,229,60,66,68,74,83,88,94,235,236,303,304';

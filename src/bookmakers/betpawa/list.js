@@ -14,7 +14,13 @@ const MARKET_TYPE_IDS = new Set(['3743', '28000810', '28000850', '3744', '3745',
 // Fenêtre byte pour associer un match ID à ses métadonnées (name, startTime,
 // competition) dans le protobuf. 2 KB couvre largement un event protobuf
 // typique (markets inclus). Au-delà = probablement un autre event.
-const ASSOC_WINDOW_BYTES = 2048;
+// 19/08 : fenetre reduite de 2048 a 256 octets. A 2 KB, l'ISO "le plus proche"
+// pouvait appartenir a UN AUTRE event du meme payload -> BetPawa annoncait une
+// heure de coup d'envoi qui n'etait pas la sienne, et un match d'une autre
+// journee passait le contole de date. Au-dela de 256 octets on prefere ne PAS
+// deviner : start reste null, puis l'heure est lue sur /events/{id} (source
+// officielle) par le fallback d'enrichissement ci-dessous.
+const ASSOC_WINDOW_BYTES = 256;
 
 // Trouve la valeur la plus proche (en byte offset) qui satisfait un prédicat.
 function findNearest(strings, offsets, anchorOffset, predicate) {

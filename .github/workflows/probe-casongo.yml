@@ -1,0 +1,16 @@
+name: Probe Casongo (test proxies + CF worker vs Scrape.do)
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install undici
+        run: npm install --no-save --no-audit --no-fund undici
+      - name: Probe casongo
+        env:
+          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+        run: node scripts/probe-casongo.js

@@ -1,0 +1,14 @@
+name: Probe Apollo Webshare Proxies
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install undici
+        run: npm install --no-save --no-audit --no-fund undici
+      - name: Probe 10 Webshare proxies vs Apollo
+        run: node scripts/probe-apollo-webshare.js

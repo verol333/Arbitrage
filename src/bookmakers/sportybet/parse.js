@@ -198,10 +198,49 @@ export function sportybetFlatOdds(markets, { live = false, sport = 'football' } 
         break;
       }
 
+      // ─── Clean Sheet (74=Yes, 76=No) — vague 1 ────────────────────────
+      // 31/32 = plein temps dom./ext. ; 76/77 = 1MT ; 96/97 = 2MT.
+      case '31': putYesNo(odds, m, 'cs_home_'); break;
+      case '32': putYesNo(odds, m, 'cs_away_'); break;
+      case '76': putYesNo(odds, m, 'ht_cs_home_'); break;
+      case '77': putYesNo(odds, m, 'ht_cs_away_'); break;
+      case '96': putYesNo(odds, m, 'h2_cs_home_'); break;
+      case '97': putYesNo(odds, m, 'h2_cs_away_'); break;
+
+      // ─── Pair/Impair par équipe (70=Odd, 72=Even) ─────────────────────
+      case '27': putOddEven(odds, m, 'tt_home_'); break;
+      case '28': putOddEven(odds, m, 'tt_away_'); break;
+
+      // ─── Total corners par équipe (specifier "total=X.X", 30=Over/31=Under)
+      case '900300': putTotal(odds, m, 'cor_tt_home_'); break;
+      case '900301': putTotal(odds, m, 'cor_tt_away_'); break;
+
       default: break;  // Autres marchés ignorés (combos, spécifiques, variantes Early Payout).
     }
   }
   return odds;
+}
+
+// Marché binaire Oui/Non (Clean Sheet…) : écrit <pfx>yes / <pfx>no.
+function putYesNo(odds, m, pfx) {
+  for (const o of m.outcomes || []) {
+    const v = Number(o?.odds);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    const d = String(o?.desc || '').toLowerCase();
+    if (d === 'yes' || d === 'oui') putSb(odds, `${pfx}yes`, v, m, o);
+    else if (d === 'no' || d === 'non') putSb(odds, `${pfx}no`, v, m, o);
+  }
+}
+
+// Marché Pair/Impair : écrit <pfx>odd / <pfx>even.
+function putOddEven(odds, m, pfx) {
+  for (const o of m.outcomes || []) {
+    const v = Number(o?.odds);
+    if (!Number.isFinite(v) || v <= 1) continue;
+    const d = String(o?.desc || '').toLowerCase();
+    if (d === 'odd' || d === 'impair') putSb(odds, `${pfx}odd`, v, m, o);
+    else if (d === 'even' || d === 'pair') putSb(odds, `${pfx}even`, v, m, o);
+  }
 }
 
 // Total O/U : ligne extraite du specifier "total=X.X".

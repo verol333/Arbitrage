@@ -235,9 +235,22 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     // etendu a 10 recemment mais a introduit du bruit corners → retour 6.
     const subs = await Promise.all(wanted.slice(0, 6).map(async ({ sid, prefix }) => {
       const sd = await viaWorker(`${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`);
-      return { prefix, GE: sd?.Value?.GE || null };
+      return { prefix, sid, GE: sd?.Value?.GE || null };
     }));
-    for (const { prefix, GE: GEsub } of subs) if (GEsub) parseGE(GEsub, odds, prefix);
+    // ⚠️ Les cotes issues d'un sous-marche (corners, mi-temps) n'existent PAS
+    // sur l'identifiant du match principal : le code coupon doit pointer sur
+    // l'identifiant du sous-marche, sinon 1xBet renvoie un coupon d'un tout
+    // autre marche (bug corners constate 2026-08-19). On estampille donc
+    // chaque cote du sous-marche avec son propre gameId, qui prend le pas sur
+    // celui du match dans buildCoupon.
+    for (const { prefix, GE: GEsub, sid } of subs) {
+      if (!GEsub) continue;
+      const before = new Set(Object.keys(odds._ids || {}));
+      parseGE(GEsub, odds, prefix);
+      for (const key of Object.keys(odds._ids || {})) {
+        if (!before.has(key) && key.startsWith(prefix)) odds._ids[key].gameId = String(sid);
+      }
+    }
   }
   return odds;
 }
