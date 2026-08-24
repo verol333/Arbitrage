@@ -2,7 +2,7 @@
 
 Ligue: Copa Libertadores
 Kickoff: 2026-08-26T00:30:00.000Z
-Généré: 2026-08-24T02:24:44.750Z
+Généré: 2026-08-24T02:26:58.610Z
 
 ## Résumé
 
@@ -40,9 +40,13 @@ Généré: 2026-08-24T02:24:44.750Z
 
 ## Arbs 2-way trouvés (profit > 0)
 
-Aucun arb 2-way avec les sélections opposées.
+| # | Profit | Cat | Book A | Cote A | Book B | Cote B |
+|:-:|---:|---|---|---:|---|---:|
+| 1 | **12.70%** | SCORE_BOTH_HALVES | betpawa (YES) | 7.56 | congobet (NO) | 1.35 |
 
 
 ## Near-misses (marge < 5%)
 
-Aucun.
+| Cat | Book A | Cote A | Book B | Cote B | Marge |
+|---|---|---:|---|---:|---:|
+| ODD_EVEN_TOTAL | 1xbet (EVEN) | 1.83 | betpawa (ODD) | 2.08 | 2.72% |
