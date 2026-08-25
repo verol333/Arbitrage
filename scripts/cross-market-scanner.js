@@ -21,6 +21,14 @@
 //   P) Home Over 0.5 vs Home Under 0.5 cross-book   (2-way)
 //   Q) Away Over 0.5 vs Away Under 0.5 cross-book   (2-way)
 //   R) 1H Over 1.5 vs 1H Under 1.5 cross-book      (2-way)
+//   S) 1X2 cross-book                               (3-way)
+//   T) DC 1X + Result 2 cross-market                (2-way)
+//   U) DC X2 + Result 1 cross-market                (2-way)
+//   V) DC 12 + Result X cross-market                (2-way)
+//   W) Over 3.5 vs Under 3.5 cross-book             (2-way)
+//   X) CS Home No vs Away Under 0.5 cross-market    (2-way)
+//   Y) CS Away No vs Home Under 0.5 cross-market    (2-way)
+//   Z) 1H 1X2 cross-book                            (3-way)
 import { bookmakersByKey } from '../src/bookmakers/index.js';
 import { alignCatalogs } from '../src/core/matching.js';
 import { bpFetchEvent } from '../src/bookmakers/betpawa/api.js';
@@ -61,8 +69,19 @@ async function extractBetpawa(matchId) {
         if (isNaN(c) || c <= 1) continue;
         const sel = (p.name || p.displayName || '').trim();
 
+        // 1X2 - FT
+        if (n === '1X2 - FT') {
+          if (sel === '1') slots.result_1 = c;
+          if (sel === 'X') slots.result_X = c;
+          if (sel === '2') slots.result_2 = c;
+        }
+
         // Double Chance - FT
-        if (n === 'Double Chance - FT' && sel === 'X2') slots.dc_X2 = c;
+        if (n === 'Double Chance - FT') {
+          if (sel === '1X') slots.dc_1X = c;
+          if (sel === 'X2') slots.dc_X2 = c;
+          if (sel === '12') slots.dc_12 = c;
+        }
 
         // BTTS - FT
         if (n === 'Both Teams To Score - FT') {
@@ -94,10 +113,12 @@ async function extractBetpawa(matchId) {
             if (line === 0.5) slots.over_0_5 = c;
             if (line === 1.5) slots.over_1_5 = c;
             if (line === 2.5) slots.over_2_5 = c;
+            if (line === 3.5) slots.over_3_5 = c;
           } else if (isUnder(sel)) {
             if (line === 0.5) slots.under_0_5 = c;
             if (line === 1.5) slots.under_1_5 = c;
             if (line === 2.5) slots.under_2_5 = c;
+            if (line === 3.5) slots.under_3_5 = c;
           }
         }
 
@@ -143,6 +164,12 @@ async function extractBetpawa(matchId) {
         }
 
         // ─── 1H markets ─────────────────────────────────
+        // 1X2 - 1H
+        if (n === '1X2 - 1H') {
+          if (sel === '1') slots.ht_result_1 = c;
+          if (sel === 'X') slots.ht_result_X = c;
+          if (sel === '2') slots.ht_result_2 = c;
+        }
         // EXACT match to avoid "- 1H - Home Team" / "- 1H - Away Team"
         if (n === 'Total Score Over/Under - 1H') {
           const nameLine = parseLine(sel);
@@ -193,8 +220,19 @@ async function extractCongobet(matchId, home, away) {
       if (isNaN(c) || c <= 1) continue;
       const sel = (it.shortName || it.name || '').trim();
 
+      // Resultat final (1X2)
+      if (nl === 'résultat final' || nl === '1x2') {
+        if (sel === '1') slots.result_1 = c;
+        if (sel === 'X') slots.result_X = c;
+        if (sel === '2') slots.result_2 = c;
+      }
+
       // Double chance
-      if (nl === 'double chance' && sel === 'X2') slots.dc_X2 = c;
+      if (nl === 'double chance') {
+        if (sel === '1X') slots.dc_1X = c;
+        if (sel === 'X2') slots.dc_X2 = c;
+        if (sel === '12') slots.dc_12 = c;
+      }
 
       // Les deux equipes marquent (FT, not 1H/2H)
       if (nl === 'les deux équipes marquent') {
@@ -227,6 +265,14 @@ async function extractCongobet(matchId, home, away) {
         if (sel === '< 1.5' || sel === '<1.5') slots.under_1_5 = c;
         if (sel === '> 2.5' || sel === '>2.5') slots.over_2_5 = c;
         if (sel === '< 2.5' || sel === '<2.5') slots.under_2_5 = c;
+        if (sel === '> 3.5' || sel === '>3.5') slots.over_3_5 = c;
+        if (sel === '< 3.5' || sel === '<3.5') slots.under_3_5 = c;
+        if (sel === 'Impair') slots.odd = c;
+        if (sel === 'Pair') slots.even = c;
+      }
+
+      // Pair / Impair (separate market on Congobet)
+      if (nl === 'pair / impair' || nl === 'pair/impair') {
         if (sel === 'Impair') slots.odd = c;
         if (sel === 'Pair') slots.even = c;
       }
@@ -261,6 +307,11 @@ async function extractCongobet(matchId, home, away) {
       }
 
       // ─── 1ere mi-temps ─────────────────────────────────
+      if (nl === '1ère mi-temps - résultat' || nl === '1ère mi-temps - 1x2') {
+        if (sel === '1') slots.ht_result_1 = c;
+        if (sel === 'X') slots.ht_result_X = c;
+        if (sel === '2') slots.ht_result_2 = c;
+      }
       if (nl === '1ère mi-temps - nombre de buts') {
         if (sel === '> 0.5' || sel === '>0.5') slots.ht_over_0_5 = c;
         if (sel === '< 0.5' || sel === '<0.5') slots.ht_under_0_5 = c;
@@ -302,8 +353,18 @@ async function extract1xbet(matchId) {
       }
     }
   }
-  // DC (G=8): T6=X2
-  iter(8, (i, c) => { if (i.T === 6) slots.dc_X2 = c; });
+  // 1X2 (G=1): T1=home, T2=draw, T3=away
+  iter(1, (i, c) => {
+    if (i.T === 1) slots.result_1 = c;
+    if (i.T === 2) slots.result_X = c;
+    if (i.T === 3) slots.result_2 = c;
+  });
+  // DC (G=8): T4=1X, T5=12, T6=X2
+  iter(8, (i, c) => {
+    if (i.T === 4) slots.dc_1X = c;
+    if (i.T === 5) slots.dc_12 = c;
+    if (i.T === 6) slots.dc_X2 = c;
+  });
   // BTTS (G=19): T180=yes, T181=no
   iter(19, (i, c) => {
     if (i.T === 180) slots.btts_yes = c;
@@ -316,11 +377,13 @@ async function extract1xbet(matchId) {
       if (p == 0.5) slots.over_0_5 = c;
       if (p == 1.5) slots.over_1_5 = c;
       if (p == 2.5) slots.over_2_5 = c;
+      if (p == 3.5) slots.over_3_5 = c;
     }
     if (i.T === 10) {
       if (p == 0.5) slots.under_0_5 = c;
       if (p == 1.5) slots.under_1_5 = c;
       if (p == 2.5) slots.under_2_5 = c;
+      if (p == 3.5) slots.under_3_5 = c;
     }
   });
   // Odd/Even (G=14): T183=odd, T182=even
@@ -358,6 +421,12 @@ async function extract1xbet(matchId) {
         }
       }
     }
+    // 1H 1X2 (G=1)
+    sIter(1, (i, c) => {
+      if (i.T === 1) slots.ht_result_1 = c;
+      if (i.T === 2) slots.ht_result_X = c;
+      if (i.T === 3) slots.ht_result_2 = c;
+    });
     sIter(17, (i, c) => {
       if (i.T === 9 && i.P == 0.5) slots.ht_over_0_5 = c;
       if (i.T === 10 && i.P == 0.5) slots.ht_under_0_5 = c;
@@ -402,9 +471,18 @@ async function extract1win(matchId, home, away) {
       const name = (o.name || '').trim();
       const nl = name.toLowerCase();
 
+      // Result (1X2)
+      if (gnl === 'result' || gnl === 'match result' || gnl === '1x2') {
+        if (nl === 'w1' || nl === '1') slots.result_1 = c;
+        if (nl === 'x' || nl === 'draw') slots.result_X = c;
+        if (nl === 'w2' || nl === '2') slots.result_2 = c;
+      }
+
       // Double Chance (exact group match, not "1st half. Double chance")
       if (gnl === 'double chance') {
+        if (nl === '1x' || /home or draw/i.test(name)) slots.dc_1X = c;
         if (nl === 'x2' || /draw or .+/i.test(name)) slots.dc_X2 = c;
+        if (nl === '12' || /home or away/i.test(name)) slots.dc_12 = c;
       }
 
       // Both teams to score (FT)
@@ -421,12 +499,27 @@ async function extract1win(matchId, home, away) {
         if (/under 1\.5/i.test(name)) slots.under_1_5 = c;
         if (/over 2\.5/i.test(name)) slots.over_2_5 = c;
         if (/under 2\.5/i.test(name)) slots.under_2_5 = c;
+        if (/over 3\.5/i.test(name)) slots.over_3_5 = c;
+        if (/under 3\.5/i.test(name)) slots.under_3_5 = c;
       }
 
       // Odd/Even
       if (gnl === 'total. even/odd' || gnl === 'odd/even') {
         if (nl === 'odd') slots.odd = c;
         if (nl === 'even') slots.even = c;
+      }
+
+      // 1st half result
+      if (gnl === '1st half. result' || gnl === '1st half. 1x2') {
+        if (nl === 'w1' || nl === '1') slots.ht_result_1 = c;
+        if (nl === 'x' || nl === 'draw') slots.ht_result_X = c;
+        if (nl === 'w2' || nl === '2') slots.ht_result_2 = c;
+      }
+
+      // 1st half odd/even
+      if (gnl === '1st half. total. even/odd' || gnl === '1st half. odd/even' || gnl === '1st half. even/odd') {
+        if (nl === 'odd') slots.ht_odd = c;
+        if (nl === 'even') slots.ht_even = c;
       }
 
       // 1st half markets
@@ -505,6 +598,22 @@ const FAMILIES = [
     slots: ['away_over_0_5', 'away_under_0_5'] },
   { id: 'R', name: '1H Over 1.5 vs 1H Under 1.5 (cross-book)',
     slots: ['ht_over_1_5', 'ht_under_1_5'] },
+  { id: 'S', name: '1X2 cross-book (3-way)',
+    slots: ['result_1', 'result_X', 'result_2'] },
+  { id: 'T', name: 'DC 1X + Result 2 (cross-market)',
+    slots: ['dc_1X', 'result_2'] },
+  { id: 'U', name: 'DC X2 + Result 1 (cross-market)',
+    slots: ['dc_X2', 'result_1'] },
+  { id: 'V', name: 'DC 12 + Result X (cross-market)',
+    slots: ['dc_12', 'result_X'] },
+  { id: 'W', name: 'Over 3.5 vs Under 3.5 (cross-book)',
+    slots: ['over_3_5', 'under_3_5'] },
+  { id: 'X', name: 'CS Home No vs Away Under 0.5 (cross-market)',
+    slots: ['cs_home_no', 'away_under_0_5'] },
+  { id: 'Y', name: 'CS Away No vs Home Under 0.5 (cross-market)',
+    slots: ['cs_away_no', 'home_under_0_5'] },
+  { id: 'Z', name: '1H 1X2 cross-book (3-way)',
+    slots: ['ht_result_1', 'ht_result_X', 'ht_result_2'] },
 ];
 
 function checkFamily(family, bookSlots) {
