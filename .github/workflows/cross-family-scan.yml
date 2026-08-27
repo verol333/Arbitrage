@@ -1,0 +1,46 @@
+name: Foot - Scan croise familles inexploitees
+on:
+  workflow_dispatch:
+    inputs:
+      matches:
+        description: 'Nombre de matchs a scanner'
+        required: false
+        default: '12'
+      minProfit:
+        description: 'Marge minimale en %'
+        required: false
+        default: '0.5'
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: |
+          if [ -f package.json ]; then npm install --production --no-audit --no-fund
+          else cd arbitrage-service && npm install --production --no-audit --no-fund && cd .. && ln -sfn arbitrage-service/node_modules node_modules
+          fi
+      - name: Scan
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+          TOP_MATCHES: ${{ inputs.matches }}
+          MIN_PROFIT: ${{ inputs.minProfit }}
+        run: node scripts/cross-family-scan.js
+      - name: Commit rapport
+        run: |
+          git config user.email actions@github.com
+          git config user.name "GitHub Actions"
+          git add docs/cross-family-scan.md
+          git commit -m "scan croise familles inexploitees" || echo "aucun changement"
+          git push origin HEAD:${{ github.ref_name }}
