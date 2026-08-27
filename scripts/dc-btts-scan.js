@@ -246,7 +246,7 @@ md.push('', '## Tous les matchs', '');
 md.push('| Match | Books avec le marche | Cotes lues | Jambes (dont combinees) | Somme 1/cote (seuil 2.00) | Pire cas | Ecart |');
 md.push('|---|---|---:|---:|---:|---:|---:|');
 for (const r of results) {
-  md.push('| ' + r.label + ' | ' + (r.books.join(', ') || '—') + ' | ' + r.found + ' | ' + r.legs.length + '/6 | ' +
+  md.push('| ' + r.label + ' | ' + (r.books.join(', ') || '—') + ' | ' + r.found + ' | ' + r.legs.length + ' (' + r.nCombo + ') | ' +
     (r.impSum != null ? r.impSum.toFixed(3) : 'n/a') + ' | ' + (r.sol ? r.sol.worst.toFixed(4) : 'n/a') + ' | ' + (r.profit != null ? r.profit.toFixed(2) + '%' : 'n/a') + ' |');
 }
 md.push('', 'Rappel du reglement retenu : 1X+Oui gagne si le domicile gagne OU match nul, avec au moins un but ' +
