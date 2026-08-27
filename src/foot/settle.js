@@ -35,6 +35,29 @@ function side(word, ctx) {
   return null;
 }
 
+// Mots attendus dans le libelle d'un marche de totaux de buts. Tout mot
+// supplementaire (nom d'equipe, statistique) rend le rattachement douteux.
+const TOTAL_VOCAB = new Set(('total totaux buts but goals goal score scores match du de la le les des over under plus moins ' +
+  'exact nombre multigoals multiscores ft ht 1h 2h mi temps periode period half team equipe general ' +
+  'and et o u tot pts nb').split(' '));
+
+function hasForeignWord(mkt) {
+  return strip(mkt).split(/[^a-z0-9]+/).filter((w) => w && w.length > 1 && !/^\d+$/.test(w) && !TOTAL_VOCAB.has(w)).length > 0;
+}
+
+// Cote d'un libelle : 1 si un mot significatif de l'equipe a domicile y figure,
+// 2 pour l'exterieur, null si aucun ou les deux.
+function teamByName(text, ctx) {
+  const toks = (n) => strip(n || '').split(/[^a-z0-9]+/).filter((w) => w.length >= 4);
+  const words = new Set(strip(text).split(/[^a-z0-9]+/).filter(Boolean));
+  const hit = (n) => toks(n).some((w) => words.has(w));
+  const h = ctx.home && hit(ctx.home);
+  const a = ctx.away && hit(ctx.away);
+  if (h && !a) return '1';
+  if (a && !h) return '2';
+  return null;
+}
+
 const res = (gh, ga) => (gh > ga ? '1' : gh < ga ? '2' : 'X');
 const scoresIn = (txt) => {
   const out = [];
@@ -115,14 +138,17 @@ function settleSimple(market, selection, ctx = {}) {
     const over = plusN ? true : /(over|plus|sup|\+|>|au dessus)/.test(sel);
     const under = plusN ? false : /(under|moins|inf|<|au dessous)/.test(sel);
     if (over === under) return null;
-    // "Athletic Bilbao total" est un total d'EQUIPE : sans cette detection par
-    // nom, il etait regle comme un total du match.
-    const nh = ctx.home ? strip(ctx.home) : null;
-    const na = ctx.away ? strip(ctx.away) : null;
-    const named = nh && both.includes(nh) ? '1' : na && both.includes(na) ? '2' : null;
+    // "Athletic Bilbao total" est un total d'EQUIPE. La comparaison de noms se
+    // fait par mots significatifs : les books ecrivent "Al Tadamon SC" quand la
+    // reference dit "Al Tadamun".
+    const named = teamByName(both, ctx);
     const team = named
       || (/(domicile|home|equipe 1|team 1|\bt1\b)/.test(both) ? '1'
       : /(exterieur|away|equipe 2|team 2|\bt2\b)/.test(both) ? '2' : null);
+    // Dernier verrou : si le libelle contient un mot inconnu du vocabulaire des
+    // totaux, c'est probablement un total d'equipe ou de statistique mal
+    // rattache. On refuse au lieu de le compter comme total du match.
+    if (!team && hasForeignWord(mkt)) return null;
     return (sc) => {
       const [gh, ga] = g(sc);
       const v = team === '1' ? gh : team === '2' ? ga : gh + ga;
