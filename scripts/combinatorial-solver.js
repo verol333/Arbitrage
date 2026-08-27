@@ -23,7 +23,11 @@ const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(
 const TOP_MATCHES = parseInt(process.env.SOLVER_TOP_MATCHES || '5', 10);
 const MIN_PROFIT = parseFloat(process.env.MIN_PROFIT || '0'); // 0% = tout montrer pour diagnostic
 const BANKROLL = parseFloat(process.env.SOLVER_BANKROLL || '100000'); // XOF pour calcul mises
-const REQUIRE_DISJOINT = process.env.SOLVER_ALLOW_OVERLAP !== '1'; // par defaut, filtre disjoints
+// Le chevauchement n'invalide PAS un arbitrage : avec des mises en 1/cote,
+// tout score couvert au moins une fois rapporte >= bankroll/sumInv. Le profit
+// 1-sumInv reste donc un plancher garanti, et exiger la disjonction supprimait
+// de vrais arbitrages. Seule la couverture COMPLETE de la grille est requise.
+const REQUIRE_DISJOINT = false; // par defaut, filtre disjoints
 const GRID = 15; // grille scores 0..14 pour home et away = 225 cellules
 // Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
 
