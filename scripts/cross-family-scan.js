@@ -40,11 +40,11 @@ function binaryYesNo(sel) {
 // ("Falu FK / Draw"), il faut donc les traduire pour comparer avec les autres.
 function htftIssue(sel, teams) {
   const s = strip(sel);
-  const h = strip(teams?.home || '@@');
-  const a = strip(teams?.away || '@@');
+  const nHome = strip(teams?.home || '@@');
+  const nAway = strip(teams?.away || '@@');
   const tok = (w) => {
-    if (h !== '@@' && w === h) return '1';
-    if (a !== '@@' && w === a) return '2';
+    if (nHome !== '@@' && w === nHome) return '1';
+    if (nAway !== '@@' && w === nAway) return '2';
     if (/^(1|home|dom|domicile|p1)$/.test(w)) return '1';
     if (/^(x|nul|draw|egalite|tie)$/.test(w)) return 'X';
     if (/^(2|away|ext|exterieur|p2)$/.test(w)) return '2';
