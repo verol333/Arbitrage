@@ -70,8 +70,8 @@ export function solveWorstCase(legs, cells, cover) {
 // Cas 1 : 6 options a cote 4.00 couvrant chacune 2 cases sur 6 -> 1/6 partout
 //         rend 2 x 4 / 6 = 1.3333. Si le solveur rend moins, il est casse.
 // Cas 2 : cotes realistes avec marge book -> doit rendre < 1.00.
-export function selfTest(cells, cover) {
-  const keys = Object.keys(cover);
+export function selfTest(cells, cover, testKeys = null) {
+  const keys = testKeys && testKeys.length ? testKeys : Object.keys(cover);
   const arb = keys.map((k) => ({ key: k, odds: 4 }));
   const a = solveWorstCase(arb, cells, cover);
   // cotes coherentes avec une marge book de 8% : la somme des 1/cote vaut 2.17
