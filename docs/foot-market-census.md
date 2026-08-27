@@ -1,18 +1,16 @@
 # Recensement des marches football
 
-Genere : 2026-08-27T11:09:33.186Z
-Matchs analyses : 15 | horizon 48h | duree 148s
+Genere : 2026-08-27T11:20:26.022Z
+Matchs analyses : 12 | horizon 48h | duree 281s
 
 ## Couverture par bookmaker
 
 | Book | Matchs | Avec cotes | Outcomes/match | Erreurs |
 |---|---:|---:|---:|---|
-| 1xbet | 15 | 14 | 273 | - |
-| congobet | 15 | 15 | 328 | - |
-| betpawa | 15 | 0 | 0 | - |
-| yellowbet | 15 | 0 | 0 | - |
-| sportybet | 15 | 15 | 678 | - |
-| apollo | 15 | 15 | 504 | - |
+| 1xbet | 12 | 6 | 279 | - |
+| congobet | 12 | 12 | 337 | - |
+| betpawa | 12 | 12 | 438 | - |
+| 1win | 12 | 12 | 198 | - |
 
 ## Familles de marches — potentiel de partition
 
@@ -20,119 +18,119 @@ Matchs analyses : 15 | horizon 48h | duree 148s
 
 | Famille | Grille | Matchs | 2+ books | 3+ books | Max books |
 |---|:--:|---:|---:|---:|---:|
-| OTHER | - | 15 | 15 | 15 | 4 |
-| WINNER | oui | 15 | 15 | 0 | 2 |
-| DC | oui | 15 | 15 | 15 | 3 |
-| BTTS | oui | 15 | 15 | 0 | 2 |
-| OU_MATCH | oui | 15 | 15 | 15 | 3 |
-| HANDICAP_ASIAN | oui | 15 | 15 | 0 | 2 |
-| DNB | oui | 15 | 15 | 0 | 2 |
-| ODD_EVEN | oui | 15 | 15 | 0 | 2 |
-| CLEAN_SHEET | oui | 15 | 15 | 6 | 3 |
-| MULTIGOALS | oui | 15 | 11 | 6 | 3 |
-| BTTS_H1 | oui | 11 | 11 | 0 | 2 |
-| OU_MATCH_H1 | oui | 11 | 11 | 11 | 3 |
-| OU_MATCH_H2 | - | 11 | 11 | 6 | 3 |
-| HTFT | oui | 11 | 11 | 10 | 3 |
-| DC_H1 | oui | 11 | 11 | 5 | 3 |
-| DC_H2 | - | 11 | 11 | 5 | 3 |
-| WINNER_H2 | - | 11 | 11 | 0 | 2 |
-| ODD_EVEN_H1 | oui | 11 | 11 | 0 | 2 |
-| ODD_EVEN_H2 | - | 11 | 11 | 0 | 2 |
-| WIN_MARGIN | oui | 15 | 10 | 5 | 3 |
-| DC_TOTAL | oui | 15 | 10 | 5 | 3 |
-| RESULT_TOTAL | oui | 15 | 10 | 0 | 2 |
-| RESULT_TOTAL_H1 | - | 11 | 10 | 0 | 2 |
-| CLEAN_SHEET_H1 | - | 11 | 10 | 6 | 3 |
-| HANDICAP_ASIAN_H1 | oui | 11 | 10 | 0 | 2 |
-| DNB_H1 | - | 11 | 10 | 0 | 2 |
-| HANDICAP_ASIAN_H2 | - | 11 | 10 | 0 | 2 |
-| OU_TEAM_H2 | - | 11 | 10 | 0 | 2 |
-| DNB_H2 | - | 11 | 10 | 0 | 2 |
-| CS | oui | 15 | 6 | 5 | 3 |
-| MULTIGOALS_H1 | oui | 11 | 6 | 5 | 3 |
-| BTTS_H2 | - | 11 | 6 | 0 | 2 |
-| WINNER_H1 | oui | 11 | 6 | 0 | 2 |
-| CS_H1 | oui | 11 | 6 | 5 | 3 |
-| CS_H2 | - | 11 | 6 | 5 | 3 |
-| CLEAN_SHEET_H2 | - | 11 | 6 | 5 | 3 |
-| MULTIGOALS_H2 | - | 11 | 5 | 0 | 2 |
-| HALF_PRODUCTIVE | - | 11 | 5 | 0 | 2 |
-| HTFT_H1 | - | 10 | 5 | 0 | 2 |
-| RESULT_TOTAL_H2 | - | 10 | 5 | 0 | 2 |
-| HANDICAP_EURO | oui | 15 | 0 | 0 | 1 |
-| WIN_MARGIN_H1 | - | 11 | 0 | 0 | 1 |
-| OU_TEAM_H1 | oui | 10 | 0 | 0 | 1 |
-| WIN_MARGIN_H2 | - | 6 | 0 | 0 | 1 |
-| FIRST_GOAL | oui | 6 | 0 | 0 | 1 |
-| CORNERS_H1 | - | 6 | 0 | 0 | 1 |
-| OU_TEAM | oui | 5 | 0 | 0 | 1 |
-| GOAL_INTERVAL | - | 5 | 0 | 0 | 1 |
-| SHOTS | - | 2 | 0 | 0 | 1 |
-| OFFSIDE | - | 1 | 0 | 0 | 1 |
-| FOULS | - | 1 | 0 | 0 | 1 |
+| WINNER | oui | 12 | 12 | 12 | 4 |
+| DC | oui | 12 | 12 | 12 | 4 |
+| OTHER | - | 12 | 12 | 12 | 4 |
+| OU_MATCH | oui | 12 | 12 | 12 | 4 |
+| HANDICAP_ASIAN | oui | 12 | 12 | 6 | 3 |
+| HANDICAP_EURO | oui | 12 | 12 | 0 | 2 |
+| WIN_MARGIN | oui | 12 | 12 | 0 | 2 |
+| DC_TOTAL | oui | 12 | 12 | 0 | 2 |
+| RESULT_TOTAL | oui | 12 | 12 | 1 | 3 |
+| OU_MATCH_H1 | oui | 12 | 12 | 12 | 3 |
+| HTFT | oui | 12 | 12 | 9 | 3 |
+| CLEAN_SHEET | oui | 12 | 12 | 4 | 3 |
+| DC_H1 | oui | 12 | 12 | 12 | 3 |
+| DC_H2 | - | 12 | 12 | 9 | 3 |
+| WINNER_H2 | - | 12 | 12 | 0 | 2 |
+| OU_MATCH_H2 | - | 12 | 11 | 3 | 3 |
+| BTTS | oui | 12 | 6 | 0 | 2 |
+| CS | oui | 12 | 4 | 1 | 3 |
+| MULTIGOALS | oui | 12 | 4 | 1 | 3 |
+| WINNER_H1 | oui | 12 | 4 | 0 | 2 |
+| CS_H1 | oui | 12 | 4 | 0 | 2 |
+| CS_H2 | - | 12 | 4 | 0 | 2 |
+| CLEAN_SHEET_H2 | - | 12 | 4 | 0 | 2 |
+| CLEAN_SHEET_H1 | - | 12 | 4 | 1 | 3 |
+| HANDICAP_ASIAN_H1 | oui | 11 | 2 | 0 | 2 |
+| HANDICAP_ASIAN_H2 | - | 10 | 2 | 0 | 2 |
+| RESULT_TOTAL_H1 | - | 12 | 1 | 0 | 2 |
+| ODD_EVEN | oui | 12 | 1 | 0 | 2 |
+| ODD_EVEN_H1 | oui | 12 | 1 | 0 | 2 |
+| ODD_EVEN_H2 | - | 12 | 1 | 0 | 2 |
+| CORNERS | - | 10 | 1 | 1 | 3 |
+| MULTIGOALS_H1 | oui | 5 | 1 | 1 | 3 |
+| CORNERS_H1 | - | 4 | 1 | 1 | 3 |
+| MULTIGOALS_H2 | - | 2 | 1 | 0 | 2 |
+| RESULT_TOTAL_H2 | - | 2 | 1 | 0 | 2 |
+| SHOTS | - | 1 | 1 | 1 | 3 |
+| CARDS | - | 1 | 1 | 1 | 3 |
+| CARDS_H1 | - | 1 | 1 | 0 | 2 |
+| BTTS_H1 | oui | 12 | 0 | 0 | 1 |
+| HANDICAP_EURO_H1 | oui | 12 | 0 | 0 | 1 |
+| HANDICAP_EURO_H2 | - | 12 | 0 | 0 | 1 |
+| DNB_H1 | - | 12 | 0 | 0 | 1 |
+| DNB_H2 | - | 12 | 0 | 0 | 1 |
+| DNB | oui | 11 | 0 | 0 | 1 |
+| WIN_MARGIN_H1 | - | 10 | 0 | 0 | 1 |
+| OU_TEAM | oui | 6 | 0 | 0 | 1 |
+| BTTS_H2 | - | 4 | 0 | 0 | 1 |
+| WIN_MARGIN_H2 | - | 4 | 0 | 0 | 1 |
+| FIRST_GOAL | oui | 4 | 0 | 0 | 1 |
+| HALF_PRODUCTIVE | - | 4 | 0 | 0 | 1 |
+| HTFT_H1 | - | 2 | 0 | 0 | 1 |
 
 ## Marches non classes (a integrer si utiles)
 
 | Libelle natif | Occurrences | Books |
 |---|---:|---|
-| bet-type-136 | 1708 | 1xbet |
-| bet-type-17 | 310 | 1xbet |
-| bet-type-8863 | 238 | 1xbet |
-| bet-type-20 | 198 | 1xbet |
-| bet-type-2 | 194 | 1xbet |
-| bet-type-99 | 192 | 1xbet |
-| bet-type-2854 | 188 | 1xbet |
-| Multiscores | 165 | sportybet, apollo |
-| Goal Bounds | 150 | sportybet |
-| bet-type-62 | 140 | 1xbet |
-| bet-type-15 | 134 | 1xbet |
-| bet-type-11412 | 128 | 1xbet |
-| Goal Bounds - Home | 90 | sportybet |
-| Goal Bounds - Away | 90 | sportybet |
-| Buteur | 81 | congobet |
-| Xth Goalscorer | 81 | sportybet |
-| Last Goalscorer | 81 | sportybet |
-| Anytime Goalscorer | 81 | sportybet |
-| Home O/U | 78 | sportybet |
-| Away O/U | 78 | sportybet |
-| Goal Bounds - 1st Half | 66 | sportybet |
-| bet-type-2663 | 65 | 1xbet |
-| Xth Goal Scored (10 Min) | 60 | sportybet |
-| 1. halftime | 60 | apollo |
-| 2. halftime | 60 | apollo |
-| bet-type-8427 | 50 | 1xbet |
-| bet-type-8429 | 50 | 1xbet |
-| bet-type-19 | 46 | 1xbet |
-| 1st Half - Away O/U | 46 | sportybet |
-| Basic Offer | 45 | apollo |
-| 1st Half - Home O/U | 44 | sportybet |
-| bet-type-1 | 42 | 1xbet |
-| bet-type-8 | 42 | 1xbet |
-| Xth Goal Scored (15 Min) | 42 | sportybet |
-| 1ère mi-temps - Résultat de la mi-temps | 33 | congobet |
-| Half time with more goals | 33 | apollo |
-| bet-type-2665 | 32 | 1xbet |
-| 1st H Res Or Match Res | 30 | sportybet |
-| bet-type-11212 | 30 | 1xbet |
-| Type de qualification | 30 | congobet |
-| Winning Method | 30 | sportybet |
-| How will the match be decided | 30 | apollo |
-| Team 2 - goals [0.5] | 24 | apollo |
-| Goal Range | 24 | sportybet |
-| Team 1 - goals [0.5] | 22 | apollo |
-| market-60010 | 22 | sportybet |
-| market-60020 | 22 | sportybet |
-| market-60011 | 22 | sportybet |
-| market-60021 | 22 | sportybet |
-| market-60012 | 22 | sportybet |
-| market-60022 | 22 | sportybet |
-| Any Team to lead by 1 Goal | 22 | sportybet |
-| Any Team to lead by 2 Goals | 22 | sportybet |
-| Any Team to lead by 3 Goals | 22 | sportybet |
-| Home Team to lead by 1 Goal | 22 | sportybet |
-| Home Team to lead by 2 Goals | 22 | sportybet |
-| Away Team to lead by 1 Goal | 22 | sportybet |
-| Away Team to lead by 2 Goals | 22 | sportybet |
-| Away Team to lead by 3 Goals | 22 | sportybet |
-| HT Home to Win to Nil Yes/No | 22 | sportybet |
+| xbet-G136 | 732 | 1xbet |
+| Tacles réalisés (prolongations incluses) | 175 | congobet |
+| Multiscores - FT | 132 | betpawa |
+| xbet-G8863 | 102 | 1xbet |
+| xbet-G99 | 88 | 1xbet |
+| xbet-G2854 | 84 | 1xbet |
+| xbet-G20 | 78 | 1xbet |
+| Passes décisives réalisées (prolongations incluses) | 70 | congobet |
+| xbet-G11412 | 67 | 1xbet |
+| Player to be booked | 48 | 1win |
+| Player sent off | 44 | 1win |
+| Goalscorer nr | 43 | betpawa |
+| Last Goalscorer | 43 | betpawa |
+| Anytime Goalscorer | 42 | betpawa |
+| Buteur | 40 | congobet |
+| 1ère mi-temps - Résultat de la mi-temps | 36 | congobet |
+| Half More Goals - Home Team | 36 | betpawa |
+| Half More Goals - Away Team | 36 | betpawa |
+| 1st half. Result | 36 | 1win |
+| xbet-G2663 | 33 | 1xbet |
+| 2nd half. Result | 30 | 1win |
+| xbet-G8427 | 24 | 1xbet |
+| xbet-G8429 | 24 | 1xbet |
+| Score in both halves Away - FT | 24 | betpawa |
+| Win to Nil Away Team - FT | 24 | betpawa |
+| Score in both halves Home - FT | 22 | betpawa |
+| Both halves win Away - FT | 22 | betpawa |
+| Either half win Home - FT | 20 | betpawa |
+| Win to Nil Home Team - FT | 18 | betpawa |
+| Winning Method - FT inc OT | 18 | betpawa |
+| Both halves win Home - FT | 16 | betpawa |
+| Either half win Away - FT | 14 | betpawa |
+| Player saves | 13 | betpawa |
+| Goal | 12 | betpawa |
+| Qualification | 8 | congobet |
+| To qualify | 8 | 1win |
+| xbet-G100 | 6 | 1xbet |
+| To Qualify | 6 | betpawa |
+| Victoire d'une des deux équipes | 4 | congobet |
+| Match nul ou au moins une équipe n'encaisse pas de but | 4 | congobet |
+| Half with most goals. Osasuna | 3 | 1win |
+| Result from 1 to 10 minute | 3 | 1win |
+| Half with most goals. Celta de Vigo | 3 | 1win |
+| Al Gharafa SC n'encaisse pas de but | 2 | congobet |
+| Al-Shamal n'encaisse pas de but | 2 | congobet |
+| Al Gharafa SC gagne les deux mi-temps | 2 | congobet |
+| Al-Shamal gagne les deux mi-temps | 2 | congobet |
+| Al Gharafa SC marque à chaque mi-temps | 2 | congobet |
+| Al-Shamal marque à chaque mi-temps | 2 | congobet |
+| 1ère mi-temps - Al Gharafa SC n'encaisse pas de but | 2 | congobet |
+| 1ère mi-temps - Al-Shamal n'encaisse pas de but | 2 | congobet |
+| 2ème mi-temps - Al-Shamal n'encaisse pas de but | 2 | congobet |
+| 2ème mi-temps - Al Gharafa SC n'encaisse pas de but | 2 | congobet |
+| Al Gharafa SC gagne au moins une mi-temps | 2 | congobet |
+| Al-Shamal gagne au moins une mi-temps | 2 | congobet |
+| 2 goals in a row by Al-Shamal SC | 2 | 1win |
+| Al-Shamal SC to win both halves | 2 | 1win |
+| Al Gharafa to win from behind | 2 | 1win |
+| Al Gharafa to win both halves | 2 | 1win |
+| Al Gharafa to win to nil | 2 | 1win |
