@@ -41,7 +41,12 @@ const COVER = {
   '1X|Y': ['HY', 'DY'], '1X|N': ['HN', 'DN'],
   '12|Y': ['HY', 'AY'], '12|N': ['HN', 'AN'],
   'X2|Y': ['DY', 'AY'], 'X2|N': ['DN', 'AN'],
+  // --- jambes simples, meme espace de 6 cases (chevauchements autorises) ---
+  'W|H': ['HY', 'HN'], 'W|D': ['DY', 'DN'], 'W|A': ['AY', 'AN'],
+  'DCO|1X': ['HY', 'HN', 'DY', 'DN'], 'DCO|12': ['HY', 'HN', 'AY', 'AN'], 'DCO|X2': ['DY', 'DN', 'AY', 'AN'],
+  'BTTS|Y': ['HY', 'DY', 'AY'], 'BTTS|N': ['HN', 'DN', 'AN'],
 };
+const COMBO_KEYS = ['1X|Y', '1X|N', '12|Y', '12|N', 'X2|Y', 'X2|N'];
 
 const norm = (s) => String(s || '').toLowerCase()
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -73,6 +78,44 @@ function parseSelection(sel) {
   else if (/\b(non|no|ng)\b/.test(s)) yn = 'N';
   if (!dc || !yn) return null;
   return dc + '|' + yn;
+}
+
+
+// ---- marches simples : resultat du match, double chance seule, BTTS seul ----
+// Ces marches existent chez 1xbet et 1win (qui ne publient pas le marche combine).
+// Leurs jambes couvrent 2, 3 ou 4 des 6 cases : le solveur exact peut les melanger
+// avec les jambes combinees de congobet/betpawa.
+const isPeriodOrOther = (m) => /mi temps|1st half|2nd half|halftime|\b1h\b|\b2h\b|\bht\b|1ere|2eme|1re|2nde|total|plus de|moins de|over|under|corner|carton|handicap|score exact|prolongation|penalt/.test(m);
+
+function parseSimple(marketName, sel) {
+  const m = norm(marketName);
+  const s = norm(sel);
+  if (isPeriodOrOther(m)) return null;
+  const hasBTTS = /deux equipes marquent|both teams to score|btts|gg ng/.test(m);
+  const hasDC = /double chance/.test(m) || /\bdc\b/.test(m);
+
+  // BTTS seul (jamais 'in both halves' ni combine)
+  if (hasBTTS && !hasDC) {
+    if (/et |and |\+/.test(m)) return null;
+    if (/^(oui|yes|gg|both teams to score|les deux equipes marquent)$/.test(s)) return 'BTTS|Y';
+    if (/^(non|no|ng)$/.test(s)) return 'BTTS|N';
+    return null;
+  }
+  // double chance seule
+  if (hasDC && !hasBTTS) {
+    if (/^(1x|1 ou x|home or draw|dom ou nul)$/.test(s)) return 'DCO|1X';
+    if (/^(12|1 ou 2|home or away|dom ou ext)$/.test(s)) return 'DCO|12';
+    if (/^(x2|x ou 2|draw or away|nul ou ext)$/.test(s)) return 'DCO|X2';
+    return null;
+  }
+  // resultat du match 1X2
+  if (/^1x2|1x2|resultat du match|match result|resultat final|vainqueur du match/.test(m) && !hasBTTS && !hasDC) {
+    if (/^(1|home|dom|domicile)$/.test(s)) return 'W|H';
+    if (/^(x|draw|nul|match nul)$/.test(s)) return 'W|D';
+    if (/^(2|away|ext|exterieur)$/.test(s)) return 'W|A';
+    return null;
+  }
+  return null;
 }
 
 // ---- pire cas : solveur EXACT (simplexe) ----
@@ -121,7 +164,15 @@ async function scanEntry(entry) {
   for (const r of perBook) {
     if (r.error) continue;
     for (const o of r.outcomes || []) {
-      if (!isTargetMarket(o.market)) continue;
+      if (!isTargetMarket(o.market)) {
+        const sk = parseSimple(o.market, o.selection);
+        if (sk) {
+          found.push({ book: r.key, key: sk, odds: o.odds });
+          const c0 = best.get(sk);
+          if (!c0 || o.odds > c0.odds) best.set(sk, { key: sk, odds: o.odds, book: r.key, market: o.market, selection: o.selection });
+        }
+        continue;
+      }
       if (!labelsSeen.has(r.key)) labelsSeen.set(r.key, new Set());
       labelsSeen.get(r.key).add(String(o.market));
       const key = parseSelection(o.selection);
@@ -140,12 +191,13 @@ async function scanEntry(entry) {
   // Invariant du marche : chaque case etant couverte par 2 des 6 options, un
   // arbitrage n existe QUE si la somme des 1/cote des 6 meilleures options
   // descend sous 2.00. C est la mesure directe de la marge cumulee des books.
-  const impSum = legs.length === 6 ? legs.reduce((a, l) => a + 1 / l.odds, 0) : null;
+  const combo = legs.filter((l) => COMBO_KEYS.includes(l.key));
+  const impSum = combo.length === 6 ? combo.reduce((a, l) => a + 1 / l.odds, 0) : null;
   const sol = legs.length >= 2 ? solve(legs) : null;
   const profit = sol ? (sol.worst - 1) * 100 : null;
-  console.log('- ' + label + ' : ' + legs.length + '/6 cases, ' + found.length + ' cotes lues, pire cas ' +
+  console.log('- ' + label + ' : ' + legs.length + ' jambes (' + combo.length + ' combinees), ' + found.length + ' cotes lues, pire cas ' +
     (sol ? sol.worst.toFixed(4) : 'n/a'));
-  return { label, legs, impSum, found: found.length, sol, profit, books: [...new Set(found.map((f) => f.book))] };
+  return { label, legs, nCombo: combo.length, impSum, found: found.length, sol, profit, books: [...new Set(found.map((f) => f.book))] };
 }
 
 // file de traitement parallele
@@ -191,7 +243,7 @@ for (const r of winners) {
 }
 
 md.push('', '## Tous les matchs', '');
-md.push('| Match | Books avec le marche | Cotes lues | Cases couvertes | Somme 1/cote (seuil 2.00) | Pire cas | Ecart |');
+md.push('| Match | Books avec le marche | Cotes lues | Jambes (dont combinees) | Somme 1/cote (seuil 2.00) | Pire cas | Ecart |');
 md.push('|---|---|---:|---:|---:|---:|---:|');
 for (const r of results) {
   md.push('| ' + r.label + ' | ' + (r.books.join(', ') || '—') + ' | ' + r.found + ' | ' + r.legs.length + '/6 | ' +
