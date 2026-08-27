@@ -19,6 +19,7 @@ import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
 import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
 import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 import { classifyHalfPredicate } from './halves-markets.js';
+import { classifyStatOutcome, statFamily, statMask, STAT_FULL_MASK, STAT_CELLS } from './stat-markets.js';
 
 const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
 const TOP_MATCHES = parseInt(process.env.SOLVER_TOP_MATCHES || '5', 10);
@@ -82,6 +83,39 @@ function maskFromPredicate(pred) {
   // Pas de bit overflow — la grille 15x15 couvre tous les scores
   // realistes en football (aucun match ne finit 15+ buts/equipe)
   return m;
+}
+
+// ─── Domaines d'issues ─────────────────────────────────────────────────────
+// Un pari ne couvre des issues que DANS SON PROPRE espace. Les buts vivent sur
+// la grille par mi-temps ; les corners (ou cartons, fautes, tirs) vivent sur
+// leur propre grille. Couvrir "tous les scores" avec un pari corners n'a aucun
+// sens : l'arbitrage n'est donc cherche qu'entre jambes du MEME domaine.
+const FULL_MASK_BY_DOMAIN = { GOALS: null }; // GOALS renseigne apres ALL_CELLS_MASK
+const _maskCache = new Map();
+let _statCount = 0;
+
+function classifyAny(o) {
+  const key = `${o.market}|${o.selection}|${o.homeTeam}|${o.awayTeam}`;
+  if (_maskCache.has(key)) return _maskCache.get(key);
+  let res = null;
+  if (statFamily(o.market)) {
+    const st = classifyStatOutcome({
+      market: o.market,
+      selection: o.selection,
+      homeNamed: isHomeTeamInMarket(o.market, o.homeTeam, o.awayTeam),
+      awayNamed: isAwayTeamInMarket(o.market, o.homeTeam, o.awayTeam),
+    });
+    if (st) {
+      FULL_MASK_BY_DOMAIN[st.domain] = STAT_FULL_MASK;
+      res = { domain: st.domain, mask: statMask(st.pred) };
+      _statCount++;
+    }
+  } else {
+    const mask = classifyOutcome(o);
+    if (mask) res = { domain: 'GOALS', mask };
+  }
+  _maskCache.set(key, res);
+  return res;
 }
 
 // ─── Sous-classifieurs pour marches combines ─────────────────────────────
@@ -838,11 +872,13 @@ async function extractWithSubgames(bookKey, raw) {
 function groupByMask(outcomes) {
   const groups = new Map(); // maskStr → { mask, byBook: Map<book, bestEntry> }
   for (const o of outcomes) {
-    const mask = classifyOutcome(o);
-    if (!mask) { _nullCount++; continue; }
-    if (mask === 0n || mask === ALL_CELLS_MASK) { _trivialCount++; continue; }
-    const key = mask.toString(16);
-    if (!groups.has(key)) groups.set(key, { mask, byBook: new Map() });
+    const cls = classifyAny(o);
+    if (!cls) { _nullCount++; continue; }
+    const { domain, mask } = cls;
+    const full = FULL_MASK_BY_DOMAIN[domain];
+    if (mask === 0n || mask === full) { _trivialCount++; continue; }
+    const key = domain + ':' + mask.toString(16);
+    if (!groups.has(key)) groups.set(key, { mask, domain, byBook: new Map() });
     const g = groups.get(key);
     const prev = g.byBook.get(o.book);
     if (!prev || o.odds > prev.odds) g.byBook.set(o.book, o);
@@ -850,7 +886,7 @@ function groupByMask(outcomes) {
   const uniq = [];
   for (const g of groups.values()) {
     for (const entry of g.byBook.values()) {
-      uniq.push({ mask: g.mask, book: entry.book, market: entry.market, selection: entry.selection, odds: entry.odds });
+      uniq.push({ mask: g.mask, domain: g.domain, book: entry.book, market: entry.market, selection: entry.selection, odds: entry.odds });
     }
   }
   return uniq;
@@ -868,7 +904,8 @@ function areDisjoint(picks) {
 }
 
 // FIX #10 : LIM=80 supprime — enumeration complete 2..4 items.
-function findCoverageSets(items, minProfit) {
+function findCoverageSets(items, minProfit, fullMask = ALL_CELLS_MASK) {
+  const FULL = fullMask;
   // La grille par mi-temps (625 issues) multiplie le nombre de masques distincts :
   // l'enumeration a 4 niveaux saturait la memoire (OOM). On borne les candidats
   // aux paris couvrant le plus d'issues, et le 4e niveau aux petits ensembles.
@@ -895,18 +932,18 @@ function findCoverageSets(items, minProfit) {
       const inv2 = inv1 + 1 / arr[j].odds;
       if (inv2 >= 1 - minProfit) continue;
       const m2 = arr[i].mask | arr[j].mask;
-      if (m2 === ALL_CELLS_MASK) record([arr[i], arr[j]], inv2);
+      if (m2 === FULL) record([arr[i], arr[j]], inv2);
       for (let k = j + 1; k < N; k++) {
         const inv3 = inv2 + 1 / arr[k].odds;
         if (inv3 >= 1 - minProfit) continue;
         const m3 = m2 | arr[k].mask;
-        if (m3 === ALL_CELLS_MASK) record([arr[i], arr[j], arr[k]], inv3);
+        if (m3 === FULL) record([arr[i], arr[j], arr[k]], inv3);
         if (!DEEP) continue;
         for (let l = k + 1; l < N; l++) {
           const inv4 = inv3 + 1 / arr[l].odds;
           if (inv4 >= 1 - minProfit) continue;
           const m4 = m3 | arr[l].mask;
-          if (m4 === ALL_CELLS_MASK) record([arr[i], arr[j], arr[k], arr[l]], inv4);
+          if (m4 === FULL) record([arr[i], arr[j], arr[k], arr[l]], inv4);
         }
       }
     }
@@ -923,10 +960,11 @@ function computeStakes(picks, bankroll) {
   return { stakes, total, retour, gainNet: retour - total, roi: (retour - total) / total };
 }
 
+const _NIBBLE = { '0':0,'1':1,'2':1,'3':2,'4':1,'5':2,'6':2,'7':3,'8':1,'9':2,'a':2,'b':3,'c':2,'d':3,'e':3,'f':4 };
 function popcount(bi) {
-  let n = 0n;
-  while (bi > 0n) { n += bi & 1n; bi >>= 1n; }
-  return n;
+  let n = 0;
+  for (const ch of bi.toString(16)) n += _NIBBLE[ch];
+  return BigInt(n);
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────
