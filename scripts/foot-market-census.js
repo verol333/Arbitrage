@@ -11,6 +11,18 @@ import { alignCatalogs } from '../src/core/matching.js';
 import { rawOutcomes, RAW_BOOKS } from '../src/foot/rawOutcomes.js';
 import { classify, GRID_FAMILIES } from '../src/foot/families.js';
 
+
+// Familles DEJA exploitees par le moteur d'arbitrage (vocabulaire de
+// src/core/markets.js) : 1X2, double chance, total buts, total equipe, BTTS,
+// draw no bet, handicaps, pair/impair, 1ere equipe a marquer, mi-temps la plus
+// prolifique, corners — plus leurs variantes mi-temps. Tout le reste est du
+// carburant non utilise, et c'est precisement ce qu'on veut lister.
+const EXPLOITED = new Set([
+  'WINNER', 'DC', 'OU_MATCH', 'OU_TEAM', 'BTTS', 'DNB',
+  'HANDICAP_ASIAN', 'HANDICAP_EURO', 'ODD_EVEN', 'FIRST_GOAL',
+  'HALF_PRODUCTIVE', 'CORNERS',
+].flatMap((f) => [f, f + '_H1', f + '_H2']));
+
 const TOP_MATCHES = Number(process.env.TOP_MATCHES || 15);
 const HORIZON_HOURS = Number(process.env.HORIZON_HOURS || 48);
 const MIN_BOOKS = Number(process.env.MIN_BOOKS || 2);
@@ -124,6 +136,21 @@ md.push('|---|:--:|---:|---:|---:|---:|');
 for (const r of rows) {
   md.push('| ' + r.fam + ' | ' + (r.grid ? 'oui' : '-') + ' | ' + r.present + ' | ' + r.duo + ' | ' + r.trio + ' | ' + r.maxBooks + ' |');
 }
+md.push('');
+md.push('## Familles INEXPLOITEES — par bookmaker');
+md.push('');
+md.push('Nombre de matchs ou le book cote cette famille. Ces familles ne sont lues par aucun calcul d arbitrage aujourd hui.');
+md.push('');
+const booksList = [...bookStats.keys()];
+const unusedFams = rows.filter((r) => !EXPLOITED.has(r.fam) && r.fam !== 'OTHER');
+md.push('| Famille | ' + booksList.join(' | ') + ' | 2+ books |');
+md.push('|---|' + booksList.map(() => '---:').join('|') + '|---:|');
+for (const r of unusedFams) {
+  const cells = booksList.map((k) => bookStats.get(k).families.get(r.fam) || 0);
+  md.push('| ' + r.fam + ' | ' + cells.join(' | ') + ' | ' + r.duo + ' |');
+}
+md.push('');
+md.push('Familles inexploitees cotees par au moins deux books : ' + unusedFams.filter((r) => r.duo > 0).length + ' / ' + unusedFams.length);
 md.push('');
 md.push('## Marches non classes (a integrer si utiles)');
 md.push('');
