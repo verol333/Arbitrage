@@ -227,15 +227,18 @@ function normalizeName(x) {
 // alors 12 au lieu de 1 -> masques absurdes et faux arbitrages a 20%+.
 // On efface donc les noms d'equipes avant toute lecture numerique.
 function stripTeamNames(txt, homeTeam, awayTeam) {
-  let out = ' ' + normalizeName(txt) + ' ';
+  // On garde signes et decimales intacts (-4.5 doit rester lisible) :
+  // on se contente de minuscules + suppression des accents.
+  const deacc = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let out = deacc(txt);
   for (const team of [homeTeam, awayTeam]) {
-    const n = normalizeName(team || '');
+    const n = deacc(team);
     if (n.length >= 3) out = out.split(n).join(' ');
-    for (const w of n.split(' ')) {
-      if (w.length >= 1 && /\d/.test(w)) out = out.split(' ' + w + ' ').join(' ');
+    for (const w of n.split(/[^a-z0-9]+/)) {
+      if (w && /\d/.test(w)) out = out.replace(new RegExp('(^|[^\\d.])' + w + '(?![\\d.])', 'g'), '$1 ');
     }
   }
-  return out.replace(/\s+/g, ' ');
+  return out.replace(/\s+/g, ' ').trim();
 }
 
 function teamMatchScore(market, team) {
