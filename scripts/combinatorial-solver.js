@@ -36,7 +36,7 @@ const GRID = 15; // conserve pour compat (bornes de lecture des lignes)
 // prolifique" sont mathematiquement inexprimables.
 const HG = 5;
 const CELLS = HG * HG * HG * HG;
-const { classifyHalfPredicate } = require('./halves-markets');
+
 // Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
 
 const _skippedWinMargin = new Set();
