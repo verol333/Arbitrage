@@ -9,7 +9,7 @@ import { bookmakersByKey } from '../src/bookmakers/index.js';
 import { alignCatalogs } from '../src/core/matching.js';
 import { bpFetchEvent } from '../src/bookmakers/betpawa/api.js';
 import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
-import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
+import { dumpXbetMarkets } from '../src/bookmakers/xbet/dictionary.js';
 import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 
 const BOOKS = (process.env.INV_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
@@ -73,25 +73,19 @@ async function dump_1win(id) {
       .map(o => ({ name: String(o.name || o.outcome || '?'), odds: Number(o.cf) })),
   }));
 }
-// 1xBet ne renvoie AUCUN libelle de marche : uniquement des identifiants
-// numeriques (G = groupe, T = type d'issue). On les liste tels quels, avec le
-// nom d'issue quand l'API le fournit (it.N), sans jamais inventer de libelle.
+// 1xBet : API mobile v3 — marches principaux + sous-marches NOMMES (Corners,
+// Cartons jaunes, 1ere/2eme mi-temps...), libelles issus du dictionnaire releve
+// sur l'app, jamais devines.
 async function dump_1xbet(id) {
-  const url = `${FEED}/service-api/LineFeed/GetGameZip?id=${id}&lng=fr&isSubGames=true&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
-  const raw = await viaWorker(url);
-  const out = [];
-  for (const ge of (raw?.Value?.GE || [])) {
-    const sels = [];
-    for (const sub of (ge.E || [])) {
-      for (const it of (Array.isArray(sub) ? sub : [sub])) {
-        const c = parseFloat(it?.C);
-        if (isNaN(c) || c <= 1) continue;
-        sels.push({ name: `T${it.T}${it.P != null ? ' P=' + it.P : ''}${it.N ? ' "' + it.N + '"' : ''}`, odds: c });
-      }
-    }
-    if (sels.length) out.push({ market: `groupe #${ge.G}${ge.GS != null ? ' (GS ' + ge.GS + ')' : ''}`, selections: sels, opaque: true });
-  }
-  return out;
+  const res = await dumpXbetMarkets(id);
+  if (!res.ok) throw new Error(res.reason || 'dump_failed');
+  return res.markets.map(m => ({
+    market: m.market,
+    selections: m.selections.map(s => ({
+      name: `${s.name}${s.line != null ? ' [' + s.line + ']' : ''}`,
+      odds: s.odds,
+    })),
+  }));
 }
 const DUMPERS = { congobet: dump_congobet, betpawa: dump_betpawa, '1win': dump_1win, '1xbet': dump_1xbet };
 
