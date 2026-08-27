@@ -671,33 +671,27 @@ const XBET_TYPE_NAMES = {
   923: 'Home', 924: 'Away', 925: 'No Goal',
   1305: '1st Half', 1306: '2nd Half', 1307: 'Equal',
 };
+// Identifiants de groupes RELEVES sur une reponse 1xBet reelle (dictionnaire
+// fourni par l'exploitant). L'ancienne table etait devinee et melangeait les
+// familles : Double Chance lue comme Over/Under, etc. On ne garde ici que les
+// groupes dont la semantique est certaine et projetable sur la grille de scores.
 const XBET_GROUP_MAP = {
-  1: 'Match Result', 8: 'Double Chance', 17: 'Over/Under',
-  19: 'Both Teams To Score', 2: 'Handicap', 14: 'Odd/Even',
-  9: 'Draw No Bet', 169: 'First Team To Score',
-  15: 'Team 1 Total', 62: 'Team 2 Total', 445: 'Half With Most Goals',
-  11581: 'Match Result',
-  // Groupes football additionnels (dérivés des APIs 1xBet)
-  27: 'Correct Score',
-  21: 'Winning Margin',
-  20: 'Exact Goals',
-  28: 'Double Chance HT',
-  30: 'Over/Under HT',
-  31: 'BTTS HT',
-  37: 'HT/FT',
-  43: 'Handicap HT',
-  111: 'Race To X Goals',
-  114: 'Score in Both Halves',
-  118: 'Win Both Halves',
-  119: 'Win Either Half',
-  127: 'Clean Sheet Home',
-  128: 'Clean Sheet Away',
-  129: 'Win To Nil Home',
-  130: 'Win To Nil Away',
-  136: 'Multigoals',
-  237: 'Asian Handicap',
-  1845: 'European Handicap',
+  1: 'Resultat du match',            // 1X2
+  2: 'Double Chance',
+  130: 'Les deux equipes marquent',  // BTTS Oui/Non
+  4: 'Nombre de buts',               // Total buts Over/Under
+  5: 'Team 1 Total',
+  6: 'Team 2 Total',
+  22: 'Odd/Even',                    // Pair/Impair total
+  42: 'Draw No Bet',                 // Resultat sans nul
+  3: 'Handicap',                     // Handicap (T7 = domicile, T8 = exterieur)
+  11: 'Score exact',
+  33: 'Score exact',
+  2712: 'Score exact',
+  14: 'Multigoals',                  // Intervalle de buts
+  155: 'Multigoals',                 // Total (intervalle)
 };
+
 function extract_1xbet(raw) {
   const out = [];
   const GE = raw?.Value?.GE || [];
