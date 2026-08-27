@@ -19,6 +19,10 @@ function scopeOf(mkt, sel) {
   const s = strip(mkt) + ' ' + strip(sel);
   if (/(2e|2eme|2nd|second|deuxieme)\s*(mi.?temps|half|periode|period)/.test(s)) return 'H2';
   if (/(1re|1ere|1er|1st|first|premiere|premier)\s*(mi.?temps|half|periode|period)/.test(s)) return 'H1';
+  // Betpawa suffixe simplement "- 1H" / "- 2H" : sans ces deux motifs, un
+  // total de mi-temps etait regle sur le score final (source de faux surebets).
+  if (/(^|[^a-z0-9])2h([^a-z0-9]|$)/.test(s)) return 'H2';
+  if (/(^|[^a-z0-9])1h([^a-z0-9]|$)/.test(s)) return 'H1';
   if (/\bmi.?temps\b|\bhalf.?time\b|\bht\b/.test(s)) return 'H1';
   return 'FT';
 }
