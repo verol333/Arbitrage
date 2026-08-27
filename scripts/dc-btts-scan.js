@@ -123,7 +123,7 @@ const solve = (legs) => solveWorstCase(legs, CELLS, COVER);
 
 // Auto-diagnostic du solveur avant tout scan : s il echoue, un 0 opportunite
 // ne veut rien dire et on arrete tout.
-const st = selfTest(CELLS, COVER);
+const st = selfTest(CELLS, COVER, COMBO_KEYS);
 console.log('[auto-test solveur] arbitrage synthetique = ' + (st.arbWorst || 0).toFixed(4) +
   ' (attendu 1.3333), cas avec marge = ' + (st.realWorst || 0).toFixed(4) + ' (attendu < 1) -> ' +
   (st.ok ? 'OK' : 'ECHEC'));
