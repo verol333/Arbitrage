@@ -319,9 +319,24 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
 
   // ─ Double Chance
   if (/^double chance/i.test(m)) {
-    if (/1x|home\/draw|home or draw/i.test(s)) return maskFromPredicate((h,a) => h >= a);
-    if (/x2|draw\/away|draw or away/i.test(s)) return maskFromPredicate((h,a) => a >= h);
-    if (/12|home\/away|home or away/i.test(s)) return maskFromPredicate((h,a) => h !== a);
+    // Attention : certains books ecrivent le nom de l'equipe ("Draw Or 12 de
+    // Octubre Itaugua"). Chercher "12" dans ce texte donnait un DC 12 au lieu
+    // d'un DC X2 -> faux surebets. On resout donc par les noms d'equipes,
+    // et on refuse la cote si elle reste ambigue.
+    const sc = s.trim();
+    if (/^(1x|1 ?- ?x)$/i.test(sc) || /home\/draw|home or draw|draw or home/i.test(sc)) return maskFromPredicate((h,a) => h >= a);
+    if (/^(x2|x ?- ?2)$/i.test(sc) || /draw\/away|draw or away|away or draw/i.test(sc)) return maskFromPredicate((h,a) => a >= h);
+    if (/^(12|1 ?- ?2)$/i.test(sc) || /home\/away|home or away/i.test(sc)) return maskFromPredicate((h,a) => h !== a);
+    if (/draw|nul/i.test(sc)) {
+      const withHome = isHomeTeamInMarket(sc, homeTeam, awayTeam);
+      const withAway = isAwayTeamInMarket(sc, homeTeam, awayTeam);
+      if (withHome && !withAway) return maskFromPredicate((h,a) => h >= a);
+      if (withAway && !withHome) return maskFromPredicate((h,a) => a >= h);
+      return null;
+    }
+    const onlyHome = isHomeTeamInMarket(sc, homeTeam, awayTeam) && !isAwayTeamInMarket(sc, homeTeam, awayTeam);
+    const onlyAway = isAwayTeamInMarket(sc, homeTeam, awayTeam) && !isHomeTeamInMarket(sc, homeTeam, awayTeam);
+    if (onlyHome && onlyAway) return null;
     return null;
   }
 
@@ -496,8 +511,22 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     return null;
   }
 
-  // ─ Clean Sheet / Win to Nil (exclude combined markets with " ou " — those are different markets)
-  if (/to win to nil|gagne sans encaisser|clean sheet|n'encaisse pas de but/i.test(m) && !/ ou /i.test(m)) {
+  // ─ Clean Sheet pur : l'equipe designee n'encaisse aucun but.
+  if (/clean sheet|n'encaisse pas de but/i.test(m) && !/ ou /i.test(m) && !/win to nil/i.test(m)) {
+    const yes = /^(yes|oui)$/i.test(s.trim()), no = /^(no|non)$/i.test(s.trim());
+    if (!yes && !no) return null;
+    const isHome = /home|domicile/i.test(m) || isHomeTeamInMarket(m, homeTeam, awayTeam);
+    const isAway = /away|ext[eé]rieur/i.test(m) || isAwayTeamInMarket(m, homeTeam, awayTeam);
+    if (isHome === isAway) return null; // cote non attribuable a une equipe
+    if (isHome) return maskFromPredicate((h,a) => (yes ? a === 0 : a > 0));
+    return maskFromPredicate((h,a) => (yes ? h === 0 : h > 0));
+  }
+
+  // ─ Clean Sheet / Win to Nil : DEUX marches distincts, ne pas confondre.
+  //   "Clean Sheet Home"  = l'adversaire ne marque pas          -> a === 0
+  //   "Home to Win to Nil"= gagne ET l'adversaire ne marque pas -> h > 0 && a === 0
+  //   Les confondre laissait le 0-0 a decouvert (faux surebets ~5-6%).
+  if (/to win to nil|win to nil|gagne sans encaisser/i.test(m) && !/ ou /i.test(m)) {
     if (/home|domicile/i.test(m)) {
       if (/yes|oui|^1$/i.test(s)) return maskFromPredicate((h,a) => h > 0 && a === 0);
       if (/no|non|^2$/i.test(s)) return maskFromPredicate((h,a) => !(h > 0 && a === 0));
