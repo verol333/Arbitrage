@@ -19,6 +19,7 @@ import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
 import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
 import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
 import { classifyHalfPredicate } from './halves-markets.js';
+import { generateCode } from './coupon-codes.js';
 import { classifyStatOutcome, statFamily, statMask, STAT_FULL_MASK, STAT_CELLS } from './stat-markets.js';
 
 const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
@@ -717,7 +718,8 @@ function extract_congobet(raw) {
     for (const it of bt.eventBetTypeItems || []) {
       const c = parseFloat(it.odds);
       if (isNaN(c) || c <= 1) continue;
-      out.push({ market: String(marketName), selection: String(it.shortName || it.name || '?'), odds: c });
+      out.push({ market: String(marketName), selection: String(it.shortName || it.name || '?'), odds: c,
+        coupon: it.id != null ? { book: 'congobet', eventBetTypeItemId: it.id, price: c } : null });
     }
   }
   return out;
@@ -732,7 +734,8 @@ function extract_betpawa(raw) {
       for (const p of (row.prices || [])) {
         const c = parseFloat(p.odds);
         if (isNaN(c) || c <= 1) continue;
-        out.push({ market: `${marketName}${lineSuffix}`, selection: String(p.name || p.displayName || '?'), odds: c });
+        out.push({ market: `${marketName}${lineSuffix}`, selection: String(p.name || p.displayName || '?'), odds: c,
+          coupon: p.id != null ? { book: 'betpawa', priceId: p.id, price: c } : null });
       }
     }
   }
@@ -772,7 +775,7 @@ const XBET_GROUP_MAP = {
   155: 'Multigoals',                 // Total (intervalle)
 };
 
-function extract_1xbet(raw) {
+function extract_1xbet(raw, matchId) {
   const out = [];
   const GE = raw?.Value?.GE || [];
   for (const ge of GE) {
@@ -790,7 +793,8 @@ function extract_1xbet(raw) {
         if (it.P != null && (it.T === 7 || it.T === 8)) {
           sel = `${sel} (${it.P > 0 ? '+' : ''}${it.P})`;
         }
-        out.push({ market: groupName, selection: sel, odds: c });
+        out.push({ market: groupName, selection: sel, odds: c,
+          coupon: matchId ? { book: '1xbet', gameId: matchId, betType: it.T, param: it.P ?? null, kind: 3, price: c } : null });
       }
     }
   }
@@ -858,8 +862,8 @@ const EXTRACTORS = {
   sportybet: extract_sportybet, apollo: extract_apollo, congobet: extract_congobet,
   betpawa: extract_betpawa, '1xbet': extract_1xbet, '1win': extract_1win,
 };
-async function extractWithSubgames(bookKey, raw) {
-  const base = EXTRACTORS[bookKey] ? EXTRACTORS[bookKey](raw) : [];
+async function extractWithSubgames(bookKey, raw, matchId) {
+  const base = EXTRACTORS[bookKey] ? EXTRACTORS[bookKey](raw, matchId) : [];
   if (bookKey === '1xbet') {
     const sgOuts = await fetch1xbetSubgames(raw);
     base.push(...sgOuts);
@@ -886,7 +890,7 @@ function groupByMask(outcomes) {
   const uniq = [];
   for (const g of groups.values()) {
     for (const entry of g.byBook.values()) {
-      uniq.push({ mask: g.mask, domain: g.domain, book: entry.book, market: entry.market, selection: entry.selection, odds: entry.odds });
+      uniq.push({ mask: g.mask, domain: g.domain, book: entry.book, market: entry.market, selection: entry.selection, odds: entry.odds, coupon: entry.coupon || null });
     }
   }
   return uniq;
@@ -1008,13 +1012,13 @@ async function processMatch(entry) {
   // FIX #9 : fetch parallele par book
   const bookMatches = Object.entries(entry.matches).filter(([b]) => EXTRACTORS[b]);
   const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
-    try { return { book, raw: await fetchRawFor(book, m.id) }; }
-    catch (e) { return { book, raw: null, err: e.message }; }
+    try { return { book, id: m.id, raw: await fetchRawFor(book, m.id) }; }
+    catch (e) { return { book, id: m.id, raw: null, err: e.message }; }
   }));
   const outcomes = [];
-  for (const { book, raw, err } of rawResults) {
+  for (const { book, id, raw, err } of rawResults) {
     if (!raw) { say(`  [${book}] raw KO ${err || ''}`); continue; }
-    const bookOuts = (await extractWithSubgames(book, raw)).map(o => ({ ...o, book, homeTeam: entry.ref.home, awayTeam: entry.ref.away }));
+    const bookOuts = (await extractWithSubgames(book, raw, id)).map(o => ({ ...o, book, homeTeam: entry.ref.home, awayTeam: entry.ref.away }));
     say(`  [${book}] ${bookOuts.length} outcomes`);
     outcomes.push(...bookOuts);
   }
