@@ -90,7 +90,7 @@ function maskFromPredicate(pred) {
 // la grille par mi-temps ; les corners (ou cartons, fautes, tirs) vivent sur
 // leur propre grille. Couvrir "tous les scores" avec un pari corners n'a aucun
 // sens : l'arbitrage n'est donc cherche qu'entre jambes du MEME domaine.
-const FULL_MASK_BY_DOMAIN = { GOALS: null }; // GOALS renseigne apres ALL_CELLS_MASK
+const FULL_MASK_BY_DOMAIN = { GOALS: ALL_CELLS_MASK };
 const _maskCache = new Map();
 let _statCount = 0;
 
@@ -977,15 +977,15 @@ console.log('══════════════════════�
 const t0 = Date.now();
 
 const catalogs = new Map();
-for (const key of BOOKS) {
+await Promise.all(BOOKS.map(async key => {
   const book = bookmakersByKey[key];
-  if (!book) continue;
+  if (!book) return;
   try {
     const matches = await book.listMatches({ live: false, sport: 'football', horizonHours: 30 });
     catalogs.set(key, matches);
     console.log(`[${key}] ${matches.length} matchs listes`);
   } catch (e) { console.log(`[${key}] KO ${e.message}`); }
-}
+}));
 
 const entries = alignCatalogs(catalogs, { minBooks: 3, horizonMs: Date.now() + 48 * 3600 * 1000 });
 entries.sort((a, b) => Object.keys(b.matches).length - Object.keys(a.matches).length);
@@ -1025,22 +1025,35 @@ for (const entry of top) {
   // forcement plus de 100% (c'est sa marge). Si notre lecture d'un marche
   // produit une couverture < 100% dans un seul book, c'est NOTRE decodage qui
   // est faux, pas une opportunite. On tag alors les marches fautifs.
-  for (const bk of new Set(items.map(x => x.book))) {
-    const solo = items.filter(x => x.book === bk).map(x => ({ ...x, book: '_solo' }));
-    for (const o of findCoverageSets(solo, 0.005)) {
-      for (const p of o.picks) _suspectMarkets.add(`${bk} :: ${p.market}`);
-    }
+  // Chaque domaine (buts, corners MT1, corners FT...) est un espace ferme :
+  // on ne cherche l'arbitrage qu'entre jambes du meme domaine.
+  const byDomain = new Map();
+  for (const it of items) {
+    if (!byDomain.has(it.domain)) byDomain.set(it.domain, []);
+    byDomain.get(it.domain).push(it);
   }
+  say(`  → DOMAINES: ${[...byDomain].map(([d, l]) => d + '=' + l.length).join(', ')}`);
 
-  const opps = findCoverageSets(items, MIN_PROFIT);
+  const opps = [];
+  for (const [domain, list] of byDomain) {
+    const FULL = FULL_MASK_BY_DOMAIN[domain];
+    for (const bk of new Set(list.map(x => x.book))) {
+      const solo = list.filter(x => x.book === bk).map(x => ({ ...x, book: '_solo' }));
+      for (const o of findCoverageSets(solo, 0.005, FULL)) {
+        for (const p of o.picks) _suspectMarkets.add(`${bk} :: ${p.market}`);
+      }
+    }
+    for (const o of findCoverageSets(list, MIN_PROFIT, FULL)) opps.push({ ...o, domain });
+  }
+  opps.sort((a, b) => b.profit - a.profit);
   console.log(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
   for (const o of opps) {
     allOpps.push({ ...o, match: `${entry.ref.home} vs ${entry.ref.away}` });
   }
 
   // DIAGNOSTIC : top 5 meilleures couvertures partielles (2-items) multi-book
-  if (opps.length === 0 && items.length >= 2) {
-    const arr = items.slice().sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)));
+  if (opps.length === 0 && (byDomain.get('GOALS') || []).length >= 2) {
+    const arr = (byDomain.get('GOALS') || []).slice().sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)));
     const partials = [];
     const LIM2 = Math.min(arr.length, 60);
     for (let i = 0; i < LIM2 && partials.length < 5; i++) {
