@@ -25,6 +25,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { bookmakersByKey } from '../src/bookmakers/index.js';
 import { alignCatalogs } from '../src/core/matching.js';
 import { rawOutcomes, RAW_BOOKS } from '../src/foot/rawOutcomes.js';
+import { solveWorstCase, selfTest } from '../src/core/worstCase.js';
 
 const TOP_MATCHES = Number(process.env.TOP_MATCHES || 20);
 const HORIZON_HOURS = Number(process.env.HORIZON_HOURS || 48);
@@ -74,39 +75,16 @@ function parseSelection(sel) {
   return dc + '|' + yn;
 }
 
-// ---- optimisation du pire cas sur 6 cases (poids multiplicatifs) ----
-function solve(legs) {
-  if (!legs.length) return null;
-  const N = CELLS.length;
-  const pays = legs.map((l) => CELLS.map((c) => (COVER[l.key].includes(c) ? l.odds : 0)));
-  const M = Math.max(...legs.map((l) => l.odds));
-  const w = new Array(N).fill(1);
-  const count = new Array(legs.length).fill(0);
-  const eta = 0.5;
-  const ITER = 20000;
-  for (let it = 0; it < ITER; it++) {
-    const sum = w.reduce((a, b) => a + b, 0);
-    let bi = 0, bv = -Infinity;
-    for (let k = 0; k < legs.length; k++) {
-      let v = 0;
-      for (let i = 0; i < N; i++) v += (w[i] / sum) * pays[k][i];
-      if (v > bv) { bv = v; bi = k; }
-    }
-    count[bi]++;
-    for (let i = 0; i < N; i++) w[i] *= Math.exp(-eta * (pays[bi][i] / M));
-  }
-  const tot = count.reduce((a, b) => a + b, 0);
-  let mix = legs.map((l, k) => ({ leg: l, x: count[k] / tot })).filter((e) => e.x > 0.002);
-  const s = mix.reduce((a, e) => a + e.x, 0);
-  mix = mix.map((e) => ({ ...e, x: e.x / s }));
-  let worst = Infinity, wc = null;
-  for (let i = 0; i < CELLS.length; i++) {
-    let v = 0;
-    for (const e of mix) v += e.x * (COVER[e.leg.key].includes(CELLS[i]) ? e.leg.odds : 0);
-    if (v < worst) { worst = v; wc = CELLS[i]; }
-  }
-  return { mix, worst, worstCell: wc };
-}
+// ---- pire cas : solveur EXACT (simplexe) ----
+const solve = (legs) => solveWorstCase(legs, CELLS, COVER);
+
+// Auto-diagnostic du solveur avant tout scan : s il echoue, un 0 opportunite
+// ne veut rien dire et on arrete tout.
+const st = selfTest(CELLS, COVER);
+console.log('[auto-test solveur] arbitrage synthetique = ' + (st.arbWorst || 0).toFixed(4) +
+  ' (attendu 1.3333), cas avec marge = ' + (st.realWorst || 0).toFixed(4) + ' (attendu < 1) -> ' +
+  (st.ok ? 'OK' : 'ECHEC'));
+if (!st.ok) { console.error('Solveur defectueux, scan annule.'); process.exit(1); }
 
 // ---------- collecte ----------
 console.log('=== SCAN DOUBLE CHANCE + BTTS ===');
@@ -129,14 +107,16 @@ const results = [];
 const labelsSeen = new Map();   // book -> Set(nom de marche)
 const unparsed = new Map();     // book -> Set(selection non lue)
 
-for (const entry of targets) {
+const CONC = Number(process.env.CONCURRENCY || 8);
+
+async function scanEntry(entry) {
   const label = entry.ref.home + ' vs ' + entry.ref.away;
   const perBook = await Promise.all(
     Object.entries(entry.matches).filter(([k]) => RAW_BOOKS.includes(k))
-      .map(async ([key, m]) => ({ key, ...(await rawOutcomes(key, m.id)) }))
+      .map(async ([key, m]) => { try { return { key, ...(await rawOutcomes(key, m.id)) }; } catch (e) { return { key, error: e.message }; } })
   );
 
-  const best = new Map(); // key case -> { odds, book, market, selection }
+  const best = new Map();
   const found = [];
   for (const r of perBook) {
     if (r.error) continue;
@@ -161,8 +141,18 @@ for (const entry of targets) {
   const profit = sol ? (sol.worst - 1) * 100 : null;
   console.log('- ' + label + ' : ' + legs.length + '/6 cases, ' + found.length + ' cotes lues, pire cas ' +
     (sol ? sol.worst.toFixed(4) : 'n/a'));
-  results.push({ label, legs, found: found.length, sol, profit, books: [...new Set(found.map((f) => f.book))] });
+  return { label, legs, found: found.length, sol, profit, books: [...new Set(found.map((f) => f.book))] };
 }
+
+// file de traitement parallele
+let cursor = 0;
+await Promise.all(Array.from({ length: CONC }, async () => {
+  while (cursor < targets.length) {
+    const entry = targets[cursor++];
+    try { results.push(await scanEntry(entry)); }
+    catch (e) { console.log('- ' + entry.ref.home + ' vs ' + entry.ref.away + ' : KO ' + e.message); }
+  }
+}));
 
 // ---------- rapport ----------
 results.sort((a, b) => (b.profit ?? -999) - (a.profit ?? -999));
@@ -171,6 +161,7 @@ const md = ['# Double Chance + Les deux equipes marquent (fin de match)', '',
   'Espace complet : 6 cases (Dom/Nul/Ext x BTTS oui/non). Chaque option couvre 2 cases.',
   'Le pire cas est le rendement garanti pour 1 unite misee au total : au-dessus de 1.00, profit certain.', ''];
 
+md.push('Auto-test du solveur : arbitrage synthetique rendu ' + (st.arbWorst || 0).toFixed(4) + ' (attendu 1.3333), cas avec marge ' + (st.realWorst || 0).toFixed(4) + ' -> ' + (st.ok ? 'solveur valide' : 'SOLVEUR DEFECTUEUX') + '.', '');
 md.push('## Libelles reellement trouves chez chaque book', '');
 if (!labelsSeen.size) md.push('Aucun book ne publie ce marche sur cet echantillon.');
 for (const [book, set] of labelsSeen) md.push('- **' + book + '** : ' + [...set].join(' / '));
