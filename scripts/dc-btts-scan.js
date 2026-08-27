@@ -137,11 +137,15 @@ async function scanEntry(entry) {
   }
 
   const legs = [...best.values()];
+  // Invariant du marche : chaque case etant couverte par 2 des 6 options, un
+  // arbitrage n existe QUE si la somme des 1/cote des 6 meilleures options
+  // descend sous 2.00. C est la mesure directe de la marge cumulee des books.
+  const impSum = legs.length === 6 ? legs.reduce((a, l) => a + 1 / l.odds, 0) : null;
   const sol = legs.length >= 2 ? solve(legs) : null;
   const profit = sol ? (sol.worst - 1) * 100 : null;
   console.log('- ' + label + ' : ' + legs.length + '/6 cases, ' + found.length + ' cotes lues, pire cas ' +
     (sol ? sol.worst.toFixed(4) : 'n/a'));
-  return { label, legs, found: found.length, sol, profit, books: [...new Set(found.map((f) => f.book))] };
+  return { label, legs, impSum, found: found.length, sol, profit, books: [...new Set(found.map((f) => f.book))] };
 }
 
 // file de traitement parallele
@@ -187,11 +191,11 @@ for (const r of winners) {
 }
 
 md.push('', '## Tous les matchs', '');
-md.push('| Match | Books avec le marche | Cotes lues | Cases couvertes | Pire cas | Ecart |');
-md.push('|---|---|---:|---:|---:|---:|');
+md.push('| Match | Books avec le marche | Cotes lues | Cases couvertes | Somme 1/cote (seuil 2.00) | Pire cas | Ecart |');
+md.push('|---|---|---:|---:|---:|---:|---:|');
 for (const r of results) {
   md.push('| ' + r.label + ' | ' + (r.books.join(', ') || '—') + ' | ' + r.found + ' | ' + r.legs.length + '/6 | ' +
-    (r.sol ? r.sol.worst.toFixed(4) : 'n/a') + ' | ' + (r.profit != null ? r.profit.toFixed(2) + '%' : 'n/a') + ' |');
+    (r.impSum != null ? r.impSum.toFixed(3) : 'n/a') + ' | ' + (r.sol ? r.sol.worst.toFixed(4) : 'n/a') + ' | ' + (r.profit != null ? r.profit.toFixed(2) + '%' : 'n/a') + ' |');
 }
 md.push('', 'Rappel du reglement retenu : 1X+Oui gagne si le domicile gagne OU match nul, avec au moins un but ' +
   'de chaque equipe. 12+Non gagne si un des deux camps gagne et qu une seule equipe (ou aucune) a marque. ' +
