@@ -8,7 +8,7 @@ import { strip } from './families.js';
 import { goals } from './scenarios.js';
 
 // Marches hors de l'espace des scenarios (statistiques, joueurs, prolongations).
-const OUT_OF_SPACE = /(corner|carton|card|tir|shot|faute|foul|hors jeu|offside|touche|throw|remise|degagement|penalt|joueur|player|buteur|scorer|prolongation|extra time|tirs au but|minute|intervalle|interval|temps additionnel|arret|save|possession|passe|pass|substitut|remplacement|var|coup franc|free kick|serie|sequence)/;
+const OUT_OF_SPACE = /(booking|reservation|corner|carton|card|tir|shot|faute|foul|hors jeu|offside|touche|throw|remise|degagement|penalt|joueur|player|buteur|scorer|prolongation|extra time|tirs au but|minute|intervalle|interval|temps additionnel|arret|save|possession|passe|pass|substitut|remplacement|var|coup franc|free kick|serie|sequence)/;
 
 const dec = (s) => {
   const m = String(s).replace(',', '.').match(/-?\d+(?:\.\d+)?/);
@@ -54,6 +54,11 @@ function settleSimple(market, selection, ctx = {}) {
   // impossible de savoir ce qu'on regle, on refuse. C'est ce trou qui faisait
   // passer des selections "1"/"2" de marches inconnus pour du 1X2.
   if (!mkt || /^[\d\s]+$/.test(mkt) || /(market|bettype|groupe|group)[- ]?\d+|^xbet|inconnu|unknown/.test(mkt)) return null;
+
+  // Marches disjonctifs ("... gagne ou les deux equipes marquent") : deux
+  // conditions liees par un OU, non decodables par les branches ci-dessous.
+  // On refuse plutot que de n'en regler qu'une (source de faux profits).
+  if (/\bou\b|\bor\b/.test(mkt)) return null;
 
   const sp = ctx.forceScope || scopeOf(market, selection);
   const g = (sc) => goals(sc, sp);
@@ -102,13 +107,22 @@ function settleSimple(market, selection, ctx = {}) {
 
   // --- totaux (match ou par equipe) ---
   if (/(total|plus.moins|over.under|buts|goals|o\/u)/.test(both) && /(over|under|plus de|moins de|\+|\-)/.test(sel)) {
-    const ln = dec(selection) ?? dec(ctx.line);
+    // "4+" = 4 buts ou plus, donc seuil a 3.5. Sans ca on perdait exactement
+    // un but sur toute la famille Multigoals.
+    const plusN = sel.match(/^(\d+)\s*\+$/);
+    const ln = plusN ? Number(plusN[1]) - 0.5 : (dec(selection) ?? dec(ctx.line));
     if (ln == null) return null;
-    const over = /(over|plus|sup|\+|>|au dessus)/.test(sel);
-    const under = /(under|moins|inf|<|au dessous)/.test(sel);
+    const over = plusN ? true : /(over|plus|sup|\+|>|au dessus)/.test(sel);
+    const under = plusN ? false : /(under|moins|inf|<|au dessous)/.test(sel);
     if (over === under) return null;
-    const team = /(domicile|home|equipe 1|team 1|\bt1\b)/.test(both) ? '1'
-      : /(exterieur|away|equipe 2|team 2|\bt2\b)/.test(both) ? '2' : null;
+    // "Athletic Bilbao total" est un total d'EQUIPE : sans cette detection par
+    // nom, il etait regle comme un total du match.
+    const nh = ctx.home ? strip(ctx.home) : null;
+    const na = ctx.away ? strip(ctx.away) : null;
+    const named = nh && both.includes(nh) ? '1' : na && both.includes(na) ? '2' : null;
+    const team = named
+      || (/(domicile|home|equipe 1|team 1|\bt1\b)/.test(both) ? '1'
+      : /(exterieur|away|equipe 2|team 2|\bt2\b)/.test(both) ? '2' : null);
     return (sc) => {
       const [gh, ga] = g(sc);
       const v = team === '1' ? gh : team === '2' ? ga : gh + ga;
