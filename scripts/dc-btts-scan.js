@@ -85,31 +85,30 @@ function parseSelection(sel) {
 // Ces marches existent chez 1xbet et 1win (qui ne publient pas le marche combine).
 // Leurs jambes couvrent 2, 3 ou 4 des 6 cases : le solveur exact peut les melanger
 // avec les jambes combinees de congobet/betpawa.
-const isPeriodOrOther = (m) => /mi temps|1st half|2nd half|halftime|\b1h\b|\b2h\b|\bht\b|1ere|2eme|1re|2nde|total|plus de|moins de|over|under|corner|carton|handicap|score exact|prolongation|penalt/.test(m);
+const isPeriodOrOther = (m) => /mi temps|1st half|2nd half|halftime|\b1h\b|\b2h\b|\bht\b|1ere|2eme|1re|2nde|total|plus de|moins de|over|under|corner|carton|handicap|score exact|prolongation|penalt|\bmt\b|periode|minute|intervalle|exact|marque en|premier but|dernier but|equipe/.test(m);
+
+// Noms de marche acceptes tels quels (comparaison stricte apres normalisation).
+const BTTS_NAMES = /^(les deux equipes marquent|les 2 equipes marquent|both teams to score|both teams to score ft|btts|btts ft|gg ng)$/;
+const DC_NAMES = /^(double chance|double chance ft)$/;
+const W_NAMES = /^(1x2|1x2 ft|resultat du match|resultat final|match result|match result ft|full time result|vainqueur du match)$/;
 
 function parseSimple(marketName, sel) {
   const m = norm(marketName);
   const s = norm(sel);
   if (isPeriodOrOther(m)) return null;
-  const hasBTTS = /deux equipes marquent|both teams to score|btts|gg ng/.test(m);
-  const hasDC = /double chance/.test(m) || /\bdc\b/.test(m);
 
-  // BTTS seul (jamais 'in both halves' ni combine)
-  if (hasBTTS && !hasDC) {
-    if (/et |and |\+/.test(m)) return null;
-    if (/^(oui|yes|gg|both teams to score|les deux equipes marquent)$/.test(s)) return 'BTTS|Y';
+  if (BTTS_NAMES.test(m)) {
+    if (/^(oui|yes|gg)$/.test(s)) return 'BTTS|Y';
     if (/^(non|no|ng)$/.test(s)) return 'BTTS|N';
     return null;
   }
-  // double chance seule
-  if (hasDC && !hasBTTS) {
+  if (DC_NAMES.test(m)) {
     if (/^(1x|1 ou x|home or draw|dom ou nul)$/.test(s)) return 'DCO|1X';
     if (/^(12|1 ou 2|home or away|dom ou ext)$/.test(s)) return 'DCO|12';
     if (/^(x2|x ou 2|draw or away|nul ou ext)$/.test(s)) return 'DCO|X2';
     return null;
   }
-  // resultat du match 1X2
-  if (/^1x2|1x2|resultat du match|match result|resultat final|vainqueur du match/.test(m) && !hasBTTS && !hasDC) {
+  if (W_NAMES.test(m)) {
     if (/^(1|home|dom|domicile)$/.test(s)) return 'W|H';
     if (/^(x|draw|nul|match nul)$/.test(s)) return 'W|D';
     if (/^(2|away|ext|exterieur)$/.test(s)) return 'W|A';
@@ -117,6 +116,11 @@ function parseSimple(marketName, sel) {
   }
   return null;
 }
+
+// Garde-fou de plausibilite : une jambe simple dont la cote sort de la plage
+// possible du marche est forcement une mauvaise lecture -> on la jette.
+const PLAUSIBLE = { 'BTTS|Y': [1.2, 3.5], 'BTTS|N': [1.2, 3.5], 'W|H': [1.02, 30], 'W|D': [2.2, 15], 'W|A': [1.02, 30], 'DCO|1X': [1.01, 4], 'DCO|12': [1.01, 4], 'DCO|X2': [1.01, 4] };
+const isPlausible = (key, o) => { const r = PLAUSIBLE[key]; return !r || (o >= r[0] && o <= r[1]); };
 
 // ---- pire cas : solveur EXACT (simplexe) ----
 const solve = (legs) => solveWorstCase(legs, CELLS, COVER);
@@ -148,7 +152,9 @@ console.log(entries.length + ' matchs apparies, ' + targets.length + ' retenus\n
 
 const results = [];
 const labelsSeen = new Map();   // book -> Set(nom de marche)
-const unparsed = new Map();     // book -> Set(selection non lue)
+const unparsed = new Map();
+const simpleSeen = new Set();     // libelles des jambes simples retenues
+const simpleRejected = new Set(); // jambes simples ecartees car cote implausible     // book -> Set(selection non lue)
 
 const CONC = Number(process.env.CONCURRENCY || 8);
 
@@ -166,7 +172,9 @@ async function scanEntry(entry) {
     for (const o of r.outcomes || []) {
       if (!isTargetMarket(o.market)) {
         const sk = parseSimple(o.market, o.selection);
+        if (sk && !isPlausible(sk, o.odds)) { simpleRejected.add(r.key + ' : ' + o.market + ' -> ' + o.selection + ' @ ' + o.odds); continue; }
         if (sk) {
+          simpleSeen.add(r.key + ' : ' + o.market + ' -> ' + sk);
           found.push({ book: r.key, key: sk, odds: o.odds });
           const c0 = best.get(sk);
           if (!c0 || o.odds > c0.odds) best.set(sk, { key: sk, odds: o.odds, book: r.key, market: o.market, selection: o.selection });
@@ -225,6 +233,16 @@ md.push('');
 if (unparsed.size) {
   md.push('### Selections non decodees (a corriger si elles apparaissent)', '');
   for (const [book, set] of unparsed) md.push('- ' + book + ' : ' + [...set].slice(0, 8).join(' | '));
+  md.push('');
+}
+
+md.push('## Jambes simples retenues (1X2 / double chance / BTTS)', '');
+if (!simpleSeen.size) md.push('Aucune.');
+for (const l of [...simpleSeen].sort()) md.push('- ' + l);
+md.push('');
+if (simpleRejected.size) {
+  md.push('### Ecartees (cote hors plage possible = mauvaise lecture)', '');
+  for (const l of [...simpleRejected].sort().slice(0, 30)) md.push('- ' + l);
   md.push('');
 }
 
