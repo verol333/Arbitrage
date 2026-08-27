@@ -1,0 +1,205 @@
+// REGLEMENT D'UN MARCHE SUR UN SCENARIO.
+// settler(market, selection, ctx) renvoie une fonction sc -> 'W' | 'L' | 'V'
+// (gagne / perd / rembourse), ou null si le libelle n'est pas reconnu avec
+// certitude. Regle de fer : on ne devine jamais. Un marche non reconnu est
+// simplement ignore par le solveur, il ne peut donc pas fabriquer de faux
+// positif.
+import { strip } from './families.js';
+import { goals } from './scenarios.js';
+
+// Marches hors de l'espace des scenarios (statistiques, joueurs, prolongations).
+const OUT_OF_SPACE = /(corner|carton|card|tir|shot|faute|foul|hors jeu|offside|touche|throw|remise|degagement|penalt|joueur|player|buteur|scorer|prolongation|extra time|tirs au but|minute|intervalle|interval|temps additionnel|arret|save|possession|passe|pass|substitut|remplacement|var|coup franc|free kick|serie|sequence)/;
+
+const dec = (s) => {
+  const m = String(s).replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+};
+
+function scopeOf(mkt, sel) {
+  const s = strip(mkt) + ' ' + strip(sel);
+  if (/(2e|2eme|2nd|second|deuxieme)\s*(mi.?temps|half|periode|period)/.test(s)) return 'H2';
+  if (/(1re|1ere|1er|1st|first|premiere|premier)\s*(mi.?temps|half|periode|period)/.test(s)) return 'H1';
+  if (/\bmi.?temps\b|\bhalf.?time\b|\bht\b/.test(s)) return 'H1';
+  return 'FT';
+}
+
+// 1 / X / 2 a partir d'un mot, en tenant compte des noms d'equipes (1win).
+function side(word, ctx) {
+  const w = strip(word);
+  if (!w) return null;
+  if (ctx?.home && w === strip(ctx.home)) return '1';
+  if (ctx?.away && w === strip(ctx.away)) return '2';
+  if (/^(1|v1|w1|p1|home|dom|domicile|hote)$/.test(w)) return '1';
+  if (/^(x|0|nul|draw|match nul|egalite|tie)$/.test(w)) return 'X';
+  if (/^(2|v2|w2|p2|away|ext|exterieur|visiteur)$/.test(w)) return '2';
+  return null;
+}
+
+const res = (gh, ga) => (gh > ga ? '1' : gh < ga ? '2' : 'X');
+const scoresIn = (txt) => {
+  const out = [];
+  const re = /(\d+)\s*[:\-]\s*(\d+)/g;
+  let m;
+  while ((m = re.exec(String(txt)))) out.push([Number(m[1]), Number(m[2])]);
+  return out;
+};
+
+export function settler(market, selection, ctx = {}) {
+  const mkt = strip(market);
+  const sel = strip(selection);
+  const both = mkt + ' | ' + sel;
+  if (!sel || OUT_OF_SPACE.test(both)) return null;
+
+  const sp = scopeOf(market, selection);
+  const g = (sc) => goals(sc, sp);
+
+  // --- HT/FT : deux resultats successifs ---
+  if (/(mi.?temps.*fin|ht.?ft|half.?time.*full.?time|1re.*2e|resultat des 2)/.test(mkt) && !/score exact|correct score/.test(mkt)) {
+    const parts = sel.split(/[\/:>]+|\band\b|\bpuis\b/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 2) {
+      const a = side(parts[0], ctx);
+      const b = side(parts[1], ctx);
+      if (a && b) return (sc) => (res(sc.hh, sc.ha) === a && res(sc.h, sc.a) === b ? 'W' : 'L');
+    }
+    return null;
+  }
+
+  // --- score exact / multiscores : liste de scores explicites ---
+  const isScoreMarket = /score exact|correct score|multiscore|score final|resultat exact/.test(mkt);
+  const list = scoresIn(sel);
+  if (isScoreMarket && list.length) {
+    if (sp !== 'FT') return null;
+    return (sc) => (list.some(([x, y]) => sc.h === x && sc.a === y) ? 'W' : 'L');
+  }
+
+  // --- "autre score victoire domicile/exterieur" : residu de la famille ---
+  if (/autre|other|any other/.test(sel) && isScoreMarket) {
+    const excl = ctx.siblingScores;
+    if (!excl || !excl.size) return null; // sans les cases voisines, indecidable
+    const w = /(domicile|home|1)/.test(sel) ? '1' : /(exterieur|away|2)/.test(sel) ? '2' : /(nul|draw)/.test(sel) ? 'X' : null;
+    if (!w) return null;
+    return (sc) => (res(sc.h, sc.a) === w && !excl.has(sc.h + ':' + sc.a) ? 'W' : 'L');
+  }
+
+  // --- handicap (asiatique ou europeen) ---
+  if (/handicap|hcp|\bah\b/.test(mkt)) {
+    const ln = dec(selection) ?? dec(ctx.line);
+    if (ln == null) return null;
+    const head = sel.replace(/-?\d+(?:\.\d+)?/g, ' ').replace(/handicap|hcp|ah/g, ' ').trim();
+    const s = side(head, ctx);
+    if (s !== '1' && s !== '2') return null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      const m = s === '1' ? gh - ga + ln : ga - gh + ln;
+      return m > 0.0001 ? 'W' : m < -0.0001 ? 'L' : 'V';
+    };
+  }
+
+  // --- totaux (match ou par equipe) ---
+  if (/(total|plus.moins|over.under|buts|goals|o\/u)/.test(both) && /(over|under|plus de|moins de|\+|\-)/.test(sel)) {
+    const ln = dec(selection) ?? dec(ctx.line);
+    if (ln == null) return null;
+    const over = /(over|plus|sup|\+|au dessus)/.test(sel);
+    const under = /(under|moins|inf|au dessous)/.test(sel);
+    if (over === under) return null;
+    const team = /(domicile|home|equipe 1|team 1|\bt1\b)/.test(both) ? '1'
+      : /(exterieur|away|equipe 2|team 2|\bt2\b)/.test(both) ? '2' : null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      const v = team === '1' ? gh : team === '2' ? ga : gh + ga;
+      if (Math.abs(v - ln) < 0.0001) return 'V';
+      return (over ? v > ln : v < ln) ? 'W' : 'L';
+    };
+  }
+
+  // --- pair / impair ---
+  if (/(pair|impair|odd|even)/.test(both)) {
+    const odd = /(impair|\bodd\b)/.test(sel);
+    const even = /(^|\b)(pair|even)(\b|$)/.test(sel) && !odd;
+    if (odd === even) return null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      const isOdd = (gh + ga) % 2 === 1;
+      return (odd ? isOdd : !isOdd) ? 'W' : 'L';
+    };
+  }
+
+  // --- les deux equipes marquent ---
+  if (/(deux equipes marquent|both teams to score|\bbtts\b|gg\/ng)/.test(both)) {
+    const yes = /(oui|yes|\bgg\b|\bsi\b)/.test(sel);
+    const no = /(non|\bno\b|\bng\b)/.test(sel);
+    if (yes === no) return null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      const b = gh > 0 && ga > 0;
+      return (yes ? b : !b) ? 'W' : 'L';
+    };
+  }
+
+  // --- marque dans les deux mi-temps ---
+  if (/(deux mi.?temps|both halves)/.test(mkt) && /(marque|score)/.test(mkt)) {
+    const team = /(domicile|home)/.test(both) ? '1' : /(exterieur|away)/.test(both) ? '2' : null;
+    if (!team) return null;
+    const yes = /(oui|yes)/.test(sel);
+    const no = /(non|\bno\b)/.test(sel);
+    if (yes === no) return null;
+    return (sc) => {
+      const f = team === '1' ? [sc.hh, sc.h - sc.hh] : [sc.ha, sc.a - sc.ha];
+      const b = f[0] > 0 && f[1] > 0;
+      return (yes ? b : !b) ? 'W' : 'L';
+    };
+  }
+
+  // --- clean sheet / gagne sans encaisser ---
+  if (/(clean sheet|sans encaisser|to nil|blanchissage)/.test(mkt)) {
+    const team = /(domicile|home)/.test(both) ? '1' : /(exterieur|away)/.test(both) ? '2' : null;
+    if (!team) return null;
+    const win = /(gagne|win|victoire)/.test(mkt);
+    const yes = /(oui|yes)/.test(sel);
+    const no = /(non|\bno\b)/.test(sel);
+    if (yes === no) return null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      const ok = team === '1' ? ga === 0 && (!win || gh > ga) : gh === 0 && (!win || ga > gh);
+      return (yes ? ok : !ok) ? 'W' : 'L';
+    };
+  }
+
+  // --- double chance ---
+  if (/(double chance|dc\b)/.test(both) || /^(1x|12|x2|2x)$/.test(sel.replace(/\s/g, ''))) {
+    const k = sel.replace(/\s/g, '');
+    const set = k === '1x' ? ['1', 'X'] : k === '12' ? ['1', '2'] : k === 'x2' || k === '2x' ? ['X', '2'] : null;
+    if (!set) return null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      return set.includes(res(gh, ga)) ? 'W' : 'L';
+    };
+  }
+
+  // --- remboursement si nul (draw no bet) ---
+  if (/(draw no bet|\bdnb\b|rembourse si nul)/.test(both)) {
+    const s = side(sel, ctx);
+    if (s !== '1' && s !== '2') return null;
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      const r = res(gh, ga);
+      return r === 'X' ? 'V' : r === s ? 'W' : 'L';
+    };
+  }
+
+  // --- 1X2 simple (y compris 2UP, traite au pire cas) ---
+  const s1 = side(sel, ctx);
+  if (s1) {
+    return (sc) => {
+      const [gh, ga] = g(sc);
+      return res(gh, ga) === s1 ? 'W' : 'L';
+    };
+  }
+
+  return null;
+}
+
+// Un marche 2UP paie des que l'equipe mene de 2 buts, meme si le score final
+// change. On le regle au pire cas (comme un 1X2 simple) : le gain reel ne peut
+// donc qu'etre superieur a ce que le solveur annonce.
+export const isEarlyPayout = (market, selection) => /2up|paiement anticipe|early payout/.test(strip(market) + ' ' + strip(selection));
