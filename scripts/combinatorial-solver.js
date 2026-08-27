@@ -869,13 +869,22 @@ function areDisjoint(picks) {
 
 // FIX #10 : LIM=80 supprime — enumeration complete 2..4 items.
 function findCoverageSets(items, minProfit) {
-  const arr = items.slice().sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)));
+  // La grille par mi-temps (625 issues) multiplie le nombre de masques distincts :
+  // l'enumeration a 4 niveaux saturait la memoire (OOM). On borne les candidats
+  // aux paris couvrant le plus d'issues, et le 4e niveau aux petits ensembles.
+  const MAX_ITEMS = 110;
+  const MAX_OPPS = 400;
+  const arr = items.slice()
+    .sort((a, b) => Number(popcount(b.mask) - popcount(a.mask)))
+    .slice(0, MAX_ITEMS);
   const N = arr.length;
+  const DEEP = N <= 70; // 4 jambes seulement quand l'espace reste petit
   const opps = [];
   const record = (picks, sumInv) => {
     if (REQUIRE_DISJOINT && !areDisjoint(picks)) return;
     const books = new Set(picks.map(p => p.book));
     if (books.size < 2) return;
+    if (opps.length >= MAX_OPPS) return;
     opps.push({ picks, profit: 1 - sumInv, sumInv, size: picks.length });
   };
 
@@ -892,6 +901,7 @@ function findCoverageSets(items, minProfit) {
         if (inv3 >= 1 - minProfit) continue;
         const m3 = m2 | arr[k].mask;
         if (m3 === ALL_CELLS_MASK) record([arr[i], arr[j], arr[k]], inv3);
+        if (!DEEP) continue;
         for (let l = k + 1; l < N; l++) {
           const inv4 = inv3 + 1 / arr[l].odds;
           if (inv4 >= 1 - minProfit) continue;
