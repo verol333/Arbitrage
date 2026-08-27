@@ -70,6 +70,12 @@ function maskFromHalfPredicate(pred) {
   return m;
 }
 
+// Un score FINAL (h,a) regroupe toutes les repartitions par mi-temps qui le
+// produisent : c'est un ensemble d'issues, plus une seule cellule.
+function cellBit(h, a) {
+  return maskFromHalfPredicate((h1, a1, h2, a2) => (h1 + h2) === h && (a1 + a2) === a);
+}
+
 // Marches fin de match : le predicat (h,a) recoit le score final cumule.
 function maskFromPredicate(pred) {
   let m = maskFromHalfPredicate((h1, a1, h2, a2) => pred(h1 + h2, a1 + a2));
