@@ -994,8 +994,17 @@ console.log(`\n${top.length} matchs top selectionnes\n`);
 
 const allOpps = [];
 
-for (const entry of top) {
-  console.log(`\n▓▓ ${entry.ref.home} vs ${entry.ref.away} — ${Object.keys(entry.matches).length} books`);
+// ─── Traitement des matchs EN PARALLELE ────────────────────────────────────
+// Chaque match est independant : les traiter un par un faisait attendre le
+// reseau inutilement. Les lignes de log sont bufferisees par match puis
+// imprimees d'un bloc, pour rester lisibles malgre le parallelisme.
+const CONCURRENCY = Math.max(1, parseInt(process.env.SOLVER_CONCURRENCY || '4', 10));
+
+async function processMatch(entry) {
+  const LINES = [];
+  const say = (...a) => LINES.push(a.map(String).join(' '));
+
+  say(`\n▓▓ ${entry.ref.home} vs ${entry.ref.away} — ${Object.keys(entry.matches).length} books`);
   // FIX #9 : fetch parallele par book
   const bookMatches = Object.entries(entry.matches).filter(([b]) => EXTRACTORS[b]);
   const rawResults = await Promise.all(bookMatches.map(async ([book, m]) => {
@@ -1004,20 +1013,20 @@ for (const entry of top) {
   }));
   const outcomes = [];
   for (const { book, raw, err } of rawResults) {
-    if (!raw) { console.log(`  [${book}] raw KO ${err || ''}`); continue; }
+    if (!raw) { say(`  [${book}] raw KO ${err || ''}`); continue; }
     const bookOuts = (await extractWithSubgames(book, raw)).map(o => ({ ...o, book, homeTeam: entry.ref.home, awayTeam: entry.ref.away }));
-    console.log(`  [${book}] ${bookOuts.length} outcomes`);
+    say(`  [${book}] ${bookOuts.length} outcomes`);
     outcomes.push(...bookOuts);
   }
-  console.log(`  → TOTAL ${outcomes.length} outcomes cross-book`);
+  say(`  → TOTAL ${outcomes.length} outcomes cross-book`);
 
   // Classifie + regroupe
   _classifiedCount = 0; _nullCount = 0; _trivialCount = 0; _quarterLineSkipped = 0;
   const items = groupByMask(outcomes);
   _classifiedCount = items.length;
   const uniqueMasks = new Set(items.map(i => i.mask.toString(16))).size;
-  console.log(`  → CLASSIF: ${uniqueMasks} masks uniques, ${_classifiedCount} items (mask×book), ${_nullCount} null, ${_trivialCount} triviaux, ${_quarterLineSkipped} quarter-line skippés`);
-  console.log(`  → Taux classification: ${outcomes.length ? ((outcomes.length - _nullCount) / outcomes.length * 100).toFixed(1) : 0}%`);
+  say(`  → CLASSIF: ${uniqueMasks} masks uniques, ${_classifiedCount} items (mask×book), ${_nullCount} null, ${_trivialCount} triviaux, ${_quarterLineSkipped} quarter-line skippés`);
+  say(`  → Taux classification: ${outcomes.length ? ((outcomes.length - _nullCount) / outcomes.length * 100).toFixed(1) : 0}%`);
 
   // Cherche coverage sets
   // ── BACKTEST DE FIABILITE (intra-book) ────────────────────────────────
@@ -1046,7 +1055,7 @@ for (const entry of top) {
     for (const o of findCoverageSets(list, MIN_PROFIT, FULL)) opps.push({ ...o, domain });
   }
   opps.sort((a, b) => b.profit - a.profit);
-  console.log(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
+  say(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
   for (const o of opps) {
     allOpps.push({ ...o, match: `${entry.ref.home} vs ${entry.ref.away}` });
   }
@@ -1068,18 +1077,30 @@ for (const entry of top) {
     }
     partials.sort((a, b) => b.cov - a.cov);
     if (partials.length > 0) {
-      console.log(`  ─── TOP COUVERTURES PARTIELLES (2-picks cross-book) ───`);
+      say(`  ─── TOP COUVERTURES PARTIELLES (2-picks cross-book) ───`);
       for (const p of partials.slice(0, 3)) {
         const gap = CELLS - p.cov;
         const profit = ((1 - p.sumInv) * 100).toFixed(1);
-        console.log(`    ${p.pct}% couvert (${gap} trous) profit_theorique=${profit}%`);
+        say(`    ${p.pct}% couvert (${gap} trous) profit_theorique=${profit}%`);
         for (const pk of p.picks) {
-          console.log(`      [${pk.book}] ${pk.market.slice(0,40)} → ${pk.selection.slice(0,30)} @${pk.odds.toFixed(2)} (${Number(popcount(pk.mask))} cells)`);
+          say(`      [${pk.book}] ${pk.market.slice(0,40)} → ${pk.selection.slice(0,30)} @${pk.odds.toFixed(2)} (${Number(popcount(pk.mask))} cells)`);
         }
       }
     }
   }
+
+  console.log(LINES.join('\n'));
 }
+
+let _cursor = 0;
+await Promise.all(Array.from({ length: Math.min(CONCURRENCY, top.length) }, async () => {
+  while (_cursor < top.length) {
+    const entry = top[_cursor++];
+    try { await processMatch(entry); }
+    catch (e) { console.log(`▓▓ ${entry.ref.home} vs ${entry.ref.away} — ECHEC ${e.message}`); }
+  }
+}));
+
 
 if (_suspectMarkets.size) {
   console.log('');
