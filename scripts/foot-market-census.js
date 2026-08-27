@@ -137,5 +137,6 @@ md.push('');
 
 mkdirSync('docs', { recursive: true });
 writeFileSync('docs/foot-market-census.md', md.join('\n'));
+console.log('\n' + md.join('\n') + '\n');
 console.log('\nRapport ecrit : docs/foot-market-census.md');
 console.log('Familles exploitables chez 2+ books : ' + rows.filter((r) => r.grid && r.duo > 0).length);
