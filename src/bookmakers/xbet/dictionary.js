@@ -208,26 +208,61 @@ export function xbetTypeName(typeId) {
   return XBET_TYPE_NAMES[typeId] || `#${typeId}`;
 }
 
-// Appel de l'API mobile v3 (3 tentatives). Renvoie data ou null.
-export async function fetchXbetMobileGame(gameId, { timeoutMs = 20000 } = {}) {
+// Lecture d'un match via l'API mobile.
+// L'endpoint refuse les IP de datacenter (les runners GitHub prennent un
+// 522/429), donc : (1) appel direct, puis (2) relais par le serveur de l'app,
+// qui lui repond normalement. Aucune interpretation dans le transport.
+const RELAY = process.env.XBET_RELAY_URL || 'https://al-ve-pro.base44.app/functions/xbetMobileProxy';
+
+async function directGame(gameId, timeoutMs) {
   const qs = new URLSearchParams({
     cfView: '3', fcountry: '93', gameId: String(gameId), gr: '1357',
     lng: 'fr_FR', ref: '1', supportedSpecialType: '1', whence: '22',
   });
-  for (let i = 0; i < 3; i++) {
-    try {
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), timeoutMs);
-      const r = await fetch(`${MOBILE_HOST}/MainFeedLine/mobile/v3/game?${qs}`, { headers: MOBILE_HEADERS, signal: ctrl.signal });
-      clearTimeout(to);
-      if (r.ok) {
-        const j = await r.json();
-        if (j?.data) return j.data;
-      }
-    } catch { /* retry */ }
-    await new Promise((res) => setTimeout(res, 800));
-  }
-  return null;
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(`${MOBILE_HOST}/MainFeedLine/mobile/v3/game?${qs}`, { headers: MOBILE_HEADERS, signal: ctrl.signal });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j?.data || null;
+  } catch { return null; }
+  finally { clearTimeout(to); }
+}
+
+// Le relais accepte jusqu'a 25 ids par appel : on en profite pour lire un match
+// et tous ses sous-marches d'un seul coup.
+export async function relayGames(gameIds, { timeoutMs = 60000 } = {}) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(RELAY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-relay': 'arbitrage-inventory' },
+      body: JSON.stringify({ gameIds: gameIds.map(String), relay: 'arbitrage-inventory' }),
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return {};
+    const j = await r.json();
+    const out = {};
+    for (const [id, g] of Object.entries(j?.games || {})) {
+      if (!g?.ok) continue;
+      out[id] = {
+        opponent1: { fullName: g.team1 }, opponent2: { fullName: g.team2 },
+        liga: { name: g.league }, eventGroups: g.eventGroups,
+        subGamesForMainGame: (g.subGames || []).map((s) => ({ id: s.id, subGameName: s.name, gameTypeId: s.gameTypeId })),
+      };
+    }
+    return out;
+  } catch { return {}; }
+  finally { clearTimeout(to); }
+}
+
+export async function fetchXbetMobileGame(gameId, { timeoutMs = 20000 } = {}) {
+  const direct = await directGame(gameId, timeoutMs);
+  if (direct) return direct;
+  const viaRelay = await relayGames([gameId]);
+  return viaRelay[String(gameId)] || null;
 }
 
 // Met un groupe a plat : { market, groupId, subGame, selections[{typeId,name,line,params,odds}] }
@@ -271,15 +306,32 @@ export async function dumpXbetMarkets(gameId, {
   if (includeSubGames) {
     const subs = (game.subGamesForMainGame || [])
       .filter((s) => s.id && s.id !== gameId && s.subGameName && !skipSubGames.test(s.subGameName));
-    for (let i = 0; i < subs.length; i += concurrency) {
-      const slice = subs.slice(i, i + concurrency);
-      const datas = await Promise.all(slice.map((s) => fetchXbetMobileGame(s.id).then((d) => ({ s, d })).catch(() => ({ s, d: null }))));
-      for (const { s, d } of datas) {
-        if (!d) continue;
-        for (const g of d.eventGroups || []) {
-          const m = flattenGroup(g, s.subGameName);
-          if (m.selections.length) { m.subGameId = s.id; markets.push(m); }
-        }
+
+    // Un seul aller-retour relais par paquet de 25 (le direct etant souvent
+    // bloque depuis un datacenter, on evite 50 tentatives inutiles).
+    const datas = new Map();
+    const firstTry = await fetchXbetMobileGame(subs[0]?.id || gameId);
+    const relayNeeded = !(await directGame(subs[0]?.id || gameId, 6000));
+    if (relayNeeded) {
+      for (let i = 0; i < subs.length; i += 25) {
+        const got = await relayGames(subs.slice(i, i + 25).map((s) => s.id));
+        for (const [id, d] of Object.entries(got)) datas.set(String(id), d);
+      }
+    } else {
+      for (let i = 0; i < subs.length; i += concurrency) {
+        const slice = subs.slice(i, i + concurrency);
+        const res = await Promise.all(slice.map((s) => fetchXbetMobileGame(s.id).catch(() => null)));
+        slice.forEach((s, k) => res[k] && datas.set(String(s.id), res[k]));
+      }
+    }
+    if (firstTry && subs[0]) datas.set(String(subs[0].id), firstTry);
+
+    for (const s of subs) {
+      const d = datas.get(String(s.id));
+      if (!d) continue;
+      for (const g of d.eventGroups || []) {
+        const m = flattenGroup(g, s.subGameName);
+        if (m.selections.length) { m.subGameId = s.id; markets.push(m); }
       }
     }
   }
