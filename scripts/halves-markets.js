@@ -4,6 +4,24 @@
 // Ces marches etaient jetes par le solveur car inexprimables sur une grille de
 // scores FINAUX (score par mi-temps, periode la plus prolifique, etc.).
 
+import { statFamily } from './stat-markets.js';
+
+// Lecture d'une moitie de selection combinee ("2 / > 1.5" -> "2" puis "> 1.5").
+// Le libelle du marche ne nomme qu'une des deux composantes, donc chaque partie
+// est reconnue a partir de son propre contenu, dans le perimetre de la mi-temps.
+function halfPartPredicate(part, HH, AA) {
+  const p = String(part).trim().toLowerCase();
+  if (/^1$|^home$|^domicile$/.test(p)) return (...v) => HH(...v) > AA(...v);
+  if (/^x$|^nul$|^draw$|^[eé]galit[eé]$/.test(p)) return (...v) => HH(...v) === AA(...v);
+  if (/^2$|^away$|^ext[eé]rieur$/.test(p)) return (...v) => AA(...v) > HH(...v);
+  const line = trailingLine(p);
+  if (!isNaN(line) && !Number.isInteger(line) && Math.abs(line) % 0.5 < 0.01) {
+    if (/^(?:>|over|plus|\+)/.test(p)) return (...v) => HH(...v) + AA(...v) > line;
+    if (/^(?:<|under|moins|-)/.test(p)) return (...v) => HH(...v) + AA(...v) < line;
+  }
+  return null;
+}
+
 function trailingLine(txt) {
   const m = String(txt).match(/([+-]?\d+(?:[.,]\d+)?)\s*\)?\s*$/);
   return m ? parseFloat(m[1].replace(',', '.')) : NaN;
@@ -26,13 +44,10 @@ function isTeamScoped(m, homeNamed, awayNamed) {
 
 // Retourne un predicat (h1,a1,h2,a2) => bool, ou null si non gere.
 export function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
-  // Refus 1 : le marche ne parle pas de BUTS (corners, cartons, fautes...).
-  // "Corners. 1st half. total" etait lu comme un total de buts de la mi-temps.
-  if (/corner|carton|\bcard|foul|faute|offside|hors-jeu|throw|touche|shot|tir\b|penalt/.test(m)) return null;
-  // Refus 2 : selection combinee ("2 / > 1.5", "1 & Over 1.5"). N'en lire qu'une
-  // moitie surestime enormement la couverture et fabrique de faux arbitrages.
-  if (/[/&+]|\bet\b| and /.test(s)) return null;
-  if (/[/&]|\bet\b| and /.test(m.replace(/mi-temps/g, ''))) return null;
+  // Ce module ne decrit que des BUTS. Les statistiques (corners, cartons,
+  // fautes, tirs) ont leur propre espace d'issues : voir stat-markets.js.
+  // "Corners. 1st half. total" etait lu comme un total de BUTS de la mi-temps.
+  if (statFamily(m)) return null;
 
   const side = teamSide(m, homeNamed, awayNamed);
   const scoped = isTeamScoped(m, homeNamed, awayNamed);
@@ -88,6 +103,17 @@ export function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
   if (!first && !second) return null;
   const HH = (h1, a1, h2, a2) => first ? h1 : h2;
   const AA = (h1, a1, h2, a2) => first ? a1 : a2;
+
+  // Selection combinee : "2 / > 1.5" = equipe 2 gagne la mi-temps ET plus de
+  // 1.5 but dans la mi-temps. N'en lire qu'une moitie surestimait enormement la
+  // couverture. On lit donc l'INTERSECTION des deux conditions.
+  if (/[/&+]|\bet\b| and /.test(s)) {
+    const parts = s.split(/\s*(?:[/&+]|\bet\b|\band\b)\s*/).filter(Boolean);
+    if (parts.length < 2) return null;
+    const preds = parts.map(p => halfPartPredicate(p, HH, AA));
+    if (preds.some(p => !p)) return null;         // une moitie illisible = marche rejete
+    return (...v) => preds.every(p => p(...v));
+  }
 
   // Total de la mi-temps (eventuellement par equipe)
   if (/total|nombre de buts/.test(m)) {
