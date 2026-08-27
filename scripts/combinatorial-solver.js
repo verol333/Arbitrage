@@ -1046,13 +1046,23 @@ async function processMatch(entry) {
   const opps = [];
   for (const [domain, list] of byDomain) {
     const FULL = FULL_MASK_BY_DOMAIN[domain];
+    // BACKTEST : une couverture 100% RENTABLE chez un SEUL book est impossible
+    // en realite -> c'est la preuve que le marche est mal decode. Ces marches
+    // sont desormais EXCLUS du calcul (avant, ils etaient seulement listes et
+    // continuaient a produire de faux arbitrages).
+    const bad = new Set();
     for (const bk of new Set(list.map(x => x.book))) {
       const solo = list.filter(x => x.book === bk).map(x => ({ ...x, book: '_solo' }));
       for (const o of findCoverageSets(solo, 0.005, FULL)) {
-        for (const p of o.picks) _suspectMarkets.add(`${bk} :: ${p.market}`);
+        for (const p of o.picks) {
+          bad.add(`${bk} :: ${p.market}`);
+          _suspectMarkets.add(`${bk} :: ${p.market}`);
+        }
       }
     }
-    for (const o of findCoverageSets(list, MIN_PROFIT, FULL)) opps.push({ ...o, domain });
+    const clean = bad.size ? list.filter(x => !bad.has(`${x.book} :: ${x.market}`)) : list;
+    if (bad.size) say(`  → BACKTEST: ${bad.size} marches ecartes (decodage suspect), ${list.length - clean.length} cotes retirees`);
+    for (const o of findCoverageSets(clean, MIN_PROFIT, FULL)) opps.push({ ...o, domain });
   }
   opps.sort((a, b) => b.profit - a.profit);
   say(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
