@@ -1,9 +1,20 @@
 name: Combinatorial Solver (arbs multi-marchés cross-books)
-on: { workflow_dispatch: {} }
+on:
+  workflow_dispatch:
+    inputs:
+      books:
+        description: Books a interroger (csv)
+        default: congobet,betpawa,1win
+      top_matches:
+        description: Nombre de matchs a resoudre
+        default: '20'
+      min_profit:
+        description: Marge minimale affichee (%)
+        default: '0'
 jobs:
   solve:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,6 +26,9 @@ jobs:
           fi
       - name: Run combinatorial solver
         env:
+          SOLVER_BOOKS: ${{ inputs.books }}
+          SOLVER_TOP_MATCHES: ${{ inputs.top_matches }}
+          MIN_PROFIT: ${{ inputs.min_profit }}
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
