@@ -104,6 +104,31 @@ export function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
   const HH = (h1, a1, h2, a2) => first ? h1 : h2;
   const AA = (h1, a1, h2, a2) => first ? a1 : a2;
 
+  // ─ Handicap de la mi-temps ──────────────────────────────────────────────
+  // "Handicap 1X2 - 1H [3]" / "Asian handicap - 2H [-1.5]" tombaient dans le
+  // bloc 1X2 plus bas : la LIGNE etait ignoree et le handicap lu comme un 1X2
+  // sec. Resultat : "1" + "2" + "X" de lignes differentes paraissaient couvrir
+  // 100% de la grille avec des cotes de handicap -> faux arbitrages a 70%.
+  // La ligne s'applique a l'equipe DOMICILE (convention deja utilisee pour le
+  // handicap plein match).
+  if (/handicap/.test(m)) {
+    const bracket = m.match(/\[\s*(-?\d+(?:[.,]\d+)?)\s*\]/);
+    const inSel = s.match(/^([12x])\s*\(\s*(-?\d+(?:[.,]\d+)?)\s*\)$/i);
+    const raw = bracket ? bracket[1] : (inSel ? inSel[2] : null);
+    if (raw === null) return null;                       // ligne illisible = rejet
+    const line = parseFloat(String(raw).replace(',', '.'));
+    if (isNaN(line)) return null;
+    if (Math.abs(line * 4) % 2 !== 0) return null;       // quart de ligne (.25/.75)
+    const pick = (inSel ? inSel[1] : s.trim()).toLowerCase();
+    if (/^1\b|^home|^domicile/.test(pick)) return (...v) => HH(...v) + line > AA(...v);
+    if (/^2\b|^away|^ext/.test(pick)) return (...v) => AA(...v) > HH(...v) + line;
+    if (/^x\b|^draw|^nul|^[eé]galit/.test(pick)) {
+      if (!Number.isInteger(line)) return null;          // nul impossible sur ligne .5
+      return (...v) => HH(...v) + line === AA(...v);
+    }
+    return null;
+  }
+
   // Selection combinee : "2 / > 1.5" = equipe 2 gagne la mi-temps ET plus de
   // 1.5 but dans la mi-temps. N'en lire qu'une moitie surestimait enormement la
   // couverture. On lit donc l'INTERSECTION des deux conditions.
