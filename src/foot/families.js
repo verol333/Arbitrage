@@ -20,32 +20,43 @@ function scopeOf(name) {
   return 'FT';
 }
 
-// Règles ordonnées : la première qui matche gagne (du plus spécifique au plus large).
+// Regles ordonnees : la premiere qui matche gagne (du plus specifique au plus large).
+// Vocabulaire couvert : francais (congobet, 1xbet) ET anglais (1win, betpawa),
+// les libelles anglais ci-dessous sont recopies tels que renvoyes par les books
+// lors du recensement du 2026-08-27 (voir docs/foot-market-census.md).
 const RULES = [
   ['HTFT', /(mi-temps ?\/ ?(fin|resultat|temps)|half ?time ?\/ ?full ?time|ht ?\/ ?ft|double resultat)/],
   ['RESULT_TOTAL', /((resultat|result|1x2).*(total|nombre de buts|buts|over|under|plus|moins)|(total|buts).*(resultat|result))/],
   ['DC_TOTAL', /(double chance).*(total|but|over|under|plus|moins)/],
   ['DC', /(double chance|chance double|\bdc\b)/],
+  ['CS_GROUP', /(multiscore|multi ?score|groupe de scores|score group)/],
   ['CS', /(correct score|score exact|resultat exact|exact score|score correct)/],
   ['MULTIGOALS', /(multi ?goal|multigoals|intervalle de buts|nombre exact de buts|buts exacts|total exact|exact (total|goals|number)|fourchette de buts)/],
   ['GOAL_INTERVAL', /(intervalle|interval|moment du|minute du|timing)/],
   ['WIN_MARGIN', /(ecart|margin|marge de victoire|winning margin|difference de buts)/],
+  ['WIN_TO_NIL', /(win to nil|victoire sans encaisser|gagne sans encaisser)/],
+  ['BOTH_HALVES_SCORE', /(score in both halves|marque dans les deux mi-temps)/],
+  ['HALF_PRODUCTIVE', /(mi-temps la plus|most goals in half|half more goals|highest scoring half|half with most goals|(both|either) halves? win|gagner au moins une mi-temps|win (either|both) half)/],
   ['CLEAN_SHEET', /(clean sheet|ne concede|sans encaisser|equipe marque|to score\b|va marquer|marquera)/],
   ['FIRST_GOAL', /(1ere equipe|premiere equipe|first (team )?to score|dernier but|last (team )?to score|premier but|first goal)/],
-  ['HALF_PRODUCTIVE', /(mi-temps la plus|most goals in half|highest scoring half|gagner au moins une mi-temps|win (either|both) half)/],
   ['ODD_EVEN', /(pair ?\/ ?impair|paire? ou impaire?|odd ?\/ ?even|\bodd\b|\bimpair\b|\beven\b|\bpair\b)/],
   ['BTTS', /(les deux equipes|both teams|btts|deux equipes marquent|gg\/ng|goal ?\/ ?no ?goal)/],
   ['HANDICAP_EURO', /(handicap europeen|european handicap|handicap 1x2|handicap \(\d)/],
   ['HANDICAP_ASIAN', /(handicap asiatique|asian handicap|handicap|\bah\b|spread)/],
   ['DNB', /(draw no bet|remboursement si match nul|match nul rembourse|\bdnb\b)/],
   ['OU_TEAM', /(total (de |des )?buts? (de l'|d')?(equipe|domicile|exterieur)|team total|total domicile|total exterieur|individual total|total individuel)/],
+  ['QUALIFY', /(qualif|to qualify)/],
+  ['WINNING_METHOD', /(winning method|methode de victoire)/],
+  ['PLAYER', /(goalscorer|buteur|player |joueur |sent off|to be booked|saves)/],
   ['CORNERS', /(corner|coup de pied de coin)/],
   ['CARDS', /(carton|card|booking)/],
   ['SHOTS', /(tir|shot)/],
   ['FOULS', /(faute|foul)/],
+  ['TACKLES', /(tacle|tackle)/],
+  ['ASSISTS', /(passe decisive|assist)/],
   ['OFFSIDE', /(hors-jeu|hors jeu|offside)/],
   ['OU_MATCH', /(total|over|under|plus de|moins de|nombre de buts|buts)/],
-  ['WINNER', /(1x2|resultat du match|match result|vainqueur|winner|issue du match|resultat final|full time result|\b1 ?x ?2\b)/],
+  ['WINNER', /(1x2|resultat du match|match result|vainqueur|winner|issue du match|resultat final|full time result|\b1 ?x ?2\b|(^| )result( |$)|\. result)/],
 ];
 
 // Retourne un code de famille canonique, suffixé par la portée (FT/H1/H2).
@@ -66,7 +77,7 @@ export function classify(marketName, selection = '') {
 export const GRID_FAMILIES = new Set([
   'WINNER', 'DC', 'DNB', 'CS', 'MULTIGOALS', 'OU_MATCH', 'OU_TEAM', 'BTTS',
   'ODD_EVEN', 'HANDICAP_EURO', 'HANDICAP_ASIAN', 'CLEAN_SHEET', 'WIN_MARGIN',
-  'HTFT', 'RESULT_TOTAL', 'DC_TOTAL', 'FIRST_GOAL',
+  'HTFT', 'RESULT_TOTAL', 'DC_TOTAL', 'FIRST_GOAL', 'CS_GROUP', 'WIN_TO_NIL',
   'WINNER_H1', 'DC_H1', 'CS_H1', 'OU_MATCH_H1', 'BTTS_H1', 'ODD_EVEN_H1',
   'MULTIGOALS_H1', 'OU_TEAM_H1', 'HANDICAP_ASIAN_H1', 'HANDICAP_EURO_H1',
 ]);
