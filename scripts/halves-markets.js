@@ -25,7 +25,7 @@ function isTeamScoped(m, homeNamed, awayNamed) {
 }
 
 // Retourne un predicat (h1,a1,h2,a2) => bool, ou null si non gere.
-function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
+export function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
   const side = teamSide(m, homeNamed, awayNamed);
   const scoped = isTeamScoped(m, homeNamed, awayNamed);
 
@@ -127,4 +127,3 @@ function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
   return null;
 }
 
-module.exports = { classifyHalfPredicate };
