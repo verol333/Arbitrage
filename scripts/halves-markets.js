@@ -26,6 +26,14 @@ function isTeamScoped(m, homeNamed, awayNamed) {
 
 // Retourne un predicat (h1,a1,h2,a2) => bool, ou null si non gere.
 export function classifyHalfPredicate({ m, s, homeNamed, awayNamed }) {
+  // Refus 1 : le marche ne parle pas de BUTS (corners, cartons, fautes...).
+  // "Corners. 1st half. total" etait lu comme un total de buts de la mi-temps.
+  if (/corner|carton|\bcard|foul|faute|offside|hors-jeu|throw|touche|shot|tir\b|penalt/.test(m)) return null;
+  // Refus 2 : selection combinee ("2 / > 1.5", "1 & Over 1.5"). N'en lire qu'une
+  // moitie surestime enormement la couverture et fabrique de faux arbitrages.
+  if (/[/&+]|\bet\b| and /.test(s)) return null;
+  if (/[/&]|\bet\b| and /.test(m.replace(/mi-temps/g, ''))) return null;
+
   const side = teamSide(m, homeNamed, awayNamed);
   const scoped = isTeamScoped(m, homeNamed, awayNamed);
 
