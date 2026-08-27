@@ -28,7 +28,15 @@ const BANKROLL = parseFloat(process.env.SOLVER_BANKROLL || '100000'); // XOF pou
 // 1-sumInv reste donc un plancher garanti, et exiger la disjonction supprimait
 // de vrais arbitrages. Seule la couverture COMPLETE de la grille est requise.
 const REQUIRE_DISJOINT = false; // par defaut, filtre disjoints
-const GRID = 15; // grille scores 0..14 pour home et away = 225 cellules
+const GRID = 15; // conserve pour compat (bornes de lecture des lignes)
+// Espace des issues : score PAR MI-TEMPS (h1,a1,h2,a2), 0..4 buts par equipe
+// et par mi-temps = 625 issues. Le score final n'est que (h1+h2, a1+a2), donc
+// tous les marches fin de match restent valides : c'est un raffinement.
+// Sans cette grille, "score dans chaque mi-temps" ou "periode la plus
+// prolifique" sont mathematiquement inexprimables.
+const HG = 5;
+const CELLS = HG * HG * HG * HG;
+const { classifyHalfPredicate } = require('./halves-markets');
 // Pas de bit overflow : aucun match de football ne finit avec 15+ buts/equipe
 
 const _skippedWinMargin = new Set();
@@ -44,19 +52,26 @@ function isQuarterLine(line) {
 
 // ─── Score coverage : chaque outcome → bitmask sur 225 bits ────────────────
 // Cellule (h, a) = bit index h*GRID + a.
-const ALL_CELLS_MASK = ((1n << BigInt(GRID * GRID)) - 1n);
+const ALL_CELLS_MASK = ((1n << BigInt(CELLS)) - 1n);
 
-function cellBit(h, a) {
-  if (h >= GRID || a >= GRID) return 0n; // score impossible en football (15+)
-  return 1n << BigInt(h * GRID + a);
+// Index d'une issue (h1,a1,h2,a2) dans la grille par mi-temps.
+function cellIndex(h1, a1, h2, a2) {
+  return ((h1 * HG + a1) * HG + h2) * HG + a2;
 }
 
-// Construit une mask a partir d'un predicat (h,a) → bool
-function maskFromPredicate(pred) {
+// Parcourt les 625 issues et applique un predicat sur les 4 nombres.
+function maskFromHalfPredicate(pred) {
   let m = 0n;
-  for (let h = 0; h < GRID; h++) for (let a = 0; a < GRID; a++) {
-    if (pred(h, a)) m |= cellBit(h, a);
-  }
+  for (let h1 = 0; h1 < HG; h1++) for (let a1 = 0; a1 < HG; a1++)
+    for (let h2 = 0; h2 < HG; h2++) for (let a2 = 0; a2 < HG; a2++) {
+      if (pred(h1, a1, h2, a2)) m |= 1n << BigInt(cellIndex(h1, a1, h2, a2));
+    }
+  return m;
+}
+
+// Marches fin de match : le predicat (h,a) recoit le score final cumule.
+function maskFromPredicate(pred) {
+  let m = maskFromHalfPredicate((h1, a1, h2, a2) => pred(h1 + h2, a1 + a2));
   // Pas de bit overflow — la grille 15x15 couvre tous les scores
   // realistes en football (aucun match ne finit 15+ buts/equipe)
   return m;
@@ -279,6 +294,19 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
 
   // FIX #2 : filtre cotes phantom
   if (odds >= 40) return null;
+
+  // Marches par mi-temps : evalues AVANT la whitelist fin de match, car ils
+  // vivent sur la grille (h1,a1,h2,a2) et non sur le score final.
+  const halfPred = classifyHalfPredicate({
+    m, s,
+    homeNamed: isHomeTeamInMarket(m, homeTeam, awayTeam),
+    awayNamed: isAwayTeamInMarket(m, homeTeam, awayTeam),
+  });
+  if (halfPred) {
+    const hm = maskFromHalfPredicate(halfPred);
+    if (hm !== 0n && hm !== ALL_CELLS_MASK) return hm;
+    return null;
+  }
 
   // FIX #4 : whitelist stricte — skip tout marche non explicitement supporte
   if (!isSupportedMarket(m)) {
@@ -965,7 +993,7 @@ for (const entry of top) {
         if (arr[i].book === arr[j].book) continue;
         const union = arr[i].mask | arr[j].mask;
         const cov = Number(popcount(union));
-        const pct = (cov / (GRID*GRID) * 100).toFixed(1);
+        const pct = (cov / CELLS * 100).toFixed(1);
         const sumInv = 1 / arr[i].odds + 1 / arr[j].odds;
         partials.push({ cov, pct, sumInv, picks: [arr[i], arr[j]] });
       }
@@ -974,7 +1002,7 @@ for (const entry of top) {
     if (partials.length > 0) {
       console.log(`  ─── TOP COUVERTURES PARTIELLES (2-picks cross-book) ───`);
       for (const p of partials.slice(0, 3)) {
-        const gap = GRID*GRID - p.cov;
+        const gap = CELLS - p.cov;
         const profit = ((1 - p.sumInv) * 100).toFixed(1);
         console.log(`    ${p.pct}% couvert (${gap} trous) profit_theorique=${profit}%`);
         for (const pk of p.picks) {
