@@ -44,7 +44,7 @@ const scoresIn = (txt) => {
   return out;
 };
 
-export function settler(market, selection, ctx = {}) {
+function settleSimple(market, selection, ctx = {}) {
   const mkt = strip(market);
   const sel = strip(selection);
   const both = mkt + ' | ' + sel;
@@ -55,7 +55,7 @@ export function settler(market, selection, ctx = {}) {
   // passer des selections "1"/"2" de marches inconnus pour du 1X2.
   if (!mkt || /^[\d\s]+$/.test(mkt) || /(market|bettype|groupe|group)[- ]?\d+|^xbet|inconnu|unknown/.test(mkt)) return null;
 
-  const sp = scopeOf(market, selection);
+  const sp = ctx.forceScope || scopeOf(market, selection);
   const g = (sc) => goals(sc, sp);
 
   // --- HT/FT : deux resultats successifs ---
@@ -104,8 +104,8 @@ export function settler(market, selection, ctx = {}) {
   if (/(total|plus.moins|over.under|buts|goals|o\/u)/.test(both) && /(over|under|plus de|moins de|\+|\-)/.test(sel)) {
     const ln = dec(selection) ?? dec(ctx.line);
     if (ln == null) return null;
-    const over = /(over|plus|sup|\+|au dessus)/.test(sel);
-    const under = /(under|moins|inf|au dessous)/.test(sel);
+    const over = /(over|plus|sup|\+|>|au dessus)/.test(sel);
+    const under = /(under|moins|inf|<|au dessous)/.test(sel);
     if (over === under) return null;
     const team = /(domicile|home|equipe 1|team 1|\bt1\b)/.test(both) ? '1'
       : /(exterieur|away|equipe 2|team 2|\bt2\b)/.test(both) ? '2' : null;
@@ -131,6 +131,9 @@ export function settler(market, selection, ctx = {}) {
 
   // --- les deux equipes marquent ---
   if (/(deux equipes marquent|both teams to score|\bbtts\b|gg\/ng)/.test(both)) {
+    // "... dans les deux mi-temps" est un autre marche : on refuse plutot que
+    // de le regler comme un BTTS simple.
+    if (/(deux mi.?temps|both halves|in both)/.test(both)) return null;
     const yes = /(oui|yes|\bgg\b|\bsi\b)/.test(sel);
     const no = /(non|\bno\b|\bng\b)/.test(sel);
     if (yes === no) return null;
@@ -211,3 +214,32 @@ export function settler(market, selection, ctx = {}) {
 // change. On le regle au pire cas (comme un 1X2 simple) : le gain reel ne peut
 // donc qu'etre superieur a ce que le solveur annonce.
 export const isEarlyPayout = (market, selection) => /2up|paiement anticipe|early payout/.test(strip(market) + ' ' + strip(selection));
+
+// ---- marches combines : "1X2 and Totals", "Resultat du match et les deux
+// equipes marquent", "Result and total"... Une seule des deux conditions ne
+// suffit pas : la jambe ne gagne que si LES DEUX sont vraies. C'est ce trou qui
+// faisait apparaitre des profits a 3 chiffres. Si l'une des deux moities n'est
+// pas decodable avec certitude, la jambe entiere est refusee.
+const COMBO_MKT = /\s(?:and|et|&)\s/i;
+
+export function settler(market, selection, ctx = {}) {
+  const mkt = String(market || '');
+  const sel = String(selection || '');
+  const mParts = mkt.split(COMBO_MKT);
+  if (mParts.length === 2) {
+    const sParts = sel.split(/\s*(?:\/|\||\s-\s|\band\b|\bet\b)\s*/i).map((s) => s.trim()).filter(Boolean);
+    if (sParts.length !== 2) return null;
+    const sp = scopeOf(mkt, sel);
+    const f1 = settleSimple(mParts[0], sParts[0], { ...ctx, forceScope: sp });
+    const f2 = settleSimple(mParts[1], sParts[1], { ...ctx, forceScope: sp });
+    if (!f1 || !f2) return null;
+    return (sc) => {
+      const a = f1(sc);
+      const b = f2(sc);
+      if (a === 'L' || b === 'L') return 'L';
+      if (a === 'V' || b === 'V') return 'V';
+      return 'W';
+    };
+  }
+  return settleSimple(mkt, sel, ctx);
+}
