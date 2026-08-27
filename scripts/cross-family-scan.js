@@ -36,9 +36,15 @@ function binaryYesNo(sel) {
 
 // HTFT : deux resultats successifs parmi 1 / X / 2. Accepte "1/1", "1:X",
 // "Home/Draw", "domicile/nul".
-function htftIssue(sel) {
+// teams = { home, away } : 1win nomme ses issues avec le nom des equipes
+// ("Falu FK / Draw"), il faut donc les traduire pour comparer avec les autres.
+function htftIssue(sel, teams) {
   const s = strip(sel);
+  const h = strip(teams?.home || '@@');
+  const a = strip(teams?.away || '@@');
   const tok = (w) => {
+    if (h !== '@@' && w === h) return '1';
+    if (a !== '@@' && w === a) return '2';
     if (/^(1|home|dom|domicile|p1)$/.test(w)) return '1';
     if (/^(x|nul|draw|egalite|tie)$/.test(w)) return 'X';
     if (/^(2|away|ext|exterieur|p2)$/.test(w)) return '2';
@@ -124,7 +130,11 @@ for (const entry of targets) {
       const fam = classify(o.market, o.selection);
       if (fam === 'HTFT') {
         noteLabel(fam, r.key, o.market, o.selection);
-        const iss = htftIssue(o.selection);
+        // On ecarte les HTFT combines ("... et moins de 1.5", "HT/FT Correct
+        // Score") : leurs issues ne vivent pas dans le meme espace que le HTFT
+        // simple a 9 issues, les melanger fabriquerait un faux surebet.
+        if (/( et |and |correct score|score exact|but|goal)/.test(strip(o.market))) continue;
+        const iss = htftIssue(o.selection, entry.ref);
         if (iss) best(htft, iss, o.odds, r.key, o.selection);
       } else if (fam === 'MULTIGOALS') {
         noteLabel(fam, r.key, o.market, o.selection);
