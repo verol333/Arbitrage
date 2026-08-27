@@ -90,6 +90,23 @@ function settleSimple(market, selection, ctx = {}) {
   const sp = ctx.forceScope || scopeOf(market, selection);
   const g = (sc) => goals(sc, sp);
 
+  // --- "les deux equipes marquent lors des deux mi-temps" : deux conditions,
+  // une par periode. Avant, seule la 1re moitie du libelle etait lue et le
+  // marche etait regle comme un simple BTTS de 1re mi-temps.
+  if (/(deux|2) mi.?temps|both halves/.test(mkt) && /(deux equipes marquent|both teams to score|btts)/.test(mkt)) {
+    const parts = sel.split(/[\/|]+|\bet\b|\band\b/).map((p) => p.trim()).filter(Boolean);
+    const yn = (p) => (/^(oui|yes|o)$/.test(p) ? true : /^(non|no|n)$/.test(p) ? false : null);
+    if (parts.length !== 2) return null;
+    const a = yn(parts[0]);
+    const b = yn(parts[1]);
+    if (a === null || b === null) return null;
+    return (sc) => {
+      const h1 = sc.hh > 0 && sc.ha > 0;
+      const h2 = sc.h - sc.hh > 0 && sc.a - sc.ha > 0;
+      return h1 === a && h2 === b ? 'W' : 'L';
+    };
+  }
+
   // --- HT/FT : deux resultats successifs ---
   if (/(mi.?temps.*fin|ht.?ft|half.?time.*full.?time|1re.*2e|resultat des 2)/.test(mkt) && !/score exact|correct score/.test(mkt)) {
     const parts = sel.split(/[\/:>]+|\band\b|\bpuis\b/).map((p) => p.trim()).filter(Boolean);
