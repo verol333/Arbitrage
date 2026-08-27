@@ -222,6 +222,22 @@ function normalizeName(x) {
   return String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
+// Les noms d'equipes contiennent parfois des chiffres ("12 de Octubre Itaugua").
+// Lire la ligne d'un handicap ou d'un total directement dans le texte donnait
+// alors 12 au lieu de 1 -> masques absurdes et faux arbitrages a 20%+.
+// On efface donc les noms d'equipes avant toute lecture numerique.
+function stripTeamNames(txt, homeTeam, awayTeam) {
+  let out = ' ' + normalizeName(txt) + ' ';
+  for (const team of [homeTeam, awayTeam]) {
+    const n = normalizeName(team || '');
+    if (n.length >= 3) out = out.split(n).join(' ');
+    for (const w of n.split(' ')) {
+      if (w.length >= 1 && /\d/.test(w)) out = out.split(' ' + w + ' ').join(' ');
+    }
+  }
+  return out.replace(/\s+/g, ' ');
+}
+
 function teamMatchScore(market, team) {
   if (!team) return 0;
   const ml = normalizeName(market);
@@ -442,7 +458,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     return null;
   }
   if (/^handicap$/i.test(m)) {
-    const lineMatch = s.match(/(-?\d+(?:\.\d+)?)/);
+    const lineMatch = stripTeamNames(s, homeTeam, awayTeam).match(/(-?\d+(?:\.\d+)?)/);
     if (lineMatch) {
       const line = parseFloat(lineMatch[1]);
       if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
@@ -478,7 +494,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     let line = NaN;
     const lm = m.match(/\[\s*([\d.]+)\s*\]/);
     if (lm) line = parseFloat(lm[1]);
-    if (isNaN(line)) { const sl = s.match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
+    if (isNaN(line)) { const sl = stripTeamNames(s, homeTeam, awayTeam).match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
     if (!isNaN(line)) {
       if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       if (/over|plus|>/i.test(s)) return maskFromPredicate((h,_a) => h > line);
@@ -493,7 +509,7 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     let line = NaN;
     const lm = m.match(/\[\s*([\d.]+)\s*\]/);
     if (lm) line = parseFloat(lm[1]);
-    if (isNaN(line)) { const sl = s.match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
+    if (isNaN(line)) { const sl = stripTeamNames(s, homeTeam, awayTeam).match(/([\d.]+)/); if (sl) line = parseFloat(sl[1]); }
     if (!isNaN(line)) {
       if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       if (/over|plus|>/i.test(s)) return maskFromPredicate((_h,a) => a > line);
