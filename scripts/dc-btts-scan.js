@@ -53,7 +53,9 @@ function isTargetMarket(name) {
   const hasBTTS = /deux equipes marquent|les 2 equipes marquent|both teams to score|btts|gg ng/.test(m);
   if (!hasDC || !hasBTTS) return false;
   // on exclut tout ce qui n est pas la fin de match (mi-temps, totaux, corners)
-  if (/mi temps|1st half|2nd half|premiere periode|seconde periode|halftime|ht\b/.test(m)) return false;
+  // fin de match uniquement : betpawa suffixe ses variantes '- 1H' / '- 2H',
+  // congobet ecrit 'mi-temps'. Toute variante de periode est rejetee.
+  if (/mi temps|1st half|2nd half|premiere periode|seconde periode|halftime|\b1h\b|\b2h\b|\bht\b|1ere|2eme|1re|2nde/.test(m)) return false;
   if (/total|plus de|moins de|over|under|corner|carton/.test(m)) return false;
   return true;
 }
