@@ -181,12 +181,18 @@ if (!winners.length) {
 } else {
   for (const r of winners) {
     md.push('### ' + r.label + ' — profit garanti ' + r.profit.toFixed(2) + '%', '');
-    md.push('| Part de mise | Book | Cote | Marche | Selection |');
-    md.push('|---:|---|---:|---|---|');
+    // Colonne de controle : ce que chaque jambe rapporte DANS le pire scenario.
+    // Une jambe declaree gagnante sur un scenario ou elle devrait perdre saute
+    // immediatement aux yeux (c'est ainsi qu'on traque les fuites de reglage).
+    const wi = SC.indexOf(r.sol.worstScenario);
+    md.push('| Part de mise | Book | Cote | Marche | Selection | Pire scenario |');
+    md.push('|---:|---|---:|---|---|---|');
     for (const e of r.sol.mix.sort((a, b) => b.x - a.x)) {
+      const p = wi >= 0 ? e.leg.pay[wi] : null;
+      const verdict = p == null ? '?' : p > 1.0001 ? 'GAGNE' : p > 0.0001 ? 'rembourse' : 'perd';
       md.push('| ' + (e.x * 100).toFixed(1) + '% | ' + e.leg.book + ' | ' + e.leg.odds + ' | ' +
         String(e.leg.market).replace(/\|/g, '/').slice(0, 34) + ' | ' +
-        String(e.leg.selection).replace(/\|/g, '/').slice(0, 34) + (e.leg.early ? ' *(2UP: gain reel superieur)*' : '') + ' |');
+        String(e.leg.selection).replace(/\|/g, '/').slice(0, 34) + (e.leg.early ? ' *(2UP)*' : '') + ' | ' + verdict + ' |');
     }
     md.push('', 'Pire scenario : ' + scenarioLabel(r.sol.worstScenario), '');
   }
