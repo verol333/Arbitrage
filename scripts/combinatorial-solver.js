@@ -215,10 +215,17 @@ function isSupportedMarket(m) {
 }
 
 const _skippedMarkets = new Set();
+// Les books n'ecrivent pas les noms de la meme facon ("Malmo FF" vs "Malmö FF").
+// Sans normalisation des accents, l'equipe n'etait pas reconnue et son total
+// etait attribue a la mauvaise equipe -> fausses couvertures a 25%.
+function normalizeName(x) {
+  return String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
 function teamMatchScore(market, team) {
   if (!team) return 0;
-  const ml = market.toLowerCase();
-  const words = team.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+  const ml = normalizeName(market);
+  const words = normalizeName(team).split(/\s+/).filter(w => w.length >= 3);
   if (words.length === 0) return 0;
   let matched = 0;
   for (const w of words) if (ml.includes(w)) matched++;
@@ -459,7 +466,13 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   const teamTotalIsAway = hasFrenchTeamTotal
     ? (/away|ext[eé]rieur|team 2/i.test(m) || isAwayTeamInMarket(m, homeTeam, awayTeam))
     : false;
-  const isHomeTotal = (!teamTotalIsAway && (hasFrenchTeamTotal || /team 1 total|total score over\/under - ft - home team/i.test(m)))
+  // Un total d'equipe doit etre attribue EXPLICITEMENT (mot-cle domicile/team 1
+  // ou nom d'equipe reconnu). Sinon on rejette : le retomber sur "domicile" par
+  // defaut inversait les equipes et fabriquait de faux arbitrages.
+  const explicitHome = /team 1 total|total score over\/under - ft - home team|home team|domicile/i.test(m)
+    || isHomeTeamInMarket(m, homeTeam, awayTeam);
+  if (hasFrenchTeamTotal && !teamTotalIsAway && !explicitHome) return null;
+  const isHomeTotal = !teamTotalIsAway && explicitHome
     && !/away|ext[eé]rieur|team 2/i.test(m);
   if (isHomeTotal) {
     let line = NaN;
