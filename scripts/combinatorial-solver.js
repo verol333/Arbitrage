@@ -210,6 +210,8 @@ function isSupportedMarket(m) {
 const _skippedMarkets = new Set();
 // Marches dont le decodage est prouve faux par le backtest intra-book.
 const _suspectMarkets = new Set();
+// Marches d'equipe dont l'equipe n'a pas pu etre identifiee avec certitude.
+const _unattributedTeam = new Set();
 // Les books n'ecrivent pas les noms de la meme facon ("Malmo FF" vs "Malmö FF").
 // Sans normalisation des accents, l'equipe n'etait pas reconnue et son total
 // etait attribue a la mauvaise equipe -> fausses couvertures a 25%.
@@ -517,7 +519,13 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   }
   // ─ Exact team goals (CongoBet: "nombre exact de buts inscrits par X")
   if (/nombre exact de buts inscrits par/i.test(m)) {
+    // Attribution PROUVEE obligatoire. Avant, faute de reconnaissance du nom
+    // ("FK Zenith" chez CongoBet vs "Zenit Saint Petersburg" ailleurs), le code
+    // retombait par defaut sur l'equipe a domicile : les buts de l'exterieur
+    // etaient comptes a domicile et le solveur croyait couvrir toute la grille.
     const isAway = isAwayTeamInMarket(m, homeTeam, awayTeam);
+    const isHome = isHomeTeamInMarket(m, homeTeam, awayTeam);
+    if (isAway === isHome) { _unattributedTeam.add(m); return null; }
     const nMatch = s.match(/^(\d+)$/);
     if (nMatch) {
       const n = parseInt(nMatch[1]);
@@ -973,6 +981,12 @@ if (_suspectMarkets.size) {
   console.log('');
   console.log('  ⚠ BACKTEST : marches dont le decodage est FAUX (couverture <100% chez un seul book)');
   for (const m of [..._suspectMarkets].sort()) console.log(`  ⚠ ${m}`);
+}
+
+if (_unattributedTeam.size) {
+  console.log('');
+  console.log(`  ⚠ ${_unattributedTeam.size} marches d'equipe rejetes (equipe non identifiee) — echantillon :`);
+  for (const m of [..._unattributedTeam].slice(0, 12)) console.log(`  ⚠ ${m}`);
 }
 
 allOpps.sort((a, b) => b.profit - a.profit);
