@@ -155,6 +155,11 @@ const WHITELIST_MARKETS = [
   /^nombre de buts de /i,
   /^total de buts de /i,
   /^nombre exact de buts inscrits par /i,
+  // Forme anglaise 1win/BetPawa : "<Nom d'equipe> Total" (ex "Athletic Bilbao
+  // Total" -> Over 1.5). C'est la plus grosse famille jusqu'ici ignoree (160
+  // types). Le classifieur refuse ensuite la cote si aucune equipe n'est
+  // identifiable, donc cette entree permissive ne cree pas de faux marches.
+  /\btotal(?: goals)?\b/i,
 
   // ── Multigoals ──
   /^multigoals?/i,
@@ -443,7 +448,10 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   }
 
   // ─ Team totals Home (Team 1 Total [X.Y] / nombre de buts de HOME / total score O/U home)
-  const hasFrenchTeamTotal = /nombre de buts de\s|total de buts de\s/i.test(m);
+  // Total d'une equipe designee par son NOM (et non par "team 1/2").
+  const hasNamedTeamTotal = /\btotal\b/i.test(m)
+    && (isHomeTeamInMarket(m, homeTeam, awayTeam) || isAwayTeamInMarket(m, homeTeam, awayTeam));
+  const hasFrenchTeamTotal = /nombre de buts de\s|total de buts de\s/i.test(m) || hasNamedTeamTotal;
   const teamTotalIsAway = hasFrenchTeamTotal
     ? (/away|ext[eé]rieur|team 2/i.test(m) || isAwayTeamInMarket(m, homeTeam, awayTeam))
     : false;
