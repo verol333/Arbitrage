@@ -74,7 +74,9 @@ export function selfTest(cells, cover) {
   const keys = Object.keys(cover);
   const arb = keys.map((k) => ({ key: k, odds: 4 }));
   const a = solveWorstCase(arb, cells, cover);
-  const real = [3.4, 5.6, 4.3, 3.1, 4.9, 6.2].map((o, i) => ({ key: keys[i], odds: o }));
+  // cotes coherentes avec une marge book de 8% : la somme des 1/cote vaut 2.17
+  // (chaque case etant couverte par 2 options, le seuil d equilibre est 2.00).
+  const real = [3.43, 2.10, 2.87, 2.22, 3.98, 2.87].map((o, i) => ({ key: keys[i], odds: o }));
   const r = solveWorstCase(real, cells, cover);
   return {
     ok: !!a && Math.abs(a.worst - 4 / 3) < 1e-4 && !!r && r.worst < 1,
