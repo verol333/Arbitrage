@@ -1133,14 +1133,27 @@ allOpps.sort((a, b) => b.profit - a.profit);
 console.log(`\n═══════════════════════════════════════════════════════════════`);
 console.log(`  TOP OPPORTUNITES COMBINATOIRES (${allOpps.length} au total)`);
 console.log(`═══════════════════════════════════════════════════════════════\n`);
-for (const [i, o] of allOpps.slice(0, 30).entries()) {
+// FICHE DE VERIFICATION : pour chaque opportunite, un code coupon par jambe,
+// a saisir tel quel chez le bookmaker pour controler la selection a la main.
+const TOP = allOpps.slice(0, 10);
+for (const [i, o] of TOP.entries()) {
   const { stakes, total, retour, gainNet, roi } = computeStakes(o.picks, BANKROLL);
-  console.log(`#${i+1} PROFIT ${(o.profit*100).toFixed(2)}%  (ROI net ${(roi*100).toFixed(2)}%, ${o.size} sel)  ${o.match}`);
-  console.log(`   Bankroll ${BANKROLL.toLocaleString('fr')} XOF → mise ${total.toFixed(0)}, retour garanti ${retour.toFixed(0)}, gain net +${gainNet.toFixed(0)} XOF`);
+  const codes = await Promise.all(o.picks.map(p => p.coupon ? generateCode(p.coupon).catch(() => null) : null));
+  console.log(`┌─ #${i+1}  ${o.match}`);
+  console.log(`│  Profit garanti ${(o.profit*100).toFixed(2)}%  •  ROI net ${(roi*100).toFixed(2)}%  •  ${o.size} jambes  •  domaine ${o.domain}`);
+  console.log(`│  Mise totale ${total.toFixed(0)} XOF  →  retour garanti ${retour.toFixed(0)} XOF  (gain +${gainNet.toFixed(0)} XOF)`);
+  console.log('│');
   for (let k = 0; k < o.picks.length; k++) {
     const p = o.picks[k];
-    console.log(`  • [${p.book.padEnd(10)}] ${String(p.market).slice(0, 40).padEnd(40)} → ${String(p.selection).slice(0, 30).padEnd(30)} @ ${p.odds.toFixed(2)}  mise ${stakes[k].toFixed(0)} XOF`);
+    const r = codes[k];
+    const codeTxt = r?.ok ? `CODE ${r.code}` : `code indisponible (${r?.reason || 'identifiants absents'})`;
+    console.log(`│  Jambe ${k+1} — ${p.book}`);
+    console.log(`│     Marche    : ${p.market}`);
+    console.log(`│     Selection : ${p.selection}`);
+    console.log(`│     Cote ${p.odds.toFixed(2)}  •  mise ${stakes[k].toFixed(0)} XOF`);
+    console.log(`│     ▶ ${codeTxt}`);
   }
+  console.log('└─────────────────────────────────────────────────────────────');
   console.log('');
 }
 
