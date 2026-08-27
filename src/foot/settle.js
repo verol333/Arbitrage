@@ -50,6 +50,11 @@ export function settler(market, selection, ctx = {}) {
   const both = mkt + ' | ' + sel;
   if (!sel || OUT_OF_SPACE.test(both)) return null;
 
+  // Marche non nomme par le book (1xbet renvoie des identifiants numeriques) :
+  // impossible de savoir ce qu'on regle, on refuse. C'est ce trou qui faisait
+  // passer des selections "1"/"2" de marches inconnus pour du 1X2.
+  if (!mkt || /^[\d\s]+$/.test(mkt) || /(market|bettype|groupe|group)[- ]?\d+|^xbet|inconnu|unknown/.test(mkt)) return null;
+
   const sp = scopeOf(market, selection);
   const g = (sc) => goals(sc, sp);
 
@@ -166,7 +171,7 @@ export function settler(market, selection, ctx = {}) {
   }
 
   // --- double chance ---
-  if (/(double chance|dc\b)/.test(both) || /^(1x|12|x2|2x)$/.test(sel.replace(/\s/g, ''))) {
+  if (/(double chance|\bdc\b)/.test(mkt)) {
     const k = sel.replace(/\s/g, '');
     const set = k === '1x' ? ['1', 'X'] : k === '12' ? ['1', '2'] : k === 'x2' || k === '2x' ? ['X', '2'] : null;
     if (!set) return null;
@@ -188,7 +193,10 @@ export function settler(market, selection, ctx = {}) {
   }
 
   // --- 1X2 simple (y compris 2UP, traite au pire cas) ---
-  const s1 = side(sel, ctx);
+  // Uniquement si le marche s'annonce comme un resultat de match : sinon une
+  // selection "1" appartenant a un tout autre marche serait reglee comme 1X2.
+  const isResultMarket = /^(1x2|1 x 2)|1x2|resultat|result|vainqueur|winner|moneyline|issue du match|match winner|gagnant/.test(mkt);
+  const s1 = isResultMarket ? side(sel, ctx) : null;
   if (s1) {
     return (sc) => {
       const [gh, ga] = g(sc);
