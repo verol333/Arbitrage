@@ -6,6 +6,10 @@ on:
         description: 'Nombre de matchs a scanner'
         required: false
         default: '20'
+      concurrency:
+        description: 'Matchs traites en parallele'
+        required: false
+        default: '8'
       minProfit:
         description: 'Profit garanti minimal en %'
         required: false
@@ -13,7 +17,7 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: write
     steps:
@@ -36,6 +40,7 @@ jobs:
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
           TOP_MATCHES: ${{ inputs.matches }}
           MIN_PROFIT: ${{ inputs.minProfit }}
+          CONCURRENCY: ${{ inputs.concurrency }}
         run: node scripts/dc-btts-scan.js
       - name: Commit rapport
         run: |
