@@ -264,6 +264,15 @@ function isHomeTeamInMarket(market, homeTeam, awayTeam) {
   return false;
 }
 
+// Lit le seuil d'un pari a la FIN du libelle ("... -0.5", "... (+1)", "Over 2.5").
+// Lire le premier nombre du texte captait le "1" de "1. FC Heidenheim" ou le
+// "1846" du nom du club : handicap et totaux devenaient faux.
+function readTrailingLine(txt) {
+  const m = String(txt).match(/([+-]?\d+(?:[.,]\d+)?)\s*\)?\s*$/);
+  if (!m) return NaN;
+  return parseFloat(m[1].replace(',', '.'));
+}
+
 function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   const m = String(market).toLowerCase();
   const s = String(selection).toLowerCase();
@@ -458,9 +467,8 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
     return null;
   }
   if (/^handicap$/i.test(m)) {
-    const lineMatch = stripTeamNames(s, homeTeam, awayTeam).match(/(-?\d+(?:\.\d+)?)/);
-    if (lineMatch) {
-      const line = parseFloat(lineMatch[1]);
+    const line = readTrailingLine(stripTeamNames(s, homeTeam, awayTeam));
+    if (!isNaN(line)) {
       if (isQuarterLine(line)) { _quarterLineSkipped++; return null; }
       const isW1 = /^1\b|^w1\b|^home\b/i.test(s);
       const isW2 = /^2\b|^w2\b|^away\b/i.test(s);
