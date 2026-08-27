@@ -208,6 +208,8 @@ function isSupportedMarket(m) {
 }
 
 const _skippedMarkets = new Set();
+// Marches dont le decodage est prouve faux par le backtest intra-book.
+const _suspectMarkets = new Set();
 // Les books n'ecrivent pas les noms de la meme facon ("Malmo FF" vs "Malmö FF").
 // Sans normalisation des accents, l'equipe n'etait pas reconnue et son total
 // etait attribue a la mauvaise equipe -> fausses couvertures a 25%.
@@ -919,6 +921,18 @@ for (const entry of top) {
   console.log(`  → Taux classification: ${outcomes.length ? ((outcomes.length - _nullCount) / outcomes.length * 100).toFixed(1) : 0}%`);
 
   // Cherche coverage sets
+  // ── BACKTEST DE FIABILITE (intra-book) ────────────────────────────────
+  // Verite absolue : chez UN SEUL bookmaker, couvrir toute la grille coute
+  // forcement plus de 100% (c'est sa marge). Si notre lecture d'un marche
+  // produit une couverture < 100% dans un seul book, c'est NOTRE decodage qui
+  // est faux, pas une opportunite. On tag alors les marches fautifs.
+  for (const bk of new Set(items.map(x => x.book))) {
+    const solo = items.filter(x => x.book === bk).map(x => ({ ...x, book: '_solo' }));
+    for (const o of findCoverageSets(solo, 0.005)) {
+      for (const p of o.picks) _suspectMarkets.add(`${bk} :: ${p.market}`);
+    }
+  }
+
   const opps = findCoverageSets(items, MIN_PROFIT);
   console.log(`  → ${opps.length} coverage sets rentables (>= ${(MIN_PROFIT*100).toFixed(0)}%)`);
   for (const o of opps) {
@@ -953,6 +967,12 @@ for (const entry of top) {
       }
     }
   }
+}
+
+if (_suspectMarkets.size) {
+  console.log('');
+  console.log('  ⚠ BACKTEST : marches dont le decodage est FAUX (couverture <100% chez un seul book)');
+  for (const m of [..._suspectMarkets].sort()) console.log(`  ⚠ ${m}`);
 }
 
 allOpps.sort((a, b) => b.profit - a.profit);
