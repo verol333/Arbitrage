@@ -163,7 +163,7 @@ const WHITELIST_MARKETS = [
   // Total" -> Over 1.5). C'est la plus grosse famille jusqu'ici ignoree (160
   // types). Le classifieur refuse ensuite la cote si aucune equipe n'est
   // identifiable, donc cette entree permissive ne cree pas de faux marches.
-  /\btotal(?: goals)?\b/i,
+  /^[^:]{2,40}\stotal$/i,
 
   // ── Multigoals ──
   /^multigoals?/i,
@@ -188,29 +188,22 @@ const WHITELIST_MARKETS = [
   // ── Odd/Even ──
   /^odd\s*\/\s*even/i,
 
-  // ── Combined markets ──
-  /^r[eé]sultat du match et nombre de buts$/i,
-  /^double chance et nombre de buts$/i,
-  /^matchbet and totals/i,
-  /^1x2 \& over\/under$/i,
-  /^1x2 and totals/i,
-  /^1x2 and both teams to score/i,
-  /^double chance \& total$/i,
-  /^double chance and totals/i,
-  /^result and both teams to score/i,
-  /^result and total/i,
-  /^total and both teams to score/i,
-  /^les deux [eé]quipes marquent et nombre de buts$/i,
-  /^r[eé]sultat du match et les deux [eé]quipes marquent$/i,
-  /^double chance et les deux [eé]quipes marquent$/i,
-
-  // ── Clean Sheet / Win to Nil ──
-  /^to win to nil/i,
-  /^clean sheet/i,
-  /gagne sans encaisser/i,
-  /n'encaisse pas de but/i,
+];
+// Liste NOIRE prioritaire. Un marche combine ("X et Y") est l'intersection de
+// deux conditions : le classifieur n'en lisait qu'une, ce qui fabriquait des
+// masques trop larges et des arbitrages inexistants (#1 a 39% du dernier scan).
+// Idem pour les marches par mi-temps et les marches hors-buts (corners, cartons,
+// penaltys) : ils ne se projettent pas sur la grille des scores finaux.
+const BLACKLIST_MARKETS = [
+  /\band\b/i, /\bet\b/i, /&/, /\bor\b/i, /\+/,
+  /half|mi-?temps|\bmt\b|periode|period|quarter/i,
+  /corner|carton|card|penal|tir|shot|foul|faute|offside|hors-?jeu|throw/i,
+  /minute|interval de temps|race to|first goal|premier but|last goal|dernier but/i,
+  /win to nil|clean sheet|sans encaisser|n'encaisse pas/i,
+  /\blive\b|overtime|prolongation|extra time|tirs au but/i,
 ];
 function isSupportedMarket(m) {
+  if (BLACKLIST_MARKETS.some(re => re.test(m))) return false;
   return WHITELIST_MARKETS.some(re => re.test(m));
 }
 
