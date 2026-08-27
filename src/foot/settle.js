@@ -93,7 +93,11 @@ function settleSimple(market, selection, ctx = {}) {
   // --- "les deux equipes marquent lors des deux mi-temps" : deux conditions,
   // une par periode. Avant, seule la 1re moitie du libelle etait lue et le
   // marche etait regle comme un simple BTTS de 1re mi-temps.
-  if (/(deux|2) mi.?temps|both halves/.test(mkt) && /(deux equipes marquent|both teams to score|btts)/.test(mkt)) {
+  // Detection par la SELECTION : un BTTS dont la case est "Oui / Non" porte
+  // forcement sur les deux periodes, quelle que soit la formulation du book
+  // ("des deux mi-temps", "de chaque mi-temps"...). C'est plus sur que de
+  // lister les tournures.
+  if (/(deux equipes marquent|both teams to score|btts)/.test(mkt) && /^(oui|non|yes|no|o|n)\s*[\/|]\s*(oui|non|yes|no|o|n)$/.test(sel)) {
     const parts = sel.split(/[\/|]+|\bet\b|\band\b/).map((p) => p.trim()).filter(Boolean);
     const yn = (p) => (/^(oui|yes|o)$/.test(p) ? true : /^(non|no|n)$/.test(p) ? false : null);
     if (parts.length !== 2) return null;
