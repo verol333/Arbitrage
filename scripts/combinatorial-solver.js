@@ -18,6 +18,7 @@ import { apolloGet } from '../src/bookmakers/apollo/api.js';
 import { congoJson, CONGO_API } from '../src/bookmakers/congobet/api.js';
 import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
 import { fetchOddsWS } from '../src/bookmakers/onewin/ws.js';
+import { classifyHalfPredicate } from './halves-markets.js';
 
 const BOOKS = (process.env.SOLVER_BOOKS || '1xbet,congobet,betpawa,1win').split(',').map(s => s.trim());
 const TOP_MATCHES = parseInt(process.env.SOLVER_TOP_MATCHES || '5', 10);
