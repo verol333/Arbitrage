@@ -132,9 +132,11 @@ const WHITELIST_MARKETS = [
   /^victoire d'une des deux [eé]quipes$/i,
 
   // ── BTTS ──
-  /^both teams to score/i,
-  /^btts/i,
-  /^les deux [eé]quipes marquent/i,
+  // Uniquement le BTTS temps plein "nu" : "in both halves", "1st half.",
+  // "and totals"... sont des marches DIFFERENTS, non projetables tels quels.
+  /^both teams to score(?: -? ?ft)?$/i,
+  /^btts(?: -? ?ft)?$/i,
+  /^les deux [eé]quipes marquent$/i,
   /^gg\/ng/i,
   /^goal\/no goal/i,
 
@@ -331,9 +333,12 @@ function classifyOutcome({ market, selection, odds, homeTeam, awayTeam }) {
   }
 
   // ─ BTTS (both teams to score)
-  if (/both teams to score|btts|les deux [eé]quipes marquent|gg\/ng|goal\/no goal/i.test(m)) {
-    if (/yes|oui/i.test(s)) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
-    if (/no|non/i.test(s)) return maskFromPredicate((h,a) => h === 0 || a === 0);
+  // Test ANCRE : "Both teams to score in both halves" ou "1st half. Both teams
+  // to score" dependent des scores de mi-temps, pas de la grille temps plein.
+  // Les traiter comme un BTTS simple fabriquait de faux surebets (~48%).
+  if (/^(both teams to score|btts|les deux [eé]quipes marquent|gg\/ng|goal ?\/ ?no ?goal)(?: -? ?ft)?$/i.test(m)) {
+    if (/^(yes|oui|gg)$/i.test(s.trim())) return maskFromPredicate((h,a) => h >= 1 && a >= 1);
+    if (/^(no|non|ng)$/i.test(s.trim())) return maskFromPredicate((h,a) => h === 0 || a === 0);
     return null;
   }
 
