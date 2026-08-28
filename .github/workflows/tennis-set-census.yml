@@ -1,0 +1,51 @@
+name: Tennis — recensement par set
+on:
+  workflow_dispatch:
+    inputs:
+      books:
+        description: Books a interroger (csv)
+        default: 1xbet,congobet,betpawa,1win,apollo,sportybet
+      matches:
+        description: Nombre de matchs tennis a recenser
+        default: '6'
+      min_books:
+        description: Books minimum par match
+        default: '2'
+      horizon:
+        description: Horizon en heures
+        default: '48'
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install deps
+        run: |
+          if [ -f package.json ]; then npm install --production --no-audit --no-fund
+          else cd arbitrage-service && npm install --production --no-audit --no-fund && cd .. && ln -sfn arbitrage-service/node_modules node_modules
+          fi
+      - name: Recensement tennis par set
+        env:
+          TS_BOOKS: ${{ inputs.books }}
+          TS_MATCHES: ${{ inputs.matches }}
+          TS_MIN_BOOKS: ${{ inputs.min_books }}
+          TS_HORIZON: ${{ inputs.horizon }}
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
+          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
+        run: node scripts/tennis-set-census.js
+      - name: Commit rapport
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add docs/tennis-set-census.md
+          git commit -m "Recensement tennis par set" || echo "rien a committer"
+          git push || echo "push impossible"
