@@ -129,6 +129,7 @@ const rawSetsByBook = new Map();
 const rawSetLabels = new Map();
 const famBooks = new Map();
 const answered = new Map();   // book -> nb de matchs ou il a renvoye au moins une cote de set
+const aligned = new Map();    // book -> nb de matchs du panel ou son catalogue a ete apparie
 const listed = new Map();     // book -> nb de matchs tennis listes au catalogue
 const pairs = [];
 function addTo(map, k, v) { if (!map.has(k)) map.set(k, new Set()); map.get(k).add(v); }
@@ -169,6 +170,7 @@ say('');
 for (const entry of top) {
   const label = entry.ref.home + ' vs ' + entry.ref.away;
   const bookKeys = Object.keys(entry.matches);
+  for (const bk of bookKeys) aligned.set(bk, (aligned.get(bk) || 0) + 1);
   say('### ' + label + '  (' + bookKeys.length + ' books)');
   say('');
 
@@ -254,22 +256,26 @@ for (const entry of top) {
 // ─── 3. Synthese ─────────────────────────────────────────────────────────────
 say('## Couverture par book : ce que le moteur lit vs ce que le book expose');
 say('');
-say('| Book | Matchs listes | Matchs avec cotes de set | Sets lus | Sets vus en brut | Cles canoniques | Verdict |');
-say('|---|---:|---|---|---|---:|---|');
+say('| Book | Matchs listes | Apparies au panel | Cotes de set / apparies | Sets lus | Sets vus en brut | Cles | Verdict |');
+say('|---|---:|---|---|---|---|---:|---|');
 for (const bk of BOOKS) {
   const canonS = Array.from(canonSetsByBook.get(bk) || []).sort();
   const rawS = Array.from(rawSetsByBook.get(bk) || []).sort();
   const nKeys = (canonKeysByBook.get(bk) || new Set()).size;
   const missing = rawS.filter(function (n) { return canonS.indexOf(n) === -1; });
   const nAns = answered.get(bk) || 0;
+  const nAli = aligned.get(bk) || 0;
   const nList = listed.get(bk);
   let verdict;
   if (nList == null) verdict = 'CATALOGUE KO — le book n a rien liste';
-  else if (!nAns) verdict = 'AUCUNE cote de set remontee';
+  else if (!nAli) verdict = 'APPARIEMENT KO — ' + nList + ' matchs listes, aucun reconnu dans le panel';
+  else if (nAli < top.length) verdict = 'appariement incomplet : absent de ' + (top.length - nAli) + '/' + top.length + ' matchs'
+    + (nAns < nAli ? ' + muet sur ' + (nAli - nAns) + ' apparies' : '');
+  else if (!nAns) verdict = 'apparie partout mais AUCUNE cote de set remontee';
   else if (missing.length) verdict = 'sets manquants : ' + missing.join(',');
-  else if (nAns < top.length) verdict = 'partiel : muet sur ' + (top.length - nAns) + '/' + top.length + ' matchs';
-  else verdict = 'complet sur tous les matchs';
-  say('| ' + bk + ' | ' + (nList == null ? '—' : nList) + ' | ' + nAns + '/' + top.length + ' | '
+  else if (nAns < nAli) verdict = 'muet sur ' + (nAli - nAns) + '/' + nAli + ' matchs apparies';
+  else verdict = 'complet : apparie et lu sur tous les matchs';
+  say('| ' + bk + ' | ' + (nList == null ? '—' : nList) + ' | ' + nAli + '/' + top.length + ' | ' + nAns + '/' + (nAli || '—') + ' | '
     + (canonS.join(',') || '—') + ' | ' + (rawS.join(',') || '—') + ' | ' + nKeys + ' | ' + verdict + ' |');
 }
 say('');
@@ -297,11 +303,17 @@ pairs.sort(function (a, b) { return a.sum - b.sum; });
 const sure = pairs.filter(function (p) { return p.sum < 1; });
 say('Paires completes trouvees : ' + pairs.length + ' — dont ' + sure.length + ' sous 1.00 (profit garanti).');
 say('');
+say('(!) = au moins une jambe a une cote >= 10.00 : valeur souvent plafonnee par le book, paire non fiable.');
+const credible = pairs.filter(function (p) { return p.oa < 10 && p.ob < 10; });
+say('Paires sans jambe plafonnee : ' + credible.length + ' — meilleure marge '
+  + (credible.length ? ((1 - credible[0].sum) * 100).toFixed(2) + '%' : 'aucune') + '.');
+say('');
 if (pairs.length) {
   say('| Match | Set | Famille | A | B | Somme | Marge |');
   say('|---|---|---|---|---|---:|---:|');
   for (const p of pairs.slice(0, 25)) {
-    say('| ' + p.match + ' | ' + p.info.set + ' | ' + p.info.fam + ' | ' + p.a + ' ' + p.oa.toFixed(2) + ' (' + p.ba + ') | '
+    const flag = (p.oa >= 10 || p.ob >= 10) ? ' (!)' : '';
+    say('| ' + p.match + flag + ' | ' + p.info.set + ' | ' + p.info.fam + ' | ' + p.a + ' ' + p.oa.toFixed(2) + ' (' + p.ba + ') | '
       + p.b + ' ' + p.ob.toFixed(2) + ' (' + p.bb + ') | ' + p.sum.toFixed(4) + ' | ' + ((1 - p.sum) * 100).toFixed(2) + '% |');
   }
 }
