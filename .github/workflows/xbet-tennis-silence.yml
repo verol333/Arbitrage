@@ -8,6 +8,9 @@ on:
       horizon:
         description: Horizon en heures
         default: '48'
+      where:
+        description: Segment (head = grands tournois, tail = longue traine, all = reparti)
+        default: head
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -27,6 +30,7 @@ jobs:
         env:
           XS_MATCHES: ${{ inputs.matches }}
           XS_HORIZON: ${{ inputs.horizon }}
+          XS_WHERE: ${{ inputs.where }}
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
