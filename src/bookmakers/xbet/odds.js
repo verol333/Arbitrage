@@ -33,6 +33,18 @@ function put1x(odds, key, i, c) {
   };
 }
 
+// Numero de set lu dans le libelle d'un sous-jeu 1xBet : "1er set", "2eme set",
+// "Set 2", "2nd set" -> 1, 2... Sert a prefixer les cotes en s1_/s2_, le meme
+// vocabulaire que les autres books.
+function setNumber(label) {
+  const l = String(label).toLowerCase();
+  let m = l.match(/([1-5])\s*(?:er|re|ere|ème|eme|e|st|nd|rd|th)?\s*(?:set|manche)/);
+  if (m) return Number(m[1]);
+  m = l.match(/(?:set|manche)\s*([1-5])/);
+  if (m) return Number(m[1]);
+  return null;
+}
+
 function parseGE(GE, odds, prefix = '') {
   const grp = (gid) => GE.find((x) => x.G === gid);
   iterate(grp(1), (i, c) => {
@@ -223,6 +235,18 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
       // le prefixe cor_ generique du match (produisait Corners Total 12%+
       // fantomes en 07/27).
       if (/team|joueur|player|equipe|domicile|exterieur/i.test(pn + ' ' + tg)) continue;
+      // TENNIS : les marches par set ne figurent PAS dans le GE du match, 1xBet
+      // les publie comme des sous-jeux ("1er set", "2eme set"). Sans cette
+      // collecte, 1xBet ne remontait AUCUNE cote de set (recensement du
+      // 28/08/2026) alors qu'il en expose une quinzaine — et c'est le seul book
+      // de notre liste dont la tarification est reellement independante des
+      // autres. On prefixe s1_/s2_ pour rejoindre le vocabulaire commun
+      // (s1_match_1, s1_over_10.5, s1_hcp_home_-1.5, s1_odd...).
+      if (sport === 'tennis') {
+        const setNo = setNumber(pn + ' ' + tg);
+        if (setNo) wanted.push({ sid, prefix: `s${setNo}_` });
+        continue;
+      }
       let prefix = null;
       if (sg.P === 1 && /mi-temps|half/.test(pn) && !tg) prefix = 'ht_';
       else if (sg.P === 2 && /mi-temps|half/.test(pn) && !tg) prefix = 'h2_';
@@ -233,7 +257,9 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     }
     // Cap : 6 subgames max (HT, H2, corners, plus une petite marge). Etait
     // etendu a 10 recemment mais a introduit du bruit corners → retour 6.
-    const subs = await Promise.all(wanted.slice(0, 6).map(async ({ sid, prefix }) => {
+    const takenPrefix = new Set();
+    const picked = wanted.filter(({ prefix }) => (takenPrefix.has(prefix) ? false : takenPrefix.add(prefix)));
+    const subs = await Promise.all(picked.slice(0, 6).map(async ({ sid, prefix }) => {
       const sd = await viaWorker(`${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`);
       return { prefix, sid, GE: sd?.Value?.GE || null };
     }));
