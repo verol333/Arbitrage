@@ -27,6 +27,8 @@ const BOOKS = (process.env.TS_BOOKS || '1xbet,congobet,betpawa,1win,apollo,sport
 const MATCHES = parseInt(process.env.TS_MATCHES || '6', 10);
 const MIN_BOOKS = parseInt(process.env.TS_MIN_BOOKS || '2', 10);
 const HORIZON = parseInt(process.env.TS_HORIZON || '48', 10);
+const DUMP = process.env.TS_DUMP !== '0';
+const ROWS = parseInt(process.env.TS_ROWS || '0', 10) || (MATCHES > 12 ? 3 : 12);
 
 const out = [];
 function say(s) { console.log(s); out.push(s); }
@@ -126,6 +128,8 @@ const canonKeysByBook = new Map();
 const rawSetsByBook = new Map();
 const rawSetLabels = new Map();
 const famBooks = new Map();
+const answered = new Map();   // book -> nb de matchs ou il a renvoye au moins une cote de set
+const listed = new Map();     // book -> nb de matchs tennis listes au catalogue
 const pairs = [];
 function addTo(map, k, v) { if (!map.has(k)) map.set(k, new Set()); map.get(k).add(v); }
 
@@ -144,6 +148,7 @@ await Promise.all(BOOKS.map(async function (key) {
   try {
     const ms = await book.listMatches({ live: false, sport: 'tennis', horizonHours: HORIZON });
     catalogs.set(key, ms);
+    listed.set(key, ms.length);
     console.log('[' + key + '] ' + ms.length + ' matchs tennis listes');
   } catch (e) { console.log('[' + key + '] KO ' + e.message); }
 }));
@@ -179,6 +184,7 @@ for (const entry of top) {
 
   const best = new Map();
   for (const [bk, odds] of canon) {
+    if (Object.keys(odds).some(function (k) { return setInfo(k); })) answered.set(bk, (answered.get(bk) || 0) + 1);
     for (const k of Object.keys(odds)) {
       const info = setInfo(k);
       if (!info) continue;
@@ -217,7 +223,7 @@ for (const entry of top) {
   if (found.length) {
     say('| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |');
     say('|---|---|---|---|---:|---:|');
-    for (const p of found.slice(0, 12)) {
+    for (const p of found.slice(0, ROWS)) {
       say('| ' + p.info.set + ' | ' + p.info.fam + ' | ' + p.a + ' ' + p.oa.toFixed(2) + ' (' + p.ba + ') | '
         + p.b + ' ' + p.ob.toFixed(2) + ' (' + p.bb + ') | ' + p.sum.toFixed(4) + ' | '
         + ((1 - p.sum) * 100).toFixed(2) + '% |');
@@ -227,7 +233,7 @@ for (const entry of top) {
   }
   say('');
 
-  for (const bk of bookKeys) {
+  for (const bk of DUMP ? bookKeys : []) {
     if (!DUMPERS[bk]) continue;
     let markets = [];
     try { markets = await DUMPERS[bk](entry.matches[bk].id); }
@@ -248,19 +254,23 @@ for (const entry of top) {
 // ─── 3. Synthese ─────────────────────────────────────────────────────────────
 say('## Couverture par book : ce que le moteur lit vs ce que le book expose');
 say('');
-say('| Book | Sets lus par le moteur | Sets vus en brut | Cles canoniques distinctes | Verdict |');
-say('|---|---|---|---:|---|');
+say('| Book | Matchs listes | Matchs avec cotes de set | Sets lus | Sets vus en brut | Cles canoniques | Verdict |');
+say('|---|---:|---|---|---|---:|---|');
 for (const bk of BOOKS) {
   const canonS = Array.from(canonSetsByBook.get(bk) || []).sort();
   const rawS = Array.from(rawSetsByBook.get(bk) || []).sort();
   const nKeys = (canonKeysByBook.get(bk) || new Set()).size;
   const missing = rawS.filter(function (n) { return canonS.indexOf(n) === -1; });
+  const nAns = answered.get(bk) || 0;
+  const nList = listed.get(bk);
   let verdict;
-  if (!rawS.length && !canonS.length) verdict = 'pas de dump brut disponible';
-  else if (!canonS.length) verdict = 'AUCUN set lu — a brancher entierement';
+  if (nList == null) verdict = 'CATALOGUE KO — le book n a rien liste';
+  else if (!nAns) verdict = 'AUCUNE cote de set remontee';
   else if (missing.length) verdict = 'sets manquants : ' + missing.join(',');
-  else verdict = 'complet sur ce qu on a vu';
-  say('| ' + bk + ' | ' + (canonS.join(',') || '—') + ' | ' + (rawS.join(',') || '—') + ' | ' + nKeys + ' | ' + verdict + ' |');
+  else if (nAns < top.length) verdict = 'partiel : muet sur ' + (top.length - nAns) + '/' + top.length + ' matchs';
+  else verdict = 'complet sur tous les matchs';
+  say('| ' + bk + ' | ' + (nList == null ? '—' : nList) + ' | ' + nAns + '/' + top.length + ' | '
+    + (canonS.join(',') || '—') + ' | ' + (rawS.join(',') || '—') + ' | ' + nKeys + ' | ' + verdict + ' |');
 }
 say('');
 
