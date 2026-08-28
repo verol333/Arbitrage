@@ -1,14 +1,14 @@
 # Recensement tennis par set
 
-Genere le 2026-08-28T13:08:09.042Z
+Genere le 2026-08-28T13:21:08.812Z
 
-Books : 1xbet, congobet, betpawa, 1win, apollo, sportybet — 45 match(s), horizon 48h
+Books : 1xbet, congobet, betpawa, 1win — 16 match(s), horizon 48h
 
 ## Detail par match
 
-### Kristina Liutova vs Martyna Kubka  (6 books)
+### Kristina Liutova vs Martyna Kubka  (4 books)
 
-Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpawa 12 · 1xbet 50 · congobet 16
+Cles par set lues par le moteur : 1win 18 · 1xbet 50 · congobet 16 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
@@ -16,443 +16,236 @@ Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpaw
 | 1 | Vainqueur du set | s1_match_1 1.42 (1xbet) | s1_match_2 2.95 (betpawa) | 1.0432 | -4.32% |
 | 1 | Total jeux | s1_over_10.5 4.04 (1xbet) | s1_under_10.5 1.25 (1win) | 1.0475 | -4.75% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 19 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Ignacio Buse vs Benjamin Bonzi  (6 books)
+### Ignacio Buse vs Benjamin Bonzi  (4 books)
 
-Cles par set lues par le moteur : 1win 24 · apollo 12 · sportybet 22 · betpawa 12 · 1xbet 0 · congobet 14
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 2 | Vainqueur du set | s2_match_1 2.05 (sportybet) | s2_match_2 1.79 (sportybet) | 1.0465 | -4.65% |
-| 1 | Total jeux | s1_over_8.5 1.22 (1win) | s1_under_8.5 4.35 (sportybet) | 1.0496 | -4.96% |
-| 1 | Vainqueur du set | s1_match_1 2.05 (sportybet) | s1_match_2 1.78 (sportybet) | 1.0496 | -4.96% |
-
-
-### James Duckworth vs Arthur Fery  (6 books)
-
-Cles par set lues par le moteur : 1win 24 · apollo 12 · sportybet 22 · betpawa 12 · 1xbet 0 · congobet 14
+Cles par set lues par le moteur : 1win 24 · 1xbet 0 · congobet 14 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.14 (1win) | s1_match_2 1.73 (sportybet) | 1.0453 | -4.53% |
-| 2 | Vainqueur du set | s2_match_1 2.10 (sportybet) | s2_match_2 1.74 (sportybet) | 1.0509 | -5.09% |
-| 1 | Handicap jeux | s1_hcp_away_-3.5 6.40 (1win) | s1_hcp_home_3.5 1.11 (1win) | 1.0572 | -5.72% |
+| 1 | Handicap jeux | s1_hcp_away_-2.5 3.55 (1win) | s1_hcp_home_2.5 1.29 (1win) | 1.0569 | -5.69% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 1.68 (1win) | s1_hcp_away_-1.5 2.16 (1win) | 1.0582 | -5.82% |
+| 1 | Vainqueur du set | s1_match_1 2.04 (1win) | s1_match_2 1.76 (1win) | 1.0584 | -5.84% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 19 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Theo Arribage / Manuel Guinard vs A. Krajicek / N. Mektic  (6 books)
+### James Duckworth vs Arthur Fery  (4 books)
 
-Cles par set lues par le moteur : 1win 2 · apollo 4 · sportybet 4 · betpawa 4 · 1xbet 0 · congobet 4
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.05 (sportybet) | s1_match_2 1.77 (sportybet) | 1.0528 | -5.28% |
-| 2 | Vainqueur du set | s2_match_1 2.05 (sportybet) | s2_match_2 1.77 (sportybet) | 1.0528 | -5.28% |
-
-
-### Liam Draxl vs Tristan Schoolkate  (5 books)
-
-Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpawa 12 · congobet 16
+Cles par set lues par le moteur : 1win 24 · 1xbet 58 · congobet 14 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Handicap jeux | s1_hcp_home_-1.5 2.45 (1win) | s1_hcp_away_1.5 1.62 (sportybet) | 1.0254 | -2.54% |
-| 1 | Vainqueur du set | s1_match_1 1.89 (1win) | s1_match_2 2.00 (sportybet) | 1.0291 | -2.91% |
-| 1 | Total jeux | s1_over_10.5 2.85 (sportybet) | s1_under_10.5 1.44 (1win) | 1.0453 | -4.53% |
+| 1 | Total jeux | s1_over_10.5 3.00 (1xbet) | s1_under_10.5 1.40 (1win) | 1.0476 | -4.76% |
+| 1 | Total jeux | s1_over_12.5 4.20 (1xbet) | s1_under_12.5 1.23 (1win) | 1.0511 | -5.11% |
+| 1 | Total jeux | s1_over_9.5 1.70 (1xbet) | s1_under_9.5 2.15 (1win) | 1.0534 | -5.34% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 19 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Heather Watson vs Harriet Dart  (5 books)
+### Diane Parry vs Ann Li  (4 books)
 
-Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpawa 12 · congobet 16
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.35 (sportybet) | s1_match_2 1.60 (sportybet) | 1.0505 | -5.05% |
-| 2 | Vainqueur du set | s2_match_1 2.35 (sportybet) | s2_match_2 1.60 (sportybet) | 1.0505 | -5.05% |
-| 1 | Total jeux | s1_over_10.5 3.80 (sportybet) | s1_under_10.5 1.26 (1win) | 1.0568 | -5.68% |
-
-
-### Mia Ristic vs Himeno Sakatsume  (5 books)
-
-Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpawa 12 · congobet 16
+Cles par set lues par le moteur : 1win 24 · 1xbet 0 · congobet 14 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Total jeux | s1_over_7.5 1.13 (sportybet) | s1_under_7.5 6.10 (1win) | 1.0489 | -4.89% |
-| 1 | Handicap jeux | s1_hcp_home_1.5 1.80 (sportybet) | s1_hcp_away_-1.5 2.02 (1win) | 1.0506 | -5.06% |
-| 1 | Vainqueur du set | s1_match_1 2.05 (sportybet) | s1_match_2 1.77 (sportybet) | 1.0528 | -5.28% |
+| 1 | Vainqueur du set | s1_match_1 2.25 (1win) | s1_match_2 1.63 (1win) | 1.0579 | -5.79% |
+| 1 | Handicap jeux | s1_hcp_home_2.5 1.39 (1win) | s1_hcp_away_-2.5 2.94 (1win) | 1.0596 | -5.96% |
+| 1 | Handicap jeux | s1_hcp_home_-1.5 2.70 (1win) | s1_hcp_away_1.5 1.45 (1win) | 1.0600 | -6.00% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 18 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Yue Yuan vs Mary Stoiana  (5 books)
+### Theo Arribage / Manuel Guinard vs A. Krajicek / N. Mektic  (4 books)
 
-Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpawa 12 · congobet 16
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.05 (sportybet) | s1_match_2 1.80 (sportybet) | 1.0434 | -4.34% |
-| 2 | Vainqueur du set | s2_match_1 2.05 (sportybet) | s2_match_2 1.79 (sportybet) | 1.0465 | -4.65% |
-| 1 | Total jeux | s1_over_7.5 1.12 (sportybet) | s1_under_7.5 6.20 (1win) | 1.0541 | -5.41% |
-
-
-### Francesca Jones vs Joanna Garland  (5 books)
-
-Cles par set lues par le moteur : 1win 18 · apollo 16 · sportybet 22 · betpawa 12 · congobet 16
+Cles par set lues par le moteur : 1win 2 · 1xbet 50 · congobet 4 · betpawa 4
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.64 (1win) | s1_match_2 2.30 (sportybet) | 1.0445 | -4.45% |
-| 1 | Handicap jeux | s1_hcp_home_-1.5 1.91 (1win) | s1_hcp_away_1.5 1.91 (sportybet) | 1.0471 | -4.71% |
-| 2 | Vainqueur du set | s2_match_1 1.63 (sportybet) | s2_match_2 2.30 (sportybet) | 1.0483 | -4.83% |
+| 1 | Vainqueur du set | s1_match_1 2.04 (1win) | s1_match_2 1.75 (1xbet) | 1.0616 | -6.16% |
+| 2 | Vainqueur du set | s2_match_1 1.96 (betpawa) | s2_match_2 1.73 (1xbet) | 1.0882 | -8.82% |
+| 1 | Handicap jeux | s1_hcp_home_-0.5 1.92 (1xbet) | s1_hcp_away_0.5 1.75 (1xbet) | 1.0923 | -9.23% |
 
+- 1win : 2 marches bruts mentionnant un set
+- 1xbet : 14 marches bruts mentionnant un set
+- congobet : 10 marches bruts mentionnant un set
+- betpawa : 1 marches bruts mentionnant un set
 
-### Diane Parry vs Ann Li  (5 books)
+### Rodrigo Pacheco Mendez vs Andres Andrade  (4 books)
 
-Cles par set lues par le moteur : 1win 24 · sportybet 22 · betpawa 12 · 1xbet 58 · congobet 14
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Total jeux | s1_over_9.5 1.90 (sportybet) | s1_under_9.5 1.95 (1xbet) | 1.0391 | -3.91% |
-| 1 | Total jeux | s1_over_8.5 1.32 (sportybet) | s1_under_8.5 3.50 (1xbet) | 1.0433 | -4.33% |
-| 1 | Total jeux | s1_over_12.5 5.50 (sportybet) | s1_under_12.5 1.16 (1win) | 1.0439 | -4.39% |
-
-
-### Lucas Miedler / Marc Polmans vs N. Oberleitner / P. Nouza  (5 books)
-
-Cles par set lues par le moteur : 1win 2 · apollo 4 · sportybet 4 · betpawa 4 · congobet 4
+Cles par set lues par le moteur : 1win 10 · 1xbet 0 · congobet 6 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.86 (sportybet) | s1_match_2 1.96 (sportybet) | 1.0478 | -4.78% |
-| 2 | Vainqueur du set | s2_match_1 1.86 (sportybet) | s2_match_2 1.95 (sportybet) | 1.0505 | -5.05% |
+| 1 | Vainqueur du set | s1_match_1 1.59 (1win) | s1_match_2 2.27 (1win) | 1.0695 | -6.95% |
+| 1 | Total jeux | s1_over_9.5 1.85 (1win) | s1_under_9.5 1.87 (betpawa) | 1.0753 | -7.53% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 1.41 (1win) | s1_hcp_away_-1.5 2.71 (1win) | 1.0782 | -7.82% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 14 marches bruts mentionnant un set
+- congobet : 11 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Rodrigo Pacheco Mendez vs Andres Andrade  (5 books)
+### A. Reymond / L. Sanchez vs Siddhant Banthia / Arjun Kadhe  (4 books)
 
-Cles par set lues par le moteur : 1win 10 · sportybet 16 · betpawa 12 · 1xbet 0 · congobet 6
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Total jeux | s1_over_9.5 1.85 (1win) | s1_under_9.5 1.93 (sportybet) | 1.0587 | -5.87% |
-| 1 | Total jeux | s1_over_8.5 1.28 (sportybet) | s1_under_8.5 3.50 (sportybet) | 1.0670 | -6.70% |
-| 1 | Total jeux | s1_over_6.5 1.01 (sportybet) | s1_under_6.5 13.00 (sportybet) | 1.0670 | -6.70% |
-
-
-### A. Reymond / L. Sanchez vs Siddhant Banthia / Arjun Kadhe  (5 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 4 · betpawa 4 · 1xbet 2 · congobet 0
+Cles par set lues par le moteur : 1win 2 · 1xbet 2 · congobet 0 · betpawa 4
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
 | 1 | Vainqueur du set | s1_match_1 1.55 (1xbet) | s1_match_2 2.36 (1xbet) | 1.0684 | -6.84% |
-| 2 | Vainqueur du set | s2_match_1 1.52 (sportybet) | s2_match_2 2.35 (sportybet) | 1.0834 | -8.34% |
+| 2 | Vainqueur du set | s2_match_1 1.50 (betpawa) | s2_match_2 2.30 (betpawa) | 1.1014 | -10.14% |
 
+- 1win : 2 marches bruts mentionnant un set
+- 1xbet : 2 marches bruts mentionnant un set
+- congobet : 2 marches bruts mentionnant un set
+- betpawa : 1 marches bruts mentionnant un set
 
-### Aidan Mayo vs Guto Miguel  (5 books)
+### Aidan Mayo vs Guto Miguel  (4 books)
 
-Cles par set lues par le moteur : 1win 10 · sportybet 16 · betpawa 12 · 1xbet 50 · congobet 6
+Cles par set lues par le moteur : 1win 10 · 1xbet 50 · congobet 6 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Total jeux | s1_over_9.5 1.84 (1xbet) | s1_under_9.5 2.05 (sportybet) | 1.0313 | -3.13% |
-| 1 | Total jeux | s1_over_8.5 1.26 (1xbet) | s1_under_8.5 3.85 (sportybet) | 1.0534 | -5.34% |
-| 1 | Total jeux | s1_over_10.5 3.20 (1xbet) | s1_under_10.5 1.34 (sportybet) | 1.0588 | -5.88% |
+| 1 | Total jeux | s1_over_9.5 1.84 (1xbet) | s1_under_9.5 1.97 (betpawa) | 1.0511 | -5.11% |
+| 1 | Vainqueur du set | s1_match_1 1.90 (betpawa) | s1_match_2 1.84 (1win) | 1.0698 | -6.98% |
+| 1 | Handicap jeux | s1_hcp_home_-1.5 2.27 (1win) | s1_hcp_away_1.5 1.57 (1xbet) | 1.0775 | -7.75% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 14 marches bruts mentionnant un set
+- congobet : 11 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Oksana Selekhmeteva vs Katie Volynets  (5 books)
+### Oksana Selekhmeteva vs Katie Volynets  (4 books)
 
-Cles par set lues par le moteur : 1win 10 · sportybet 16 · betpawa 12 · 1xbet 58 · congobet 6
+Cles par set lues par le moteur : 1win 10 · 1xbet 58 · congobet 6 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
 | 1 | Vainqueur du set | s1_match_1 3.31 (1win) | s1_match_2 1.33 (1xbet) | 1.0540 | -5.40% |
-| 1 | Total jeux | s1_over_9.5 2.38 (1xbet) | s1_under_9.5 1.56 (sportybet) | 1.0614 | -6.14% |
-| 1 | Total jeux | s1_over_7.5 1.19 (sportybet) | s1_under_7.5 4.46 (1xbet) | 1.0643 | -6.43% |
+| 1 | Total jeux | s1_over_9.5 2.38 (1xbet) | s1_under_9.5 1.56 (1win) | 1.0614 | -6.14% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 2.61 (1win) | s1_hcp_away_-1.5 1.44 (1win) | 1.0776 | -7.76% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 11 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Cezar Cretu vs Sandro Kopp  (4 books)
+### Zsombor Piros vs Christopher O'Connell  (3 books)
 
-Cles par set lues par le moteur : 1win 12 · sportybet 16 · betpawa 12 · congobet 10
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Total jeux | s1_over_10.5 3.35 (sportybet) | s1_under_10.5 1.31 (1win) | 1.0619 | -6.19% |
-| 1 | Total jeux | s1_over_8.5 1.29 (sportybet) | s1_under_8.5 3.45 (sportybet) | 1.0650 | -6.50% |
-| 1 | Total jeux | s1_over_7.5 1.08 (sportybet) | s1_under_7.5 7.10 (1win) | 1.0668 | -6.68% |
-
-
-### Tereza Valentova vs Julia Grabher  (4 books)
-
-Cles par set lues par le moteur : 1win 10 · sportybet 16 · betpawa 12 · congobet 6
+Cles par set lues par le moteur : 1win 18 · 1xbet 50 · congobet 16
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Total jeux | s1_over_8.5 1.54 (sportybet) | s1_under_8.5 2.40 (sportybet) | 1.0660 | -6.60% |
-| 1 | Total jeux | s1_over_9.5 2.33 (1win) | s1_under_9.5 1.57 (sportybet) | 1.0661 | -6.61% |
-| 1 | Vainqueur du set | s1_match_1 1.29 (sportybet) | s1_match_2 3.42 (1win) | 1.0676 | -6.76% |
+| 1 | Handicap jeux | s1_hcp_home_2.5 1.38 (1xbet) | s1_hcp_away_-2.5 3.16 (1win) | 1.0411 | -4.11% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 1.83 (1xbet) | s1_hcp_away_-1.5 1.98 (1win) | 1.0515 | -5.15% |
+| 1 | Vainqueur du set | s1_match_1 2.19 (1win) | s1_match_2 1.66 (1win) | 1.0590 | -5.90% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 19 marches bruts mentionnant un set
 
-### Alexander Donski / Dan Martin vs Puttergill/Rai  (4 books)
+### Arthur Gea vs Nishesh Basavareddy  (3 books)
 
-Cles par set lues par le moteur : 1win 2 · sportybet 4 · betpawa 4 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.08 (1win) | s1_match_2 1.70 (sportybet) | 1.0690 | -6.90% |
-| 2 | Vainqueur du set | s2_match_1 2.05 (sportybet) | s2_match_2 1.68 (sportybet) | 1.0830 | -8.30% |
-
-
-### Cyrus Ahmad vs Tarun Karra  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
+Cles par set lues par le moteur : 1win 18 · 1xbet 0 · congobet 16
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.51 (sportybet) | s1_match_2 2.35 (sportybet) | 1.0878 | -8.78% |
+| 1 | Handicap jeux | s1_hcp_away_1.5 1.69 (1win) | s1_hcp_home_-1.5 2.13 (1win) | 1.0612 | -6.12% |
+| 1 | Vainqueur du set | s1_match_1 1.78 (1win) | s1_match_2 2.00 (1win) | 1.0618 | -6.18% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 1.55 (1win) | s1_hcp_away_-1.5 2.40 (1win) | 1.0618 | -6.18% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 20 marches bruts mentionnant un set
 
-### Zhanel Rustemova vs Lika Peresypkina  (4 books)
+### Dalibor Svrcina vs Mackenzie Mcdonald  (3 books)
 
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.54 (sportybet) | s1_match_2 2.48 (1win) | 1.0526 | -5.26% |
-
-
-### Cyrus Mahjoob vs Julius Christian Seifert  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 0 · congobet 0
+Cles par set lues par le moteur : 1win 18 · 1xbet 50 · congobet 16
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.37 (1win) | s1_match_2 2.96 (1win) | 1.0678 | -6.78% |
+| 1 | Total jeux | s1_over_7.5 1.10 (congobet) | s1_under_7.5 6.73 (1xbet) | 1.0577 | -5.77% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 1.58 (1win) | s1_hcp_away_-1.5 2.34 (1win) | 1.0603 | -6.03% |
+| 1 | Handicap jeux | s1_hcp_home_-1.5 2.07 (1win) | s1_hcp_away_1.5 1.73 (1win) | 1.0611 | -6.11% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 20 marches bruts mentionnant un set
 
-### Avery Tallakson vs Timo De Visser  (4 books)
+### Shintaro Mochizuki vs Francesco Passaro  (3 books)
 
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.21 (1xbet) | s1_match_2 4.28 (1xbet) | 1.0604 | -6.04% |
-
-
-### Stewart Aronson vs Sep De Visser  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
+Cles par set lues par le moteur : 1win 18 · 1xbet 18 · congobet 16
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.66 (sportybet) | s1_match_2 2.05 (sportybet) | 1.0902 | -9.02% |
+| 1 | Total jeux | s1_over_10.5 2.75 (congobet) | s1_under_10.5 1.44 (1win) | 1.0581 | -5.81% |
+| 1 | Vainqueur du set | s1_match_1 1.89 (1win) | s1_match_2 1.89 (1win) | 1.0582 | -5.82% |
+| 1 | Handicap jeux | s1_hcp_away_2.5 1.22 (1win) | s1_hcp_home_-2.5 4.17 (1win) | 1.0595 | -5.95% |
 
+- 1win : 6 marches bruts mentionnant un set
+- 1xbet : 16 marches bruts mentionnant un set
+- congobet : 20 marches bruts mentionnant un set
 
-### Lilian Poling vs Paula Schaefer  (4 books)
+### Liam Draxl vs Tristan Schoolkate  (3 books)
 
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.12 (sportybet) | s1_match_2 5.00 (sportybet) | 1.0929 | -9.29% |
-
-
-### Lucas Hammond vs Brayden Tallakson  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 0 · congobet 0
+Cles par set lues par le moteur : 1win 18 · congobet 16 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.55 (sportybet) | s1_match_2 1.50 (1win) | 1.0588 | -5.88% |
+| 1 | Vainqueur du set | s1_match_1 1.89 (1win) | s1_match_2 2.00 (betpawa) | 1.0291 | -2.91% |
+| 1 | Handicap jeux | s1_hcp_home_-1.5 2.45 (1win) | s1_hcp_away_1.5 1.58 (betpawa) | 1.0411 | -4.11% |
+| 1 | Total jeux | s1_over_9.5 1.63 (betpawa) | s1_under_9.5 2.25 (1win) | 1.0579 | -5.79% |
 
+- 1win : 6 marches bruts mentionnant un set
+- congobet : 20 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Axel Huysmans vs Arsene Pougault  (4 books)
+### Heather Watson vs Harriet Dart  (3 books)
 
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 3.55 (sportybet) | s1_match_2 1.37 (1xbet) | 1.0095 | -0.95% |
-
-
-### Tereza Polakova vs Waverly Potter  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
+Cles par set lues par le moteur : 1win 18 · congobet 16 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.23 (sportybet) | s1_match_2 3.65 (sportybet) | 1.0870 | -8.70% |
+| 1 | Handicap jeux | s1_hcp_home_-1.5 2.64 (1win) | s1_hcp_away_1.5 1.47 (1win) | 1.0591 | -5.91% |
+| 1 | Vainqueur du set | s1_match_1 2.30 (betpawa) | s1_match_2 1.60 (1win) | 1.0598 | -5.98% |
+| 1 | Handicap jeux | s1_hcp_home_2.5 1.45 (1win) | s1_hcp_away_-2.5 2.70 (1win) | 1.0600 | -6.00% |
 
+- 1win : 6 marches bruts mentionnant un set
+- congobet : 19 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
-### Valentina Vachkova vs Alina Shcherbinina  (4 books)
+### Mia Ristic vs Himeno Sakatsume  (3 books)
 
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 10.00 (1win) | s1_match_2 1.06 (sportybet) | 1.0434 | -4.34% |
-
-
-### Andrew Gordon vs Pavel Bushuev  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
+Cles par set lues par le moteur : 1win 18 · congobet 16 · betpawa 12
 
 | Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
 |---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 3.05 (sportybet) | s1_match_2 1.41 (1xbet) | 1.0371 | -3.71% |
-
-
-### Sohrob Amiryavari vs Marco Alvarez  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 4.47 (1xbet) | s1_match_2 1.18 (1win) | 1.0712 | -7.12% |
-
-
-### Kelly Keller vs Maria Shmakova  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.37 (1xbet) | s1_match_2 2.99 (1xbet) | 1.0624 | -6.24% |
-
-
-### Alfred Almasi vs Alexander Kotarski  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.68 (sportybet) | s1_match_2 2.00 (sportybet) | 1.0952 | -9.52% |
-
-
-### Izan Orgiles Garcia Retamero vs Henry Ren  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.51 (sportybet) | s1_match_2 2.35 (sportybet) | 1.0878 | -8.78% |
-
-
-### Henrik Bladelius vs Aryan Jit Singh  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.06 (1xbet) | s1_match_2 8.00 (1xbet) | 1.0666 | -6.66% |
-
-
-### Celia Anson Sanchez vs Patrycja Niewiadomska  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.74 (sportybet) | s1_match_2 1.94 (sportybet) | 1.0902 | -9.02% |
-
-
-### Mayra Gisone vs Sara Suchankova  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 4.55 (sportybet) | s1_match_2 1.15 (sportybet) | 1.0893 | -8.93% |
-
-
-### Luca Ostovany vs Cayden Wang  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.05 (sportybet) | s1_match_2 1.66 (sportybet) | 1.0902 | -9.02% |
-
-
-### Sue Yan Tan vs Tricia Mar  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.11 (sportybet) | s1_match_2 10.00 (1xbet) | 1.0009 | -0.09% |
-
-
-### Mason Bui vs David Duong  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 5.00 (sportybet) | s1_match_2 1.12 (sportybet) | 1.0929 | -9.29% |
-
-
-### Jacob Brumm vs Dev Mangat  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.21 (sportybet) | s1_match_2 3.80 (sportybet) | 1.0896 | -8.96% |
-
-
-### Cassius Chinlund vs Antreas Djakouris  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.25 (sportybet) | s1_match_2 3.96 (1xbet) | 1.0525 | -5.25% |
-
-
-### Siddharth Bharadwaj vs Mario Garcia  (4 books)
-
-Cles par set lues par le moteur : 1win 0 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 2.15 (sportybet) | s1_match_2 1.61 (sportybet) | 1.0862 | -8.62% |
-
-
-### Matei Gavrea vs Constantinos Djakouris  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 0 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 5.00 (1win) | s1_match_2 1.18 (sportybet) | 1.0475 | -4.75% |
-
-
-### Sage Bergeson vs Ines Leon  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.46 (sportybet) | s1_match_2 2.63 (1xbet) | 1.0656 | -6.56% |
-
-
-### Anna Linn Moll vs Marley Lambert  (4 books)
-
-Cles par set lues par le moteur : 1win 2 · sportybet 2 · 1xbet 2 · congobet 0
-
-| Set | Famille | Jambe A | Jambe B | Somme 1/cote | Marge |
-|---|---|---|---|---:|---:|
-| 1 | Vainqueur du set | s1_match_1 1.32 (sportybet) | s1_match_2 3.38 (1xbet) | 1.0539 | -5.39% |
-
+| 1 | Vainqueur du set | s1_match_1 2.04 (betpawa) | s1_match_2 1.76 (betpawa) | 1.0584 | -5.84% |
+| 1 | Total jeux | s1_over_9.5 2.02 (betpawa) | s1_under_9.5 1.77 (1win) | 1.0600 | -6.00% |
+| 1 | Handicap jeux | s1_hcp_home_1.5 1.77 (1win) | s1_hcp_away_-1.5 2.02 (1win) | 1.0600 | -6.00% |
+
+- 1win : 6 marches bruts mentionnant un set
+- congobet : 19 marches bruts mentionnant un set
+- betpawa : 4 marches bruts mentionnant un set
 
 ## Origine des silences : le book se tait, ou notre lecture echoue ?
 
 | Book | Lecture en erreur | Reponse vide | Repond sans marche par set |
 |---|---:|---:|---:|
-| 1xbet | 0 | 12 | 9 |
-| congobet | 0 | 0 | 29 |
+| 1xbet | 0 | 4 | 0 |
+| congobet | 0 | 0 | 1 |
 | betpawa | 0 | 0 | 0 |
-| 1win | 0 | 0 | 12 |
-| apollo | 0 | 0 | 0 |
-| sportybet | 0 | 0 | 0 |
+| 1win | 0 | 0 | 0 |
 
 Erreur ou reponse vide = probleme de notre cote (reseau, proxy sature) : la cote existe mais on ne la lit pas. "Repond sans marche par set" = le book n'expose reellement rien sur ce match.
 
@@ -460,55 +253,153 @@ Erreur ou reponse vide = probleme de notre cote (reseau, proxy sature) : la cote
 
 | Book | Matchs listes | Apparies au panel | Cotes de set / apparies | Sets lus | Sets vus en brut | Cles | Verdict |
 |---|---:|---|---|---|---|---:|---|
-| 1xbet | 207 | 36/45 | 15/36 | 1,2 | — | 88 | appariement incomplet : absent de 9/45 matchs + muet sur 21 apparies |
-| congobet | 70 | 45/45 | 16/45 | 1,2 | — | 16 | muet sur 29/45 matchs apparies |
-| betpawa | 120 | 18/45 | 18/18 | 1,2 | — | 20 | appariement incomplet : absent de 27/45 matchs |
-| 1win | 217 | 45/45 | 33/45 | 1 | — | 24 | muet sur 12/45 matchs apparies |
-| apollo | 100 | 10/45 | 10/10 | 1,2 | — | 22 | appariement incomplet : absent de 35/45 matchs |
-| sportybet | 88 | 45/45 | 45/45 | 1,2 | — | 28 | complet : apparie et lu sur tous les matchs |
+| 1xbet | 209 | 13/16 | 9/13 | 1,2 | 1 | 88 | appariement incomplet : absent de 3/16 matchs + muet sur 4 apparies |
+| congobet | 67 | 16/16 | 15/16 | 1,2 | 1 | 16 | muet sur 1/16 matchs apparies |
+| betpawa | 119 | 12/16 | 12/12 | 1,2 | 1 | 20 | appariement incomplet : absent de 4/16 matchs |
+| 1win | 215 | 16/16 | 16/16 | 1 | 1 | 24 | complet : apparie et lu sur tous les matchs |
 
 ## Familles par set disponibles sur au moins 2 books (= arbitrable)
 
 | Set | Famille | Books | Nb |
 |---|---|---|---:|
-| 1 | Total jeux | betpawa, congobet, sportybet, apollo, 1xbet, 1win | 6 |
-| 1 | Vainqueur du set | betpawa, congobet, sportybet, apollo, 1xbet, 1win | 6 |
-| 1 | Handicap jeux | betpawa, sportybet, apollo, 1xbet, 1win | 5 |
-| 2 | Vainqueur du set | betpawa, congobet, sportybet, apollo, 1xbet | 5 |
+| 1 | Total jeux | betpawa, congobet, 1xbet, 1win | 4 |
+| 1 | Vainqueur du set | betpawa, congobet, 1xbet, 1win | 4 |
+| 1 | Handicap jeux | betpawa, 1xbet, 1win | 3 |
+| 2 | Vainqueur du set | betpawa, congobet, 1xbet | 3 |
 
 ## Meilleures paires par set, tous matchs confondus
 
-Paires completes trouvees : 235 — dont 0 sous 1.00 (profit garanti).
+Paires completes trouvees : 234 — dont 0 sous 1.00 (profit garanti).
 
 (!) = au moins une jambe a une cote >= 10.00 : valeur souvent plafonnee par le book, paire non fiable.
-Paires sans jambe plafonnee : 220 — meilleure marge -0.95%.
+Paires sans jambe plafonnee : 232 — meilleure marge -2.91%.
 
 | Match | Set | Famille | A | B | Somme | Marge |
 |---|---|---|---|---|---:|---:|
-| Sue Yan Tan vs Tricia Mar (!) | 1 | Vainqueur du set | s1_match_1 1.11 (sportybet) | s1_match_2 10.00 (1xbet) | 1.0009 | -0.09% |
-| Axel Huysmans vs Arsene Pougault | 1 | Vainqueur du set | s1_match_1 3.55 (sportybet) | s1_match_2 1.37 (1xbet) | 1.0095 | -0.95% |
-| Liam Draxl vs Tristan Schoolkate | 1 | Handicap jeux | s1_hcp_home_-1.5 2.45 (1win) | s1_hcp_away_1.5 1.62 (sportybet) | 1.0254 | -2.54% |
-| Liam Draxl vs Tristan Schoolkate | 1 | Vainqueur du set | s1_match_1 1.89 (1win) | s1_match_2 2.00 (sportybet) | 1.0291 | -2.91% |
-| Aidan Mayo vs Guto Miguel | 1 | Total jeux | s1_over_9.5 1.84 (1xbet) | s1_under_9.5 2.05 (sportybet) | 1.0313 | -3.13% |
-| Andrew Gordon vs Pavel Bushuev | 1 | Vainqueur du set | s1_match_1 3.05 (sportybet) | s1_match_2 1.41 (1xbet) | 1.0371 | -3.71% |
-| Diane Parry vs Ann Li | 1 | Total jeux | s1_over_9.5 1.90 (sportybet) | s1_under_9.5 1.95 (1xbet) | 1.0391 | -3.91% |
+| Liam Draxl vs Tristan Schoolkate | 1 | Vainqueur du set | s1_match_1 1.89 (1win) | s1_match_2 2.00 (betpawa) | 1.0291 | -2.91% |
 | Kristina Liutova vs Martyna Kubka | 1 | Handicap jeux | s1_hcp_home_-2.5 2.30 (1win) | s1_hcp_away_2.5 1.65 (1xbet) | 1.0408 | -4.08% |
+| Liam Draxl vs Tristan Schoolkate | 1 | Handicap jeux | s1_hcp_home_-1.5 2.45 (1win) | s1_hcp_away_1.5 1.58 (betpawa) | 1.0411 | -4.11% |
+| Zsombor Piros vs Christopher O'Connell | 1 | Handicap jeux | s1_hcp_home_2.5 1.38 (1xbet) | s1_hcp_away_-2.5 3.16 (1win) | 1.0411 | -4.11% |
 | Kristina Liutova vs Martyna Kubka | 1 | Vainqueur du set | s1_match_1 1.42 (1xbet) | s1_match_2 2.95 (betpawa) | 1.0432 | -4.32% |
-| Diane Parry vs Ann Li | 1 | Total jeux | s1_over_8.5 1.32 (sportybet) | s1_under_8.5 3.50 (1xbet) | 1.0433 | -4.33% |
-| Yue Yuan vs Mary Stoiana | 1 | Vainqueur du set | s1_match_1 2.05 (sportybet) | s1_match_2 1.80 (sportybet) | 1.0434 | -4.34% |
-| Valentina Vachkova vs Alina Shcherbinina (!) | 1 | Vainqueur du set | s1_match_1 10.00 (1win) | s1_match_2 1.06 (sportybet) | 1.0434 | -4.34% |
-| Diane Parry vs Ann Li | 1 | Total jeux | s1_over_12.5 5.50 (sportybet) | s1_under_12.5 1.16 (1win) | 1.0439 | -4.39% |
-| Francesca Jones vs Joanna Garland | 1 | Vainqueur du set | s1_match_1 1.64 (1win) | s1_match_2 2.30 (sportybet) | 1.0445 | -4.45% |
-| Diane Parry vs Ann Li | 1 | Total jeux | s1_over_10.5 3.55 (sportybet) | s1_under_10.5 1.31 (1win) | 1.0450 | -4.50% |
-| Liam Draxl vs Tristan Schoolkate | 1 | Total jeux | s1_over_10.5 2.85 (sportybet) | s1_under_10.5 1.44 (1win) | 1.0453 | -4.53% |
-| James Duckworth vs Arthur Fery | 1 | Vainqueur du set | s1_match_1 2.14 (1win) | s1_match_2 1.73 (sportybet) | 1.0453 | -4.53% |
-| Ignacio Buse vs Benjamin Bonzi | 2 | Vainqueur du set | s2_match_1 2.05 (sportybet) | s2_match_2 1.79 (sportybet) | 1.0465 | -4.65% |
-| Yue Yuan vs Mary Stoiana | 2 | Vainqueur du set | s2_match_1 2.05 (sportybet) | s2_match_2 1.79 (sportybet) | 1.0465 | -4.65% |
-| Francesca Jones vs Joanna Garland | 1 | Handicap jeux | s1_hcp_home_-1.5 1.91 (1win) | s1_hcp_away_1.5 1.91 (sportybet) | 1.0471 | -4.71% |
-| Matei Gavrea vs Constantinos Djakouris | 1 | Vainqueur du set | s1_match_1 5.00 (1win) | s1_match_2 1.18 (sportybet) | 1.0475 | -4.75% |
 | Kristina Liutova vs Martyna Kubka | 1 | Total jeux | s1_over_10.5 4.04 (1xbet) | s1_under_10.5 1.25 (1win) | 1.0475 | -4.75% |
+| James Duckworth vs Arthur Fery | 1 | Total jeux | s1_over_10.5 3.00 (1xbet) | s1_under_10.5 1.40 (1win) | 1.0476 | -4.76% |
 | Kristina Liutova vs Martyna Kubka | 1 | Total jeux | s1_over_12.5 6.81 (1xbet) | s1_under_12.5 1.11 (1win) | 1.0477 | -4.77% |
-| Lucas Miedler / Marc Polmans vs N. Oberleitner / P. Nouza | 1 | Vainqueur du set | s1_match_1 1.86 (sportybet) | s1_match_2 1.96 (sportybet) | 1.0478 | -4.78% |
-| Francesca Jones vs Joanna Garland | 2 | Vainqueur du set | s2_match_1 1.63 (sportybet) | s2_match_2 2.30 (sportybet) | 1.0483 | -4.83% |
+| Kristina Liutova vs Martyna Kubka | 1 | Total jeux | s1_over_9.5 2.15 (1xbet) | s1_under_9.5 1.71 (1win) | 1.0490 | -4.90% |
+| Aidan Mayo vs Guto Miguel | 1 | Total jeux | s1_over_9.5 1.84 (1xbet) | s1_under_9.5 1.97 (betpawa) | 1.0511 | -5.11% |
+| James Duckworth vs Arthur Fery | 1 | Total jeux | s1_over_12.5 4.20 (1xbet) | s1_under_12.5 1.23 (1win) | 1.0511 | -5.11% |
+| Zsombor Piros vs Christopher O'Connell | 1 | Handicap jeux | s1_hcp_home_1.5 1.83 (1xbet) | s1_hcp_away_-1.5 1.98 (1win) | 1.0515 | -5.15% |
+| James Duckworth vs Arthur Fery | 1 | Total jeux | s1_over_9.5 1.70 (1xbet) | s1_under_9.5 2.15 (1win) | 1.0534 | -5.34% |
+| Oksana Selekhmeteva vs Katie Volynets | 1 | Vainqueur du set | s1_match_1 3.31 (1win) | s1_match_2 1.33 (1xbet) | 1.0540 | -5.40% |
+| Ignacio Buse vs Benjamin Bonzi | 1 | Handicap jeux | s1_hcp_away_-2.5 3.55 (1win) | s1_hcp_home_2.5 1.29 (1win) | 1.0569 | -5.69% |
+| James Duckworth vs Arthur Fery | 1 | Handicap jeux | s1_hcp_away_-2.5 3.47 (1win) | s1_hcp_home_2.5 1.30 (1win) | 1.0574 | -5.74% |
+| Dalibor Svrcina vs Mackenzie Mcdonald | 1 | Total jeux | s1_over_7.5 1.10 (congobet) | s1_under_7.5 6.73 (1xbet) | 1.0577 | -5.77% |
+| Diane Parry vs Ann Li | 1 | Vainqueur du set | s1_match_1 2.25 (1win) | s1_match_2 1.63 (1win) | 1.0579 | -5.79% |
+| Liam Draxl vs Tristan Schoolkate | 1 | Total jeux | s1_over_9.5 1.63 (betpawa) | s1_under_9.5 2.25 (1win) | 1.0579 | -5.79% |
+| Shintaro Mochizuki vs Francesco Passaro | 1 | Total jeux | s1_over_10.5 2.75 (congobet) | s1_under_10.5 1.44 (1win) | 1.0581 | -5.81% |
+| Ignacio Buse vs Benjamin Bonzi | 1 | Handicap jeux | s1_hcp_home_1.5 1.68 (1win) | s1_hcp_away_-1.5 2.16 (1win) | 1.0582 | -5.82% |
+| Shintaro Mochizuki vs Francesco Passaro | 1 | Vainqueur du set | s1_match_1 1.89 (1win) | s1_match_2 1.89 (1win) | 1.0582 | -5.82% |
+| James Duckworth vs Arthur Fery | 1 | Handicap jeux | s1_hcp_home_-3.5 8.70 (1win) | s1_hcp_away_3.5 1.06 (1win) | 1.0583 | -5.83% |
+| Ignacio Buse vs Benjamin Bonzi | 1 | Vainqueur du set | s1_match_1 2.04 (1win) | s1_match_2 1.76 (1win) | 1.0584 | -5.84% |
+| Mia Ristic vs Himeno Sakatsume | 1 | Vainqueur du set | s1_match_1 2.04 (betpawa) | s1_match_2 1.76 (betpawa) | 1.0584 | -5.84% |
 
 ## Marches par set exposes en brut (candidats a brancher)
+
+### 1xbet
+- 1er set • Score Exact Complet  (168 issues cumulees)
+- 2ème set • Score Exact Complet  (168 issues cumulees)
+- 1er set • Total  (120 issues cumulees)
+- 2ème set • Total  (80 issues cumulees)
+- 1er set • Handicap Europeen  (72 issues cumulees)
+- 1er set • Total Equipe 1  (72 issues cumulees)
+- 1er set • Total Equipe 2  (72 issues cumulees)
+- 2ème set • Handicap Europeen  (56 issues cumulees)
+- 2ème set • Total Equipe 1  (32 issues cumulees)
+- 2ème set • Total Equipe 2  (32 issues cumulees)
+- 1er set • 1X2  (26 issues cumulees)
+- 1er set • Pair/Impair Total  (24 issues cumulees)
+- 2ème set • 1X2  (24 issues cumulees)
+- 2ème set • Pair/Impair Total  (24 issues cumulees)
+- 1er set • Groupe inconnu #90  (18 issues cumulees)
+- 1er set • Groupe inconnu #254  (18 issues cumulees)
+- 1er set • Groupe inconnu #4201  (4 issues cumulees)
+
+### congobet
+- 1er Set - nombre de jeux  (132 issues cumulees)
+- Ecart de jeux dans le set  (84 issues cumulees)
+- Vainqueur du set  (60 issues cumulees)
+- Vainqueur du 1er set et du match  (60 issues cumulees)
+- Ecart de sets  (54 issues cumulees)
+- Nombre exact de sets  (30 issues cumulees)
+- Liutova, Kristina gagnera un set ?  (2 issues cumulees)
+- Kubka, Martyna gagnera un set ?  (2 issues cumulees)
+- Liutova, Kristina remporte exactement 1 set  (2 issues cumulees)
+- Kubka, Martyna remporte exactement 1 set  (2 issues cumulees)
+- Buse, Ignacio gagnera un set ?  (2 issues cumulees)
+- Bonzi, Benjamin gagnera un set ?  (2 issues cumulees)
+- Buse, Ignacio remporte exactement 1 set  (2 issues cumulees)
+- Bonzi, Benjamin remporte exactement 1 set  (2 issues cumulees)
+- Duckworth, James gagnera un set ?  (2 issues cumulees)
+- Fery, Arthur gagnera un set ?  (2 issues cumulees)
+- Duckworth, James remporte exactement 1 set  (2 issues cumulees)
+- Fery, Arthur remporte exactement 1 set  (2 issues cumulees)
+- Parry, Diane gagnera un set ?  (2 issues cumulees)
+- Li, Ann gagnera un set ?  (2 issues cumulees)
+- Parry, Diane remporte exactement 1 set  (2 issues cumulees)
+- Li, Ann remporte exactement 1 set  (2 issues cumulees)
+- Arribage T / Guinard M gagnera un set ?  (2 issues cumulees)
+- Krajicek A / Mektic N gagnera un set ?  (2 issues cumulees)
+- Arribage T / Guinard M remporte exactement 1 set  (2 issues cumulees)
+- Krajicek A / Mektic N remporte exactement 1 set  (2 issues cumulees)
+- Pacheco Mendez, Rodrigo gagnera un set ?  (2 issues cumulees)
+- Andrade, Andres gagnera un set ?  (2 issues cumulees)
+- Pacheco Mendez, Rodrigo remporte exactement 1 set  (2 issues cumulees)
+- Andrade, Andres remporte exactement 1 set  (2 issues cumulees)
+- Reymond A / Sanchez L gagnera un set ?  (2 issues cumulees)
+- Banthia S / Kadhe A gagnera un set ?  (2 issues cumulees)
+- Mayo, Aidan gagnera un set ?  (2 issues cumulees)
+- Miguel, Luis Guto gagnera un set ?  (2 issues cumulees)
+- Mayo, Aidan remporte exactement 1 set  (2 issues cumulees)
+- Miguel, Luis Guto remporte exactement 1 set  (2 issues cumulees)
+- Selekhmeteva, Oksana gagnera un set ?  (2 issues cumulees)
+- Volynets, Katie gagnera un set ?  (2 issues cumulees)
+- Selekhmeteva, Oksana remporte exactement 1 set  (2 issues cumulees)
+- Volynets, Katie remporte exactement 1 set  (2 issues cumulees)
+
+### betpawa
+- Set 1 Game Handicap  (60 issues cumulees)
+- Total Sets - Over/Under - FT  (24 issues cumulees)
+
+### 1win
+- 1st set. Total  (116 issues cumulees)
+- 1st set. Handicap  (102 issues cumulees)
+- 1st set. Winner  (32 issues cumulees)
+- Handicap by sets  (32 issues cumulees)
+- Number of sets  (4 issues cumulees)
+- Kristina Liutova to win either set  (2 issues cumulees)
+- Martyna Kubka to win either set  (2 issues cumulees)
+- Ignacio Buse to win either set  (2 issues cumulees)
+- Benjamin Bonzi to win either set  (2 issues cumulees)
+- James Duckworth to win either set  (2 issues cumulees)
+- Arthur Fery to win either set  (2 issues cumulees)
+- Diane Parry to win either set  (2 issues cumulees)
+- Ann Li to win either set  (2 issues cumulees)
+- Rodrigo Pacheco Mendez to win either set  (2 issues cumulees)
+- Andres Andrade to win either set  (2 issues cumulees)
+- Aidan Mayo to win either set  (2 issues cumulees)
+- Guto Miguel to win either set  (2 issues cumulees)
+- Oksana Selekhmeteva to win either set  (2 issues cumulees)
+- Katie Volynets to win either set  (2 issues cumulees)
+- Zsombor Piros to win either set  (2 issues cumulees)
+- Christopher O'Connell to win either set  (2 issues cumulees)
+- Arthur Gea to win either set  (2 issues cumulees)
+- Nishesh Basavareddy to win either set  (2 issues cumulees)
+- Dalibor Svrcina to win either set  (2 issues cumulees)
+- Mackenzie Mcdonald to win either set  (2 issues cumulees)
+- Shintaro Mochizuki to win either set  (2 issues cumulees)
+- Francesco Passaro to win either set  (2 issues cumulees)
+- Liam Draxl to win either set  (2 issues cumulees)
+- Tristan Schoolkate to win either set  (2 issues cumulees)
+- Heather Watson to win either set  (2 issues cumulees)
+- Harriet Dart to win either set  (2 issues cumulees)
+- Mia Ristic to win either set  (2 issues cumulees)
+- Himeno Sakatsume to win either set  (2 issues cumulees)
