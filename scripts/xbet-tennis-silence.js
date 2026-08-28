@@ -19,6 +19,9 @@ import { FEED, COUNTRY, viaWorker } from '../src/bookmakers/xbet/api.js';
 
 const MATCHES = parseInt(process.env.XS_MATCHES || '25', 10);
 const HORIZON = parseInt(process.env.XS_HORIZON || '48', 10);
+// XS_WHERE : head = tete de liste (grands tournois), tail = bas de liste
+// (longue traine : ITF, juniors, doubles obscurs), all = echantillon reparti.
+const WHERE = process.env.XS_WHERE || 'head';
 
 const out = [];
 function say(s) { console.log(s); out.push(s); }
@@ -54,7 +57,15 @@ function zipUrl(id) {
   const unknownLabels = new Map();
   const tally = { ok: 0, fetch_fail: 0, sg_empty: 0, label_unmatched: 0 };
 
-  const panel = matches.slice(0, MATCHES);
+  let panel;
+  if (WHERE === 'tail') panel = matches.slice(-MATCHES);
+  else if (WHERE === 'all') {
+    const step = Math.max(1, Math.floor(matches.length / MATCHES));
+    panel = [];
+    for (let k = 0; k < matches.length && panel.length < MATCHES; k += step) panel.push(matches[k]);
+  } else panel = matches.slice(0, MATCHES);
+  say('Segment sonde : ' + WHERE + '.');
+  say('');
   for (let i = 0; i < panel.length; i += 4) {
     const slice = panel.slice(i, i + 4);
     const res = await Promise.all(slice.map(async (m) => {
@@ -94,10 +105,10 @@ function zipUrl(id) {
 
   say('## Detail par match');
   say('');
-  say('| Match | Cause | Sous-jeux | Sets reconnus |');
-  say('|---|---|---:|---|');
+  say('| Match | Competition | Cause | Sous-jeux | Sets reconnus |');
+  say('|---|---|---|---:|---|');
   for (const r of rows) {
-    say('| ' + r.m.home + ' vs ' + r.m.away + ' | ' + r.cause + ' | ' + r.sg + ' | '
+    say('| ' + r.m.home + ' vs ' + r.m.away + ' | ' + (r.m.league || '?') + ' | ' + r.cause + ' | ' + r.sg + ' | '
       + (r.sets.length ? Array.from(new Set(r.sets)).sort().join(', ') : '—') + ' |');
   }
   say('');
