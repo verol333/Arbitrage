@@ -637,6 +637,15 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
     pushArb(out, fam, `+${l}`, ob[`total_sets_over_${l}`], bookB, `−${l}`, oa[`total_sets_under_${l}`], bookA, idsOf(ob, `total_sets_over_${l}`), idsOf(oa, `total_sets_under_${l}`));
   }
 
+  // Passerelle de notation : certains books cotent le NOMBRE EXACT de sets
+  // (total_sets_2 = "match en 2 sets") au lieu d'une ligne over/under. "2 sets
+  // exactement" et "plus de 2.5 sets" sont strictement complementaires quel que
+  // soit le format (best-of-3 comme best-of-5) : l'un ou l'autre arrive toujours.
+  // On ne relie PAS total_sets_2 a total_sets_3 : en best-of-5 (Grand Chelem) un
+  // match peut faire 4 ou 5 sets, la paire ne couvrirait pas toutes les issues.
+  pushArb(out, 'Total Sets 2.5', '2 sets', oa.total_sets_2, bookA, '3 sets ou +', ob['total_sets_over_2.5'], bookB, idsOf(oa, 'total_sets_2'), idsOf(ob, 'total_sets_over_2.5'));
+  pushArb(out, 'Total Sets 2.5', '2 sets', ob.total_sets_2, bookB, '3 sets ou +', oa['total_sets_over_2.5'], bookA, idsOf(ob, 'total_sets_2'), idsOf(oa, 'total_sets_over_2.5'));
+
   // Handicap Sets
   for (const l of linesOf(oa, ob, /^hcp_sets_home_(-?\d+(?:\.\d+)?)$/)) {
     const lNum = parseFloat(l);
