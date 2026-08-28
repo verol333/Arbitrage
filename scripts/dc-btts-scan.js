@@ -45,6 +45,8 @@ const COVER = {
   'W|H': ['HY', 'HN'], 'W|D': ['DY', 'DN'], 'W|A': ['AY', 'AN'],
   'DCO|1X': ['HY', 'HN', 'DY', 'DN'], 'DCO|12': ['HY', 'HN', 'AY', 'AN'], 'DCO|X2': ['DY', 'DN', 'AY', 'AN'],
   'BTTS|Y': ['HY', 'DY', 'AY'], 'BTTS|N': ['HN', 'DN', 'AN'],
+  // --- 1X2 + BTTS (1win 'Result and both teams to score') : 1 case exacte ---
+  'C|HY': ['HY'], 'C|HN': ['HN'], 'C|DY': ['DY'], 'C|DN': ['DN'], 'C|AY': ['AY'], 'C|AN': ['AN'],
 };
 const COMBO_KEYS = ['1X|Y', '1X|N', '12|Y', '12|N', 'X2|Y', 'X2|N'];
 
@@ -91,6 +93,35 @@ const isPeriodOrOther = (m) => /mi temps|1st half|2nd half|halftime|\b1h\b|\b2h\
 const BTTS_NAMES = /^(les deux equipes marquent|les 2 equipes marquent|both teams to score|both teams to score ft|btts|btts ft|gg ng)$/;
 const DC_NAMES = /^(double chance|double chance ft)$/;
 const W_NAMES = /^(1x2|1x2 ft|resultat du match|resultat final|match result|match result ft|full time result|vainqueur du match)$/;
+
+// ---- 1X2 + BTTS : chaque issue tombe sur UNE case exacte ----
+const RES_BTTS_NAMES = /^(result and both teams to score|match result and both teams to score|1x2 and both teams to score|resultat et les deux equipes marquent|resultat du match et les deux equipes marquent)$/;
+
+function parseResBtts(marketName, sel, home, away) {
+  const m = norm(marketName);
+  if (isPeriodOrOther(m) || !RES_BTTS_NAMES.test(m)) return null;
+  const s = norm(sel);
+  let yn = null;
+  if (/\b(yes|oui|gg)\b/.test(s)) yn = 'Y';
+  else if (/\b(no|non|ng)\b/.test(s)) yn = 'N';
+  if (!yn) return null;
+  let res = null;
+  if (/\bw1\b|^1\b|\bhome\b/.test(s)) res = 'H';
+  else if (/\bw2\b|^2\b|\baway\b/.test(s)) res = 'A';
+  else if (/\b(x|draw|nul)\b/.test(s)) res = 'D';
+  else {
+    // 1win nomme parfois par le nom d equipe (comme sur ses marches HTFT)
+    const hit = (name) => {
+      const toks = norm(name).split(' ').filter((w) => w.length >= 4);
+      return toks.some((w) => s.includes(w));
+    };
+    const isH = hit(home), isA = hit(away);
+    if (isH && !isA) res = 'H';
+    else if (isA && !isH) res = 'A';
+  }
+  if (!res) return null;
+  return 'C|' + res + yn;
+}
 
 function parseSimple(marketName, sel) {
   const m = norm(marketName);
@@ -171,6 +202,15 @@ async function scanEntry(entry) {
     if (r.error) continue;
     for (const o of r.outcomes || []) {
       if (!isTargetMarket(o.market)) {
+        const ck = parseResBtts(o.market, o.selection, entry.ref.home, entry.ref.away);
+        if (ck) {
+          if (o.odds < 1.5) { simpleRejected.add(r.key + ' : ' + o.market + ' -> ' + o.selection + ' @ ' + o.odds); continue; }
+          simpleSeen.add(r.key + ' : ' + o.market + ' -> ' + ck);
+          found.push({ book: r.key, key: ck, odds: o.odds });
+          const cc = best.get(ck);
+          if (!cc || o.odds > cc.odds) best.set(ck, { key: ck, odds: o.odds, book: r.key, market: o.market, selection: o.selection });
+          continue;
+        }
         const sk = parseSimple(o.market, o.selection);
         if (sk && !isPlausible(sk, o.odds)) { simpleRejected.add(r.key + ' : ' + o.market + ' -> ' + o.selection + ' @ ' + o.odds); continue; }
         if (sk) {
