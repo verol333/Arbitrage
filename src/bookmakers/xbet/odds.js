@@ -181,7 +181,13 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
   const feedPath = live ? 'LiveFeed' : 'LineFeed';
   const url = `${FEED}/service-api/${feedPath}/GetGameZip?id=${matchId}&lng=fr&isSubGames=true&GroupEvents=true&countevents=2000&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
   // En live ou re-fetch confirm : force noCache pour cotes fraîches (bypass allorigins 5min cache).
-  const gd = await viaWorker(url, { noCache: live || noCache });
+  // Un seul essai suffisait rarement : les proxys publics renvoient par
+  // intermittence une reponse vide (406/429 silencieux), et le match passait
+  // pour "sans cotes" alors que 1xBet les publie (recensement tennis du
+  // 28/08/2026 : 4 matchs muets sur 13 apparies). On retente donc, sans cache,
+  // avant de conclure au silence.
+  let gd = await viaWorker(url, { noCache: live || noCache });
+  if (!gd?.Value) gd = await viaWorker(url, { noCache: true });
   if (!gd?.Value) return null;
   const GE = gd.Value.GE || [];
   const odds = {};
@@ -259,8 +265,13 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     // etendu a 10 recemment mais a introduit du bruit corners → retour 6.
     const takenPrefix = new Set();
     const picked = wanted.filter(({ prefix }) => (takenPrefix.has(prefix) ? false : takenPrefix.add(prefix)));
+    // Meme fragilite sur les sous-jeux (c'est la que vivent TOUTES les cotes
+    // par set au tennis) : un echec de proxy effacait silencieusement le set
+    // entier. Deuxieme essai systematique avant d'abandonner le sous-jeu.
+    const subUrl = (sid) => `${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
     const subs = await Promise.all(picked.slice(0, 6).map(async ({ sid, prefix }) => {
-      const sd = await viaWorker(`${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`);
+      let sd = await viaWorker(subUrl(sid));
+      if (!sd?.Value?.GE) sd = await viaWorker(subUrl(sid), { noCache: true });
       return { prefix, sid, GE: sd?.Value?.GE || null };
     }));
     // ⚠️ Les cotes issues d'un sous-marche (corners, mi-temps) n'existent PAS
