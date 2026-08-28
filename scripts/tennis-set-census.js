@@ -141,6 +141,12 @@ const answered = new Map();   // book -> nb de matchs ou il a renvoye au moins u
 const aligned = new Map();    // book -> nb de matchs du panel ou son catalogue a ete apparie
 const listed = new Map();     // book -> nb de matchs tennis listes au catalogue
 const pairs = [];
+// Total sets (nombre de sets du match) : famille distincte des marches PAR set.
+// Congobet la publiait sous ses propres noms, Betpawa sous total_sets_over/under
+// -> les deux books parlaient du meme marche sans jamais s'apparier. On mesure
+// desormais la couverture et les paires de cette famille.
+const tsKeysByBook = new Map();
+const tsPairs = [];
 function addTo(map, k, v) { if (!map.has(k)) map.set(k, new Set()); map.get(k).add(v); }
 
 say('# Recensement tennis par set');
@@ -222,6 +228,33 @@ for (const entry of top) {
   }).join(' · ');
   say('Cles par set lues par le moteur : ' + (perBookCount || 'aucune'));
   say('');
+
+  // Total sets : meilleure cote par cle, puis appariement over/under.
+  const tsBest = new Map();
+  for (const [bk, odds] of canon) {
+    for (const k of Object.keys(odds)) {
+      if (!/^total_sets_/.test(k)) continue;
+      const o = Number(odds[k]);
+      if (!(o > 1)) continue;
+      addTo(tsKeysByBook, bk, k);
+      const cur = tsBest.get(k);
+      if (!cur || o > cur.odds) tsBest.set(k, { odds: o, book: bk });
+    }
+  }
+  const tsSeen = new Set();
+  for (const [k, v] of tsBest) {
+    let comp = null;
+    const m = k.match(/^total_sets_(over|under)_(.+)$/);
+    if (m) comp = 'total_sets_' + (m[1] === 'over' ? 'under' : 'over') + '_' + m[2];
+    else if (k === 'total_sets_2') comp = 'total_sets_3';
+    else if (k === 'total_sets_3') comp = 'total_sets_2';
+    if (!comp || !tsBest.has(comp)) continue;
+    const id = [k, comp].sort().join('~');
+    if (tsSeen.has(id)) continue;
+    tsSeen.add(id);
+    const w = tsBest.get(comp);
+    tsPairs.push({ match: label, a: k, oa: v.odds, ba: v.book, b: comp, ob: w.odds, bb: w.book, sum: 1 / v.odds + 1 / w.odds });
+  }
 
   const seen = new Set();
   const found = [];
@@ -343,6 +376,33 @@ if (pairs.length) {
     const flag = (p.oa >= 10 || p.ob >= 10) ? ' (!)' : '';
     say('| ' + p.match + flag + ' | ' + p.info.set + ' | ' + p.info.fam + ' | ' + p.a + ' ' + p.oa.toFixed(2) + ' (' + p.ba + ') | '
       + p.b + ' ' + p.ob.toFixed(2) + ' (' + p.bb + ') | ' + p.sum.toFixed(4) + ' | ' + ((1 - p.sum) * 100).toFixed(2) + '% |');
+  }
+}
+say('');
+
+say('## Total sets (nombre de sets du match) : couverture et paires');
+say('');
+if (!tsKeysByBook.size) say('Aucun book ne remonte de cle total_sets sur ce panel.');
+else {
+  say('| Book | Cles total_sets lues |');
+  say('|---|---|');
+  for (const bk of BOOKS) {
+    const set = tsKeysByBook.get(bk);
+    if (set && set.size) say('| ' + bk + ' | ' + Array.from(set).sort().join(', ') + ' |');
+  }
+  say('');
+  tsPairs.sort(function (a, b) { return a.sum - b.sum; });
+  say('Paires total_sets completes : ' + tsPairs.length + ' — dont '
+    + tsPairs.filter(function (p) { return p.sum < 1; }).length + ' sous 1.00.');
+  say('');
+  if (tsPairs.length) {
+    say('| Match | A | B | Somme | Marge |');
+    say('|---|---|---|---:|---:|');
+    for (const p of tsPairs.slice(0, 15)) {
+      say('| ' + p.match + ' | ' + p.a + ' ' + p.oa.toFixed(2) + ' (' + p.ba + ') | '
+        + p.b + ' ' + p.ob.toFixed(2) + ' (' + p.bb + ') | ' + p.sum.toFixed(4) + ' | '
+        + ((1 - p.sum) * 100).toFixed(2) + '% |');
+    }
   }
 }
 say('');
