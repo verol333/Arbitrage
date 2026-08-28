@@ -31,6 +31,15 @@ const DUMP = process.env.TS_DUMP !== '0';
 const ROWS = parseInt(process.env.TS_ROWS || '0', 10) || (MATCHES > 12 ? 3 : 12);
 
 const out = [];
+// Origine des silences : un book "muet" peut l'etre pour trois raisons tres
+// differentes — la requete a echoue, elle a repondu vide, ou elle a repondu
+// sans aucun marche par set. Les confondre a fait accuser 1xBet a tort
+// (sonde du 28/08 : le book expose bien les sets). On les compte separement.
+const silence = new Map();
+function noteSilence(book, cause) {
+  if (!silence.has(book)) silence.set(book, { erreur: 0, vide: 0, sans_set: 0 });
+  silence.get(book)[cause]++;
+}
 function say(s) { console.log(s); out.push(s); }
 
 // ─── Vocabulaire canonique par set ───────────────────────────────────────────
@@ -180,13 +189,20 @@ for (const entry of top) {
     if (!book) return;
     try {
       const odds = await book.getOdds(entry.matches[bk], { sport: 'tennis', live: false });
+      if (!odds || !Object.keys(odds).length) noteSilence(bk, 'vide');
       canon.set(bk, odds || {});
-    } catch (e) { canon.set(bk, {}); }
+    } catch (e) {
+      noteSilence(bk, 'erreur');
+      console.log('[' + bk + '] lecture KO sur ' + label + ' : ' + e.message);
+      canon.set(bk, {});
+    }
   }));
 
   const best = new Map();
   for (const [bk, odds] of canon) {
-    if (Object.keys(odds).some(function (k) { return setInfo(k); })) answered.set(bk, (answered.get(bk) || 0) + 1);
+    const hasSet = Object.keys(odds).some(function (k) { return setInfo(k); });
+    if (hasSet) answered.set(bk, (answered.get(bk) || 0) + 1);
+    else if (Object.keys(odds).length) noteSilence(bk, 'sans_set');
     for (const k of Object.keys(odds)) {
       const info = setInfo(k);
       if (!info) continue;
@@ -254,6 +270,18 @@ for (const entry of top) {
 }
 
 // ─── 3. Synthese ─────────────────────────────────────────────────────────────
+say("## Origine des silences : le book se tait, ou notre lecture echoue ?");
+say('');
+say('| Book | Lecture en erreur | Reponse vide | Repond sans marche par set |');
+say('|---|---:|---:|---:|');
+for (const bk of BOOKS) {
+  const s2 = silence.get(bk) || { erreur: 0, vide: 0, sans_set: 0 };
+  say('| ' + bk + ' | ' + s2.erreur + ' | ' + s2.vide + ' | ' + s2.sans_set + ' |');
+}
+say('');
+say("Erreur ou reponse vide = probleme de notre cote (reseau, proxy sature) : la cote existe mais on ne la lit pas. \"Repond sans marche par set\" = le book n'expose reellement rien sur ce match.");
+say('');
+
 say('## Couverture par book : ce que le moteur lit vs ce que le book expose');
 say('');
 say('| Book | Matchs listes | Apparies au panel | Cotes de set / apparies | Sets lus | Sets vus en brut | Cles | Verdict |');
