@@ -318,8 +318,12 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     else if (id === 10158) {
       for (const it of items) {
         const s = (it.shortName || '').trim();
-        if (s === '2') put('set_under_2.5', it);
-        else if (s === '3') put('set_over_2.5', it);
+        // Vocabulaire commun avec Betpawa (total_sets_over/under_L) : en
+        // best-of-3, "exactement 2 sets" = moins de 2.5 sets et "3 sets" = plus
+        // de 2.5. Sans ces alias, Congobet et Betpawa parlaient du meme marche
+        // sous deux noms differents et le moteur ne les appariait jamais.
+        if (s === '2') { put('set_under_2.5', it); put('total_sets_under_2.5', it); put('total_sets_2', it); }
+        else if (s === '3') { put('set_over_2.5', it); put('total_sets_over_2.5', it); put('total_sets_3', it); }
       }
     }
     // Vainqueur du set (per-set winner). ctx.setnr = "1"/"2"/"3"
@@ -449,9 +453,12 @@ function congobetTableTennis(json) {
     else if (id === 10185) {
       for (const it of items) {
         const s = (it.shortName || '').trim();
-        if (s === '3') put('total_sets_3', it);
+        // Alias over/under deductibles sans ambiguite en best-of-5 :
+        // "exactement 3 sets" = moins de 3.5, "exactement 5 sets" = plus de 4.5.
+        // 4 sets ne se traduit pas en une seule ligne over/under -> pas d'alias.
+        if (s === '3') { put('total_sets_3', it); put('total_sets_under_3.5', it); }
         else if (s === '4') put('total_sets_4', it);
-        else if (s === '5') put('total_sets_5', it);
+        else if (s === '5') { put('total_sets_5', it); put('total_sets_over_4.5', it); }
       }
     }
     // 10186 (par jeu) / 10492 (score exact 6-way) : ignore, non exploitables cross-book
