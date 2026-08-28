@@ -14,6 +14,9 @@ on:
       horizon:
         description: Horizon en heures
         default: '48'
+      dump:
+        description: Dumps bruts (1 = oui, 0 = non, plus rapide)
+        default: '1'
 jobs:
   census:
     runs-on: ubuntu-latest
@@ -35,6 +38,7 @@ jobs:
           TS_MATCHES: ${{ inputs.matches }}
           TS_MIN_BOOKS: ${{ inputs.min_books }}
           TS_HORIZON: ${{ inputs.horizon }}
+          TS_DUMP: ${{ inputs.dump }}
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
