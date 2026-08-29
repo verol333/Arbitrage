@@ -33,63 +33,31 @@ export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook, a
   });
 }
 
-// Vainqueur de PERIODE basket (Q1/Q2/Q3/Q4/H1/H2) = marche 3-WAY (H/X/A).
-// Contrairement au Winner FT basket (incl OT, 2-way) qui ne peut PAS finir
-// nul, une periode basket peut se terminer avec les 2 equipes a egalite
-// (ex: 15-15 fin Q1). Notre parser ecrit qN_match_X pour la Draw sur les
-// books qui l'exposent (1win, sportybet, betmomo, betpawa).
+// Vainqueur de PERIODE (corners FT/1MT, quarts/mi-temps basket, hockey
+// regulation) = marche 3-WAY (H/X/A) : le nul (egalite) est une issue reelle.
 //
-// pushArbPeriodWinner remplace un pushArb 2-way naif par une validation
-// 3-way correcte :
-//   - H = homeBook.qN_match_1
-//   - A = awayBook.qN_match_2
-//   - X = MAX(homeBook.qN_match_X, awayBook.qN_match_X) — meilleure cote Draw
-//   - Si X manque des 2 books → SKIP (impossible de couvrir la Draw)
-//   - Si 1/H + 1/A + 1/X >= 1 → SKIP (pas d'arbitrage 3-way garanti)
-//   - Sinon emet l'arb en 2-way (bet H sur homeBook, A sur awayBook) MAIS
-//     avec profit_pct calcule sur couverture 3-way complete (realiste).
+// CORRECTIF CAUSE RACINE (2026-08-29) : l'ancienne version emettait
+// Dom. (book A) + Ext. (book B) SANS parier le nul — la cote Draw ne servait
+// que de « validation » mathematique du profit. En cas d'egalite, LES DEUX
+// jambes perdaient : ce n'etaient pas des surebets (pertes reelles constatees
+// sur « Corners Vainqueur »).
 //
-// Note : l'arb pratique reste 2-way (bet H + bet A). La Draw n'est PAS betee
-// mais sa cote sert de garantie que si Draw arrive, on ne perd pas plus que
-// (1 - 1/X) de la mise totale. Le "profit garanti" affiche est le profit
-// dans le cas H ou A gagne (Draw = perte partielle si elle arrive). C'est
-// exactement comme un DNB (Draw No Bet) implicite. TODO amelioration :
-// emettre en vrai 3-way (bet H+A+X sur 3 books) si architecture le permet.
+// La SEULE couverture garantie en 2 jambes sur un marche 3-way est de croiser
+// une Victoire seche avec le handicap +0.5 du camp oppose :
+//   Victoire Dom. (match_1)  x  Ext. +0.5 (hcp_away_0.5)  -> le +0.5 gagne
+//   Victoire Ext. (match_2)  x  Dom. +0.5 (hcp_home_0.5)     sur nul ET victoire
+// Les 3 issues sont couvertes, le profit est reellement garanti — et ces
+// marches restent scannes (aucun blocage). Si le book oppose n'expose pas le
+// handicap +0.5, pushArb ecarte la paire tout seul (cote absente).
 function pushArbPeriodWinner(out, lbl, oaHome, obAway, bookHome, bookAway, pfx) {
-  const H = oaHome[`${pfx}match_1`];
-  const A = obAway[`${pfx}match_2`];
-  if (!H || !A || H <= 1 || A <= 1) return;
-  if (H > MAX_ODD || A > MAX_ODD) return;
-  const inv2 = 1 / H + 1 / A;
-  if (inv2 >= 1) return; // pas meme un arb 2-way
-
-  // Requiert coverage Draw depuis au moins un book
-  const drawHome = oaHome[`${pfx}match_X`];
-  const drawAway = obAway[`${pfx}match_X`];
-  const draws = [drawHome, drawAway].filter(v => Number.isFinite(v) && v > 1 && v <= MAX_ODD);
-  if (!draws.length) return; // aucune Draw exposee → impossible de valider 3-way
-
-  const bestDraw = Math.max(...draws);
-  const inv3 = inv2 + 1 / bestDraw;
-  if (inv3 >= 1) return; // en 3-way, la couverture reelle est >= 100% → pas d'arb
-
-  // 3-way valide. profit_pct sur base 3-way.
-  const profit3 = (1 - inv3) * 100;
-  if (profit3 > MAX_PROFIT()) return;
-  const stakeA = (1 / H) / inv3 * 100;
-  const stakeB = (1 / A) / inv3 * 100;
-  out.push({
-    market_family: `${lbl} Vainqueur`,
-    leg_a_book: bookHome, leg_a_label: 'Dom.', leg_a_odd: H,
-    leg_b_book: bookAway, leg_b_label: 'Ext.', leg_b_odd: A,
-    inverse_sum: Math.round(inv3 * 10000) / 10000,
-    profit_pct: Math.round(profit3 * 100) / 100,
-    stake_a_pct: Math.round(stakeA * 10) / 10,
-    stake_b_pct: Math.round(stakeB * 10) / 10,
-    // Meta 3-way : traçabilite pour audit (quel book fournit la Draw)
-    validation_3way_draw_odd: bestDraw,
-    validation_3way_draw_book: (drawAway === bestDraw ? bookAway : bookHome),
-  });
+  // Victoire Dom. couverte par Ext. +0.5 (gagne si nul OU victoire Ext.)
+  pushArb(out, `${lbl} Vainqueur`, 'Dom.', oaHome[`${pfx}match_1`], bookHome,
+    'Ext. +0.5', obAway[`${pfx}hcp_away_0.5`], bookAway,
+    idsOf(oaHome, `${pfx}match_1`), idsOf(obAway, `${pfx}hcp_away_0.5`));
+  // Victoire Ext. couverte par Dom. +0.5 (gagne si nul OU victoire Dom.)
+  pushArb(out, `${lbl} Vainqueur`, 'Ext.', oaHome[`${pfx}match_2`], bookHome,
+    'Dom. +0.5', obAway[`${pfx}hcp_home_0.5`], bookAway,
+    idsOf(oaHome, `${pfx}match_2`), idsOf(obAway, `${pfx}hcp_home_0.5`));
 }
 
 // Découverte DYNAMIQUE des lignes (handicap, total, team total, corners).
