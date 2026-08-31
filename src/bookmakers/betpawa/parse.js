@@ -274,10 +274,53 @@ export function betpawaFlatOdds(eventJson) {
       // Variantes 1UP/2UP (cashout anticipé, non équivalent 1X2 standard)
       // Handicap 1X2 3-way European (non comparable au 2-way asiatique)
       // Marchés complexes (correct score, combos, multigoals, ht/ft, etc.)
-      default: break;
+      // Familles a 2 issues reconnues par LIBELLE (ids inconnus, noms stables) :
+      // Clean Sheet, Win to Nil, Pair/Impair par equipe. Congobet et Apollo les
+      // exposent deja — BetPawa les publiait sans que personne ne les lise.
+      default: putBpNamedFamilies(odds, market, prices); break;
     }
   }
   return odds;
+}
+
+
+// Familles BetPawa a 2 issues identifiees par le LIBELLE du marche (pas par id).
+// Les libelles sont releves tels quels sur l'inventaire live :
+//   "Clean Sheet Home Team - FT" / "- 1H" / "- 2H"
+//   "Win to Nil Home Team - FT"
+//   "Odd / Even - FT- Home Team" / "Odd / Even - FT - Away Team"
+// Chacune est une partition stricte (Oui/Non, Pair/Impair) donc comparable en
+// arbitrage 2 jambes avec Congobet/Apollo qui emettent les memes cles.
+function putBpNamedFamilies(odds, market, prices) {
+  const nm = String(market?.marketType?.name || '').trim();
+  if (!nm) return;
+  const L = byLabel(prices);
+  const pick = (re) => { for (const k of Object.keys(L)) if (re.test(k)) return L[k]; return null; };
+  const emit = (key, p) => { if (p) putBp(odds, key, Number(p.odds), p); };
+
+  let m = nm.match(/^Clean Sheet (Home|Away) Team\s*-\s*(FT|1H|2H)$/i);
+  if (m) {
+    const side = m[1].toLowerCase() === 'home' ? 'home' : 'away';
+    const pfx = /1H/i.test(m[2]) ? 'ht_' : (/2H/i.test(m[2]) ? 'h2_' : '');
+    emit(`${pfx}cs_${side}_yes`, pick(/^(oui|yes)$/i));
+    emit(`${pfx}cs_${side}_no`, pick(/^(non|no)$/i));
+    return;
+  }
+
+  m = nm.match(/^Win to Nil (Home|Away) Team\s*-\s*FT$/i);
+  if (m) {
+    const side = m[1].toLowerCase() === 'home' ? 'home' : 'away';
+    emit(`tt_${side}_wins_to_nil_yes`, pick(/^(oui|yes)$/i));
+    emit(`tt_${side}_wins_to_nil_no`, pick(/^(non|no)$/i));
+    return;
+  }
+
+  m = nm.match(/^Odd\s*\/\s*Even\s*-\s*FT\s*-\s*(Home|Away) Team$/i);
+  if (m) {
+    const side = m[1].toLowerCase() === 'home' ? 'home' : 'away';
+    emit(`tt_${side}_odd`, pick(/^(impair|odd)$/i));
+    emit(`tt_${side}_even`, pick(/^(pair|even)$/i));
+  }
 }
 
 // Asian Handicap foot BetPawa : chaque row = 1 ligne hcp (specifier.hcp),
