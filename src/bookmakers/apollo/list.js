@@ -83,7 +83,12 @@ export async function listMatches({ live = false, maxMatches = 1500, sport = 'fo
 
 export async function fetchOffers(ids) {
   const map = new Map();
-  const BATCH = 16;
+  // Apollo n'a pas d'endpoint par lot : 1 requete par match. Avec BATCH=16 le
+  // book n'arrivait a lire que ~200 matchs sur 520 avant la fin du budget temps
+  // du scan (constate 2026-08-31 : apollo 35s/198 alors que betmomo lit 421),
+  // d'ou sa quasi-absence des opportunites. 40 requetes en parallele couvrent
+  // tout le catalogue dans le meme budget (appel direct, pas de proxy).
+  const BATCH = 40;
   for (let i = 0; i < ids.length; i += BATCH) {
     const batch = ids.slice(i, i + BATCH);
     const res = await Promise.all(batch.map((id) => apolloGet(`/sport/offer/v3/match/offers?MatchId=${id}`)));
