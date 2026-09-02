@@ -224,7 +224,17 @@ export function jaroWinkler(s1, s2) {
 // Similarite TOLERANTE d'equipe (overlap + prefixe + acronyme + fuzzy + Jaro-Winkler).
 // Jaro-Winkler ajoute comme filet de sécurité : capte variantes orthographiques
 // non listées dans CITY_ALIASES (ex : Kylian↔Killian, Baumgartner↔Baumgartler).
+// Un nom de DOUBLE (tennis/badminton : « Maria/Sonmez », « Maria T / Sonmez Z »)
+// ne designe JAMAIS un joueur seul. Cause reelle (02/09, argent perdu) :
+// « Maria/Sonmez vs Alexandrova/Gibson » (US Open doubles) apparie chez 1win a
+// « Gabriele Maria Noce vs Alessandro Battiston » (ITF) : meme coup d'envoi
+// (seuils kickoff-tight), prenom « maria » partage (0.50) et Jaro-Winkler
+// pleine chaine alexandrovagibson~alessandrobattiston = 0.88 -> faux surebet +50%.
+const DOUBLES_RE = /\S\s*\/\s*\S/;
+function isDoubles(s) { return DOUBLES_RE.test(String(s || '')); }
+
 export function teamSim(a, b) {
+  if (isDoubles(a) !== isDoubles(b)) return 0;
   const base = tokenOverlap(a, b);
   if (acronymMatch(a, b)) return Math.max(base, 1);
   const ta = norm(a).split(' ').filter((w) => w.length >= 3);
@@ -244,5 +254,8 @@ export function teamSim(a, b) {
   const na = ta.join('');
   const nb = tb.join('');
   const jwFull = (na.length >= 8 && nb.length >= 8) ? jaroWinkler(na, nb) : 0;
-  return Math.max(base, tokScore, jwFull >= 0.88 ? jwFull : 0);
+  // Seuil releve 0.88 -> 0.93 : a 0.88, deux noms differents partageant un
+  // prefixe et beaucoup de lettres passaient (alexandrovagibson vs
+  // alessandrobattiston = 0.881). copenhague~copenhagen reste a 0.94.
+  return Math.max(base, tokScore, jwFull >= 0.93 ? jwFull : 0);
 }
