@@ -49,8 +49,10 @@ export const BASE_URL = BASE;
 // L'API YellowBet expose /event/GetEventDetails?id=XXX qui renvoie l'objet
 // ev complet avec bts (bet types = cotes) frais.
 export async function fetchMatchBts(matchId) {
-  const url = `${BASE}/event/GetEventDetails?id=${encodeURIComponent(matchId)}`;
+  // GetEventDetails repond 403 systematiquement (800 refus sur le run live du
+  // 03/09/2026) ; GetEvents?eventIds= renvoie le meme objet ev complet (bts frais).
+  const url = `${BASE}/event/GetEvents?eventIds=${encodeURIComponent(matchId)}&take=1`;
   const j = await evapi(url).catch(() => null);
-  const ev = j?.data;
+  const ev = Array.isArray(j?.data) ? j.data[0] : j?.data;
   return Array.isArray(ev?.bts) ? ev.bts : [];
 }
