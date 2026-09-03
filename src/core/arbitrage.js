@@ -940,9 +940,10 @@ export function compareVolleyballTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, fam, `+${l}`, oa[`total_sets_over_${l}`], bookA, `−${l}`, ob[`total_sets_under_${l}`], bookB, idsOf(oa, `total_sets_over_${l}`), idsOf(ob, `total_sets_under_${l}`));
     pushArb(out, fam, `+${l}`, ob[`total_sets_over_${l}`], bookB, `−${l}`, oa[`total_sets_under_${l}`], bookA, idsOf(ob, `total_sets_over_${l}`), idsOf(oa, `total_sets_under_${l}`));
   }
-  // Total Sets 2/3 (variantes total_sets_2 / total_sets_3 sans lines).
-  pushArb(out, 'Total Sets 2', '2 sets', oa.total_sets_2, bookA, '3 sets', ob.total_sets_3, bookB, idsOf(oa, 'total_sets_2'), idsOf(ob, 'total_sets_3'));
-  pushArb(out, 'Total Sets 2', '2 sets', ob.total_sets_2, bookB, '3 sets', oa.total_sets_3, bookA, idsOf(ob, 'total_sets_2'), idsOf(oa, 'total_sets_3'));
+  // PAS de paire "2 sets" x "3 sets" : en best-of-5 (volley) un match peut faire
+  // 4 ou 5 sets et AUCUNE des 2 jambes ne couvre alors l'issue -> ce n'etait pas
+  // un surebet. La seule couverture complete est total_sets_2 x total_sets_over_2.5,
+  // deja traitee dans le comparateur tennis pour le best-of-3.
 
   // Pair/Impair Points.
   pushArb(out, 'Pair/Impair Points', 'Impair', oa.odd, bookA, 'Pair', ob.even, bookB, idsOf(oa, 'odd'), idsOf(ob, 'even'));
