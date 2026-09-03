@@ -8,11 +8,15 @@
 // Le flux allume (live-cd.betika.com) est derriere Cloudflare 403.
 import { btkFetchMatches, BETIKA_SPORT_IDS } from './api.js';
 
-// start_time est en heure Afrique de l'Est (UTC+3), ex "2026-09-03 22:00:00"
-// pour un coup d'envoi 19:00 UTC. On retire les 3 heures pour obtenir l'UTC.
-function toIso(s) {
-  const t = Date.parse(String(s || '').replace(' ', 'T') + 'Z') - 3 * 3600_000;
-  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+// start_time est deja en UTC ("2026-09-03 16:00:00" = 16:00 UTC, verifie le
+// 03/09 sur 54 affiches communes avec SportyBet : ecart 0 minute). Aucune
+// conversion de fuseau.
+// IMPORTANT : `start` doit etre un NOMBRE de millisecondes, comme tous les
+// autres bookmakers — l'appariement compare les heures numeriquement, une
+// chaine ISO ne matche jamais (cause du betika:0 des premiers cycles).
+function toMs(s) {
+  const t = Date.parse(String(s || '').replace(' ', 'T') + 'Z');
+  return Number.isFinite(t) ? t : null;
 }
 
 function toMatch(ev, live) {
@@ -24,7 +28,7 @@ function toMatch(ev, live) {
     home,
     away,
     league: [ev?.category, ev?.competition_name].filter(Boolean).join(' — '),
-    start: toIso(ev.start_time),
+    start: toMs(ev.start_time),
     live,
   };
 }
@@ -45,7 +49,7 @@ export async function listBetika({ sport = 'football', live = false, horizonHour
     for (const ev of rows) {
       const m = toMatch(ev, false);
       if (!m) continue;
-      if (m.start && Date.parse(m.start) > maxTs) { beyond++; continue; }
+      if (m.start && m.start > maxTs) { beyond++; continue; }
       if (seen.has(m.id)) continue;
       seen.add(m.id);
       out.push(m);
