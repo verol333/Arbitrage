@@ -141,8 +141,10 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
           return null;
         });
         if (codes.includes(null) || codes.length !== 2) continue;
-        const set = codes.sort().join('');
-        const key = set === '1X' ? 'dc_1X' : set === '12' ? 'dc_12' : set === 'X2' ? 'dc_X2' : null;
+        // Ordre canonique 1 / X / 2 : un tri alphabetique donnerait "2X" et
+        // ferait perdre la double chance X2.
+        const has = (c) => codes.includes(c);
+        const key = has('1') && has('X') ? 'dc_1X' : has('1') && has('2') ? 'dc_12' : has('X') && has('2') ? 'dc_X2' : null;
         if (key) put(sc + key, s, mk);
       }
       continue;
