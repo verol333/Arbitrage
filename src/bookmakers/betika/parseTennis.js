@@ -79,8 +79,12 @@ function totals(odds, m, prefixOver, prefixUnder, setNr = null) {
     const L = totalOf(o);
     if (!L || !isHalfLine(L)) continue;
     const v = num(o.odd_value);
-    if (def(o).startsWith('plus de')) put(odds, `${prefixOver}${L}`, v, m, o);
-    else if (def(o).startsWith('moins de')) put(odds, `${prefixUnder}${L}`, v, m, o);
+    // Le flux Congo renvoie odd_def en francais quelle que soit accept-language
+    // (verifie fr + en le 2026-09-03), mais on accepte aussi les libelles
+    // anglais au cas ou le skin basculerait.
+    const d = def(o);
+    if (d.startsWith('plus de') || d.startsWith('over')) put(odds, `${prefixOver}${L}`, v, m, o);
+    else if (d.startsWith('moins de') || d.startsWith('under')) put(odds, `${prefixUnder}${L}`, v, m, o);
   }
 }
 
