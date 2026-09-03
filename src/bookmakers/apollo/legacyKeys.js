@@ -77,7 +77,7 @@ function legacyKey(offer, sport) {
   const raw = String(offer.BetTypeKey == null ? '' : offer.BetTypeKey);
   // Ancien format (nombre pur) : rien a traduire.
   if (/^\d+$/.test(raw)) return raw;
-  const table = sport === 'football' ? KEY_MAP_FOOTBALL : KEY_MAP_SETS;
+  const table = (sport === 'football' || sport === 'hockey') ? KEY_MAP_FOOTBALL : KEY_MAP_SETS;
   if (table[raw] !== undefined) return String(table[raw]);
   const desc = String(offer.Description || offer.Name || '');
   for (const [re, key] of DESC_MAP) if (re.test(desc)) return String(key);
