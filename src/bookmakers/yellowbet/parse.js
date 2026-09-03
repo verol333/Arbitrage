@@ -321,10 +321,34 @@ export function yellowbetTennisFlatOdds(bts, { home = '', away = '' } = {}) {
     }
   };
   // Norm player name pour matching tt_home / tt_away sur "{Player} total games"
-  const homeLc = String(home || '').toLowerCase();
+  // BUG CORRIGE (2026-09-03, Li/Noskova US Open) : l'ancien test prenait les 4
+  // premieres lettres du nom de famille ("li") et faisait un includes() : "noskova,
+  // linda" contient "li" → le total de jeux de Noskova etait ecrit en tt_home.
+  // Desormais : comparaison STRICTE du nom complet normalise (le libelle YB
+  // "{Player} total games" reprend exactement le champ h/a de l'event), puis
+  // repli sur le nom de famille en mot entier, et JAMAIS d'attribution si les
+  // deux camps matchent (ambiguite → marche ignore, aucun pari faux).
+  const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const surname = (s) => normName(String(s || '').split(',')[0]);
+  const homeN = normName(home), awayN = normName(away);
+  const homeS = surname(home), awayS = surname(away);
+  const hasWord = (txt, w) => !!w && w.length >= 3 && new RegExp('(^| )' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\  const homeLc = String(home || '').toLowerCase();
   const awayLc = String(away || '').toLowerCase();
   const isHomeName = (n) => homeLc && n.includes(homeLc.split(',')[0].trim().toLowerCase().slice(0, 4));
   const isAwayName = (n) => awayLc && n.includes(awayLc.split(',')[0].trim().toLowerCase().slice(0, 4));
+') + '( |$)').test(txt);
+  const sideOfPlayer = (raw) => {
+    const p = normName(raw);
+    if (!p) return null;
+    const exactH = !!homeN && p === homeN, exactA = !!awayN && p === awayN;
+    if (exactH !== exactA) return exactH ? 'home' : 'away';
+    if (exactH && exactA) return null;
+    const wordH = hasWord(p, homeS), wordA = hasWord(p, awayS);
+    if (wordH !== wordA) return wordH ? 'home' : 'away';
+    return null;
+  };
+  const isHomeName = (n) => sideOfPlayer(n) === 'home';
+  const isAwayName = (n) => sideOfPlayer(n) === 'away';
 
   for (const b of bts) {
     const name = String(b?.n || '').trim();
