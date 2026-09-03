@@ -4,7 +4,7 @@
 // On inventorie donc les compétitions d'abord, puis on lit les matchs par lots.
 import { swarmSession, TYPE_PREMATCH } from './ws.js';
 
-const SPORT_IDS = { football: 1 };
+const SPORT_IDS = { football: 1, tennis: 4 };
 
 // MaxiBet melange dans son flux des competitions SIMULEES (« Virtual Matches —
 // Betual … », 52 des 62 matchs du direct). Elles n'existent chez aucun autre
