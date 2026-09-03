@@ -57,6 +57,7 @@ jobs:
           LIVE_INTERVAL_MS: '7000'
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          JINA_API_KEY_2: ${{ secrets.JINA_API_KEY_2 }}
           RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
           CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
           BASE44_API_URL: ${{ secrets.BASE44_API_URL }}
