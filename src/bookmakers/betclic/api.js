@@ -191,15 +191,31 @@ export async function bcListPage(sport = 'football', { regulation = 'CI', offset
   return matches;
 }
 
-/** Tout le programme, page par page (le serveur repete la derniere page a la fin). */
+/**
+ * Tout le programme (le serveur repete la derniere page a la fin).
+ *
+ * Les pages sont demandees par VAGUES PARALLELES : le decalage est explicite,
+ * donc chaque page est independante. En sequentiel, 1200 matchs = 30 appels a la
+ * suite, chacun attendant la fin du flux temps reel (1 a 13 s) : le listing
+ * seul mangeait plusieurs minutes et retardait tout le cycle football.
+ */
+const LIST_WAVE = 8;
+
 export async function bcListAll(sport = 'football', { regulation = 'CI', maxMatches = 1600 } = {}) {
   const byId = new Map();
-  for (let offset = 0; offset < maxMatches; offset += BETCLIC_PAGE) {
-    let page;
-    try { page = await bcListPage(sport, { regulation, offset }); } catch { break; }
-    if (!page.length) break;
+  for (let offset = 0; offset < maxMatches; offset += BETCLIC_PAGE * LIST_WAVE) {
+    const offsets = [];
+    for (let k = 0; k < LIST_WAVE && offset + k * BETCLIC_PAGE < maxMatches; k++) {
+      offsets.push(offset + k * BETCLIC_PAGE);
+    }
+    const pages = await Promise.all(
+      offsets.map((o) => bcListPage(sport, { regulation, offset: o }).catch(() => [])),
+    );
     let fresh = 0;
-    for (const m of page) { if (byId.has(m.id)) continue; byId.set(m.id, m); fresh++; }
+    for (const page of pages) {
+      for (const m of page) { if (byId.has(m.id)) continue; byId.set(m.id, m); fresh++; }
+    }
+    // Aucune nouveaute sur toute une vague = fin du programme.
     if (!fresh) break;
   }
   return [...byId.values()];
