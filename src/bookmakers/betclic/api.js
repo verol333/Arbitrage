@@ -9,7 +9,9 @@ const BASE = 'https://offering.begmedia.com';
 const SITES = { CI: 'https://www.betclic.ci', SN: 'https://www.betclic.sn', FR: 'https://www.betclic.fr' };
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36';
 
-export const BETCLIC_SPORTS = { football: 'football-s1' };
+// Slug attendu par le backend : 'football' tout court (verifie 03/09/2026 :
+// 320+ matchs). 'football-s1' renvoyait un flux VIDE, d'ou un catalogue a 0.
+export const BETCLIC_SPORTS = { football: 'football' };
 export const BETCLIC_PAGE = 40; // taille de page imposee par le serveur
 
 // Les onglets de marches ne sont PAS les memes d'un match a l'autre : chaque
@@ -209,7 +211,10 @@ export async function bcListAll(sport = 'football', { regulation = 'CI', maxMatc
       offsets.push(offset + k * BETCLIC_PAGE);
     }
     const pages = await Promise.all(
-      offsets.map((o) => bcListPage(sport, { regulation, offset: o }).catch(() => [])),
+      offsets.map((o) => bcListPage(sport, { regulation, offset: o }).catch((e) => {
+        console.log(`\u26a0\ufe0f betclic listPage(${o}): ${e?.message || e}`);
+        return [];
+      })),
     );
     let fresh = 0;
     for (const page of pages) {
