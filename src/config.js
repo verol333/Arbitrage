@@ -11,6 +11,7 @@ export const config = {
   proxy: {
     mode: (process.env.PROXY_MODE || 'jina').toLowerCase(),
     jinaKey: process.env.JINA_API_KEY || '',
+    jinaKey2: process.env.JINA_API_KEY_2 || '', // cle de secours (bascule auto sur 401/402)
     residentialUrl: process.env.RESIDENTIAL_PROXY_URL || '',
     cfworkerUrl: process.env.CF_WORKER_PROXY_URL || '',
     cacheTtlMs: num(process.env.PROXY_CACHE_TTL_MS, 75_000),
