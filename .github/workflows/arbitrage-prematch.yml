@@ -22,6 +22,14 @@ on:
 
 jobs:
   prematch:
+    name: prematch — ${{ matrix.sport }}
+    # Un runner DEDIE par sport : chaque sport dispose de son propre creneau de
+    # 5 min, de son propre CPU et de son propre reseau. Un sport lent (foot) ne
+    # peut plus penaliser les autres, et aucun ne perd son cycle.
+    strategy:
+      fail-fast: false
+      matrix:
+        sport: [football, tennis, basket, hockey, volleyball, table_tennis]
     runs-on: ubuntu-latest
     timeout-minutes: 360
     defaults:
@@ -64,6 +72,6 @@ jobs:
           MIN_PROFIT_PREMATCH: ${{ secrets.MIN_PROFIT_PREMATCH }}
           HORIZON_HOURS: '72'
           MAX_MATCHES: '5000'
-          SCAN_SPORTS: 'football,tennis,basket,hockey,volleyball,table_tennis'
+          SCAN_SPORTS: ${{ matrix.sport }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
           CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
