@@ -326,7 +326,10 @@ export function winFlatOdds(groups, names) {
         if (n === 'no' || n.includes('no')) putWin(odds, 'btts_no', o);
       }
     }
-    if (low.includes('draw no bet')) {
+    // DNB du MATCH COMPLET uniquement : les groupes « 1st half. Draw no bet » /
+    // « 2nd half. Draw no bet » sont traites plus bas (ht_dnb_*, h2_dnb_*). Sans
+    // cette exclusion ils ecrasaient dnb_1/dnb_2 avec des cotes de mi-temps.
+    if (low.includes('draw no bet') && !low.includes('half')) {
       for (const o of list) {
         const n = (o.name || '').toLowerCase();
         if (isHome(n)) putWin(odds, 'dnb_1', o);
