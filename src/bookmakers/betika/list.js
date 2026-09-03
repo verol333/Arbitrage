@@ -8,9 +8,10 @@
 // Le flux allume (live-cd.betika.com) est derriere Cloudflare 403.
 import { btkFetchMatches, BETIKA_SPORT_IDS } from './api.js';
 
-// start_time est en UTC ("2026-09-03 12:30:00").
+// start_time est en heure Afrique de l'Est (UTC+3), ex "2026-09-03 22:00:00"
+// pour un coup d'envoi 19:00 UTC. On retire les 3 heures pour obtenir l'UTC.
 function toIso(s) {
-  const t = Date.parse(String(s || '').replace(' ', 'T') + 'Z');
+  const t = Date.parse(String(s || '').replace(' ', 'T') + 'Z') - 3 * 3600_000;
   return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
