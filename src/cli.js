@@ -107,7 +107,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Watchdog : un cycle bloque (socket keep-alive mort, promesse jamais resolue)
 // ne doit JAMAIS figer la boucle. On log et on passe au cycle suivant.
-const CYCLE_TIMEOUT_PREMATCH_MS = 240_000;
+// Budget PAR SPORT (et non plus pour le lot entier) : un sport lent ne peut
+// plus annuler le travail deja fait par les autres. 285s laisse au foot la
+// quasi-totalite du creneau de 5 min sans jamais chevaucher le cycle suivant.
+const CYCLE_TIMEOUT_PREMATCH_MS = 285_000;
 const CYCLE_TIMEOUT_LIVE_MS = 120_000;
 function withTimeout(promise, ms, label) {
   let t;
@@ -136,9 +139,10 @@ async function doAllSports({ live }) {
   // opp par son champ .sport et ne supprime rien : un POST par sport est donc
   // strictement equivalent, mais immediat.
   const totals = {};
+  const perSportMs = live ? CYCLE_TIMEOUT_LIVE_MS : CYCLE_TIMEOUT_PREMATCH_MS;
   await Promise.all(SPORTS.map(async (sport) => {
     try {
-      const result = await doScan({ live, sport });
+      const result = await withTimeout(doScan({ live, sport }), perSportMs, sport + ' scan');
       totals[sport] = result.opportunities?.length ?? 0;
       await notifyWebhookMerged({ [sport]: result }, { live });
     } catch (e) {
@@ -159,7 +163,7 @@ if (mode === 'prematch') {
     log(`▶ Scan PRÉMATCH LOOP sports=[${SPORTS.join(',')}] — boucle ${durMin} min, intervalle ${interval / 1000}s`);
     while (Date.now() < end) {
       try {
-        const totals = await withTimeout(doAllSports({ live: false }), CYCLE_TIMEOUT_PREMATCH_MS, 'cycle prematch');
+        const totals = await doAllSports({ live: false });
         cycles++;
         const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
         log(`  cycle ${cycles}: ${summary}`);
@@ -173,7 +177,7 @@ if (mode === 'prematch') {
     log(`✅ Prématch loop terminé — ${cycles} cycles (${durMin} min)`);
   } else {
     log(`▶ Scan PRÉMATCH sports=[${SPORTS.join(',')}] (parallele)`);
-    const totals = await withTimeout(doAllSports({ live: false }), CYCLE_TIMEOUT_PREMATCH_MS, 'cycle prematch');
+    const totals = await doAllSports({ live: false });
     const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
     log(`✅ Prématch terminé — ${summary}`);
   }
@@ -185,7 +189,7 @@ if (mode === 'prematch') {
   log(`▶ Scan LIVE sports=[${SPORTS.join(',')}] — boucle ${duration} min, intervalle ${interval / 1000}s`);
   while (Date.now() < end) {
     try {
-      const totals = await withTimeout(doAllSports({ live: true }), CYCLE_TIMEOUT_LIVE_MS, 'cycle live');
+      const totals = await doAllSports({ live: true });
       cycles++;
       const summary = Object.entries(totals).map(([s, n]) => `${s}:${n}`).join(' | ');
       log(`  cycle ${cycles}: ${summary}`);
