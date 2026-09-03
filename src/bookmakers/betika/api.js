@@ -1,7 +1,7 @@
 // Betika (skin Betika Congo, api-cd.betika.com) — API JSON publique, aucune
 // authentification, aucun Cloudflare : joignable en direct depuis les runners
 // GitHub (verifie 2026-09-03 : HTTP 200, 116 Ko sur un match de Liga).
-//   /v1/uo/matches?sport_id=14&tab=upcoming|live  → liste paginee
+//   /v1/uo/matches?sport_id=3&tab=upcoming|live  → liste paginee
 //   /v1/uo/match?parent_match_id=<id>             → tous les marches + cotes
 const BASE = 'https://api-cd.betika.com';
 
@@ -13,8 +13,8 @@ const HDR = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
 };
 
-// sport_id Betika : 14 = football (verifie sur le flux reel).
-export const BETIKA_SPORT_IDS = { football: 14 };
+// sport_id Betika : 3 = football (verifie sur le flux reel ; 14 renvoie vide).
+export const BETIKA_SPORT_IDS = { football: 3 };
 
 async function getJson(url, timeoutMs = 20_000) {
   const ctrl = new AbortController();
