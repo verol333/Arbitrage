@@ -195,12 +195,38 @@ function orientationsMismatch(oa, ob) {
   return aRatio > 2 && bRatio > 2;
 }
 
+// ── Garde-fou COTES PERIMEES (cause racine des faux surebets signales par les
+// utilisateurs : "les cotes du site ne sont pas les memes que chez le book").
+// Au coup d'envoi, ou quand le score change en live, un book peut garder
+// quelques secondes ses cotes d'AVANT le changement pendant que l'autre a deja
+// bouge. Le calcul voit alors un "surebet" de 15-30% qui n'existe pas : la mise
+// auto pose la 1re jambe, le book refuse ou derive la 2e, l'utilisateur perd.
+// On compare donc la probabilite implicite du VAINQUEUR entre les 2 books : si
+// elle diverge massivement, l'un des deux est perime -> on jette TOUT le match.
+const STALE_PROB_TOL = 0.25;
+function mainImpliedProb(o) {
+  const p1 = o.match_1, p2 = o.match_2, px = o.match_X;
+  if (!p1 || !p2 || p1 <= 1 || p2 <= 1) return null;
+  const i1 = 1 / p1, i2 = 1 / p2;
+  const ix = px && px > 1 ? 1 / px : 0;
+  const s = i1 + i2 + ix;
+  return s > 0 ? { prob: i1 / s, threeWay: ix > 0 } : null;
+}
+function staleBookMismatch(oa, ob) {
+  const a = mainImpliedProb(oa), b = mainImpliedProb(ob);
+  if (!a || !b) return false;
+  // Structures differentes (l'un avec le nul, l'autre sans) : comparaison biaisee.
+  if (a.threeWay !== b.threeWay) return false;
+  return Math.abs(a.prob - b.prob) > STALE_PROB_TOL;
+}
+
 export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   const oa = normalizeAliases(rawA);
   const ob = normalizeAliases(rawB);
   // Skip complet si orientations 1X2 divergent — évite les fake arbs 20-25%
   // sur matchs mal appariés (BetPawa senior vs autre book jeune, etc.).
   if (orientationsMismatch(oa, ob)) return [];
+  if (staleBookMismatch(oa, ob)) return [];
   const out = [];
   // Totaux buts plein temps.
   for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
@@ -565,6 +591,7 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
   if (orientationsInverted(matchA, matchB)) {
     ob = flipTennisOdds(ob);
   }
+  if (staleBookMismatch(oa, ob)) return [];
   const out = [];
 
   // Vainqueur du Match : 2-way sans nul. match_1 vs match_2 sont complementaires.
@@ -688,6 +715,7 @@ export function compareTennisTwoBooks(rawA, bookA, rawB, bookB, matchA = null, m
 export function compareBasketTwoBooks(rawA, bookA, rawB, bookB) {
   const oa = normalizeAliases(rawA);
   const ob = normalizeAliases(rawB);
+  if (staleBookMismatch(oa, ob)) return [];
   const out = [];
 
   // Vainqueur du Match : 2-way.
@@ -795,6 +823,7 @@ export function compareBasketTwoBooks(rawA, bookA, rawB, bookB) {
 export function compareHockeyTwoBooks(rawA, bookA, rawB, bookB) {
   const oa = normalizeAliases(rawA);
   const ob = normalizeAliases(rawB);
+  if (staleBookMismatch(oa, ob)) return [];
   const out = [];
 
   // Vainqueur regulation 3-way. compareTwoBooks (foot) traite deja 1X2 3-way
@@ -859,6 +888,7 @@ export function compareHockeyTwoBooks(rawA, bookA, rawB, bookB) {
 export function compareVolleyballTwoBooks(rawA, bookA, rawB, bookB) {
   const oa = normalizeAliases(rawA);
   const ob = normalizeAliases(rawB);
+  if (staleBookMismatch(oa, ob)) return [];
   const out = [];
 
   // Vainqueur du Match : 2-way. match_1/2 complementaires.
