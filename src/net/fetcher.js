@@ -19,8 +19,24 @@ async function directFetch(url, { headers = {}, method = 'GET', body, timeoutMs 
   } finally { clearTimeout(t); }
 }
 
+// Cle principale, puis cle de secours des que la principale est epuisee (402)
+// ou invalide (401). Le basculement est memorise pour tout le run.
+let jinaKeyIdx = 0;
 async function jinaProxy(url, opts) {
-  const key = config.proxy.jinaKey;
+  const keys = [config.proxy.jinaKey, config.proxy.jinaKey2].filter(Boolean);
+  for (; jinaKeyIdx < Math.max(keys.length, 1); jinaKeyIdx++) {
+    const res = await jinaProxyWithKey(url, opts, keys[jinaKeyIdx] || '');
+    if ((res.status === 402 || res.status === 401) && jinaKeyIdx < keys.length - 1) {
+      console.warn(`[jina] cle #${jinaKeyIdx + 1} refusee (${res.status}) → bascule sur la cle de secours`);
+      continue;
+    }
+    return res;
+  }
+  jinaKeyIdx = Math.max(keys.length - 1, 0);
+  return jinaProxyWithKey(url, opts, keys[jinaKeyIdx] || '');
+}
+
+async function jinaProxyWithKey(url, opts, key) {
   const extraHeaders = {
     Authorization: key ? `Bearer ${key}` : '',
     'X-Return-Format': 'text',
