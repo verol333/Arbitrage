@@ -13,8 +13,10 @@ const HDR = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
 };
 
-// sport_id Betika : 3 = football (verifie sur le flux reel ; 14 renvoie vide).
-export const BETIKA_SPORT_IDS = { football: 3 };
+// sport_id Betika (skin Congo) : 3 = football, 1 = tennis. Les ids du skin .com
+// (14 = football, 28 = tennis) ne fonctionnent PAS ici - lus dans meta.sports du
+// flux reel le 2026-09-03 (138 affiches tennis a venir).
+export const BETIKA_SPORT_IDS = { football: 3, tennis: 1 };
 
 async function getJson(url, timeoutMs = 20_000) {
   const ctrl = new AbortController();
