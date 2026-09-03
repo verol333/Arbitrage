@@ -16,8 +16,12 @@ import sportybet from './sportybet/index.js';
 // Backend prod-api.velisports.com passe par Scrape.do super=true (Cloudflare
 // bloque les IPs cloud sans residentialisation).
 import casongo from './casongo/index.js';
+// maxibet (skin BetConstruct, site_id 1870852) : cotes uniquement via le
+// WebSocket Swarm, ce qui contourne Cloudflare et le geo-blocage. Foot
+// pre-match seulement pour l'instant.
+import maxibet from './maxibet/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
