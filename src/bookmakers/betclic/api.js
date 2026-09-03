@@ -12,9 +12,14 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 export const BETCLIC_SPORTS = { football: 'football-s1' };
 export const BETCLIC_PAGE = 40; // taille de page imposee par le serveur
 
-// Categories utiles a l'arbitrage. Les onglets joueurs/buteurs (ca_ftb_gsc,
-// ca_ftb_pssb) sont volontairement ignores : marches individuels, non arbitrables.
-export const ARB_CATEGORIES = ['', 'ca_ftb_rslt', 'ca_ftb_goa', 'ca_ftb_cshcp', 'ca_ftb_prp'];
+// Les onglets de marches ne sont PAS les memes d'un match a l'autre : chaque
+// match declare sa propre liste (ca_ftb_top, ca_ftb_ft, ca_ftb_rslt, ca_ftb_goa,
+// ca_ftb_cshcp, ca_ftb_gsc...). Une liste figee faisait deux degats :
+// des appels inutiles sur des onglets inexistants (le serveur renvoie alors le
+// bouquet par defaut, donc 0 marche nouveau) et surtout des onglets reels
+// jamais lus. On lit donc la liste declaree dans la reponse elle-meme.
+// Seuls les onglets de paris individuels sont ecartes : non arbitrables.
+const SKIP_CATEGORIES = new Set(['ca_ftb_gsc', 'ca_ftb_pssb']);
 
 function varint(v) { const o = []; while (v > 0x7f) { o.push((v & 0x7f) | 0x80); v = Math.floor(v / 128); } o.push(v & 0x7f); return o; }
 function fVarint(n, v) { return [...varint(n << 3), ...varint(v)]; }
@@ -200,11 +205,30 @@ export async function bcListAll(sport = 'football', { regulation = 'CI', maxMatc
   return [...byId.values()];
 }
 
+/** Codes d'onglets (ca_xxx_yyy) declares dans une reponse brute. */
+function collectCategories(raw) {
+  const found = new Set();
+  const walk = (d, depth) => {
+    if (depth > 7) return;
+    for (const vals of Object.values(decode(d))) {
+      for (const v of vals) {
+        if (!(v instanceof Uint8Array)) continue;
+        const t = asText(v);
+        if (t && /^ca_[a-z]{3}_[a-z]+$/.test(t)) found.add(t);
+        else if (!t) walk(v, depth + 1);
+      }
+    }
+  };
+  for (const f of frames(raw)) walk(f, 0);
+  return [...found];
+}
+
 /** Marches d'un match pour UNE categorie. */
 async function bcCategory(matchId, category, regulation) {
   const payload = [...fVarint(1, matchId), ...fString(2, 'fr'), ...(category ? fString(3, category) : [])];
   const raw = await call('offering.access.api.MatchService', 'GetMatchWithNotification', payload, regulation);
   const markets = [];
+  const categories = collectCategories(raw);
   for (const frame of frames(raw)) {
     for (const wrapper of decode(frame)[1] || []) {
       if (!(wrapper instanceof Uint8Array)) continue;
@@ -213,7 +237,7 @@ async function bcCategory(matchId, category, regulation) {
       }
     }
   }
-  return markets;
+  return { markets, categories };
 }
 
 /**
@@ -222,16 +246,30 @@ async function bcCategory(matchId, category, regulation) {
  * technique Betclic : deux marches peuvent porter le meme nom (versions par
  * equipe) et un dedoublonnage par libelle en perdrait la moitie.
  */
-export async function bcMatchMarkets(matchId, { regulation = 'CI', categories = ARB_CATEGORIES } = {}) {
-  const results = await Promise.all(categories.map((c) => bcCategory(matchId, c, regulation).catch(() => [])));
-  const seen = new Set(); const out = [];
-  for (const list of results) {
+export async function bcMatchMarkets(matchId, { regulation = 'CI' } = {}) {
+  const seen = new Set();
+  const out = [];
+  const add = (list) => {
     for (const mk of list) {
+      // Dedoublonnage sur l'identifiant technique : deux marches peuvent porter
+      // le meme nom (versions par equipe) et un dedoublonnage par libelle en
+      // perdrait la moitie.
       const key = mk.id ? '#' + mk.id : mk.name + '|' + mk.selections.map((s) => s.id ?? s.name).join(',');
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(mk);
     }
-  }
+  };
+
+  // Le bouquet par defaut sert aussi d'inventaire : il declare les onglets du match.
+  const first = await bcCategory(matchId, '', regulation);
+  add(first.markets);
+  const cats = first.categories.filter((c) => !SKIP_CATEGORIES.has(c));
+  if (!cats.length) return out;
+
+  const rest = await Promise.all(
+    cats.map((c) => bcCategory(matchId, c, regulation).then((r) => r.markets).catch(() => [])),
+  );
+  for (const list of rest) add(list);
   return out;
 }
