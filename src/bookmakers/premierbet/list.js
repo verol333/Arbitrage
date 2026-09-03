@@ -45,7 +45,10 @@ export async function listMatches({ live = false, horizonHours = 168, maxMatches
     }
   }
   const endpoints = live
-    ? [{ path: '/events/live', extra: { sportId: SPORT_ID, zoomSportId: '61' } }]
+    // zoomSportId=61 injectait ~100 matchs virtuels "Zoom" (sportId 61) dans le
+    // live de CHAQUE sport (constate 03/09/2026 : 111 events identiques en foot,
+    // basket, hockey et tennis). Retire + filtre ev.sportId ci-dessous.
+    ? [{ path: '/events/live', extra: { sportId: SPORT_ID } }]
     : [
         ...upcomingDates.map((date) => ({
           path: '/events/upcoming',
@@ -73,6 +76,7 @@ export async function listMatches({ live = false, horizonHours = 168, maxMatches
   let filtered = { outright: 0, virtual: 0, horizon: 0, noTeams: 0, nonFoot: 0 };
 
   for (const ev of ids.values()) {
+    if (ev.sportId != null && String(ev.sportId) !== SPORT_ID) { filtered.nonFoot++; continue; }
     const teams = splitTeams(ev.eventNames);
     if (!teams) { filtered.noTeams++; continue; }
     // Doubles tennis (ex: "Nadal / Federer" vs "Djokovic / Murray") : autorise
