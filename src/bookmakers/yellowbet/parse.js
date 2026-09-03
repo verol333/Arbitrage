@@ -332,11 +332,7 @@ export function yellowbetTennisFlatOdds(bts, { home = '', away = '' } = {}) {
   const surname = (s) => normName(String(s || '').split(',')[0]);
   const homeN = normName(home), awayN = normName(away);
   const homeS = surname(home), awayS = surname(away);
-  const hasWord = (txt, w) => !!w && w.length >= 3 && new RegExp('(^| )' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\  const homeLc = String(home || '').toLowerCase();
-  const awayLc = String(away || '').toLowerCase();
-  const isHomeName = (n) => homeLc && n.includes(homeLc.split(',')[0].trim().toLowerCase().slice(0, 4));
-  const isAwayName = (n) => awayLc && n.includes(awayLc.split(',')[0].trim().toLowerCase().slice(0, 4));
-') + '( |$)').test(txt);
+  const hasWord = (txt, w) => !!w && w.length >= 3 && (' ' + txt + ' ').includes(' ' + w + ' ');
   const sideOfPlayer = (raw) => {
     const p = normName(raw);
     if (!p) return null;
