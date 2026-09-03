@@ -20,8 +20,12 @@ import casongo from './casongo/index.js';
 // WebSocket Swarm, ce qui contourne Cloudflare et le geo-blocage. Foot
 // pre-match seulement pour l'instant.
 import maxibet from './maxibet/index.js';
+// betika (api-cd.betika.com) : API JSON publique, sans authentification ni
+// Cloudflare, joignable en direct depuis les runners GitHub. Foot pre-match et
+// live ; les cotes completes se lisent match par match (/v1/uo/match).
+import betika from './betika/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet, betika];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
