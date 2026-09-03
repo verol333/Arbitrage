@@ -6,12 +6,17 @@ import { swarmSession, TYPE_PREMATCH } from './ws.js';
 
 const SPORT_IDS = { football: 1 };
 
+// MaxiBet melange dans son flux des competitions SIMULEES (« Virtual Matches —
+// Betual … », 52 des 62 matchs du direct). Elles n'existent chez aucun autre
+// book : on les ecarte des deux flux pour ne jamais arbitrer du virtuel.
+const VIRTUAL_RE = /virtual|betual|simulat|esoccer|e-soccer|cyber|\bsrl\b/i;
+
 export function sportId(sport) {
   return SPORT_IDS[sport] || null;
 }
 
 // Phase 1 — inventaire léger des compétitions (jamais tronqué).
-export async function fetchCompetitions(sport) {
+export async function fetchCompetitions(sport, { type = TYPE_PREMATCH } = {}) {
   const id = sportId(sport);
   if (!id) return [];
   const res = await swarmSession([{
@@ -19,7 +24,7 @@ export async function fetchCompetitions(sport) {
     params: {
       source: 'betting',
       what: { region: ['id', 'name'], competition: ['id', 'name'], game: '@count' },
-      where: { sport: { id }, game: { type: TYPE_PREMATCH } },
+      where: { sport: { id }, game: { type } },
     },
   }]);
   const out = [];
@@ -28,14 +33,16 @@ export async function fetchCompetitions(sport) {
     const r = regions[rKey];
     for (const cKey of Object.keys(r.competition || {})) {
       const c = r.competition[cKey];
-      if ((c.game || 0) > 0) out.push({ id: c.id, name: String(c.name || '').trim(), region: String(r.name || '').trim() });
+      const name = String(c.name || '').trim();
+      const region = String(r.name || '').trim();
+      if ((c.game || 0) > 0 && !VIRTUAL_RE.test(name + ' ' + region)) out.push({ id: c.id, name, region });
     }
   }
   return out;
 }
 
 // Phase 2 — matchs + TOUS leurs marchés, par lots de compétitions.
-export async function fetchGames(sport, compIds, { batchSize = 20 } = {}) {
+export async function fetchGames(sport, compIds, { batchSize = 20, type = TYPE_PREMATCH } = {}) {
   const id = sportId(sport);
   if (!id || !compIds.length) return [];
   const steps = [];
@@ -50,7 +57,7 @@ export async function fetchGames(sport, compIds, { batchSize = 20 } = {}) {
           market: ['id', 'name', 'type'],
           event: ['id', 'name', 'price', 'type_1', 'base'],
         },
-        where: { sport: { id }, game: { type: TYPE_PREMATCH }, competition: { id: { '@in': compIds.slice(i, i + batchSize) } } },
+        where: { sport: { id }, game: { type }, competition: { id: { '@in': compIds.slice(i, i + batchSize) } } },
       },
     });
   }
