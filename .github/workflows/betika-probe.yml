@@ -1,0 +1,19 @@
+name: Betika Probe
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Betika reachability
+        run: |
+          set -x
+          curl -s -o /tmp/m.json -w "LIST_HTTP=%{http_code}\n" \
+            -H 'accept: application/json' -H 'origin: https://www.betika.com' -H 'referer: https://www.betika.com/' \
+            -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0.0.0 Safari/537.36' \
+            'https://api-cd.betika.com/v1/uo/matches?page=1&limit=3&sport_id=3&tab=upcoming'
+          echo "LIST_BYTES=$(wc -c < /tmp/m.json)"; head -c 300 /tmp/m.json; echo
+          curl -s -o /tmp/d.json -w "MATCH_HTTP=%{http_code}\n" \
+            -H 'accept: application/json' -H 'origin: https://www.betika.com' -H 'referer: https://www.betika.com/' \
+            -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0.0.0 Safari/537.36' \
+            'https://api-cd.betika.com/v1/uo/match?parent_match_id=72478584'
+          echo "MATCH_BYTES=$(wc -c < /tmp/d.json)"; head -c 300 /tmp/d.json; echo
