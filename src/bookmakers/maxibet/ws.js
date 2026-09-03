@@ -12,6 +12,9 @@ export const LANG = 'eng';
 // game.type : 2 = pré-match (vérifié — 1029 matchs foot), 0 = direct + marchés
 // statistiques (245 matchs, sans les vraies affiches).
 export const TYPE_PREMATCH = 2;
+// game.type 1 = DIRECT (verifie : 62 matchs foot, dont les vraies affiches en
+// cours et les memes codes de marches que le pre-match, donc meme decodeur).
+export const TYPE_LIVE = 1;
 
 // Exécute une suite de requêtes `get` sur une seule session Swarm.
 // steps = [{ rid, params }] → résout avec { [rid]: data }.
