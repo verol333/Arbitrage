@@ -24,8 +24,12 @@ import maxibet from './maxibet/index.js';
 // Cloudflare, joignable en direct depuis les runners GitHub. Foot pre-match et
 // live ; les cotes completes se lisent match par match (/v1/uo/match).
 import betika from './betika/index.js';
+// betclic : backend gRPC-web public (offering.begmedia.com), regulation CI, sans
+// authentification. Le site betclic.ci bloque les IP cloud, ce backend non.
+// Foot pre-match ; l'indicateur "live" du flux est trompeur (cf. list.js).
+import betclic from './betclic/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet, betika];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet, betika, betclic];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
