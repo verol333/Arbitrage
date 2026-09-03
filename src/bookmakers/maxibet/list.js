@@ -1,3 +1,6 @@
+// Liste des matchs MaxiBet. `start` est en MILLISECONDES (comme tous les autres
+// books) : l'appariement compare les coups d'envoi numeriquement, une chaine ISO
+// cassait la recherche et laissait MaxiBet sans aucun match apparie.
 // Liste des matchs MaxiBet. Les marchés arrivent DANS la même réponse que les
 // matchs : ils sont conservés dans __raw pour que getOdds ne relise rien.
 import { fetchCompetitions, fetchGames } from './api.js';
@@ -23,7 +26,7 @@ export async function listPrematch(horizonHours = 72, sport = 'football') {
       home,
       away,
       league: clean(r.comp.name),
-      start: new Date(ts * 1000).toISOString(),
+      start: ts * 1000,
       __raw: { markets: r.markets },
     });
   }
@@ -47,7 +50,7 @@ export async function listLive(sport = 'football') {
       home,
       away,
       league: clean(r.comp.name),
-      start: Number.isFinite(ts) ? new Date(ts * 1000).toISOString() : null,
+      start: Number.isFinite(ts) ? ts * 1000 : null,
       __raw: { markets: r.markets },
     });
   }
