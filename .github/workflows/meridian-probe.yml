@@ -7,16 +7,19 @@ jobs:
     steps:
       - run: |
           set +e
-          CID='22cd527c0795c9e86ca52576c35648d161bf36d8be22d4c3524940437e72f3f85c0ab6e315130031aae8bd674f669c2430d1d8c4b1c0cec02e31b2d4a0a68f3d'
+          FP='22cd527c0795c9e86ca52576c35648d161bf36d8be22d4c3524940437e72f3f85c0ab6e315130031aae8bd674f669c2430d1d8c4b1c0cec02e31b2d4a0a68f3d'
           SECRET='11356bde976a2e0bfe4018a9c3c12e3774a4b37a'
-          echo "=== mint token ==="
-          RESP=$(curl -s -X POST https://auth.meridianbet.com/oauth/token \
-            -H "content-type: application/x-www-form-urlencoded" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" \
-            --data "grant_type=client_credentials&client_id=$CID&client_secret=$SECRET&betshop_id=100644&market_id=100131&platform=WEB_DESKTOP&company_id=100005")
-          echo "$RESP" | head -c 400; echo
-          TOK=$(echo "$RESP" | grep -oE "eyJ[A-Za-z0-9_.-]{40,}" | head -1)
-          echo "=== token len ==="; echo "$TOK" | wc -c
-          echo "=== read data page 0 ==="
-          curl -s -w "\nHTTP %{http_code}\n" "https://online-rr.meridianbet.com/betshop/api/v1/standard/sport/58/leagues?page=0&time=ALL" \
-            -H "Authorization: Bearer $TOK" -A "Mozilla/5.0" | head -c 500; echo
+          AU='https://auth.meridianbet.com'
+          echo "=== A: microservice/token GET ==="
+          curl -s -w "\nHTTP %{http_code}\n" "$AU/microservice/token" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" | head -c 400; echo
+          echo "=== B: microservice/token POST form fingerprint ==="
+          curl -s -w "\nHTTP %{http_code}\n" -X POST "$AU/microservice/token" -H "content-type: application/x-www-form-urlencoded" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" --data "fingerprint=$FP&platform=WEB_DESKTOP&betshop_id=100644" | head -c 400; echo
+          echo "=== C: microservice/token POST json fingerprint ==="
+          curl -s -w "\nHTTP %{http_code}\n" -X POST "$AU/microservice/token" -H "content-type: application/json" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" --data "{\"fingerprint\":\"$FP\",\"platform\":\"WEB_DESKTOP\",\"betshopId\":100644}" | head -c 400; echo
+          echo "=== D: microservice/token POST json clientId ==="
+          curl -s -w "\nHTTP %{http_code}\n" -X POST "$AU/microservice/token" -H "content-type: application/json" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" --data "{\"clientId\":\"$FP\",\"platform\":\"WEB_DESKTOP\",\"betshopId\":100644}" | head -c 400; echo
+          echo "=== E: oauth/token client_credentials with FP as client_id (no secret) ==="
+          curl -s -w "\nHTTP %{http_code}\n" -X POST "$AU/oauth/token" -H "content-type: application/x-www-form-urlencoded" -H "origin: https://supergooal.cg" --data "grant_type=client_credentials&client_id=$FP&betshop_id=100644&market_id=100131&platform=WEB_DESKTOP&company_id=100005" | head -c 400; echo
+          echo "=== F: oauth/token with FP as client_id + secret ==="
+          curl -s -w "\nHTTP %{http_code}\n" -X POST "$AU/oauth/token" -H "content-type: application/x-www-form-urlencoded" -H "origin: https://supergooal.cg" --data "grant_type=client_credentials&client_id=$FP&client_secret=$SECRET&betshop_id=100644&market_id=100131&platform=WEB_DESKTOP&company_id=100005" | head -c 400; echo
           true
