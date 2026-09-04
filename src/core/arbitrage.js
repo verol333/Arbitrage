@@ -261,13 +261,33 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   // de coherence DC (dcA/dcB) reste applique quand la jambe est une DC.
   // Uniquement des jambes SECHES cote 1X2 (1 ou 2) croisees avec le handicap
   // a demi-but du camp oppose : aucun remboursement possible, gain total.
-  const hcpPairs = [
-    ['match_1', 'hcp_away_0.5', '1X2 — 1 + Ext. +0.5', 'Domicile', 'Ext. +0.5'],
-    ['match_2', 'hcp_home_0.5', '1X2 — 2 + Dom. +0.5', 'Extérieur', 'Dom. +0.5'],
+  // GENERALISATION (2026-09-04) : une jambe SECHE (1 ou 2) OU une DOUBLE CHANCE
+  // croisee avec un handicap a DEMI-BUT du camp oppose, sur TOUTES les lignes
+  // demi-but disponibles. Le handicap a demi-but ne peut JAMAIS etre nul : il
+  // n'y a donc aucun remboursement, la jambe gagnante paie en entier (1000 F a
+  // la cote 2 = 2000 F). C'est exactement ce que le handicap europeen apporte,
+  // mais avec le marche "Handicap" simple que TOUS les books exposent deja.
+  //   1  x Ext. +L      2  x Dom. +L      1X x Ext. +L
+  //   X2 x Dom. +L      12 x Dom. +L      12 x Ext. +L        (L = 0.5/1.5/2.5)
+  // Union des deux jambes = les 3 issues, toujours (le chevauchement eventuel
+  // ne fait que garantir des cas ou les DEUX jambes gagnent).
+  const CROSS_HALF_LINES = ['0.5', '1.5', '2.5'];
+  const crossLegs = [
+    ['match_1', 'away', 'Domicile', null],
+    ['match_2', 'home', 'Extérieur', null],
+    ['dc_1X', 'away', 'Domicile ou Nul', 'dc_1X'],
+    ['dc_X2', 'home', 'Nul ou Extérieur', 'dc_X2'],
+    ['dc_12', 'home', 'Un gagnant (12)', 'dc_12'],
+    ['dc_12', 'away', 'Un gagnant (12)', 'dc_12'],
   ];
-  for (const [sk, hk, fam, aL, bL] of hcpPairs) {
-    pushArb(out, fam, aL, oa[sk], bookA, bL, ob[hk], bookB, idsOf(oa, sk), idsOf(ob, hk));
-    pushArb(out, fam, aL, ob[sk], bookB, bL, oa[hk], bookA, idsOf(ob, sk), idsOf(oa, hk));
+  for (const [sk, hSide, aL, dcKey] of crossLegs) {
+    for (const l of CROSS_HALF_LINES) {
+      const hk = `hcp_${hSide}_${l}`;
+      const bL = `${hSide === 'away' ? 'Ext.' : 'Dom.'} +${l}`;
+      const fam = `1X2 — ${aL} + ${bL}`;
+      if (!dcKey || dcA[dcKey]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[hk], bookB, idsOf(oa, sk), idsOf(ob, hk));
+      if (!dcKey || dcB[dcKey]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[hk], bookA, idsOf(ob, sk), idsOf(oa, hk));
+    }
   }
   // Draw No Bet — cross-check DNB vs 1X2 self-consistency intra-book.
   const dnbA = dnbCoherence(oa, ''), dnbB = dnbCoherence(ob, '');
@@ -287,6 +307,15 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     const aL = `Dom. ${lNum > 0 ? '+' + l : l}`, bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
     pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
     pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+    // Meme couverture avec UN CRAN de chevauchement (Dom. -1.5 x Ext. +2.5) :
+    // l'union des deux jambes reste totale, aucune issue decouverte, aucun
+    // remboursement possible. Ouvre des paires que la ligne miroir seule rate.
+    const ak2 = `hcp_away_${-lNum + 1}`;
+    const l2 = -lNum + 1;
+    const fam2 = `Handicap ${lNum > 0 ? '+' + l : l} / ${l2 > 0 ? '+' + l2 : l2}`;
+    const bL2 = `Ext. ${l2 > 0 ? '+' + l2 : l2}`;
+    pushArb(out, fam2, aL, oa[hk], bookA, bL2, ob[ak2], bookB, idsOf(oa, hk), idsOf(ob, ak2));
+    pushArb(out, fam2, aL, ob[hk], bookB, bL2, oa[ak2], bookA, idsOf(ob, hk), idsOf(oa, ak2));
   }
   // ── HANDICAP EUROPEEN (entier) x HANDICAP ASIATIQUE (demi-but) ────────
   // Le handicap europeen est un marche 3-way a handicap ENTIER : "Dom. -1"
