@@ -288,6 +288,317 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
     pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
   }
+  // ── HANDICAP EUROPEEN (entier) x HANDICAP ASIATIQUE (demi-but) ────────
+  // Le handicap europeen est un marche 3-way a handicap ENTIER : "Dom. -1"
+  // gagne si l'ecart depasse 1 but, et le match est NUL au handicap si l'ecart
+  // vaut exactement 1. Sa couverture SANS REMBOURSEMENT est le handicap
+  // asiatique a demi-but du camp oppose, place juste sous le seuil :
+  //   eh_home_L  (dom. + L)  <->  hcp_away_(0.5 - L)
+  //   eh_away_M  (ext. + M)  <->  hcp_home_(0.5 - M)
+  // Exemple reel : Dom. (0:1) = dom. -1 gagnant si ecart >= 2, couvert par
+  // Ext. +1.5 gagnant si ecart <= 1. Les deux jambes couvrent toutes les
+  // issues, aucune ne peut etre remboursee, le gain est total.
+  const sgn = (n) => (n > 0 ? '+' + n : String(n));
+  for (const [ehPfx, hcpSide, ehLbl, hcpLbl] of [['home', 'away', 'Dom.', 'Ext.'], ['away', 'home', 'Ext.', 'Dom.']]) {
+    for (const l of linesOf(oa, ob, new RegExp(`^eh_${ehPfx}_(-?\\d+)// Détection d'arbitrages (surebets) sur cotes plates standardisées.
+// Port fidèle de matchCore.ts (pushArb, pushArb3, compareTwoBooks).
+// Garde-fous conservés : cote > 80 ou profit > 40% → rejet (cotes gelées/corrompues).
+import { config } from '../config.js';
+import { normalizeAliases } from './markets.js';
+import { teamSim } from './text.js';
+
+const MAX_ODD = 80;
+const MAX_PROFIT = () => config.scan.maxProfitSanity;
+
+// Helper : IDs bruts d'une cote pour SaveCoupon backend. Les parseurs ecrivent
+// odds._ids[key] = { ...ids natifs du book } en parallele de odds[key] = value.
+// Retourne null si le parseur n'expose pas encore _ids pour ce book/marche.
+export const idsOf = (o, k) => o?._ids?.[k] || null;
+
+export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook, aIds = null, bIds = null) {
+  if (!aOdd || !bOdd || aOdd <= 1 || bOdd <= 1) return;
+  if (aOdd > MAX_ODD || bOdd > MAX_ODD) return;
+  const invSum = 1 / aOdd + 1 / bOdd;
+  if (invSum >= 1) return;
+  const profit = (1 - invSum) * 100;
+  if (profit > MAX_PROFIT()) return;
+  const stakeA = (1 / aOdd) / invSum * 100;
+  const stakeB = (1 / bOdd) / invSum * 100;
+  out.push({
+    market_family: family,
+    leg_a_book: aBook, leg_a_label: aLabel, leg_a_odd: aOdd, leg_a_ids: aIds,
+    leg_b_book: bBook, leg_b_label: bLabel, leg_b_odd: bOdd, leg_b_ids: bIds,
+    inverse_sum: Math.round(invSum * 10000) / 10000,
+    profit_pct: Math.round(profit * 100) / 100,
+    stake_a_pct: Math.round(stakeA * 10) / 10,
+    stake_b_pct: Math.round(stakeB * 10) / 10,
+  });
+}
+
+// Vainqueur de PERIODE (corners FT/1MT, quarts/mi-temps basket, hockey
+// regulation) = marche 3-WAY (H/X/A) : le nul (egalite) est une issue reelle.
+//
+// CORRECTIF CAUSE RACINE (2026-08-29) : l'ancienne version emettait
+// Dom. (book A) + Ext. (book B) SANS parier le nul — la cote Draw ne servait
+// que de « validation » mathematique du profit. En cas d'egalite, LES DEUX
+// jambes perdaient : ce n'etaient pas des surebets (pertes reelles constatees
+// sur « Corners Vainqueur »).
+//
+// La SEULE couverture garantie en 2 jambes sur un marche 3-way est de croiser
+// une Victoire seche avec le handicap +0.5 du camp oppose :
+//   Victoire Dom. (match_1)  x  Ext. +0.5 (hcp_away_0.5)  -> le +0.5 gagne
+//   Victoire Ext. (match_2)  x  Dom. +0.5 (hcp_home_0.5)     sur nul ET victoire
+// Les 3 issues sont couvertes, le profit est reellement garanti — et ces
+// marches restent scannes (aucun blocage). Si le book oppose n'expose pas le
+// handicap +0.5, pushArb ecarte la paire tout seul (cote absente).
+function pushArbPeriodWinner(out, lbl, oaHome, obAway, bookHome, bookAway, pfx) {
+  // Victoire Dom. couverte par Ext. +0.5 (gagne si nul OU victoire Ext.)
+  pushArb(out, `${lbl} Vainqueur`, 'Dom.', oaHome[`${pfx}match_1`], bookHome,
+    'Ext. +0.5', obAway[`${pfx}hcp_away_0.5`], bookAway,
+    idsOf(oaHome, `${pfx}match_1`), idsOf(obAway, `${pfx}hcp_away_0.5`));
+  // Victoire Ext. couverte par Dom. +0.5 (gagne si nul OU victoire Dom.)
+  pushArb(out, `${lbl} Vainqueur`, 'Ext.', oaHome[`${pfx}match_2`], bookHome,
+    'Dom. +0.5', obAway[`${pfx}hcp_home_0.5`], bookAway,
+    idsOf(oaHome, `${pfx}match_2`), idsOf(obAway, `${pfx}hcp_home_0.5`));
+}
+
+// Découverte DYNAMIQUE des lignes (handicap, total, team total, corners).
+// L'ancien code utilisait des tableaux hard-codés HCP_LINES [-4.5..4.5] et
+// TT_LINES [0.5..5.5] qui manquaient les lignes extrêmes (matchs déséquilibrés
+// avec handicap -5.5/-6.5 ou team totals 6.5+ chez Bayern, Man City, etc.).
+// linesOf extrait les lignes réellement présentes dans les cotes des 2 books.
+const linesOf = (a, b, pattern) => {
+  const set = new Set();
+  for (const k of [...Object.keys(a), ...Object.keys(b)]) {
+    const m = k.match(pattern);
+    if (m) set.add(m[1]);
+  }
+  return set;
+};
+
+// Cross-check self-consistency DC vs 1X2 dans UN book. Un book qui expose
+// 1X2 ET DC doit satisfaire (a la marge pres) :
+//   1/dc_XY  >= P_fair(X) + P_fair(Y) - 15%
+// Sinon la DC est "trop haute" (implique moins de prob que ses composantes)
+// = book a une erreur d'affichage/cache → sur-cote fake qui creerait des
+// arbs fantomes. Bug decouvert 29/07 : Congobet Victoria-Unirea Roumanie
+// (Home=7.2 X=4.8 Away=1.22) exposait X2=1.47 alors que fair(X+away)=0.88
+// → surebet fake 24% face au 1xbet Home=13.2.
+// Retourne { has1x2, dc1x, dc12, dcX2 } — flags true si CE marche DC est
+// coherent (ou si aucune verification possible, on laisse passer).
+function dcCoherence(o, prefix = '') {
+  const m1 = o[`${prefix}match_1`], mX = o[`${prefix}match_X`], m2 = o[`${prefix}match_2`];
+  const flags = { dc_1X: true, dc_12: true, dc_X2: true };
+  if (!m1 || !mX || !m2) return flags; // pas de 1X2 : on ne peut pas verifier
+  const totalRaw = 1 / m1 + 1 / mX + 1 / m2;
+  if (totalRaw < 0.9 || totalRaw > 1.5) return flags; // 1X2 lui-meme suspect
+  const p1 = (1 / m1) / totalRaw, pX = (1 / mX) / totalRaw, p2 = (1 / m2) / totalRaw;
+  const check = (key, sumFair) => {
+    const dc = o[`${prefix}${key}`];
+    if (!dc) return true;
+    const raw = 1 / dc;
+    // Book DC implicite doit etre >= somme des probs fair de ses 2 outcomes
+    // (avec 15% de tolerance descendante pour marges elevees). Si raw << fair,
+    // la cote DC est trop haute donc bugguee.
+    return raw >= sumFair * 0.85;
+  };
+  flags.dc_1X = check('dc_1X', p1 + pX);
+  flags.dc_12 = check('dc_12', p1 + p2);
+  flags.dc_X2 = check('dc_X2', pX + p2);
+  return flags;
+}
+
+// Meme logique pour DNB (Draw No Bet) vs 1X2 : dnb_1 gagne si home gagne,
+// remboursement si nul → fair dnb_1 = (P(1)+P(X)/2)/(P(1)+P(2)) approximativement.
+// En pratique on utilise l'egalite classique : 1/dnb_1 + 1/dnb_2 ≈ 1 + margin
+// et 1/dnb_1 ≈ P_fair(1) / (P_fair(1)+P_fair(2)).
+// Un book qui expose DNB incoherente avec son 1X2 → skip cette DNB.
+function dnbCoherence(o, prefix = '') {
+  const m1 = o[`${prefix}match_1`], mX = o[`${prefix}match_X`], m2 = o[`${prefix}match_2`];
+  const flags = { dnb_1: true, dnb_2: true };
+  if (!m1 || !mX || !m2) return flags;
+  const totalRaw = 1 / m1 + 1 / mX + 1 / m2;
+  if (totalRaw < 0.9 || totalRaw > 1.5) return flags;
+  const p1 = (1 / m1) / totalRaw, p2 = (1 / m2) / totalRaw;
+  const p1Cond = p1 / (p1 + p2), p2Cond = p2 / (p1 + p2);
+  const check = (key, expected) => {
+    const dnb = o[`${prefix}${key}`];
+    if (!dnb) return true;
+    const raw = 1 / dnb;
+    // Tolerance 20% (DNB moins standardise que DC)
+    return raw >= expected * 0.80 && raw <= expected * 1.25;
+  };
+  flags.dnb_1 = check('dnb_1', p1Cond);
+  flags.dnb_2 = check('dnb_2', p2Cond);
+  return flags;
+}
+
+// Check general 2-way : si book expose SUR LE MEME MARCHE les 2 cotes, verifier
+// que 1/A + 1/B <= 1.20 (margin book max 20%). Si superieur, une des 2 cotes
+// est aberrante → book unreliable pour ce marche. Utilise pour proteger contre
+// des bugs isoles sur BTTS/Total/Hcp/Corners d'un book.
+function twoWaySane(oddA, oddB) {
+  if (!oddA || !oddB) return true; // pas de check possible
+  const sum = 1 / oddA + 1 / oddB;
+  return sum <= 1.20;
+}
+
+// Cross-book coherence sur marche 2-way : verifie que les probabilites
+// IMPLICITES (Yes/No, Over/Under, Home/Away FT, etc.) convergent entre les 2
+// books. Si l'un des books est stale (cote figee d'un state anterieur du live),
+// sa probabilite implicite divergera massivement de l'autre → SKIP l'arb.
+//
+// Bug decouvert 2026-08-08 sur Santiago Wanderers BTTS live (0-1 79') :
+//   SB.btts_yes = 3.25 → prob Yes SB ~31% (real, Home doit marquer en 11min)
+//   1win.btts_no = 5.87 → prob No 1win ~17% (impossible !)
+//   → 1/3.25 + 1/5.87 = 0.478 → 'arb +52%'
+// Si 1win expose AUSSI btts_yes (parseur 1win lit les 2 sides quand groupe
+// present), on peut reconstruire la prob implicite 1win.Yes et voir qu'elle
+// diverge de SB.Yes de ~50 pts → cotes stale des 2 cotes chez 1win.
+//
+// Retourne true si les 2 books convergent (< 25% divergence sur prob Yes) OU
+// si l'un des 2 books n'expose PAS les 2 sides (impossible de valider). Le
+// mode 'strict' (false) impose que les 2 books exposent les 2 sides ET
+// convergent — plus safe mais reduit les detections.
+function crossBookImpliedProbOK(oa, ob, keyYes, keyNo, tolerance = 0.25) {
+  const aYes = oa[keyYes], aNo = oa[keyNo];
+  const bYes = ob[keyYes], bNo = ob[keyNo];
+  // Book A a les 2 sides ? → prob Yes fair
+  const probA = (aYes && aNo && aYes > 1 && aNo > 1)
+    ? (1 / aYes) / (1 / aYes + 1 / aNo)
+    : null;
+  const probB = (bYes && bNo && bYes > 1 && bNo > 1)
+    ? (1 / bYes) / (1 / bYes + 1 / bNo)
+    : null;
+  // Si un des 2 books n'expose pas les 2 sides, on ne peut pas cross-checker.
+  // On laisse passer (le check same-book twoWaySane reste actif sur pushArb).
+  if (probA == null || probB == null) return true;
+  // Les 2 books ont les 2 sides : verifier convergence.
+  return Math.abs(probA - probB) <= tolerance;
+}
+
+// Compare deux jeux de cotes plates 3-way (foot) entre 2 books quelconques.
+// Traite : Total, 1X2+DC, DNB, Handicap, Total indiv., BTTS, Mi-temps, Corners,
+// Pair/Impair, 1ère équipe à marquer, Mi-temps la plus prolifique.
+// Sanity check d'orientation : si les 2 books ont un match_1 défini mais un
+// écart énorme (ex: 1.51 vs 12.5), c'est presque toujours que home/away est
+// inversé entre eux (matchs différents apparillés à tort — ex: senior vs
+// jeune, ou naming réversé). On skip pour éviter les fake arbs 20-25%.
+function orientationsMismatch(oa, ob) {
+  const a1 = oa.match_1, a2 = oa.match_2, b1 = ob.match_1, b2 = ob.match_2;
+  if (!a1 || !a2 || !b1 || !b2) return false;
+  // Si le "favori" (cote la plus basse) est INVERSE entre les 2 books, c'est
+  // une orientation retournée. Seuil : ratio > 2 confirme un désaccord franc.
+  const aFavIsHome = a1 < a2;
+  const bFavIsHome = b1 < b2;
+  if (aFavIsHome === bFavIsHome) return false; // même favori → orientation OK
+  const aRatio = Math.max(a1, a2) / Math.min(a1, a2);
+  const bRatio = Math.max(b1, b2) / Math.min(b1, b2);
+  return aRatio > 2 && bRatio > 2;
+}
+
+// ── Garde-fou COTES PERIMEES (cause racine des faux surebets signales par les
+// utilisateurs : "les cotes du site ne sont pas les memes que chez le book").
+// Au coup d'envoi, ou quand le score change en live, un book peut garder
+// quelques secondes ses cotes d'AVANT le changement pendant que l'autre a deja
+// bouge. Le calcul voit alors un "surebet" de 15-30% qui n'existe pas : la mise
+// auto pose la 1re jambe, le book refuse ou derive la 2e, l'utilisateur perd.
+// On compare donc la probabilite implicite du VAINQUEUR entre les 2 books : si
+// elle diverge massivement, l'un des deux est perime -> on jette TOUT le match.
+const STALE_PROB_TOL = 0.25;
+function mainImpliedProb(o) {
+  const p1 = o.match_1, p2 = o.match_2, px = o.match_X;
+  if (!p1 || !p2 || p1 <= 1 || p2 <= 1) return null;
+  const i1 = 1 / p1, i2 = 1 / p2;
+  const ix = px && px > 1 ? 1 / px : 0;
+  const s = i1 + i2 + ix;
+  return s > 0 ? { prob: i1 / s, threeWay: ix > 0 } : null;
+}
+function staleBookMismatch(oa, ob) {
+  const a = mainImpliedProb(oa), b = mainImpliedProb(ob);
+  if (!a || !b) return false;
+  // Structures differentes (l'un avec le nul, l'autre sans) : comparaison biaisee.
+  if (a.threeWay !== b.threeWay) return false;
+  return Math.abs(a.prob - b.prob) > STALE_PROB_TOL;
+}
+
+export function compareTwoBooks(rawA, bookA, rawB, bookB) {
+  const oa = normalizeAliases(rawA);
+  const ob = normalizeAliases(rawB);
+  // Skip complet si orientations 1X2 divergent — évite les fake arbs 20-25%
+  // sur matchs mal appariés (BetPawa senior vs autre book jeune, etc.).
+  if (orientationsMismatch(oa, ob)) return [];
+  if (staleBookMismatch(oa, ob)) return [];
+  const out = [];
+  // Totaux buts plein temps.
+  for (const l of linesOf(oa, ob, /^match_(?:over|under)_(\d+(?:\.\d+)?)$/)) {
+    const fam = `Total Buts Match ${l}`;
+    pushArb(out, fam, `+${l}`, oa[`match_over_${l}`], bookA, `−${l}`, ob[`match_under_${l}`], bookB, idsOf(oa, `match_over_${l}`), idsOf(ob, `match_under_${l}`));
+    pushArb(out, fam, `+${l}`, ob[`match_over_${l}`], bookB, `−${l}`, oa[`match_under_${l}`], bookA, idsOf(ob, `match_over_${l}`), idsOf(oa, `match_under_${l}`));
+  }
+  // 1X2 croisés Double Chance. Cross-check DC vs 1X2 self-consistency dans le
+  // book qui fournit la DC (evite les fausses opps type Congobet 24% Victoria).
+  const dcA = dcCoherence(oa, ''), dcB = dcCoherence(ob, '');
+  const dcPairs = [
+    ['match_1', 'dc_X2', '1X2 — 1 + X2', 'Domicile', 'Nul ou Extérieur'],
+    ['match_2', 'dc_1X', '1X2 — 2 + 1X', 'Extérieur', 'Domicile ou Nul'],
+    ['match_X', 'dc_12', '1X2 — X + 12', 'Nul', 'Un gagnant (12)'],
+  ];
+  for (const [sk, dk, fam, aL, bL] of dcPairs) {
+    if (dcB[dk]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[dk], bookB, idsOf(oa, sk), idsOf(ob, dk));
+    if (dcA[dk]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[dk], bookA, idsOf(ob, sk), idsOf(oa, dk));
+  }
+  // ── CROISEMENT 1X2 <-> HANDICAP ASIATIQUE 0.5 (nouveau, 2026-09-04).
+  // Le handicap a demi-but n'a AUCUN remboursement (pas de push) : il est donc
+  // l'equivalent EXACT d'une double chance ou d'une victoire seche :
+  //   Ext. +0.5 = X2      Dom. +0.5 = 1X
+  //   Ext. -0.5 = 2       Dom. -0.5 = 1
+  // Les paires ci-dessous couvrent donc les 3 issues sans trou, exactement
+  // comme 1X2 x Double Chance — et ouvrent des marges tres elevees car les
+  // books ne tarifent pas leur handicap et leur 1X2 avec la meme rigueur
+  // (surtout en divisions inferieures). Exemple constate : SportyBet Dom. 4.12
+  // x Apollo Ext. +0.5 1.70 = 16,9% garanti.
+  // Les lignes 1.5 / 2.5 ne sont PAS utilisees ici : elles se chevauchent au
+  // lieu d'etre complementaires, ce qui rend le libelle trompeur. Le controle
+  // de coherence DC (dcA/dcB) reste applique quand la jambe est une DC.
+  // Uniquement des jambes SECHES cote 1X2 (1 ou 2) croisees avec le handicap
+  // a demi-but du camp oppose : aucun remboursement possible, gain total.
+  const hcpPairs = [
+    ['match_1', 'hcp_away_0.5', '1X2 — 1 + Ext. +0.5', 'Domicile', 'Ext. +0.5'],
+    ['match_2', 'hcp_home_0.5', '1X2 — 2 + Dom. +0.5', 'Extérieur', 'Dom. +0.5'],
+  ];
+  for (const [sk, hk, fam, aL, bL] of hcpPairs) {
+    pushArb(out, fam, aL, oa[sk], bookA, bL, ob[hk], bookB, idsOf(oa, sk), idsOf(ob, hk));
+    pushArb(out, fam, aL, ob[sk], bookB, bL, oa[hk], bookA, idsOf(ob, sk), idsOf(oa, hk));
+  }
+  // Draw No Bet — cross-check DNB vs 1X2 self-consistency intra-book.
+  const dnbA = dnbCoherence(oa, ''), dnbB = dnbCoherence(ob, '');
+  if (dnbB.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB, idsOf(oa, 'dnb_1'), idsOf(ob, 'dnb_2'));
+  if (dnbA.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', ob.dnb_1, bookB, 'Extérieur (DNB)', oa.dnb_2, bookA, idsOf(ob, 'dnb_1'), idsOf(oa, 'dnb_2'));
+  // Handicaps ASIATIQUES ±L (demi-lignes, 2-way sans nul). Lignes découvertes
+  // DYNAMIQUEMENT (avant : hard-codées [-4.5..4.5] → manquait -5.5, -6.5, +5.5,
+  // +6.5 pour matchs déséquilibrés). Pair {hcp_home_l, hcp_away_-l}.
+  // Handicap FOOT — nommage "Handicap" (pas "Asiatique") : notre parseur
+  // filtre uniquement les demi-lignes (0.5/1.5/2.5...) via isHalfLine, ce
+  // qui correspond au HANDICAP SIMPLE (2-way sans push), pas au vrai
+  // handicap asiatique (lignes quart .25/.75 avec refund partiel).
+  for (const l of linesOf(oa, ob, /^hcp_home_(-?\d+(?:\.\d+)?)$/)) {
+    const lNum = parseFloat(l);
+    const hk = `hcp_home_${l}`, ak = `hcp_away_${-lNum}`;
+    const fam = `Handicap ${lNum > 0 ? '+' + l : l}`;
+    const aL = `Dom. ${lNum > 0 ? '+' + l : l}`, bL = `Ext. ${-lNum > 0 ? '+' + (-lNum) : -lNum}`;
+    pushArb(out, fam, aL, oa[hk], bookA, bL, ob[ak], bookB, idsOf(oa, hk), idsOf(ob, ak));
+    pushArb(out, fam, aL, ob[hk], bookB, bL, oa[ak], bookA, idsOf(ob, hk), idsOf(oa, ak));
+  }
+))) {
+      const L = parseInt(l, 10);
+      const ek = `eh_${ehPfx}_${l}`, hk = `hcp_${hcpSide}_${0.5 - L}`;
+      const fam = `Handicap europ. ${ehLbl} ${sgn(L)}`;
+      const aL = `${ehLbl} ${sgn(L)} (europ.)`, bL = `${hcpLbl} ${sgn(0.5 - L)}`;
+      pushArb(out, fam, aL, oa[ek], bookA, bL, ob[hk], bookB, idsOf(oa, ek), idsOf(ob, hk));
+      pushArb(out, fam, aL, ob[ek], bookB, bL, oa[hk], bookA, idsOf(ob, ek), idsOf(oa, hk));
+    }
+  }
   // Totaux individuels dom./ext. — lignes DYNAMIQUES (avant [0.5..5.5]).
   for (const [side, lbl] of [['home', 'Dom.'], ['away', 'Ext.']]) {
     for (const l of linesOf(oa, ob, new RegExp(`^tt_${side}_(?:over|under)_(\\d+(?:\\.\\d+)?)$`))) {
