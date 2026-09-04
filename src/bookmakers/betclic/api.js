@@ -31,13 +31,15 @@ async function relay(payload) {
   }
 }
 
-export const BETCLIC_SPORTS = { football: 'football' };
+// Mapping sport scanner -> slug Betclic (les slugs diffèrent pour basket/hockey).
+export const BETCLIC_SPORTS = { football: 'football', tennis: 'tennis', basket: 'basketball', hockey: 'ice_hockey', volleyball: 'volleyball' };
 export const BETCLIC_PAGE = 40;
 
 /** Programme complet d'un sport : [{ id, home, away, league, start }]. */
 export async function bcListAll(sport = 'football', { regulation = 'CI' } = {}) {
+  const slug = BETCLIC_SPORTS[sport] || sport;
   try {
-    const data = await relay({ mode: 'list', sport, regulation });
+    const data = await relay({ mode: 'list', sport: slug, regulation });
     return (data.matches || []).filter((m) => m.id && m.home && m.away);
   } catch (e) {
     console.warn(`⚠️ betclic relay list: ${e.message}`);
