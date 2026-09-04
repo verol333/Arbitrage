@@ -75,15 +75,18 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
     const sc = scopeOf(name);
     const corners = /corner/.test(name);
     const dom = corners ? 'cor_' + sc : sc;          // cor_ / cor_ht_ / ht_ / ''
+    // Marches STATISTIQUES : "1ere mi-temps - Plus grand nombre de cartons" a
+    // exactement la meme forme qu'un 1X2 (equipe / egalite / equipe). Sans ce
+    // garde-fou il etait lu comme un resultat de mi-temps et produisait des
+    // centaines de faux surebets a +3% face aux vrais 1X2 des autres books.
+    // Seuls les buts et les corners ont un equivalent chez les autres books.
+    if (!corners && /carton|\btirs?\b|faute|hors-jeu|touche|passe|penalty|arret|remplacement|coup de pied/.test(name)) continue;
     const teamSide = sideIn(name, home, away);
     const sels = mk.selections;
     const labels = sels.map((s) => norm(s.name));
 
     // ── Totaux : "+ de 2,5" / "- de 2,5" ─────────────────────────────────
     if (labels.some((l) => /^[+-] de /.test(l))) {
-      // Un total de cartons/tirs n'a pas d'equivalent chez les autres books :
-      // seuls les buts et les corners sont retenus.
-      if (!corners && /carton|tir|faute|hors-jeu|touche|passe/.test(name)) continue;
       for (const s of sels) {
         const l = norm(s.name);
         const over = l.startsWith('+');
