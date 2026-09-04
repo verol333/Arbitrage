@@ -25,19 +25,27 @@ function scopeOf(name) {
 }
 
 // Equipe citee dans le libelle du marche (totaux individuels, cage inviolee).
-function sideIn(name, home, away) {
+//
+// ATTENTION : un nom d'equipe peut etre CONTENU dans l'autre ("IR Reykjavik"
+// dans "Leiknir Reykjavik"). Tester le domicile d'abord attribuait alors le
+// total individuel de l'exterieur au domicile, et fabriquait un faux surebet a
+// +12% face au vrai total de l'autre book. On retient donc toujours le nom le
+// PLUS LONG qui correspond.
+function pickSide(hay, home, away, mode) {
   const h = norm(home), a = norm(away);
-  if (h && name.includes(h)) return 'home';
-  if (a && name.includes(a)) return 'away';
+  const hit = (needle) => {
+    if (!needle) return false;
+    return mode === 'start' ? hay.startsWith(needle) : hay.includes(needle);
+  };
+  const okH = hit(h), okA = hit(a);
+  if (okH && okA) return h.length >= a.length ? 'home' : 'away';
+  if (okH) return 'home';
+  if (okA) return 'away';
   return null;
 }
+function sideIn(name, home, away) { return pickSide(name, home, away, 'in'); }
 // Equipe portee par la selection elle-meme (handicaps, 1X2).
-function sideOfSel(sel, home, away) {
-  const s = norm(sel), h = norm(home), a = norm(away);
-  if (h && s.startsWith(h)) return 'home';
-  if (a && s.startsWith(a)) return 'away';
-  return null;
-}
+function sideOfSel(sel, home, away) { return pickSide(norm(sel), home, away, 'start'); }
 
 /**
  * Handicap Betclic, exprime en phrases :
