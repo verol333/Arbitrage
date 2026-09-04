@@ -111,6 +111,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // plus annuler le travail deja fait par les autres. 285s laisse au foot la
 // quasi-totalite du creneau de 5 min sans jamais chevaucher le cycle suivant.
 const CYCLE_TIMEOUT_PREMATCH_MS = 285_000;
+// Le football a son propre budget : son catalogue (13 books, ~10 000 matchs
+// listes, appariement de 1500 rencontres) consomme a lui seul plus de 250s
+// AVANT la lecture des cotes. A 285s le cycle etait annule par le watchdog et
+// tout le travail perdu (aucune opportunite publiee, Betclic inclus). Chaque
+// sport tourne sur son propre runner : allonger le foot ne penalise personne,
+// il tourne simplement toutes les ~9 min au lieu de 5.
+const CYCLE_TIMEOUT_PREMATCH_FOOTBALL_MS = 540_000;
 const CYCLE_TIMEOUT_LIVE_MS = 120_000;
 function withTimeout(promise, ms, label) {
   let t;
@@ -139,10 +146,11 @@ async function doAllSports({ live }) {
   // opp par son champ .sport et ne supprime rien : un POST par sport est donc
   // strictement equivalent, mais immediat.
   const totals = {};
-  const perSportMs = live ? CYCLE_TIMEOUT_LIVE_MS : CYCLE_TIMEOUT_PREMATCH_MS;
+  const budget = (sport) => live ? CYCLE_TIMEOUT_LIVE_MS
+    : sport === 'football' ? CYCLE_TIMEOUT_PREMATCH_FOOTBALL_MS : CYCLE_TIMEOUT_PREMATCH_MS;
   await Promise.all(SPORTS.map(async (sport) => {
     try {
-      const result = await withTimeout(doScan({ live, sport }), perSportMs, sport + ' scan');
+      const result = await withTimeout(doScan({ live, sport }), budget(sport), sport + ' scan');
       totals[sport] = result.opportunities?.length ?? 0;
       await notifyWebhookMerged({ [sport]: result }, { live });
     } catch (e) {
