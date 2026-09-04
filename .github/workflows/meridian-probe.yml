@@ -5,30 +5,22 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: auth well-known
-        run: |
-          for u in https://auth.meridianbet.com/.well-known/openid-configuration https://auth.meridianbet.com/.well-known/oauth-authorization-server; do
-            echo "--- $u ---"
-            curl -s -w "\nHTTP %{http_code}\n" "$u" | head -c 800; echo
+      - run: |
+          set +e
+          echo "=== data API reachability (online-rr) ==="
+          curl -s -w "\nHTTP %{http_code}\n" "https://online-rr.meridianbet.com/betshop/api/v1/standard/sport/58/leagues?page=0&time=ALL" -A "Mozilla/5.0" | head -c 300; echo
+          echo "=== microservice/token on online-rr ==="
+          curl -s -w "\nHTTP %{http_code}\n" "https://online-rr.meridianbet.com/microservice/token" -A "Mozilla/5.0" | head -c 400; echo
+          echo "=== auth.meridianbet.com clients probe ==="
+          for p in /oauth/clients /api/clients /betshop/api/v1/standard/client /microservice/token; do
+            echo "--- auth$p ---"
+            curl -s -w " HTTP %{http_code}\n" "https://auth.meridianbet.com$p" -A "Mozilla/5.0" -H "origin: https://supergooal.cg" | head -c 300; echo
           done
-      - name: auth root
-        run: |
-          curl -s -w "\nHTTP %{http_code}\n" https://auth.meridianbet.com/ | head -c 1200; echo
-      - name: meridianbet main
-        run: |
-          for h in meridianbet.com www.meridianbet.com cg.meridianbet.com cdn.meridianbet.com; do
-            echo "--- https://$h/ ---"
-            curl -s -o /tmp/m -w "HTTP %{http_code}\n" "https://$h/" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-            grep -oE "client_id['\":= ]+[A-Za-z0-9_-]+" /tmp/m | head -3 || true
-          done
-      - name: supergooal via google cache
-        run: |
-          curl -s -w "\nHTTP %{http_code}\n" "https://webcache.googleusercontent.com/search?q=cache:supergooal.cg" -A "Mozilla/5.0" | grep -oE "client_id['\":= ]+[A-Za-z0-9_-]+|microservice/token" | head -5 || echo "rien"
-      - name: try client_ids
-        run: |
-          for cid in web-congo web-congo-prod supergooal-web congo-web meridian-congo web-meridian meridianbet-web; do
+          echo "=== try client_credentials with betshop params ==="
+          for cid in web-congo web-cg congo-web supergooal meridian-cg; do
             echo "--- $cid ---"
             curl -s -w " HTTP %{http_code}\n" -X POST https://auth.meridianbet.com/oauth/token \
               -H "content-type: application/x-www-form-urlencoded" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" \
-              --data "grant_type=client_credentials&client_id=$cid&client_secret=11356bde976a2e0bfe4018a9c3c12e3774a4b37a" | head -c 200; echo
+              --data "grant_type=client_credentials&client_id=$cid&client_secret=11356bde976a2e0bfe4018a9c3c12e3774a4b37a&betshop_id=100644&market_id=100131&platform=WEB_DESKTOP&company_id=100005" | head -c 200; echo
           done
+          true
