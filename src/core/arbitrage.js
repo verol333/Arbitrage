@@ -246,6 +246,29 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
     if (dcB[dk]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[dk], bookB, idsOf(oa, sk), idsOf(ob, dk));
     if (dcA[dk]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[dk], bookA, idsOf(ob, sk), idsOf(oa, dk));
   }
+  // ── CROISEMENT 1X2 <-> HANDICAP ASIATIQUE 0.5 (nouveau, 2026-09-04).
+  // Le handicap a demi-but n'a AUCUN remboursement (pas de push) : il est donc
+  // l'equivalent EXACT d'une double chance ou d'une victoire seche :
+  //   Ext. +0.5 = X2      Dom. +0.5 = 1X
+  //   Ext. -0.5 = 2       Dom. -0.5 = 1
+  // Les paires ci-dessous couvrent donc les 3 issues sans trou, exactement
+  // comme 1X2 x Double Chance — et ouvrent des marges tres elevees car les
+  // books ne tarifent pas leur handicap et leur 1X2 avec la meme rigueur
+  // (surtout en divisions inferieures). Exemple constate : SportyBet Dom. 4.12
+  // x Apollo Ext. +0.5 1.70 = 16,9% garanti.
+  // Les lignes 1.5 / 2.5 ne sont PAS utilisees ici : elles se chevauchent au
+  // lieu d'etre complementaires, ce qui rend le libelle trompeur. Le controle
+  // de coherence DC (dcA/dcB) reste applique quand la jambe est une DC.
+  const hcpPairs = [
+    ['match_1', 'hcp_away_0.5', '1X2 — 1 + Ext. +0.5', 'Domicile', 'Ext. +0.5', null],
+    ['match_2', 'hcp_home_0.5', '1X2 — 2 + Dom. +0.5', 'Extérieur', 'Dom. +0.5', null],
+    ['dc_1X', 'hcp_away_-0.5', 'Double Chance — 1X + Ext. -0.5', 'Domicile ou Nul', 'Ext. -0.5', 'dc_1X'],
+    ['dc_X2', 'hcp_home_-0.5', 'Double Chance — X2 + Dom. -0.5', 'Nul ou Extérieur', 'Dom. -0.5', 'dc_X2'],
+  ];
+  for (const [sk, hk, fam, aL, bL, dcKey] of hcpPairs) {
+    if (!dcKey || dcA[dcKey]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[hk], bookB, idsOf(oa, sk), idsOf(ob, hk));
+    if (!dcKey || dcB[dcKey]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[hk], bookA, idsOf(ob, sk), idsOf(oa, hk));
+  }
   // Draw No Bet — cross-check DNB vs 1X2 self-consistency intra-book.
   const dnbA = dnbCoherence(oa, ''), dnbB = dnbCoherence(ob, '');
   if (dnbB.dnb_2) pushArb(out, 'Draw No Bet', 'Domicile (DNB)', oa.dnb_1, bookA, 'Extérieur (DNB)', ob.dnb_2, bookB, idsOf(oa, 'dnb_1'), idsOf(ob, 'dnb_2'));
