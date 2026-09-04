@@ -1,296 +1,72 @@
-// Client Betclic : backend gRPC-web public offering.begmedia.com.
-// Le site Betclic (.ci/.sn/.fr) bloque les IP de datacenter, mais ce backend
-// repond en direct. Aucune authentification. Encodage/decodage protobuf fait
-// main (aucune dependance).
+// Client Betclic — via le RELAIS Base44.
 //
-// La regulation CI est la plus riche : 126 marches sur une grosse affiche
-// contre 98 en FR (verifie le 03/09/2026 sur Real Madrid - Betis).
-const BASE = 'https://offering.begmedia.com';
-const SITES = { CI: 'https://www.betclic.ci', SN: 'https://www.betclic.sn', FR: 'https://www.betclic.fr' };
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36';
+// Betclic bloque les IP des serveurs GitHub : chaque appel direct repondait
+// HTTP 464 (verifie le 03/09/2026 sur toutes les pages), d'ou un catalogue a 0.
+// Depuis nos serveurs Base44 le meme backend repond normalement (1600+ matchs,
+// jusqu'a 95 marches par affiche). Le scanner passe donc par la fonction
+// betclicRelay : la lecture protobuf gRPC-web est faite cote Base44.
+const RELAY_TIMEOUT_MS = 120_000;
+const ODDS_BATCH = 12; // plafond impose par le relais
 
-// Slug attendu par le backend : 'football' tout court (verifie 03/09/2026 :
-// 320+ matchs). 'football-s1' renvoyait un flux VIDE, d'ou un catalogue a 0.
-export const BETCLIC_SPORTS = { football: 'football' };
-export const BETCLIC_PAGE = 40; // taille de page imposee par le serveur
-
-// Les onglets de marches ne sont PAS les memes d'un match a l'autre : chaque
-// match declare sa propre liste (ca_ftb_top, ca_ftb_ft, ca_ftb_rslt, ca_ftb_goa,
-// ca_ftb_cshcp, ca_ftb_gsc...). Une liste figee faisait deux degats :
-// des appels inutiles sur des onglets inexistants (le serveur renvoie alors le
-// bouquet par defaut, donc 0 marche nouveau) et surtout des onglets reels
-// jamais lus. On lit donc la liste declaree dans la reponse elle-meme.
-// Seuls les onglets de paris individuels sont ecartes : non arbitrables.
-const SKIP_CATEGORIES = new Set(['ca_ftb_gsc', 'ca_ftb_pssb']);
-
-function varint(v) { const o = []; while (v > 0x7f) { o.push((v & 0x7f) | 0x80); v = Math.floor(v / 128); } o.push(v & 0x7f); return o; }
-function fVarint(n, v) { return [...varint(n << 3), ...varint(v)]; }
-function fString(n, s) { const b = new TextEncoder().encode(s); return [...varint((n << 3) | 2), ...varint(b.length), ...b]; }
-function grpcFrame(p) { const o = new Uint8Array(5 + p.length); new DataView(o.buffer).setUint32(1, p.length); o.set(p, 5); return o; }
-
-function readVarint(d, pos) { let r = 0, sh = 0; while (pos < d.length) { const b = d[pos++]; r += (b & 0x7f) * Math.pow(2, sh); if (!(b & 0x80)) break; sh += 7; } return [r, pos]; }
-
-function decode(d) {
-  const fields = {}; let pos = 0;
-  while (pos < d.length) {
-    let tag; [tag, pos] = readVarint(d, pos);
-    const num = tag >> 3, wire = tag & 7; let value;
-    if (wire === 0) { [value, pos] = readVarint(d, pos); }
-    else if (wire === 1) { if (pos + 8 > d.length) break; value = d.slice(pos, pos + 8); pos += 8; }
-    else if (wire === 2) { let len; [len, pos] = readVarint(d, pos); if (pos + len > d.length) break; value = d.slice(pos, pos + len); pos += len; }
-    else if (wire === 5) { if (pos + 4 > d.length) break; value = d.slice(pos, pos + 4); pos += 4; }
-    else break;
-    (fields[num] ||= []).push(value);
-  }
-  return fields;
+function relayUrl() {
+  const wh = process.env.WEBHOOK_URL || '';
+  if (wh.includes('/functions/')) return wh.replace(/\/functions\/.*$/, '/functions/betclicRelay');
+  return 'https://al-ve-pro.base44.app/functions/betclicRelay';
 }
 
-function asText(v) {
-  if (!(v instanceof Uint8Array)) return null;
-  try { const s = new TextDecoder('utf-8', { fatal: true }).decode(v); return /[\u0000-\u0008\u000e-\u001f]/.test(s) ? null : s; } catch { return null; }
-}
-function asDouble(v) { if (!(v instanceof Uint8Array) || v.length !== 8) return null; const n = new DataView(v.buffer, v.byteOffset, 8).getFloat64(0, true); return Number.isFinite(n) ? n : null; }
-function asInt(v) { return typeof v === 'number' ? v : null; }
-
-function concat(parts, total) { const o = new Uint8Array(total); let off = 0; for (const p of parts) { o.set(p, off); off += p.length; } return o; }
-function hasTrailer(buf) { let pos = 0; while (pos + 5 <= buf.length) { const flags = buf[pos]; const len = new DataView(buf.buffer, buf.byteOffset + pos + 1, 4).getUint32(0); pos += 5 + len; if (flags === 0x80) return true; } return false; }
-function frames(raw) {
-  const out = []; let pos = 0;
-  while (pos + 5 <= raw.length) {
-    const flags = raw[pos];
-    const len = new DataView(raw.buffer, raw.byteOffset + pos + 1, 4).getUint32(0);
-    pos += 5;
-    if (flags !== 0x80) out.push(raw.slice(pos, pos + len));
-    pos += len;
-  }
-  return out;
-}
-
-// Le flux est un abonnement temps reel : apres l'instantane initial plus rien
-// n'arrive et aucune trame de fin n'est envoyee. On coupe donc des qu'il n'y a
-// plus de donnees pendant `idle` ms.
-async function call(service, method, payload, regulation, { maxBytes = 400000, timeout = 15000, idle = 1500 } = {}) {
-  const site = SITES[regulation] || SITES.FR;
+async function relay(payload) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), timeout);
+  const timer = setTimeout(() => ctl.abort(), RELAY_TIMEOUT_MS);
   try {
-    const res = await fetch(BASE + '/' + service + '/' + method, {
+    const res = await fetch(relayUrl(), {
       method: 'POST',
       signal: ctl.signal,
-      headers: {
-        'content-type': 'application/grpc-web+proto',
-        accept: '*/*',
-        'x-grpc-web': '1',
-        'x-bg-ref-platform': 'DESKTOP',
-        'x-bg-ref-brand': 'BETCLIC',
-        'x-bg-regulation': regulation,
-        'x-bg-ref-regulator-zone': regulation,
-        origin: site,
-        referer: site + '/',
-        'user-agent': UA,
-        'accept-language': 'fr-FR,fr;q=0.9',
-      },
-      body: grpcFrame(payload),
+      headers: { 'content-type': 'application/json', 'x-webhook-secret': process.env.WEBHOOK_SECRET || '' },
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('betclic_http_' + res.status);
-    const reader = res.body.getReader();
-    const parts = []; let total = 0;
-    while (total < maxBytes) {
-      const next = await Promise.race([
-        reader.read(),
-        new Promise((r) => setTimeout(() => r({ done: true }), total ? idle : timeout - 500)),
-      ]);
-      const { value, done } = next;
-      if (done && !value) break;
-      if (value) { parts.push(value); total += value.length; }
-      if (total > 5) {
-        const merged = concat(parts, total);
-        if (hasTrailer(merged)) { try { await reader.cancel(); } catch {} return merged; }
-      }
-    }
-    try { await reader.cancel(); } catch {}
-    return concat(parts, total);
-  } finally { clearTimeout(timer); }
-}
-
-function decodeMatch(data) {
-  const f = decode(data);
-  const m = { id: asInt(f[1]?.[0]), label: null, home: null, away: null, league: null, start: null };
-  for (const v of f[2] || []) { const s = asText(v); if (s && s.includes(' - ')) { m.label = s; break; } if (s && !m.label) m.label = s; }
-  for (const v of f[3] || []) { const s = asText(v); if (s && /\d{4}-\d{2}-\d{2}/.test(s)) { const t = Date.parse(s); if (!Number.isNaN(t)) { m.start = t; break; } } }
-  const comp = f[8]?.[0];
-  if (comp instanceof Uint8Array) m.league = asText(decode(comp)[2]?.[0]);
-  const teams = [];
-  for (const t of f[12] || []) { if (!(t instanceof Uint8Array)) continue; const n = asText(decode(t)[3]?.[0]); if (n) teams.push(n); }
-  if (teams.length >= 2) { m.home = teams[0]; m.away = teams[1]; }
-  else if (m.label && m.label.includes(' - ')) { const [h, a] = m.label.split(' - '); m.home = (h || '').trim() || null; m.away = (a || '').trim() || null; }
-  return m;
-}
-
-function decodeSelection(data) {
-  const f = decode(data);
-  let name = null;
-  for (const n of [10, 11, 2, 3]) { name = asText(f[n]?.[0]); if (name) break; }
-  if (!name) return null;
-  const odd = asDouble(f[12]?.[0]);
-  if (odd === null || odd <= 1 || odd > 10000) return null;
-  return { id: asInt(f[1]?.[0]), name, odd: Math.round(odd * 100) / 100 };
-}
-
-function extractSelections(md) {
-  const f = decode(md); const out = [];
-  for (const s of f[16] || []) { if (!(s instanceof Uint8Array)) continue; const sel = decodeSelection(s); if (sel) out.push(sel); }
-  if (!out.length) {
-    for (const g of f[10] || []) {
-      if (!(g instanceof Uint8Array)) continue;
-      for (const item of decode(g)[1] || []) {
-        if (!(item instanceof Uint8Array)) continue;
-        let added = false;
-        for (const sub of decode(item)[1] || []) { if (!(sub instanceof Uint8Array)) continue; const sel = decodeSelection(sub); if (sel) { out.push(sel); added = true; } }
-        if (!added) { const sel = decodeSelection(item); if (sel) out.push(sel); }
-      }
-    }
+    if (!res.ok) throw new Error(`betclic_relay_${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
   }
-  if (!out.length) { for (const sub of f[13] || []) if (sub instanceof Uint8Array) out.push(...extractSelections(sub)); }
-  return out;
 }
 
-function extractMarkets(matchData, category) {
-  const f = decode(matchData); const out = [];
-  for (const wrapper of f[11] || []) {
-    if (!(wrapper instanceof Uint8Array)) continue;
-    const wf = decode(wrapper);
-    for (const md of [...(wf[3] || []), ...(wf[1] || [])]) {
-      if (!(md instanceof Uint8Array)) continue;
-      const mf = decode(md);
-      let name = null;
-      for (const n of [2, 3]) { const s = asText(mf[n]?.[0]); if (s && s.length > 2) { name = s; break; } }
-      if (!name) continue;
-      const selections = extractSelections(md);
-      if (!selections.length) continue;
-      out.push({ id: asInt(mf[1]?.[0]), name, category, suspended: asInt(mf[9]?.[0]) === 3, selections });
-    }
+export const BETCLIC_SPORTS = { football: 'football' };
+export const BETCLIC_PAGE = 40;
+
+/** Programme complet d'un sport : [{ id, home, away, league, start }]. */
+export async function bcListAll(sport = 'football', { regulation = 'CI' } = {}) {
+  try {
+    const data = await relay({ mode: 'list', sport, regulation });
+    return (data.matches || []).filter((m) => m.id && m.home && m.away);
+  } catch (e) {
+    console.warn(`⚠️ betclic relay list: ${e.message}`);
+    return [];
   }
-  return out;
 }
 
-/** Une page de 40 matchs (le champ 4 est le decalage de pagination). */
-export async function bcListPage(sport = 'football', { regulation = 'CI', offset = 0 } = {}) {
-  const slug = BETCLIC_SPORTS[sport] || sport;
-  const payload = [...fString(1, slug), ...fString(2, 'fr'), ...(offset ? fVarint(4, offset) : [])];
-  const raw = await call('offering.access.api.MatchService', 'GetMatchesBySportWithNotifications', payload, regulation);
-  const matches = [];
-  for (const frame of frames(raw)) {
-    for (const wrapper of decode(frame)[1] || []) {
-      if (!(wrapper instanceof Uint8Array)) continue;
-      for (const md of decode(wrapper)[3] || []) {
-        if (!(md instanceof Uint8Array)) continue;
-        const m = decodeMatch(md);
-        if (m.id && m.home && m.away) matches.push(m);
-      }
-    }
-  }
-  return matches;
-}
-
-/**
- * Tout le programme (le serveur repete la derniere page a la fin).
- *
- * Les pages sont demandees par VAGUES PARALLELES : le decalage est explicite,
- * donc chaque page est independante. En sequentiel, 1200 matchs = 30 appels a la
- * suite, chacun attendant la fin du flux temps reel (1 a 13 s) : le listing
- * seul mangeait plusieurs minutes et retardait tout le cycle football.
- */
-const LIST_WAVE = 8;
-
-export async function bcListAll(sport = 'football', { regulation = 'CI', maxMatches = 1600 } = {}) {
-  const byId = new Map();
-  for (let offset = 0; offset < maxMatches; offset += BETCLIC_PAGE * LIST_WAVE) {
-    const offsets = [];
-    for (let k = 0; k < LIST_WAVE && offset + k * BETCLIC_PAGE < maxMatches; k++) {
-      offsets.push(offset + k * BETCLIC_PAGE);
-    }
-    const pages = await Promise.all(
-      offsets.map((o) => bcListPage(sport, { regulation, offset: o }).catch((e) => {
-        console.log(`\u26a0\ufe0f betclic listPage(${o}): ${e?.message || e}`);
-        return [];
-      })),
-    );
-    let fresh = 0;
-    for (const page of pages) {
-      for (const m of page) { if (byId.has(m.id)) continue; byId.set(m.id, m); fresh++; }
-    }
-    // Aucune nouveaute sur toute une vague = fin du programme.
-    if (!fresh) break;
-  }
-  return [...byId.values()];
-}
-
-/** Codes d'onglets (ca_xxx_yyy) declares dans une reponse brute. */
-function collectCategories(raw) {
-  const found = new Set();
-  const walk = (d, depth) => {
-    if (depth > 7) return;
-    for (const vals of Object.values(decode(d))) {
-      for (const v of vals) {
-        if (!(v instanceof Uint8Array)) continue;
-        const t = asText(v);
-        if (t && /^ca_[a-z]{3}_[a-z]+$/.test(t)) found.add(t);
-        else if (!t) walk(v, depth + 1);
-      }
-    }
-  };
-  for (const f of frames(raw)) walk(f, 0);
-  return [...found];
-}
-
-/** Marches d'un match pour UNE categorie. */
-async function bcCategory(matchId, category, regulation) {
-  const payload = [...fVarint(1, matchId), ...fString(2, 'fr'), ...(category ? fString(3, category) : [])];
-  const raw = await call('offering.access.api.MatchService', 'GetMatchWithNotification', payload, regulation);
-  const markets = [];
-  const categories = collectCategories(raw);
-  for (const frame of frames(raw)) {
-    for (const wrapper of decode(frame)[1] || []) {
-      if (!(wrapper instanceof Uint8Array)) continue;
-      for (const md of decode(wrapper)[1] || []) {
-        if (md instanceof Uint8Array) markets.push(...extractMarkets(md, category));
-      }
-    }
-  }
-  return { markets, categories };
-}
-
-/**
- * TOUS les marches arbitrables d'un match : chaque categorie est interrogee
- * puis les marches sont fusionnes. Le dedoublonnage se fait sur l'identifiant
- * technique Betclic : deux marches peuvent porter le meme nom (versions par
- * equipe) et un dedoublonnage par libelle en perdrait la moitie.
- */
+/** Tous les marches d'un match : [{ id, name, suspended, selections }]. */
 export async function bcMatchMarkets(matchId, { regulation = 'CI' } = {}) {
-  const seen = new Set();
-  const out = [];
-  const add = (list) => {
-    for (const mk of list) {
-      // Dedoublonnage sur l'identifiant technique : deux marches peuvent porter
-      // le meme nom (versions par equipe) et un dedoublonnage par libelle en
-      // perdrait la moitie.
-      const key = mk.id ? '#' + mk.id : mk.name + '|' + mk.selections.map((s) => s.id ?? s.name).join(',');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(mk);
+  try {
+    const data = await relay({ mode: 'odds', ids: [matchId], regulation });
+    return data.markets?.[String(matchId)] || [];
+  } catch (e) {
+    console.warn(`⚠️ betclic relay odds ${matchId}: ${e.message}`);
+    return [];
+  }
+}
+
+/** Lecture groupee : { [matchId]: marches }. Un appel pour ODDS_BATCH matchs. */
+export async function bcMatchMarketsBatch(ids, { regulation = 'CI' } = {}) {
+  const out = {};
+  for (let i = 0; i < ids.length; i += ODDS_BATCH) {
+    const chunk = ids.slice(i, i + ODDS_BATCH);
+    try {
+      const data = await relay({ mode: 'odds', ids: chunk, regulation });
+      Object.assign(out, data.markets || {});
+    } catch (e) {
+      console.warn(`⚠️ betclic relay batch: ${e.message}`);
     }
-  };
-
-  // Le bouquet par defaut sert aussi d'inventaire : il declare les onglets du match.
-  const first = await bcCategory(matchId, '', regulation);
-  add(first.markets);
-  const cats = first.categories.filter((c) => !SKIP_CATEGORIES.has(c));
-  if (!cats.length) return out;
-
-  const rest = await Promise.all(
-    cats.map((c) => bcCategory(matchId, c, regulation).then((r) => r.markets).catch(() => [])),
-  );
-  for (const list of rest) add(list);
+  }
   return out;
 }
