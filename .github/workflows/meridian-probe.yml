@@ -5,23 +5,30 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Egress IP
-        run: curl -s https://api.ipify.org; echo
-      - name: Site supergooal
+      - name: auth well-known
         run: |
-          echo "--- site root ---"
-          curl -s -o /tmp/a.html -w "HTTP %{http_code}\n" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" https://supergooal.cg/
-          head -c 300 /tmp/a.html; echo
-          echo "--- JWT trouve ? ---"
-          grep -oE "eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}" /tmp/a.html | head -1 || echo "aucun"
-      - name: Middleware token
+          for u in https://auth.meridianbet.com/.well-known/openid-configuration https://auth.meridianbet.com/.well-known/oauth-authorization-server; do
+            echo "--- $u ---"
+            curl -s -w "\nHTTP %{http_code}\n" "$u" | head -c 800; echo
+          done
+      - name: auth root
         run: |
-          curl -s -w "\nHTTP %{http_code}\n" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" https://supergooal.cg/microservice/token | head -c 600; echo
-      - name: Auth OAuth2
+          curl -s -w "\nHTTP %{http_code}\n" https://auth.meridianbet.com/ | head -c 1200; echo
+      - name: meridianbet main
         run: |
-          curl -s -w "\nHTTP %{http_code}\n" -X POST https://auth.meridianbet.com/oauth/token \
-            -H "content-type: application/x-www-form-urlencoded" \
-            -H "origin: https://supergooal.cg" \
-            -H "referer: https://supergooal.cg/" \
-            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
-            --data "grant_type=client_credentials&client_id=web-congo&client_secret=11356bde976a2e0bfe4018a9c3c12e3774a4b37a" | head -c 600; echo
+          for h in meridianbet.com www.meridianbet.com cg.meridianbet.com cdn.meridianbet.com; do
+            echo "--- https://$h/ ---"
+            curl -s -o /tmp/m -w "HTTP %{http_code}\n" "https://$h/" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            grep -oE "client_id['\":= ]+[A-Za-z0-9_-]+" /tmp/m | head -3 || true
+          done
+      - name: supergooal via google cache
+        run: |
+          curl -s -w "\nHTTP %{http_code}\n" "https://webcache.googleusercontent.com/search?q=cache:supergooal.cg" -A "Mozilla/5.0" | grep -oE "client_id['\":= ]+[A-Za-z0-9_-]+|microservice/token" | head -5 || echo "rien"
+      - name: try client_ids
+        run: |
+          for cid in web-congo web-congo-prod supergooal-web congo-web meridian-congo web-meridian meridianbet-web; do
+            echo "--- $cid ---"
+            curl -s -w " HTTP %{http_code}\n" -X POST https://auth.meridianbet.com/oauth/token \
+              -H "content-type: application/x-www-form-urlencoded" -H "origin: https://supergooal.cg" -H "referer: https://supergooal.cg/" \
+              --data "grant_type=client_credentials&client_id=$cid&client_secret=11356bde976a2e0bfe4018a9c3c12e3774a4b37a" | head -c 200; echo
+          done
