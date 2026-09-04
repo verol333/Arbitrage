@@ -1,5 +1,5 @@
 // Sonde Swarm (BetConstruct) pour MaxiBet : liste tous les sports et dump les
-// types de marchés du basket / hockey / volley afin d'écrire les parseurs avec
+// types de marchés du volley / table tennis afin d'écrire les parseurs avec
 // les VRAIS noms de types (pas de devinette — évite tout arbitrage fantaisiste).
 // Autonome : importe 'ws' directement (resolu depuis arbitrage-service/node_modules).
 import WebSocket from 'ws';
@@ -31,18 +31,9 @@ function swarmSession(steps, { timeoutMs = 90_000 } = {}) {
 }
 
 const log = (m) => console.log(m);
-
-const sportsRes = await swarmSession([{ rid: 'sports', params: { source: 'betting', what: { sport: ['id', 'name'] } } }]);
-const sports = sportsRes.sports?.sport || {};
-log('=== SPORTS Swarm (site 1870852) ===');
-const allIds = [];
-for (const k of Object.keys(sports)) { const s = sports[k]; allIds.push(s.id); log('  id=' + s.id + '  name=' + s.name); }
-log('Total sports: ' + allIds.length);
-
 const CANDIDATES = [
-  { label: 'basket', id: 2 },
-  { label: 'hockey', id: 3 },
-  { label: 'volleyball', id: 6 },
+  { label: 'volleyball', id: 5 },
+  { label: 'table_tennis', id: 41 },
 ];
 
 for (const { label, id } of CANDIDATES) {
