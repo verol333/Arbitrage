@@ -117,7 +117,12 @@ const CYCLE_TIMEOUT_PREMATCH_MS = 285_000;
 // tout le travail perdu (aucune opportunite publiee, Betclic inclus). Chaque
 // sport tourne sur son propre runner : allonger le foot ne penalise personne,
 // il tourne simplement toutes les ~9 min au lieu de 5.
-const CYCLE_TIMEOUT_PREMATCH_FOOTBALL_MS = 540_000;
+// 2026-09-04 : le foot depassait systematiquement 540s (watchdog) — chaque
+// cycle etait JETE en entier, donc ZERO opportunite football postee pendant
+// 2h30, et l'ecran de l'app tombait de ~90 a 34 des que le tampon expirait.
+// Le foot tourne sur son propre runner : allonger son budget ne penalise
+// aucun autre sport, il poste simplement toutes les ~15 min au lieu de 9.
+const CYCLE_TIMEOUT_PREMATCH_FOOTBALL_MS = 1_020_000;
 const CYCLE_TIMEOUT_LIVE_MS = 120_000;
 function withTimeout(promise, ms, label) {
   let t;
