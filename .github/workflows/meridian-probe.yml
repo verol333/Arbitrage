@@ -1,0 +1,27 @@
+name: Meridian Probe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Egress IP
+        run: curl -s https://api.ipify.org; echo
+      - name: Site supergooal
+        run: |
+          echo "--- site root ---"
+          curl -s -o /tmp/a.html -w "HTTP %{http_code}\n" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" https://supergooal.cg/
+          head -c 300 /tmp/a.html; echo
+          echo "--- JWT trouve ? ---"
+          grep -oE "eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}" /tmp/a.html | head -1 || echo "aucun"
+      - name: Middleware token
+        run: |
+          curl -s -w "\nHTTP %{http_code}\n" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" https://supergooal.cg/microservice/token | head -c 600; echo
+      - name: Auth OAuth2
+        run: |
+          curl -s -w "\nHTTP %{http_code}\n" -X POST https://auth.meridianbet.com/oauth/token \
+            -H "content-type: application/x-www-form-urlencoded" \
+            -H "origin: https://supergooal.cg" \
+            -H "referer: https://supergooal.cg/" \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
+            --data "grant_type=client_credentials&client_id=web-congo&client_secret=11356bde976a2e0bfe4018a9c3c12e3774a4b37a" | head -c 600; echo
