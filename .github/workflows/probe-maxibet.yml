@@ -1,0 +1,20 @@
+name: Probe MaxiBet sports
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Sonde Swarm (sports + types de marchés basket/hockey/volley)
+        run: node probe-maxibet-sports.mjs
