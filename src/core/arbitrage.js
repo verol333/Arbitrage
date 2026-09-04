@@ -259,15 +259,15 @@ export function compareTwoBooks(rawA, bookA, rawB, bookB) {
   // Les lignes 1.5 / 2.5 ne sont PAS utilisees ici : elles se chevauchent au
   // lieu d'etre complementaires, ce qui rend le libelle trompeur. Le controle
   // de coherence DC (dcA/dcB) reste applique quand la jambe est une DC.
+  // Uniquement des jambes SECHES cote 1X2 (1 ou 2) croisees avec le handicap
+  // a demi-but du camp oppose : aucun remboursement possible, gain total.
   const hcpPairs = [
-    ['match_1', 'hcp_away_0.5', '1X2 — 1 + Ext. +0.5', 'Domicile', 'Ext. +0.5', null],
-    ['match_2', 'hcp_home_0.5', '1X2 — 2 + Dom. +0.5', 'Extérieur', 'Dom. +0.5', null],
-    ['dc_1X', 'hcp_away_-0.5', 'Double Chance — 1X + Ext. -0.5', 'Domicile ou Nul', 'Ext. -0.5', 'dc_1X'],
-    ['dc_X2', 'hcp_home_-0.5', 'Double Chance — X2 + Dom. -0.5', 'Nul ou Extérieur', 'Dom. -0.5', 'dc_X2'],
+    ['match_1', 'hcp_away_0.5', '1X2 — 1 + Ext. +0.5', 'Domicile', 'Ext. +0.5'],
+    ['match_2', 'hcp_home_0.5', '1X2 — 2 + Dom. +0.5', 'Extérieur', 'Dom. +0.5'],
   ];
-  for (const [sk, hk, fam, aL, bL, dcKey] of hcpPairs) {
-    if (!dcKey || dcA[dcKey]) pushArb(out, fam, aL, oa[sk], bookA, bL, ob[hk], bookB, idsOf(oa, sk), idsOf(ob, hk));
-    if (!dcKey || dcB[dcKey]) pushArb(out, fam, aL, ob[sk], bookB, bL, oa[hk], bookA, idsOf(ob, sk), idsOf(oa, hk));
+  for (const [sk, hk, fam, aL, bL] of hcpPairs) {
+    pushArb(out, fam, aL, oa[sk], bookA, bL, ob[hk], bookB, idsOf(oa, sk), idsOf(ob, hk));
+    pushArb(out, fam, aL, ob[sk], bookB, bL, oa[hk], bookA, idsOf(ob, sk), idsOf(oa, hk));
   }
   // Draw No Bet — cross-check DNB vs 1X2 self-consistency intra-book.
   const dnbA = dnbCoherence(oa, ''), dnbB = dnbCoherence(ob, '');
