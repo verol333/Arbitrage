@@ -89,6 +89,23 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     }
   };
 
+  // Handicap europeen (3-way, handicap ENTIER) : shortName "1 (0:2)" / "X (0:2)"
+  // / "2 (0:2)". Seules les jambes 1 et 2 sont emises : chacune se couvre
+  // EXACTEMENT par le handicap asiatique a demi-but du camp oppose (aucune
+  // egalite possible, donc aucun remboursement). La jambe X est ignoree.
+  // Cle : eh_home_L avec L = a - b (handicap vu du domicile), eh_away_-L.
+  const readEuroHcp = (items) => {
+    for (const it of items) {
+      const s = (it.shortName || '').trim();
+      const m = s.match(/\((-?\d+)\s*:\s*(-?\d+)\)/);
+      if (!m) continue;
+      const L = parseInt(m[1], 10) - parseInt(m[2], 10);
+      if (!L) continue; // 0:0 = 1X2 simple, deja lu
+      if (/^1\b/.test(s)) put(`eh_home_${L}`, it);
+      else if (/^2\b/.test(s)) put(`eh_away_${-L}`, it);
+    }
+  };
+
   for (const bt of json.eventBetTypes) {
     const items = (bt.eventBetTypeItems || []).filter((it) => it.active && it.bettingAllowed && Number(it.odds) > 1);
     if (!items.length) continue;
@@ -106,6 +123,7 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     else if (id === 10055 || id === 10056) readIndivTotal(bt, items, total, '');
     else if (id === 10015) { for (const it of items) { const s = (it.shortName || '').trim(); if (s === '1') put('dnb_1', it); else if (s === '2') put('dnb_2', it); } }
     else if (id === 10016) readHcpEcart(bt, items, (l) => `hcp_home_${l}`, (l) => `hcp_away_${l}`);
+    else if (id === 10021) readEuroHcp(items);
     else if (id === 10031) readOddEven(items, '');
     else if (id === 10007) read1x2(items, 'ht_');
     else if (id === 10104) readDC(items, 'ht_');
@@ -282,7 +300,7 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     // - 10040 : Double chance et les deux équipes marquent
     // - 10116/10117 : 1ère mi-temps - Résultat & (BTTS|nb buts)
     // - 10309/10310/10312/10489 : DC & BTTS période
-    else if ([10009, 10021, 10025, 10026, 10027, 10039, 10040, 10116, 10117, 10309, 10310, 10312, 10489].includes(id)) {
+    else if ([10009, 10025, 10026, 10027, 10039, 10040, 10116, 10117, 10309, 10310, 10312, 10489].includes(id)) {
       // no-op
     }
     // ─── TENNIS bettype IDs (probe v3 : Lehecka vs Wong dump) ────────────────
