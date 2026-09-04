@@ -81,6 +81,12 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
     // centaines de faux surebets a +3% face aux vrais 1X2 des autres books.
     // Seuls les buts et les corners ont un equivalent chez les autres books.
     if (!corners && /carton|\btirs?\b|faute|hors-jeu|touche|passe|penalty|arret|remplacement|coup de pied/.test(name)) continue;
+    // Marches COMBINES : "Les 2 equipes marquent OU + de 2,5 buts" a les memes
+    // selections Oui/Non qu'un vrai BTTS et etait lu comme tel — une cote de
+    // combine (plus courte) opposee a un vrai BTTS fabrique un faux surebet.
+    // Un " ou " dans le NOM du marche signe toujours un combine chez Betclic
+    // (la double chance, elle, porte le "ou" dans ses SELECTIONS, pas son nom).
+    if (/ (ou|et) /.test(name) && !/rembourse/.test(name)) continue;
     const teamSide = sideIn(name, home, away);
     const sels = mk.selections;
     const labels = sels.map((s) => norm(s.name));
