@@ -11,18 +11,26 @@ const jinaKeys = () => [process.env.JINA_API_KEY, process.env.JINA_API_KEY_2].fi
 export async function casongoGet(path, { timeoutMs = 60_000 } = {}) {
   const sep = path.includes('?') ? '&' : '?';
   const target = `${BASE}${path}${sep}${PARTNER}`;
-  for (const key of jinaKeys()) {
+  for (const [i, key] of jinaKeys().entries()) {
     try {
       const res = await fetch(`https://r.jina.ai/${target}`, {
         headers: { authorization: `Bearer ${key}`, 'x-respond-with': 'text', 'x-proxy': 'auto' },
         signal: AbortSignal.timeout(timeoutMs),
       });
       const txt = await res.text();
-      if (txt.startsWith('{')) {
-        try { return JSON.parse(txt); } catch { /* tronque : cle suivante */ }
+      // Le relais repond en JSON MEME quand il refuse (credits epuises :
+      // {"code":402,"name":"InsufficientBalanceError",...}). Un simple parse
+      // prendrait ce refus pour un flux vide, donc on exige le succes HTTP et
+      // l'absence d'enveloppe d'erreur avant d'accepter la reponse.
+      if (res.ok && txt.startsWith('{')) {
+        try {
+          const json = JSON.parse(txt);
+          if (!json?.code && !json?.readableMessage) return json;
+        } catch { /* tronque : cle suivante */ }
       }
-      console.log(`[casongo] ${path} relais=${res.status} ${txt.slice(0, 100)}`);
+      console.log(`[casongo] cle #${i + 1} refusee (${res.status}) ${txt.slice(0, 90)}`);
     } catch (e) { console.log(`[casongo] ${path} err=${e.message}`); }
   }
+  console.log('[casongo] aucune cle de relais disponible — book muet ce cycle');
   return null;
 }
