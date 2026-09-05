@@ -144,8 +144,17 @@ export function matchBook(ref, cands, used, { requireStart = false } = {}) {
     const avg = (sh + sa) / 2;
     // Sélection des seuils selon proximité kickoff
     const isTight = dt !== null && dt <= TIGHT_DT;
-    const minTeam = isTight ? 0.40 : 0.60;
-    const minAvg = isTight ? 0.55 : 0.70;
+    // ⚠️ AUCUN ASSOUPLISSEMENT SUR LES NOMS (05/09).
+    // Cause du bug utilisateur (72 fausses opportunités BetPawa) : un kickoff
+    // identique (toutes les affiches anglaises de coupe démarrent à la même
+    // heure) faisait chuter les seuils à 0.40/0.55, ce qui suffisait à relier
+    // deux rencontres DIFFÉRENTES partageant un mot générique
+    // ("Garforth Town" vs "Hebburn Town" = 0.50, "… United FC" / "… City FC").
+    // Les abréviations légitimes n'ont pas besoin de cette tolérance
+    // ("Manchester United" vs "Man Utd" = 1.00). Un kickoff proche ne sert donc
+    // plus qu'à départager deux candidats, jamais à accepter des noms flous.
+    const minTeam = 0.60;
+    const minAvg = 0.70;
     if (!(sh >= minTeam && sa >= minTeam)) continue;
     if (avg < minAvg) continue;
     if (orientation(ref.home, ref.away, c.home, c.away) !== 'same') continue;
