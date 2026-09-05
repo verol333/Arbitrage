@@ -1,11 +1,10 @@
-// Fetch cotes match Casongo — GetMatchById?MatchId=<id> retourne le match
-// complet avec tous ses marchés (Ms[]) déjà remplis (pas d'appel séparé).
-import { casongoGet } from './api.js';
+// Cotes Casongo — deja presentes dans la reponse de liste (match.__raw),
+// donc aucune requete supplementaire par match.
 import { casongoFlatOdds } from './parse.js';
 
-export async function getOdds(matchId, { live = false, noCache = false, sport = 'football' } = {}) {
+export function getOdds(match, { sport = 'football', live = false } = {}) {
   if (sport !== 'football' || live) return null;
-  const json = await casongoGet(`/WebSite/GetMatchById?MatchId=${encodeURIComponent(matchId)}`, { noCache });
-  if (!json?.MI) return null;
-  return casongoFlatOdds(json, { sport });
+  const raw = match?.__raw;
+  if (!raw?.Ms?.length) return null;
+  return casongoFlatOdds(raw, { sport });
 }
