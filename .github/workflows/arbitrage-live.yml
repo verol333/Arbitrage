@@ -76,4 +76,3 @@ jobs:
           MAX_MATCHES: '150'
           SCAN_SPORTS: ${{ matrix.sport }}
           SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
-          CASONGO_TOKEN: ${{ secrets.CASONGO_TOKEN }}
