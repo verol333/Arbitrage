@@ -10,12 +10,10 @@ import betmomo from './betmomo/index.js';
 import premierbet from './premierbet/index.js';
 import betpawa from './betpawa/index.js';
 import sportybet from './sportybet/index.js';
-// casongo (Velisports/VeliGroup, foot uniquement) : JWT Bearer token capture via
-// F12 utilisateur (2026-08-10) et stocke en GH secret CASONGO_TOKEN. Le token
-// dure ~30j — rotation manuelle mensuelle par le user via F12 fresh dump.
-// Backend prod-api.velisports.com passe par Scrape.do super=true (Cloudflare
-// bloque les IPs cloud sans residentialisation).
-import casongo from './casongo/index.js';
+// casongo (Velisports/VeliGroup) : RETIRE le 2026-09-05. Le backend
+// prod-api.velisports.com est derriere Cloudflare qui refuse toute IP serveur
+// (403 sur les runners GitHub), et la seule voie restante exigeait un token
+// capture a la main tous les 30 jours. Aucun match n'etait jamais lu.
 // maxibet (skin BetConstruct, site_id 1870852) : cotes uniquement via le
 // WebSocket Swarm, ce qui contourne Cloudflare et le geo-blocage. Foot
 // pre-match seulement pour l'instant.
@@ -33,7 +31,7 @@ import betclic from './betclic/index.js';
 // lisent par LOT de matchs (/getBettingOdds). Pas de flux in-play exploitable.
 import mozzart from './mozzart/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet, betika, betclic, mozzart];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
