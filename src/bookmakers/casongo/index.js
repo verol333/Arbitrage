@@ -9,7 +9,7 @@ export default {
     if (sport !== 'football') return [];
     return listMatches({ live, sport });
   },
-  async getOdds(match, { sport = 'football', live = false, noCache = false } = {}) {
-    return getOdds(match.id, { live, noCache, sport });
+  async getOdds(match, { sport = 'football', live = false } = {}) {
+    return getOdds(match, { sport, live });
   },
 };
