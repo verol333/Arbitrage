@@ -28,8 +28,12 @@ import betika from './betika/index.js';
 // authentification. Le site betclic.ci bloque les IP cloud, ce backend non.
 // Foot pre-match ; l'indicateur "live" du flux est trompeur (cf. list.js).
 import betclic from './betclic/index.js';
+// mozzart (www.mozzartbet.co.ke) : API JSON publique du site, sans
+// authentification ni Cloudflare. Foot pre-match uniquement ; les cotes se
+// lisent par LOT de matchs (/getBettingOdds). Pas de flux in-play exploitable.
+import mozzart from './mozzart/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet, betika, betclic];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, casongo, maxibet, betika, betclic, mozzart];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
