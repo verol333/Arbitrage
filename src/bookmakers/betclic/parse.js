@@ -142,7 +142,10 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
         const side = sideOfSel(s.name, home, away);
         const L = handicapLine(s.name);
         if (!side || L === null || !isHalfLine(L)) continue;
-        put(dom + 'hcp_' + side + '_' + (L > 0 ? '+' : '') + L, s, mk);
+        // Vocabulaire standard (core/markets.js) : la ligne positive s'ecrit SANS
+      // signe '+' (hcp_home_0.5), sinon aucune cle Betclic ne croise les autres
+      // books et tous les handicaps Betclic restent invisibles.
+      put(dom + 'hcp_' + side + '_' + L, s, mk);
       }
       continue;
     }
