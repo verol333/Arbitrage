@@ -5,8 +5,8 @@
 //   "Vainqueur du match"              -> match_1 / match_2 (2-way, noms d'équipes)
 //   "Nombre total de points"          -> match_over_<L> / match_under_<L> (demi-lignes)
 //   "Nombre total de points - {team}" -> tt_home_over/under ou tt_away_over/under
-// Ignorés : "Écart de points" (bandes d'écart, pas un handicap asiatique),
-// quart-temps, scores exacts, joueurs. Demi-lignes seulement.
+//   "Écart de points entre les équipes" -> hcp_home_<L> / hcp_away_<L>
+// Ignorés : quart-temps, scores exacts, joueurs. Demi-lignes seulement.
 import { norm, numFR, halfLine, sideOfSel, sideIn, makePut, putEcart } from './util.js';
 
 export function betclicBasketFlatOdds(markets, { home, away } = {}) {
