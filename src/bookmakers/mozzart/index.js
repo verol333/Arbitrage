@@ -1,13 +1,23 @@
 import { listMozzart } from './list.js';
 import { mozFetchOdds, mozSubgameIds, MOZ_SPORT_IDS } from './api.js';
 import { mozzartFlatOdds } from './parse.js';
+import { mozzartTennisFlatOdds, mozzartBasketFlatOdds, mozzartHockeyFlatOdds, mozzartTableTennisFlatOdds } from './parseSports.js';
 
 // Mozzartbet Kenya : les cotes se lisent PAR LOT (/getBettingOdds accepte une
 // liste de matchs), donc getOddsBatch est la voie normale — getOdds n'existe que
 // pour les lectures unitaires de controle.
 // live: false — le flux public ne distingue pas l'in-play, s'en servir
 // produirait de faux surebets live (meme piege que Betika).
-const SPORTS = new Set(['football']);
+// 2026-09-06 : ouverture tennis / basket / hockey / tennis de table (parseurs
+// dedies dans parseSports.js). Volley : 3 matchs et aucun marche exploitable.
+const PARSERS = {
+  football: mozzartFlatOdds,
+  tennis: mozzartTennisFlatOdds,
+  basket: mozzartBasketFlatOdds,
+  hockey: mozzartHockeyFlatOdds,
+  table_tennis: mozzartTableTennisFlatOdds,
+};
+const SPORTS = new Set(Object.keys(PARSERS));
 const BATCH = 15;
 
 // Le catalogue des sous-jeux ne bouge quasiment jamais : une lecture par
@@ -33,19 +43,20 @@ export default {
     if (!subgames.length) return {};
     const map = await mozFetchOdds([Number(match.id)], subgames);
     const kodds = map.get(String(match.id));
-    return kodds ? mozzartFlatOdds(kodds) : {};
+    return kodds ? PARSERS[sport](kodds) : {};
   },
   async getOddsBatch(matches, { sport = 'football', live = false } = {}) {
     const out = new Map();
     if (!SPORTS.has(sport) || live) return out;
     const subgames = await subgamesFor(sport);
     if (!subgames.length) return out;
+    const parse = PARSERS[sport];
     for (let i = 0; i < matches.length; i += BATCH) {
       const slice = matches.slice(i, i + BATCH);
       const map = await mozFetchOdds(slice.map((m) => Number(m.id)), subgames);
       for (const m of slice) {
         const kodds = map.get(String(m.id));
-        if (kodds) out.set(m.id, mozzartFlatOdds(kodds));
+        if (kodds) out.set(m.id, parse(kodds));
       }
     }
     return out;
