@@ -5,9 +5,11 @@
 // les seuls comparables avec les autres books :
 //   "Vainqueur du match"        -> match_1 / match_2 (2-way, noms des joueurs)
 //   "Nombre total de jeux"      -> match_over_<L> / match_under_<L> (demi-lignes)
-// Les marchés de set (vainqueur du set, score exact des sets, écart de sets),
+//   "Écart de sets"             -> hcp_sets_home_<L> / hcp_sets_away_<L>
+//   "{joueur} gagne au moins 1 set" -> tt_<side>_wins_a_set_yes / _no
+// Les marchés de set (vainqueur du set, score exact des sets),
 // de jeu (vainqueur du jeu N) et combinés sont ignorés : non comparables.
-import { norm, numFR, halfLine, sideOfSel, makePut } from './util.js';
+import { norm, numFR, halfLine, sideOfSel, sideIn, makePut, putEcart } from './util.js';
 
 export function betclicTennisFlatOdds(markets, { home, away } = {}) {
   const odds = {}; const ids = {}; const put = makePut(odds, ids);
@@ -19,6 +21,19 @@ export function betclicTennisFlatOdds(markets, { home, away } = {}) {
       for (const s of mk.selections) {
         const side = sideOfSel(s.name, home, away);
         if (side) put('match_' + (side === 'home' ? '1' : '2'), s, mk);
+      }
+      continue;
+    }
+    // Handicap sets, publié en phrases sous "Écart de sets".
+    if (name.startsWith('ecart de sets')) { putEcart(mk, home, away, 'hcp_sets_', put); continue; }
+    // "{joueur} gagne au moins 1 set" : Oui / Non (2 issues complémentaires).
+    if (name.endsWith('gagne au moins 1 set')) {
+      const side = sideIn(name, home, away);
+      if (!side) continue;
+      for (const s of mk.selections) {
+        const l = norm(s.name);
+        if (l === 'oui') put('tt_' + side + '_wins_a_set_yes', s, mk);
+        else if (l === 'non') put('tt_' + side + '_wins_a_set_no', s, mk);
       }
       continue;
     }
