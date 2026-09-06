@@ -43,3 +43,36 @@ export function makePut(odds, ids) {
     ids[key] = { market_id: mk.id, market_name: mk.name, selection_id: sel.id, selection_name: sel.name };
   };
 }
+
+// ── ECART (handicap deguise) ───────────────────────────────────────────
+// Betclic n'expose PAS de handicap asiatique nomme : il le publie sous
+// "Ecart de points" / "Ecart de sets" / "Ecart de buts", en phrases. Verifie le
+// 06/09/2026 sur des matchs reels :
+//   "Belgique F. gagne de 8 ou +"                        -> away -7.5
+//   "Porto Rico F. ne perd pas ou perd de 7 ou -"        -> home +7.5
+//   "Noskova ne perd pas ou perd de 1 exactement"        -> away +1.5
+// Les deux formes sont STRICTEMENT complementaires (marge entiere), donc
+// convertibles en demi-lignes : "gagne de N ou +" = -(N-0.5), "ne perd pas ou
+// perd de N" = +(N+0.5). Toute autre formulation est ignoree (pas de pari sur
+// une phrase mal comprise).
+export function ecartLine(selName, home, away) {
+  const hay = norm(selName);
+  const side = pickSide(hay, home, away, 'start');
+  if (!side) return null;
+  const team = norm(side === 'home' ? home : away);
+  const tail = hay.slice(team.length).trim();
+  let m = /^gagne de (\d+) ou \+$/.exec(tail);
+  if (m) return { side, line: -(Number(m[1]) - 0.5) };
+  m = /^ne perd pas ou perd de (\d+) (?:ou -|exactement)$/.exec(tail);
+  if (m) return { side, line: Number(m[1]) + 0.5 };
+  return null;
+}
+
+// Lit un marche "Ecart de ..." et remplit <prefix>home_<L> / <prefix>away_<L>.
+export function putEcart(mk, home, away, prefix, put) {
+  for (const s of mk.selections || []) {
+    const e = ecartLine(s.name, home, away);
+    if (!e || !isHalfLine(e.line)) continue;
+    put(prefix + e.side + '_' + String(e.line), s, mk);
+  }
+}
