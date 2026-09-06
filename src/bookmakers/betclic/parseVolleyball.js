@@ -4,9 +4,10 @@
 // Marchés lus (les seuls comparables) :
 //   "Vainqueur du match"       -> match_1 / match_2 (2-way, noms d'équipes)
 //   "Nombre total de points"   -> match_over_<L> / match_under_<L> (demi-lignes)
-// Ignorés : "Écart de points" (bandes d'écart), "Score Final Sets", "Nombre
+//   "Écart de points"          -> hcp_home_<L> / hcp_away_<L>
+// Ignorés : "Score Final Sets", "Nombre
 // total de sets", marchés par set, points par joueuse. Demi-lignes seulement.
-import { norm, numFR, halfLine, sideOfSel, makePut } from './util.js';
+import { norm, numFR, halfLine, sideOfSel, makePut, putEcart } from './util.js';
 
 export function betclicVolleyballFlatOdds(markets, { home, away } = {}) {
   const odds = {}; const ids = {}; const put = makePut(odds, ids);
@@ -21,6 +22,7 @@ export function betclicVolleyballFlatOdds(markets, { home, away } = {}) {
       }
       continue;
     }
+    if (name.startsWith('ecart de points')) { putEcart(mk, home, away, 'hcp_', put); continue; }
     if (name === 'nombre total de points') {
       for (const s of mk.selections) {
         const l = norm(s.name);
