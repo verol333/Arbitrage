@@ -17,9 +17,10 @@ const HDR = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
 };
 
-// Identifiants de sport Mozzart. Seul le football est ouvert pour l'instant :
-// les autres sports n'ont pas encore de parseur verifie.
-export const MOZ_SPORT_IDS = { football: 1 };
+// Identifiants de sport Mozzart (lus via /getAllGames + /betOffer2 le 06/09/2026) :
+// 1 football, 2 basket, 4 hockey sur glace, 5 tennis, 48 tennis de table.
+// (6 volley : 3 matchs sans marche exploitable — non ouvert.)
+export const MOZ_SPORT_IDS = { football: 1, basket: 2, hockey: 4, tennis: 5, table_tennis: 48 };
 
 async function post(path, body, timeout = 20000) {
   const r = await fetch(BASE + path, {
