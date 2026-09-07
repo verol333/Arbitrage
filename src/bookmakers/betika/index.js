@@ -1,5 +1,5 @@
 import { listBetika } from './list.js';
-import { btkFetchMatch } from './api.js';
+import { btkFetchMatch, btkFetchLiveMatch } from './api.js';
 import { betikaFlatOdds } from './parse.js';
 import { betikaTennisFlatOdds } from './parseTennis.js';
 
@@ -12,14 +12,16 @@ const SPORTS = new Set(['football', 'tennis']);
 export default {
   key: 'betika',
   label: 'Betika',
-  supports: { prematch: true, live: false },
+  // live: true depuis le 2026-09-07 — flux in-play reel sur live-cd.betika.com
+  // (football uniquement pour l'instant).
+  supports: { prematch: true, live: true },
   async listMatches({ sport = 'football', live = false, horizonHours = 72 } = {}) {
     if (!SPORTS.has(sport) || live) return [];
     return listBetika({ sport, live, horizonHours });
   },
   async getOdds(match, { sport = 'football', live = false } = {}) {
     if (!SPORTS.has(sport) || live) return {};
-    const root = await btkFetchMatch(match.id);
+    const root = live ? await btkFetchLiveMatch(match.id) : await btkFetchMatch(match.id);
     const markets = Array.isArray(root?.data) ? root.data : [];
     if (!markets.length) return {};
     const odds = sport === 'tennis' ? betikaTennisFlatOdds(markets) : betikaFlatOdds(markets, { sport });
