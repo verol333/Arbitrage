@@ -8,7 +8,8 @@ import { betclicVolleyballFlatOdds } from './parseVolleyball.js';
 
 // Betclic (backend gRPC-web offering.begmedia.com, regulation CI) : lu via le
 // RELAIS Base44 (voir api.js — les IP GitHub sont refusees en HTTP 464).
-// Pre-match uniquement (voir list.js pour le direct). Sports lus : foot,
+// Pre-match ET direct (un match en cours reste au catalogue avec des cotes
+// live — voir list.js). Sports lus : foot,
 // tennis, basket, hockey, volley. Le relais expose deja les slugs correspondants.
 const RELAY_CHUNK = 12; // plafond du relais : 12 matchs par appel
 const SUPPORTED = ['football', 'tennis', 'basket', 'hockey', 'volleyball'];
@@ -31,20 +32,20 @@ function toOdds(markets, match, sport) {
 export default {
   key: 'betclic',
   label: 'Betclic',
-  supports: { prematch: true, live: false },
+  supports: { prematch: true, live: true },
   async listMatches({ sport = 'football', live = false, horizonHours = 72 } = {}) {
-    if (live || !SUPPORTED.includes(sport)) return [];
+    if (!SUPPORTED.includes(sport)) return [];
     return listBetclic({ sport, live, horizonHours });
   },
   async getOdds(match, { sport = 'football', live = false } = {}) {
-    if (live || !SUPPORTED.includes(sport)) return {};
+    if (!SUPPORTED.includes(sport)) return {};
     return toOdds(await bcMatchMarkets(match.id, { regulation: 'CI' }), match, sport);
   },
   // Lecture groupee : un seul appel relais pour 12 matchs, avec plusieurs lots
   // en parallele — indispensable pour tenir dans le budget temps du scan.
   async getOddsBatch(matches, { sport = 'football', live = false } = {}) {
     const out = new Map();
-    if (live || !SUPPORTED.includes(sport)) return out;
+    if (!SUPPORTED.includes(sport)) return out;
     const chunks = [];
     for (let i = 0; i < matches.length; i += RELAY_CHUNK) chunks.push(matches.slice(i, i + RELAY_CHUNK));
     const WAVE = 4;
