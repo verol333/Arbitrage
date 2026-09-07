@@ -101,8 +101,17 @@ function congoLiveMeta(ev) {
 export async function listLive(sport = 'football') {
   const SPORT_ID = sportIdFor(sport);
   if (!SPORT_ID) return [];
-  const raw = await congoJson(`${CONGO_API}events/sports/live?offset=0&length=200`, { noCache: true });
-  return (Array.isArray(raw) ? raw : [])
+  // Flux live pagine : une seule page de 200 suffisait les soirees calmes
+  // (31 matchs), mais coupait en silence les soirees chargees.
+  const raw = [];
+  const seenLive = new Set();
+  for (let offset = 0; offset < 800; offset += 200) {
+    const page = await congoJson(`${CONGO_API}events/sports/live?offset=${offset}&length=200`, { noCache: true });
+    if (!Array.isArray(page) || !page.length) break;
+    for (const ev of page) if (!seenLive.has(ev.id)) { seenLive.add(ev.id); raw.push(ev); }
+    if (page.length < 200) break;
+  }
+  return raw
     .filter((ev) => congoSportId(ev) === SPORT_ID && !isVirtual(ev))
     .map((ev) => ({
       id: ev.id, home: ev.homeTeamName, away: ev.awayTeamName,
