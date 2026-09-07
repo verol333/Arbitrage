@@ -6,7 +6,7 @@
 // n'existe donc AUCUN flux in-play exploitable ici — se servir de tab=live
 // produirait de faux surebets live sur des matchs pas encore commences.
 // Le flux allume (live-cd.betika.com) est derriere Cloudflare 403.
-import { btkFetchMatches, BETIKA_SPORT_IDS } from './api.js';
+import { btkFetchMatches, btkFetchLiveMatches, BETIKA_SPORT_IDS, BETIKA_LIVE_SPORT_IDS } from './api.js';
 
 // start_time est deja en UTC ("2026-09-03 16:00:00" = 16:00 UTC, verifie le
 // 03/09 sur 54 affiches communes avec SportyBet : ecart 0 minute). Aucune
@@ -34,8 +34,9 @@ function toMatch(ev, live) {
 }
 
 export async function listBetika({ sport = 'football', live = false, horizonHours = 72 } = {}) {
+  if (live) return listBetikaLive(sport);
   const sportId = BETIKA_SPORT_IDS[sport];
-  if (!sportId || live) return [];
+  if (!sportId) return [];
   const out = [];
   const seen = new Set();
   const maxTs = Date.now() + horizonHours * 3600_000;
@@ -55,6 +56,32 @@ export async function listBetika({ sport = 'football', live = false, horizonHour
       out.push(m);
     }
     if (beyond === rows.length || rows.length < 100) break;
+  }
+  return out;
+}
+
+// Listing in-play : tous les matchs renvoyes par live-cd sont en cours, aucun
+// filtre d'horaire a appliquer. Le score et la minute sont joints pour que le
+// moteur puisse afficher l'etat du match au moment de l'alerte.
+export async function listBetikaLive(sport = 'football') {
+  const sportId = BETIKA_LIVE_SPORT_IDS[sport];
+  if (!sportId) return [];
+  const out = [];
+  const seen = new Set();
+  for (let page = 1; page <= 10; page++) {
+    const root = await btkFetchLiveMatches({ sportId, page, limit: 100 });
+    const rows = Array.isArray(root?.data) ? root.data : [];
+    if (!rows.length) break;
+    for (const ev of rows) {
+      const m = toMatch(ev, true);
+      if (!m || seen.has(m.id)) continue;
+      seen.add(m.id);
+      m.score = ev.current_score || null;
+      m.minute = ev.match_time || null;
+      m.period = ev.event_status || null;
+      out.push(m);
+    }
+    if (rows.length < 100) break;
   }
   return out;
 }
