@@ -5,7 +5,8 @@ import { betikaTennisFlatOdds } from './parseTennis.js';
 
 // Betika : les cotes completes ne sont disponibles que par match (/v1/uo/match),
 // donc getOdds refait toujours une lecture fraiche a chaque cycle.
-// live: false — l'API publique n'expose aucun flux in-play (voir list.js).
+// Live : flux in-play reel sur live-cd.betika.com, football uniquement
+// (le flux tennis live n'a pas encore ete verifie, voir list.js).
 // Sports lus : football (sport_id 3) et tennis (sport_id 1).
 const SPORTS = new Set(['football', 'tennis']);
 
@@ -16,11 +17,13 @@ export default {
   // (football uniquement pour l'instant).
   supports: { prematch: true, live: true },
   async listMatches({ sport = 'football', live = false, horizonHours = 72 } = {}) {
-    if (!SPORTS.has(sport) || live) return [];
+    if (!SPORTS.has(sport)) return [];
+    if (live && sport !== 'football') return [];
     return listBetika({ sport, live, horizonHours });
   },
   async getOdds(match, { sport = 'football', live = false } = {}) {
-    if (!SPORTS.has(sport) || live) return {};
+    if (!SPORTS.has(sport)) return {};
+    if (live && sport !== 'football') return {};
     const root = live ? await btkFetchLiveMatch(match.id) : await btkFetchMatch(match.id);
     const markets = Array.isArray(root?.data) ? root.data : [];
     if (!markets.length) return {};
