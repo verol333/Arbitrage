@@ -49,12 +49,18 @@ const LIVE_BASE = 'https://live-cd.betika.com';
 // sport_id du flux live : football 3 et tennis 1 (identiques au pre-match).
 export const BETIKA_LIVE_SPORT_IDS = { football: 3 };
 
+// ANTI-CACHE OBLIGATOIRE EN LIVE : verifie le 2026-09-07, une meme URL renvoie
+// une copie figee pendant ~30 s (minute de jeu identique a 20 s d'intervalle).
+// Sans ce parametre, le scanner comparerait des cotes live perimees et
+// annoncerait des surebets deja disparus.
+const bust = () => `&_=${Date.now()}`;
+
 export function btkFetchLiveMatches({ sportId, page = 1, limit = 100 }) {
-  return getJson(`${LIVE_BASE}/v1/uo/matches?page=${page}&limit=${limit}&sport_id=${sportId}`);
+  return getJson(`${LIVE_BASE}/v1/uo/matches?page=${page}&limit=${limit}&sport_id=${sportId}${bust()}`);
 }
 
 export function btkFetchLiveMatch(parentMatchId) {
-  return getJson(`${LIVE_BASE}/v1/uo/match?parent_match_id=${parentMatchId}`);
+  return getJson(`${LIVE_BASE}/v1/uo/match?parent_match_id=${parentMatchId}${bust()}`);
 }
 
 export function btkFetchMatch(parentMatchId) {
