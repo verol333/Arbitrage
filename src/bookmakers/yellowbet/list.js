@@ -47,10 +47,26 @@ export async function listPrematch(horizonHours = 72, sport = 'football') {
 export async function listLive(sport = 'football') {
   const sportId = SPORT_IDS[sport];
   if (!sportId) return [];
-  const data = await evapi(`${BASE_URL}/event/GetEvents?isLive=true&count=500&take=500`);
-  const events = Array.isArray(data?.data) ? data.data : [];
-  return events
-    .filter((ev) => ev && ev.sid === sportId && ev.lv && !isVirtual(ev))
-    .map(toMatch)
-    .filter((m) => m.home && m.away);
+  // statusId=1 = le SEUL filtre in-play respecte par l'API YellowBet. Les
+  // parametres isLive / liveOnly / eventType / eventStateId sont ignores en
+  // silence : ils renvoient le programme A VENIR (verifie le 2026-09-07).
+  // Avant, on lisait les 500 premiers events du programme complet (2450+) en
+  // esperant que les matchs en cours s'y trouvent. Ils y etaient par chance,
+  // mais rien ne le garantissait : une soiree chargee les repousse au-dela du
+  // 500e rang et le live YellowBet devient muet, sans aucune erreur visible.
+  const collected = new Map();
+  const PAGE = 100;
+  for (let skip = 0; skip < 600; skip += PAGE) {
+    const data = await evapi(`${BASE_URL}/event/GetEvents?statusId=1&betTypeIds=-1&skip=${skip}&take=${PAGE}&count=${PAGE}`);
+    const events = Array.isArray(data?.data) ? data.data : [];
+    if (!events.length) break;
+    for (const ev of events) {
+      if (!ev || collected.has(ev.id)) continue;
+      if (ev.sid !== sportId || isVirtual(ev)) continue;
+      const m = toMatch(ev);
+      if (m.home && m.away) collected.set(ev.id, m);
+    }
+    if (events.length < PAGE) break;
+  }
+  return [...collected.values()];
 }
