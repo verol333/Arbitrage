@@ -37,6 +37,26 @@ export function btkFetchMatches({ sportId, live = false, page = 1, limit = 100 }
   return getJson(`${BASE}/v1/uo/matches?page=${page}&limit=${limit}&sport_id=${sportId}&tab=${tab}`);
 }
 
+// FLUX IN-PLAY (verifie 2026-09-07) : live-cd.betika.com repond desormais 200
+// (il renvoyait 403 Cloudflare lors du premier audit). Les matchs y sont TOUS
+// commences, avec score (current_score), minute (match_time), periode
+// (event_status) et 22 marches par match, dans EXACTEMENT la meme structure
+// sub_type_id que le pre-match : le parseur existant fonctionne tel quel.
+// A ne pas confondre avec api-cd.../matches?tab=live, qui renvoie le programme
+// a venir (tab ignore par l'API) et produirait de faux surebets live.
+const LIVE_BASE = 'https://live-cd.betika.com';
+
+// sport_id du flux live : football 3 et tennis 1 (identiques au pre-match).
+export const BETIKA_LIVE_SPORT_IDS = { football: 3 };
+
+export function btkFetchLiveMatches({ sportId, page = 1, limit = 100 }) {
+  return getJson(`${LIVE_BASE}/v1/uo/matches?page=${page}&limit=${limit}&sport_id=${sportId}`);
+}
+
+export function btkFetchLiveMatch(parentMatchId) {
+  return getJson(`${LIVE_BASE}/v1/uo/match?parent_match_id=${parentMatchId}`);
+}
+
 export function btkFetchMatch(parentMatchId) {
   return getJson(`${BASE}/v1/uo/match?parent_match_id=${parentMatchId}`);
 }
