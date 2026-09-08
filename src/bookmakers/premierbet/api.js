@@ -1,22 +1,28 @@
-// PremierBet est protégé par Cloudflare (Scrape.do 429 constants). On utilise
-// Guinée Games — bookmaker guinéen qui partage les MÊMES codes marché
-// (id=3 1X2, id=7 BTTS, id=17 DC, id=29 Total, id=353/352 team totals, etc.).
-// Structure JSON identique : data.categories[].competitions[].events[].markets[].outcomes[].
-// On expose ces cotes SOUS L'ETIQUETTE "premierbet" dans le scan (le user les
-// utilise comme cotes PB — même sportsbook technique, différents pays).
-const BASE = 'https://sports-api.guineegames.com/v1';
-const PARAMS = { country: 'GN', group: 'g6', platform: 'desktop', locale: 'fr' };
+// VRAI flux PremierBet (verifie 08/09/2026).
+// Cloudflare bloque les IP de datacenter sur les routes /cg/, /cd/, /ci/, /gh/,
+// mais PAS sur /cm/ (Cameroun) : meme serveur, meme sportsbook, meme livre.
+// Comparaison faite sur FC Bruges - Aston Villa (Ligue des Champions, 08/09/2026),
+// cotes Congo (event 7448484) vs cotes lues ici (event 7448464, providerId
+// betradar 74165870) : 1X2 2.60/3.55/2.60, 2 Buts d'avance 2.55/3.48/2.55,
+// Total de buts 0.5 -> 5.5 = 1.03/11.00, 1.19/4.50, 1.63/2.25, 2.50/1.52,
+// 4.40/1.20, 8.00/1.07 -> IDENTIQUES au centieme, memes onglets, meme ordre.
+// Avant ce correctif on lisait Guinee Games (country=GN group=g6) comme
+// approximation : autre groupe de cotes, donc marges potentiellement differentes.
+// Le pont entre les deux pays se fait par providerId (id betradar global) ;
+// les ids internes d'event diffferent d'un pays a l'autre.
+const BASE = 'https://sports-api.premierbet.com/cm/v1';
+const PARAMS = { country: 'CM', group: 'g1', platform: 'desktop', locale: 'fr' };
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'application/json, text/plain, */*',
   'Accept-Language': 'fr-FR,fr;q=0.9',
-  'Referer': 'https://www.guineegames.com/',
-  'Origin': 'https://www.guineegames.com',
+  'Referer': 'https://www.premierbet.com/',
+  'Origin': 'https://www.premierbet.com',
 };
 
-// noCache=true → ajoute _t=timestamp pour casser tout cache upstream (CDN, proxy).
-// Utilisé en live et au re-fetch confirm pour garantir des cotes fraîches.
+// noCache=true -> ajoute _t=timestamp pour casser tout cache upstream (CDN, proxy).
+// Utilise en live et au re-fetch confirm pour garantir des cotes fraiches.
 export async function mget(path, extra = {}, timeoutMs = 20_000, { noCache = false } = {}) {
   const params = { ...PARAMS, ...extra };
   if (noCache) params._t = String(Date.now());
@@ -27,10 +33,10 @@ export async function mget(path, extra = {}, timeoutMs = 20_000, { noCache = fal
       headers: noCache ? { ...HEADERS, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : HEADERS,
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!res.ok) { console.log(`[premierbet/gg] ${path} status=${res.status}`); return null; }
+    if (!res.ok) { console.log(`[premierbet] ${path} status=${res.status}`); return null; }
     return res.json();
   } catch (e) {
-    console.log(`[premierbet/gg] ${path} err=${e.message}`);
+    console.log(`[premierbet] ${path} err=${e.message}`);
     return null;
   }
 }
