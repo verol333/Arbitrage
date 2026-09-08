@@ -17,9 +17,13 @@ import WebSocket from 'ws';
 export const API_KEY = '9ba6608f-c15b-4d37-83e8-bb89aa22d2e7';
 export const FEED_URL = `wss://lnbpari.com/direct-feed/feed?brand=BENIN&X-Api-Key=${API_KEY}`;
 
-// Codes sport du flux. Seul le foot est lu pour l'instant : le decodeur de
-// marches est verifie sur les buts (resultKind 1), pas sur les autres sports.
-export const SPORT_CODE = { football: 'F' };
+// Codes sport du flux (releves via GetSportsByStage). Chaque sport est decode
+// par son propre mapping, verifie sur donnees reelles (marge du book positive
+// dans toutes les familles).
+export const SPORT_CODE = {
+  football: 'F', tennis: 'T', basket: 'B',
+  table_tennis: 'TT', hockey: 'H', volleyball: 'VB',
+};
 // stage : 1 = pre-match, 2 = direct.
 export const STAGE_PREMATCH = 1;
 export const STAGE_LIVE = 2;
