@@ -1,5 +1,11 @@
 import { listPrematch, listLive } from './list.js';
 import { lnbpariFlatOdds } from './parse.js';
+import { lnbpariSportOdds } from './parseSports.js';
+
+const SPORTS = new Set(['football', 'tennis', 'basket', 'table_tennis', 'hockey', 'volleyball']);
+const decode = (markets, sport) => (sport === 'football'
+  ? lnbpariFlatOdds(markets)
+  : lnbpariSportOdds(markets, sport));
 import { feedInvoke } from './api.js';
 
 // Les marches se lisent par LOT d'identifiants de match : un seul abonnement
@@ -33,22 +39,23 @@ export default {
   key: 'lnbpari',
   label: 'LNB Pari',
   // Flux "direct-feed" (BetLab) de lnbpari.com : joignable en direct depuis les
-  // runners GitHub, sans compte ni Cloudflare. Pre-match ET direct, foot.
+  // runners GitHub, sans compte ni Cloudflare. Pre-match ET direct : foot,
+  // tennis, basket, tennis de table, hockey, volley.
   supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
-    if (sport !== 'football') return [];
+    if (!SPORTS.has(sport)) return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
   async getOdds(match, { sport = 'football' } = {}) {
-    if (sport !== 'football') return {};
+    if (!SPORTS.has(sport)) return {};
     const byEvent = await readMarkets([String(match.id)]);
-    return lnbpariFlatOdds(byEvent.get(String(match.id)) || []);
+    return decode(byEvent.get(String(match.id)) || [], sport);
   },
   async getOddsBatch(matches, { sport = 'football' } = {}) {
     const out = new Map();
-    if (sport !== 'football' || !matches.length) return out;
+    if (!SPORTS.has(sport) || !matches.length) return out;
     const byEvent = await readMarkets(matches.map((m) => String(m.id)));
-    for (const m of matches) out.set(m.id, lnbpariFlatOdds(byEvent.get(String(m.id)) || []));
+    for (const m of matches) out.set(m.id, decode(byEvent.get(String(m.id)) || [], sport));
     return out;
   },
 };
