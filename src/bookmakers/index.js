@@ -30,8 +30,12 @@ import betclic from './betclic/index.js';
 // authentification ni Cloudflare. Foot pre-match uniquement ; les cotes se
 // lisent par LOT de matchs (/getBettingOdds). Pas de flux in-play exploitable.
 import mozzart from './mozzart/index.js';
+// lnbpari (lnbpari.com, Benin) : flux "direct-feed" BetLab en SignalR
+// (WebSocket), joignable en direct depuis les runners avec la seule cle de
+// service du site. Foot pre-match ET live ; cotes lues par lot de matchs.
+import lnbpari from './lnbpari/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart, lnbpari];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
