@@ -69,6 +69,11 @@ const GENDER_YOUTH_TOKENS = [
   'reserves', 'reserve', '2nd', 'ii', 'iii',
   // Amateur
   'amateur',
+  // Simule / virtuel : SRL (Simulated Reality League), esoccer, cyber-foot.
+  // Ces rencontres n'existent pas dans la realite et ne doivent jamais
+  // s'apparier a un match reel (bug 08/09 : "Lille OSC SRL" apparie a
+  // "Lille U-19", surebets fictifs a 21%).
+  'srl', 'esoccer', 'efootball', 'cyber', 'virtual', 'virtuel',
 ];
 // Regex : matche l'un de ces tokens comme mot entier (bornes de mots ou séparateurs).
 const MODIFIER_RE = new RegExp(`(?:^|[\\s()\\[\\]/.-])(${GENDER_YOUTH_TOKENS.join('|')})(?:$|[\\s()\\[\\]/.-])`, 'i');
@@ -78,7 +83,10 @@ const PAREN_GENDER_RE = /\(\s*(f|w|fem(?:mes)?|wom(?:en)?)\s*\)/i;
 const FEMININ_KEYS = new Set(['women', 'femmes', 'feminin', 'dames', 'ladies', 'wfc', 'lfc', 'wf', 'lf', 'wsc', 'lsc']);
 
 function modifierKey(s) {
-  const str = String(s || '');
+  // Normalise les marqueurs jeunes ecrits avec un separateur : "U-19", "U 19",
+  // "U/19" -> "u19". Sans ca, MODIFIER_RE (qui attend le token colle) laissait
+  // passer "Lille U-19" comme une equipe senior.
+  const str = String(s || '').replace(/\bu[\s._\/-]?(1[5-9]|2[0-3])\b/gi, 'u$1');
   const m = str.match(MODIFIER_RE);
   if (m) {
     const t = m[1].toLowerCase();
