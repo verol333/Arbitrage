@@ -33,6 +33,11 @@ export function lnbpariFlatOdds(markets = []) {
   for (const m of markets) {
     const k = m && m.key;
     if (!k || k.resultKind !== RESULT_KIND_GOALS) continue;
+    // subPeriod = marche de SEGMENT ("total de buts jusqu'a la 60e/75e/85e
+    // minute"). Il porte la MEME cle marketType/period que le marche complet
+    // mais des cotes tres differentes : le confondre avec le vrai marche
+    // fabriquait de faux surebets a 50 % en direct. On l'ecarte.
+    if (k.subPeriod != null) continue;
     const p = PERIOD_PREFIX[k.period];
     if (p == null) continue;
     const type = k.marketType;
