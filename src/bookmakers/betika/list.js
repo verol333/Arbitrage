@@ -19,7 +19,22 @@ function toMs(s) {
   return Number.isFinite(t) ? t : null;
 }
 
+// Matchs SIMULES / VIRTUELS a exclure totalement (08/09).
+// Cause du bug utilisateur : "Lille OSC SRL vs Real Betis Seville SRL" (SRL =
+// Simulated Reality League, football simule par ordinateur) a ete apparie au
+// vrai Lille - Betis U19 de LNB Pari (meme heure, memes noms d'equipes) et a
+// produit des surebets a 21% totalement fictifs. Aucun match simule ne peut
+// etre arbitre contre un match reel : on ne les ingere plus du tout.
+const SIMULATED_RE = /\b(srl|simulated|esoccer|e-?soccer|e-?football|efootball|cyber|virtual|virtuel)\b/i;
+
+function isSimulated(ev) {
+  const blob = [ev?.home_team, ev?.away_team, ev?.category, ev?.competition_name]
+    .filter(Boolean).join(' ');
+  return SIMULATED_RE.test(blob);
+}
+
 function toMatch(ev, live) {
+  if (isSimulated(ev)) return null;
   const home = String(ev?.home_team || '').trim();
   const away = String(ev?.away_team || '').trim();
   if (!home || !away || !ev?.parent_match_id) return null;
