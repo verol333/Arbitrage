@@ -4,7 +4,20 @@
 import { config } from '../config.js';
 import { createSemaphore, createTtlCache } from './limiter.js';
 
-const semaphore = createSemaphore(config.proxy.maxConcurrency);
+// ⚠️ UN SÉMAPHORE PAR HÔTE, PLUS UN SEUL POUR TOUT LE MONDE.
+// Mesuré le 15/09/2026 : les 13 bookmakers partageaient une file de 12 requêtes
+// simultanées. 1xBet, qui lit 50 matchs, occupait donc toute la file et TOUS les
+// autres books attendaient derrière lui — c'est ce qui faisait passer betPawa de
+// 0,3 s à plusieurs secondes et gonflait le cycle live. Chaque bookmaker a
+// désormais sa propre file : sa lenteur ne ralentit plus personne, et la limite
+// par book reste inchangée (aucun risque de blocage côté bookmaker).
+const semaphores = new Map();
+function semaphoreFor(url) {
+  let host = 'default';
+  try { host = new URL(url).host; } catch { /* url relative improbable */ }
+  if (!semaphores.has(host)) semaphores.set(host, createSemaphore(config.proxy.maxConcurrency));
+  return semaphores.get(host);
+}
 const cache = createTtlCache(config.proxy.cacheTtlMs);
 
 async function directFetch(url, { headers = {}, method = 'GET', body, timeoutMs = 20_000, extraHeaders = {} } = {}) {
@@ -85,7 +98,7 @@ export async function proxyFetchText(url, opts = {}) {
   // utile pour un bookmaker qui doit passer par cfworker meme si le mode
   // global est autre chose.
   const mode = (opts.mode || config.proxy.mode).toLowerCase();
-  return semaphore(async () => {
+  return semaphoreFor(url)(async () => {
     let res;
     if (mode === 'cfworker') res = await cfworkerProxy(url, opts);
     else if (mode === 'residential') res = await residentialProxy(url, opts);
@@ -109,7 +122,7 @@ export async function proxyFetchJson(url, opts = {}) {
 // Fetch DIRECT (sans proxy) — pour les APIs publiques (Sportcash, Apollo, 1win, congobet).
 // Toujours protégé par le sémaphore global pour lisser la charge.
 export async function fetchJson(url, opts = {}) {
-  return semaphore(async () => {
+  return semaphoreFor(url)(async () => {
     try {
       const res = await directFetch(url, opts);
       if (!res.ok) return null;
