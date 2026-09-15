@@ -139,7 +139,11 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // toujours relues fraîches juste après). Les affiches en direct changent
   // lentement, alors qu'écarter le book coûtait toutes ses opportunités du
   // cycle (mesuré le 15/09/2026 : lnbpari, 83 candidats, écarté chaque cycle).
-  const listDeadlineMs = live ? 5_000 : 20_000;
+  // 1,2 s en direct : les books rapides rendent leur liste bien avant, les
+  // lents repartent de leur dernier catalogue (et leur listage continue en
+  // arrière-plan, ce qui rafraîchit ce catalogue pour le cycle suivant).
+  // Objectif : détection puis envoi en 1 à 3 s au total.
+  const listDeadlineMs = live ? 1_200 : 20_000;
   const withDeadline = (b) => new Promise((resolve) => {
     const timer = setTimeout(() => {
       const kept = lastCatalogs.get(b.key);
