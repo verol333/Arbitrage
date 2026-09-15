@@ -61,16 +61,35 @@ function publicProxies() {
 // Best case : 1re CF répond en <2s.
 // noCache=true : ajoute cache-buster _t sur URL + skip allorigins.win (cache 5min
 // côté serveur, produit des cotes stale en live). CF+direct+3 proxies restants.
+// Premiere reponse non vide qui arrive gagne ; les autres tentatives sont
+// abandonnees. Utilise pour interroger les deux workers et l'acces direct EN
+// MEME TEMPS au lieu de les essayer l'un apres l'autre.
+function firstAnswer(tasks) {
+  return new Promise((resolve) => {
+    let left = tasks.length;
+    if (!left) return resolve(null);
+    for (const t of tasks) {
+      t.then((v) => {
+        if (v) resolve(v);
+        else if (--left === 0) resolve(null);
+      }, () => { if (--left === 0) resolve(null); });
+    }
+  });
+}
+
 export async function viaWorker(url, { noCache = false } = {}) {
   const targetUrl = noCache ? `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}` : url;
-  // 1. CF workers privés (round-robin)
-  for (const w of cfWorkers()) {
-    const j = await tryFetch(`${w}/?url=${encodeURIComponent(targetUrl)}`, 5_000);
-    if (j) { stats.cf++; return j; }
-  }
-  // 2. Direct fetch (peut marcher si 1xBet.cg ne bloque pas notre IP)
-  const j = await tryFetch(targetUrl, 5_000);
-  if (j) { stats.direct++; return j; }
+  // ⚠️ COURSE, PLUS DE CASCADE.
+  // Mesuré le 15/09/2026 : les voies d'accès étaient essayées l'une après
+  // l'autre avec 5 s d'attente chacune. Un worker endormi coûtait donc 5 s, deux
+  // workers 10 s, avant même de tenter l'accès direct — c'est l'essentiel des
+  // 15 à 29 s de 1xBet. Les trois voies partent maintenant ensemble et la
+  // première qui répond gagne : le temps devient celui de la plus rapide.
+  const race = await firstAnswer([
+    ...cfWorkers().map((w) => tryFetch(`${w}/?url=${encodeURIComponent(targetUrl)}`, 5_000)),
+    tryFetch(targetUrl, 5_000),
+  ]);
+  if (race) { stats.cf++; return race; }
   // 3. Proxies CORS publics (round-robin) — skip allorigins.win si noCache (cache 5min).
   for (const { builder, idx } of publicProxies()) {
     if (noCache && idx === 0) continue; // idx 0 = allorigins.win
