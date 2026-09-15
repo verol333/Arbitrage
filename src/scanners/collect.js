@@ -119,7 +119,7 @@ function sanitizeForSport(odds, sport = 'football') {
   return out;
 }
 
-export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football' } = {}) {
+export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football', onOpportunities = null } = {}) {
   const t0 = Date.now();
   const tick = (label) => log(`  ⏱️ ${sport} ${label}: +${Date.now() - t0}ms`);
   const usable = bookmakers.filter((b) => live ? b.supports.live : b.supports.prematch);
@@ -148,27 +148,18 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   log(`🔗 ${sorted.length}/${entries.length} matchs exploitables (≥2 books)`);
   if (!sorted.length) return { opportunities: [], stats: { catalogs: [...catalogs].map(([k, v]) => ({ book: k, matches: v.length })), entries: 0, duration_ms: Date.now() - t0 } };
 
+  // ⚠️ PLUS DE BARRIÈRE COMMUNE SUR LA LECTURE DES COTES.
+  // Mesuré le 15/09/2026 : on attendait la fin de TOUS les books avant de
+  // comparer. 1xBet mettant 15 à 29 s là où betPawa répond en 0,3 s, une cote
+  // lue en une fraction de seconde patientait une demi-minute avant d'être
+  // utilisée — elle était morte à l'arrivée. Désormais chaque book déclenche
+  // ses comparaisons dès SA propre fin, et le surebet part aussitôt confirmé.
   const oddsByBook = new Map();
   const oddsTimings = {};
-  const oddsJobs = usable.map(async (b) => {
-    const inScope = sorted.map((e) => e.matches[b.key]).filter(Boolean);
-    const bookT0 = Date.now();
-    oddsByBook.set(b.key, await readOddsSafe(b, inScope, listOpts));
-    oddsTimings[b.key] = { n: inScope.length, ms: Date.now() - bookT0 };
-  });
-  await Promise.all(oddsJobs);
-  tick('readOdds done');
-  const timingLine = Object.entries(oddsTimings)
-    .sort((a, b) => b[1].ms - a[1].ms)
-    .map(([k, v]) => `${k}:${v.ms}ms/${v.n}`)
-    .join(' | ');
-  log(`⏱️ readOdds par book (trié par lenteur) — ${timingLine}`);
-  const covered = usable.map((b) => `${b.key}:${[...oddsByBook.get(b.key)].filter(([, o]) => Object.keys(o || {}).length).length}`);
-  log(`💰 cotes lues — ${covered.join(' | ')}`);
+  const fetchedAtByBook = new Map();
 
   const scanId = `${live ? 'live' : 'scan'}_${Date.now()}`;
   const minP = minProfit ?? (live ? config.scan.minProfitLive : config.scan.minProfitPrematch);
-  const oddsFetchedAt = new Date().toISOString();
   // Dispatch comparateur selon sport : tennis a ses propres marches et labels
   // (Handicap Jeux vs Handicap Asiatique, Total Jeux vs Total Buts, s1_/s2_/...).
   // Basket : marchés Points (incl OT) avec quarters qN_ et halves hN_.
@@ -179,18 +170,29 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
                 : sport === 'volleyball' ? compareVolleyballTwoBooks
                 : compareTwoBooks;
   const all = [];
-  for (const entry of sorted) {
+  const confirmedAll = [];
+  const emitted = new Set();
+  const matchesIdx = matchesByBookOpp(sorted, usable);
+  const pipeline = [];
+
+  // Candidats d'UNE SEULE paire de bookmakers, calculés dès que ces deux books
+  // ont fini de lire leurs cotes — sans attendre les autres.
+  function buildPairCandidates(k1, k2) {
+    const out = [];
+    for (const entry of sorted) {
     const { ref, matches } = entry;
     const oddsPerBook = {};
     for (const b of usable) {
       const m = matches[b.key];
-      const o = m ? oddsByBook.get(b.key).get(m.id) : null;
+      const o = m ? oddsByBook.get(b.key)?.get(m.id) : null;
       if (o && Object.keys(o).length) oddsPerBook[b.key] = o;
     }
     const keys = Object.keys(oddsPerBook);
     const debugMatches = buildDebugMatches(matches);
     const liveSnapshot = live ? consolidateLive(matches) : null;
-    for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+    const i = keys.indexOf(k1);
+    const j = keys.indexOf(k2);
+    if (i >= 0 && j >= 0) {
       // Passe les match objects → tennis peut detecter inversion J1/J2 entre books
       // et flipper les cotes pour eviter fake arbs 40%+.
       const arbs = compare(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j], matches[keys[i]], matches[keys[j]]);
@@ -211,11 +213,16 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
         // avant buildCoupon pour ne pas polluer le coupon envoyé à SaveCoupon.
         const legAlabels = extractNativeLabels(a.leg_a_ids);
         const legBlabels = extractNativeLabels(a.leg_b_ids);
-        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, oddsFetchedAt, live, matches[a.leg_a_book]);
-        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, oddsFetchedAt, live, matches[a.leg_b_book]);
+        // Chaque jambe porte l'heure RÉELLE de lecture de SON book (et non plus
+        // un horodatage commun posé après le book le plus lent, qui faisait
+        // passer une cote de 20 s pour une cote fraîche).
+        const readAtA = fetchedAtByBook.get(a.leg_a_book) || new Date().toISOString();
+        const readAtB = fetchedAtByBook.get(a.leg_b_book) || new Date().toISOString();
+        const legAcoupon = buildCoupon(a.leg_a_book, a.leg_a_ids, matches[a.leg_a_book]?.id, a.leg_a_odd, readAtA, live, matches[a.leg_a_book]);
+        const legBcoupon = buildCoupon(a.leg_b_book, a.leg_b_ids, matches[a.leg_b_book]?.id, a.leg_b_odd, readAtB, live, matches[a.leg_b_book]);
         // Nettoyer les IDs internes (transportes via pushArb) avant envoi
         delete a.leg_a_ids; delete a.leg_b_ids;
-        all.push({
+        out.push({
           ...a, scan_id: scanId, sport, is_live: live,
           match_label: shortMatchLabel(ref.home, ref.away),
           team_home: shortTeam(ref.home), team_away: shortTeam(ref.away),
@@ -241,15 +248,63 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
             leg_b_live: legBlive,
           } : {}),
           verify: {
-            odds_fetched_at: oddsFetchedAt,
+            odds_fetched_at: readAtA < readAtB ? readAtA : readAtB,
             leg_a_match: debugMatches[a.leg_a_book],
             leg_b_match: debugMatches[a.leg_b_book],
           },
         });
       }
     }
+    }
+    return out;
   }
-  const deduped = dedupeOpportunities(all).sort((a, b) => b.profit_pct - a.profit_pct);
+
+  // Confirme puis ENVOIE immédiatement les surebets d'une paire de books.
+  // Chaque paire vit sa propre vie : aucune n'attend le résultat d'une autre.
+  async function streamPair(k1, k2) {
+    const cands = buildPairCandidates(k1, k2);
+    if (!cands.length) return;
+    const deduped = dedupeOpportunities(cands).sort((a, b) => b.profit_pct - a.profit_pct);
+    all.push(...deduped);
+    const confirmed = await confirmOpportunities(deduped, matchesIdx, usable, listOpts, minP);
+    const fresh = confirmed.filter((o) => {
+      const sig = `${o.match_label}|${o.market_family}|${o.leg_a_book}|${o.leg_a_label}|${o.leg_b_book}|${o.leg_b_label}`;
+      if (emitted.has(sig)) return false;
+      emitted.add(sig);
+      return true;
+    });
+    if (!fresh.length) return;
+    confirmedAll.push(...fresh);
+    log(`  🚀 ${fresh.length} surebet(s) ${k1}/${k2} envoyés à +${Date.now() - t0}ms`);
+    if (onOpportunities) await onOpportunities(fresh);
+  }
+
+  // Lecture des cotes : chaque book part en parallèle et, dès qu'il a fini, il
+  // est comparé à tous ceux déjà prêts. Le premier surebet part donc au bout de
+  // quelques centaines de millisecondes, pas à la fin du cycle.
+  await Promise.all(usable.map(async (b) => {
+    const inScope = sorted.map((e) => e.matches[b.key]).filter(Boolean);
+    const bookT0 = Date.now();
+    const map = await readOddsSafe(b, inScope, listOpts);
+    const partners = [...oddsByBook.keys()];
+    oddsByBook.set(b.key, map);
+    fetchedAtByBook.set(b.key, new Date().toISOString());
+    oddsTimings[b.key] = { n: inScope.length, ms: Date.now() - bookT0 };
+    for (const p of partners) {
+      pipeline.push(streamPair(b.key, p).catch((e) => log(`⚠️ paire ${b.key}/${p}: ${e.message || e}`)));
+    }
+  }));
+  tick('readOdds done');
+  await Promise.all(pipeline);
+  tick('compare+confirm+envoi done');
+  const timingLine = Object.entries(oddsTimings)
+    .sort((a, b) => b[1].ms - a[1].ms)
+    .map(([k, v]) => `${k}:${v.ms}ms/${v.n}`)
+    .join(' | ');
+  log(`⏱️ readOdds par book (trié par lenteur) — ${timingLine}`);
+  const covered = usable.map((b) => `${b.key}:${[...(oddsByBook.get(b.key) || new Map())].filter(([, o]) => Object.keys(o || {}).length).length}`);
+  log(`💰 cotes lues — ${covered.join(' | ')}`);
+  const deduped = all.slice().sort((a, b) => b.profit_pct - a.profit_pct);
   log(`🎯 ${deduped.length} opportunités candidates ≥ ${minP}% | ${Date.now() - t0}ms`);
 
   // Distribution book × candidates : pour comprendre pourquoi certains books
@@ -258,7 +313,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const bookInScope = {};
   const bookCandidates = {};
   for (const b of usable) {
-    bookInScope[b.key] = sorted.filter((e) => e.matches[b.key] && oddsByBook.get(b.key).get(e.matches[b.key].id) && Object.keys(oddsByBook.get(b.key).get(e.matches[b.key].id) || {}).length).length;
+    bookInScope[b.key] = sorted.filter((e) => e.matches[b.key] && oddsByBook.get(b.key)?.get(e.matches[b.key].id) && Object.keys(oddsByBook.get(b.key)?.get(e.matches[b.key].id) || {}).length).length;
     bookCandidates[b.key] = 0;
   }
   for (const o of deduped) {
@@ -268,20 +323,14 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const distribCand = usable.map((b) => `${b.key}:${bookCandidates[b.key]}(scope:${bookInScope[b.key]})`).join(' | ');
   log(`📊 distribution candidates par book — ${distribCand}`);
 
-  // Re-fetch juste-à-temps : on relit les cotes des 2 legs de chaque opp avant
-  // de les envoyer. Élimine les surebets périmés (cotes ayant bougé pendant le
-  // scan). En LIVE, on re-fetch aussi la liste des matchs de chaque book pour
-  // avoir le score/minute FRAIS au moment de l'alerte (fix latence perçue).
-  // En LIVE, le refresh live snapshot est parallélisé avec le re-fetch odds
-  // pour minimiser la latence critique.
-  const [freshLiveByBook, confirmed] = await Promise.all([
-    live ? refreshLiveSnapshots(deduped, usable, listOpts) : Promise.resolve(null),
-    confirmOpportunities(deduped, matchesByBookOpp(sorted, usable), usable, listOpts, minP, null),
-  ]);
-  // Appliquer les live snapshots frais aux opps confirmées (déjà validées côté odds)
-  if (freshLiveByBook) applyFreshLive(confirmed, freshLiveByBook);
-  tick('confirm+freshLive done');
-  log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées après re-fetch | ${Date.now() - t0}ms`);
+  // ⚠️ LE SCORE LIVE N'EST PLUS SUR LE CHEMIN CRITIQUE.
+  // Mesuré le 15/09/2026 : refreshLiveSnapshots re-listait TOUS les matchs live
+  // de chaque book (5 à 21 s) uniquement pour afficher score et minute, et
+  // l'envoi attendait ce résultat. Une donnée d'affichage retardait donc chaque
+  // mise de vingt secondes. Le score issu du listage initial (live_score) est
+  // conservé pour l'écran ; la mise, elle, part immédiatement.
+  const confirmed = confirmedAll;
+  log(`✅ ${confirmed.length}/${deduped.length} opportunités confirmées et envoyées au fil de l'eau | ${Date.now() - t0}ms`);
 
   // Distribution book × confirmed
   const bookConfirmed = {};
@@ -414,6 +463,7 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
   }
   // Re-fetch parallèle par book.
   const freshOdds = new Map();
+  const readDoneAt = new Map();
   await Promise.all([...idsByBook.entries()].map(async ([bookKey, ids]) => {
     const b = bookByKey[bookKey];
     if (!b) return;
@@ -421,6 +471,9 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     if (!matches.length) return;
     const map = await readOddsSafe(b, matches, { ...listOpts, noCache: true });
     freshOdds.set(bookKey, map);
+    // Heure exacte à laquelle CE book a rendu ses cotes : c'est elle qui est
+    // portée par la jambe, pas l'heure de fin du book le plus lent.
+    readDoneAt.set(bookKey, new Date().toISOString());
   }));
   const confirmedAt = new Date().toISOString();
   const confirmedAtMs = Date.now();
@@ -505,12 +558,14 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
     // et confirm pour un meme match).
     const legAfreshRounded = Math.round(freshA * 100) / 100;
     const legBfreshRounded = Math.round(freshB * 100) / 100;
+    const readAtA = readDoneAt.get(o.leg_a_book) || confirmedAt;
+    const readAtB = readDoneAt.get(o.leg_b_book) || confirmedAt;
     const legAcouponRefreshed = o.leg_a_coupon
-      ? { ...o.leg_a_coupon, price: legAfreshRounded, read_at: confirmedAt }
-      : buildCoupon(o.leg_a_book, oddsA?._ids?.[key.a], o.verify?.leg_a_match?.id, legAfreshRounded, confirmedAt, !!freshLiveByBook, matchesIdxByBook.get(o.leg_a_book)?.get(idA));
+      ? { ...o.leg_a_coupon, price: legAfreshRounded, read_at: readAtA }
+      : buildCoupon(o.leg_a_book, oddsA?._ids?.[key.a], o.verify?.leg_a_match?.id, legAfreshRounded, readAtA, !!freshLiveByBook, matchesIdxByBook.get(o.leg_a_book)?.get(idA));
     const legBcouponRefreshed = o.leg_b_coupon
-      ? { ...o.leg_b_coupon, price: legBfreshRounded, read_at: confirmedAt }
-      : buildCoupon(o.leg_b_book, oddsB?._ids?.[key.b], o.verify?.leg_b_match?.id, legBfreshRounded, confirmedAt, !!freshLiveByBook, matchesIdxByBook.get(o.leg_b_book)?.get(idB));
+      ? { ...o.leg_b_coupon, price: legBfreshRounded, read_at: readAtB }
+      : buildCoupon(o.leg_b_book, oddsB?._ids?.[key.b], o.verify?.leg_b_match?.id, legBfreshRounded, readAtB, !!freshLiveByBook, matchesIdxByBook.get(o.leg_b_book)?.get(idB));
     out.push({
       ...o,
       leg_a_odd: legAfreshRounded,
@@ -521,7 +576,7 @@ async function confirmOpportunities(opps, matchesIdxByBook, usable, listOpts, mi
       profit_pct: Math.round(profit * 100) / 100,
       stake_a_pct: Math.round(stakeA * 10) / 10,
       stake_b_pct: Math.round(stakeB * 10) / 10,
-      odds_confirmed_at: confirmedAt,
+      odds_confirmed_at: readAtA < readAtB ? readAtA : readAtB,
       leg_a_drift: Math.round(driftA * 100) / 100,
       leg_b_drift: Math.round(driftB * 100) / 100,
       ...(liveAtConfirm ? {
