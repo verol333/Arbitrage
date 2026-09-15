@@ -124,7 +124,21 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const tick = (label) => log(`  ⏱️ ${sport} ${label}: +${Date.now() - t0}ms`);
   const usable = bookmakers.filter((b) => live ? b.supports.live : b.supports.prematch);
   const listOpts = { live, horizonHours: horizonHours ?? config.scan.horizonHours, sport };
-  const listed = await Promise.all(usable.map((b) => listSafe(b, listOpts)));
+  // ⏳ PLAFOND D'ATTENTE SUR LE LISTAGE DES MATCHS.
+  // Mesuré le 15/09/2026 : le listage prenait de 5,8 s à 21,4 s, uniquement à
+  // cause d'un ou deux books lents ce cycle-là — et tout le scan démarrait
+  // après eux. En live on ne patiente plus : le book qui n'a pas rendu sa liste
+  // dans le délai est simplement ignoré POUR CE CYCLE, et il repasse 7 s plus
+  // tard au cycle suivant. On préfère 12 books à l'heure que 13 books en retard.
+  const listDeadlineMs = live ? 5_000 : 20_000;
+  const withDeadline = (b) => new Promise((resolve) => {
+    const timer = setTimeout(() => resolve({ book: b, matches: [], late: true }), listDeadlineMs);
+    listSafe(b, listOpts).then((r) => { clearTimeout(timer); resolve(r); },
+      () => { clearTimeout(timer); resolve({ book: b, matches: [] }); });
+  });
+  const listed = await Promise.all(usable.map(withDeadline));
+  const late = listed.filter((x) => x.late).map((x) => x.book.key);
+  if (late.length) log(`⏳ listage abandonné (>${listDeadlineMs}ms, repris au prochain cycle) : ${late.join(', ')}`);
   tick('listMatches done');
 
   const catalogs = new Map();
