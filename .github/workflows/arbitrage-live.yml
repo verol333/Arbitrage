@@ -63,6 +63,9 @@ jobs:
           # Cron schedule : 350min (couvre 24/7 via 6 créneaux). Manuel : 5min (test).
           SCAN_DURATION_MINUTES: ${{ github.event.inputs.duration || (github.event_name == 'schedule' && '350' || '5') }}
           LIVE_INTERVAL_MS: '7000'
+          # Cache proxy court en live : 75 s de cache servait des cotes mortes
+          # au moment de la detection (faux surebets, marges qui s'evaporent).
+          PROXY_CACHE_TTL_MS: '10000'
           PROXY_MODE: ${{ secrets.PROXY_MODE }}
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           JINA_API_KEY_2: ${{ secrets.JINA_API_KEY_2 }}
