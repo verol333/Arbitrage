@@ -119,6 +119,10 @@ function sanitizeForSport(odds, sport = 'football') {
   return out;
 }
 
+// Dernier catalogue connu par book — filet de secours quand le listage dépasse
+// le délai. Contient des LISTES DE MATCHS, jamais des cotes.
+const lastCatalogs = new Map();
+
 export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football', onOpportunities = null } = {}) {
   const t0 = Date.now();
   const tick = (label) => log(`  ⏱️ ${sport} ${label}: +${Date.now() - t0}ms`);
@@ -130,15 +134,27 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // après eux. En live on ne patiente plus : le book qui n'a pas rendu sa liste
   // dans le délai est simplement ignoré POUR CE CYCLE, et il repasse 7 s plus
   // tard au cycle suivant. On préfère 12 books à l'heure que 13 books en retard.
+  // Un book en retard n'est pas perdu : on repart de SON DERNIER CATALOGUE
+  // connu (liste de matchs uniquement, jamais les cotes — celles-ci sont
+  // toujours relues fraîches juste après). Les affiches en direct changent
+  // lentement, alors qu'écarter le book coûtait toutes ses opportunités du
+  // cycle (mesuré le 15/09/2026 : lnbpari, 83 candidats, écarté chaque cycle).
   const listDeadlineMs = live ? 5_000 : 20_000;
   const withDeadline = (b) => new Promise((resolve) => {
-    const timer = setTimeout(() => resolve({ book: b, matches: [], late: true }), listDeadlineMs);
-    listSafe(b, listOpts).then((r) => { clearTimeout(timer); resolve(r); },
-      () => { clearTimeout(timer); resolve({ book: b, matches: [] }); });
+    const timer = setTimeout(() => {
+      const kept = lastCatalogs.get(b.key);
+      const fresh = kept && Date.now() - kept.at < 120_000 ? kept.matches : [];
+      resolve({ book: b, matches: fresh, late: true, reused: fresh.length });
+    }, listDeadlineMs);
+    listSafe(b, listOpts).then((r) => {
+      clearTimeout(timer);
+      if (r?.matches?.length) lastCatalogs.set(b.key, { matches: r.matches, at: Date.now() });
+      resolve(r);
+    }, () => { clearTimeout(timer); resolve({ book: b, matches: [] }); });
   });
   const listed = await Promise.all(usable.map(withDeadline));
-  const late = listed.filter((x) => x.late).map((x) => x.book.key);
-  if (late.length) log(`⏳ listage abandonné (>${listDeadlineMs}ms, repris au prochain cycle) : ${late.join(', ')}`);
+  const late = listed.filter((x) => x.late);
+  if (late.length) log(`⏳ listage lent (>${listDeadlineMs}ms) : ${late.map((x) => x.book.key + '(dernier catalogue: ' + x.reused + ')').join(', ')}`);
   tick('listMatches done');
 
   const catalogs = new Map();
