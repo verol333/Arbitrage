@@ -133,12 +133,58 @@ function withTimeout(promise, ms, label) {
 // Multi-sport : SCAN_SPORTS="football,tennis" scanne les deux en parallele.
 const SPORTS = (process.env.SCAN_SPORTS || 'football').split(',').map(s => s.trim()).filter(Boolean);
 
+// ENVOI AU FIL DE L'EAU : chaque surebet confirmé part immédiatement, sans
+// attendre la fin du cycle ni les autres paires de bookmakers. Les envois sont
+// regroupés sur une fenêtre de 300 ms — assez court pour rester temps réel,
+// assez large pour ne pas bombarder le backend d'un POST par opportunité.
+const FLUSH_MS = 300;
+function createStreamer({ live, sport }) {
+  let queue = [];
+  let timer = null;
+  let inFlight = Promise.resolve();
+  const seen = new Set();
+  const flush = () => {
+    timer = null;
+    const batch = queue;
+    queue = [];
+    if (!batch.length) return;
+    inFlight = inFlight.then(() => sendWebhook({
+      type: 'arbitrage_alert',
+      scan_type: live ? 'live' : 'prematch',
+      sport: 'multi',
+      sports: [sport],
+      counts_by_sport: { [sport]: batch.length },
+      timestamp: new Date().toISOString(),
+      count: batch.length,
+      opportunities: batch,
+    })).catch(() => {});
+  };
+  return {
+    push(opps) {
+      for (const o of opps || []) {
+        const k = `${o.match_label}|${o.market_family}|${o.leg_a_book}|${o.leg_a_label}|${o.leg_b_book}|${o.leg_b_label}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        queue.push(o);
+      }
+      if (queue.length && !timer) timer = setTimeout(flush, FLUSH_MS);
+    },
+    async done() {
+      if (timer) { clearTimeout(timer); flush(); }
+      await inFlight;
+    },
+  };
+}
+
 async function doScan({ live, sport }) {
+  const streamer = createStreamer({ live, sport });
   const result = await runScan({
     live, sport,
     minProfit: Number(live ? process.env.MIN_PROFIT_LIVE || 0.5 : process.env.MIN_PROFIT_PREMATCH || 0.5),
     horizonHours: Number(process.env.HORIZON_HOURS || 72),
+    onOpportunities: (opps) => streamer.push(opps),
   });
+  await streamer.done();
   logSample(result, { live, sport });
   return result;
 }
@@ -155,9 +201,11 @@ async function doAllSports({ live }) {
     : sport === 'football' ? CYCLE_TIMEOUT_PREMATCH_FOOTBALL_MS : CYCLE_TIMEOUT_PREMATCH_MS;
   await Promise.all(SPORTS.map(async (sport) => {
     try {
+      // Plus de POST final : les opportunités ont déjà été envoyées une par une
+      // dès leur confirmation (voir createStreamer). Un second envoi ne ferait
+      // que dupliquer des cotes déjà périmées.
       const result = await withTimeout(doScan({ live, sport }), budget(sport), sport + ' scan');
       totals[sport] = result.opportunities?.length ?? 0;
-      await notifyWebhookMerged({ [sport]: result }, { live });
     } catch (e) {
       totals[sport] = 'ERR';
       log(`  ⚠️ ${sport} scan erreur: ${e?.message || e}`);
