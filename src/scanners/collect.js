@@ -1042,6 +1042,11 @@ function buildCoupon(book, ids, matchId, price, readAt, live, match) {
   const coupon = { book, price, read_at: readAt };
   // Injecter eventId pour SportyBet (natif : "sr:match:X")
   if (book === 'sportybet' && matchId != null) coupon.eventId = String(matchId);
+  // BetPawa : le priceId seul ne permet pas de retrouver le match (aucun
+  // endpoint BetPawa ne remonte d'un priceId vers son evenement, verifie le
+  // 17/09/2026 : /prices?ids= repond 404 sur toutes les versions d'API).
+  // L'identifiant du match voyage donc avec la cote.
+  if (book === 'betpawa' && matchId != null) coupon.eventId = String(matchId);
   // Injecter matchId pour 1win (natif : Number)
   if (book === '1win' && matchId != null) coupon.matchId = Number(matchId);
   // Injecter gameId + kind pour 1xbet (natif : Number/String + 3=prematch/1=live)
@@ -1074,6 +1079,13 @@ function idFields(matches) {
     '1xbet': 'onexbet_match_id', '1win': 'onewin_match_id', congobet: 'congobet_match_id',
     yellowbet: 'yellowbet_match_id', apollo: 'apollo_match_id', betmomo: 'betmomo_match_id',
     premierbet: 'premierbet_match_id',
+    // CAUSE RACINE DES « MATCHS INTROUVABLES » A LA POSE (mesuree le 17/09/2026) :
+    // betpawa manquait ici. Le backend recevait donc une jambe BetPawa SANS
+    // identifiant de match et devait retrouver le match par son NOM. Or BetPawa
+    // nomme autrement (paires de double reduites a un joueur, equipes reserves,
+    // clubs abreges) : le match etait declare introuvable alors qu'il etait bien
+    // a l'affiche, et le pari abandonne. On l'envoie desormais comme les autres.
+    betpawa: 'betpawa_match_id', sportybet: 'sportybet_match_id',
   };
   const out = {};
   for (const [k, m] of Object.entries(matches)) {
