@@ -26,6 +26,10 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Dependance ws a la racine (les sources src/ resolvent depuis la racine)
+        working-directory: .
+        run: npm install ws --no-save
+
       - name: Sonde de couverture
         run: node probe-coverage.mjs
         env:
