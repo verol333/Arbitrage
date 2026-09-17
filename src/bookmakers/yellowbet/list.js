@@ -5,12 +5,13 @@ import { BASE_URL, evapi, isVirtual, toMatch } from './api.js';
 //   31=Soccer, 32=Basketball, 35=Tennis, 323=Volleyball, 334=Beach Volley,
 //   319=Snooker, 320=Table Tennis, 310=Boxing, 312=Rugby, 321=Cricket,
 //   326=Waterpolo, 3117=MMA, 3137=eSoccer (skip).
-// Hockey : introuvable dans le catalogue YellowBet (pas d'événements identifiés).
+// Hockey sur glace : sid=34 (confirmé le 2026-09-17 — Liiga, NHL, KHL).
+// Tennis de table : sid=320 (le sport le PLUS fourni après le football).
 // Note : le paramètre `sportIds=` semble ignoré côté API — on doit filtrer
 // côté client via ev.sid après un fetch large.
 // Volleyball YellowBet : sid=323 (confirme via probe 2026-08-11 - matchs Pan
 // American Cup + Pro League partages avec 1xbet/SportyBet/1win/Congobet).
-const SPORT_IDS = { football: 31, tennis: 35, basket: 32, volleyball: 323 };
+const SPORT_IDS = { football: 31, tennis: 35, basket: 32, volleyball: 323, table_tennis: 320, hockey: 34 };
 
 // L'URL avec fromDate/toDate déclenche un 403 Cloudflare (pattern typique scraper).
 // L'URL simple ?count=N&take=N (comme utilisée en live) passe. On filtre l'horizon
