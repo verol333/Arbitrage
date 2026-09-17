@@ -240,9 +240,9 @@ export function betpawaFlatOdds(eventJson) {
       case '4693': putDC(odds, prices, ''); break;
       case '3795': putBTTS(odds, prices, ''); break;
       case '4703': putDNB(odds, prices, ''); break;
-      case '5000': putTotal(odds, prices, 'match_'); break;
-      case '5006': putTeamTotal(odds, prices, 'home', ''); break;
-      case '5003': putTeamTotal(odds, prices, 'away', ''); break;
+      case '5000': putTotalRows(odds, market, 'match_'); break;
+      case '5006': putTeamTotalRows(odds, market, 'home', ''); break;
+      case '5003': putTeamTotalRows(odds, market, 'away', ''); break;
       case '4833': putOddEven(odds, prices, ''); break;
 
       // ─── 1ère mi-temps ─────────────────────────────────────────────
@@ -250,7 +250,7 @@ export function betpawaFlatOdds(eventJson) {
       case '4673': putDC(odds, prices, 'ht_'); break;
       case '3789': putBTTS(odds, prices, 'ht_'); break;
       case '4697': putDNB(odds, prices, 'ht_'); break;
-      case '4958': putTotal(odds, prices, 'ht_'); break;
+      case '4958': putTotalRows(odds, market, 'ht_'); break;
       case '4794': putOddEven(odds, prices, 'ht_'); break;
 
       // ─── 2ème mi-temps ─────────────────────────────────────────────
@@ -258,7 +258,7 @@ export function betpawaFlatOdds(eventJson) {
       case '4681': putDC(odds, prices, 'h2_'); break;
       case '3792': putBTTS(odds, prices, 'h2_'); break;
       case '4700': putDNB(odds, prices, 'h2_'); break;
-      case '4976': putTotal(odds, prices, 'h2_'); break;
+      case '4976': putTotalRows(odds, market, 'h2_'); break;
       case '4809': putOddEven(odds, prices, 'h2_'); break;
 
       // ─── Handicap Asiatique FT (specifier.hcp par row, name "1"/"2") ─
@@ -337,6 +337,60 @@ function putAsianHcpFoot(odds, market, pfx = '') {
       if (!Number.isFinite(v) || v <= 1) continue;
       if (name === '1') putBp(odds, `${pfx}hcp_home_${hcp}`, v, p);
       else if (name === '2') putBp(odds, `${pfx}hcp_away_${-hcp}`, v, p);
+    }
+  }
+}
+
+
+// ── TOTAUX BETPAWA : LA LIGNE VIT DANS row.specifier.total ─────────────
+// Constat du 18/09/2026 : betPawa ne met PLUS la ligne dans le libellé du prix
+// ("Plus de 2.5" est devenu "Plus de", la ligne partant dans
+// row.specifier.total et le libellé affiché gardant un gabarit
+// "{formattedHandicap}"). putTotal/putTeamTotal, qui exigeaient un nombre dans
+// le libellé, ne produisaient donc PLUS AUCUN total betPawa : ni match, ni
+// mi-temps, ni total par équipe — la famille la plus arbitrée du foot,
+// entièrement muette sur un book où les mises sont automatiques.
+// On lit désormais la ligne au bon endroit, en gardant le libellé comme
+// solution de repli pour les marchés qui l'affichent encore.
+function bpRowLine(row) {
+  const spec = Number(row?.specifier?.total);
+  if (Number.isFinite(spec)) return spec;
+  return null;
+}
+function bpDirection(label) {
+  if (/plus|over|\+/i.test(label)) return 'over';
+  if (/moins|under|-/i.test(label)) return 'under';
+  return null;
+}
+function putTotalRows(odds, market, pfx) {
+  const rows = Array.isArray(market?.row) ? market.row : [];
+  for (const r of rows) {
+    const rowLine = bpRowLine(r);
+    for (const p of (r.prices || [])) {
+      const label = String(p?.name || p?.displayName || '').trim();
+      const v = Number(p?.odds);
+      if (!Number.isFinite(v) || v <= 1) continue;
+      const inline = label.match(/([\d.]+)/);
+      const line = rowLine != null ? rowLine : (inline ? Number(inline[1]) : null);
+      const dir = bpDirection(label);
+      if (line == null || !isHalfLine(line) || !dir) continue;
+      putBp(odds, `${pfx}${dir}_${line}`, v, p);
+    }
+  }
+}
+function putTeamTotalRows(odds, market, side, pfx) {
+  const rows = Array.isArray(market?.row) ? market.row : [];
+  for (const r of rows) {
+    const rowLine = bpRowLine(r);
+    for (const p of (r.prices || [])) {
+      const label = String(p?.name || p?.displayName || '').trim();
+      const v = Number(p?.odds);
+      if (!Number.isFinite(v) || v <= 1) continue;
+      const inline = label.match(/([\d.]+)/);
+      const line = rowLine != null ? rowLine : (inline ? Number(inline[1]) : null);
+      const dir = bpDirection(label);
+      if (line == null || !isHalfLine(line) || !dir) continue;
+      putBp(odds, `${pfx}tt_${side}_${dir}_${line}`, v, p);
     }
   }
 }
