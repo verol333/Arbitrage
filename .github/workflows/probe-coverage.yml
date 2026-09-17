@@ -1,0 +1,39 @@
+name: Probe — couverture marchés (tous sports, tous books)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sports:
+        description: 'Sports à sonder (séparés par virgule)'
+        required: false
+        default: 'football,tennis,basket,hockey,volleyball,table_tennis'
+      live:
+        description: 'true = live, false = prématch'
+        required: false
+        default: 'false'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Sonde de couverture
+        run: node probe-coverage.mjs
+        env:
+          PROBE_SPORTS: ${{ github.event.inputs.sports }}
+          PROBE_LIVE: ${{ github.event.inputs.live }}
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          JINA_API_KEY_2: ${{ secrets.JINA_API_KEY_2 }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
