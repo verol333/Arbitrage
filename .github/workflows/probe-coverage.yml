@@ -28,7 +28,7 @@ jobs:
         run: npm install
       - name: Dependance ws a la racine (les sources src/ resolvent depuis la racine)
         working-directory: .
-        run: npm install ws --no-save
+        run: npm install ws got-scraping --no-save
 
       - name: Sonde de couverture
         run: node probe-coverage.mjs
