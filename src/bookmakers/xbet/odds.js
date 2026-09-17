@@ -230,7 +230,14 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
   parseGE(GE, odds, '');
   parseMainOnly(GE, odds);
 
-  if (!live) {
+  // ⚠️ MI-TEMPS EN DIRECT (correctif du 17/09/2026) : les sous-jeux n'étaient
+  // lus QU'EN PRÉ-MATCH. 1xBet étant le book pivot de presque tous les
+  // surebets, aucune mi-temps (1MT/2MT), ni corners, ne pouvait donc être
+  // comparée en direct — alors que CongoBet, PremierBet, BetMomo, betPawa,
+  // 1win et SportyBet les publient bien en live. Résultat mesuré sur les 121
+  // dernières opportunités live : uniquement 1X2 / double chance côté football.
+  // Les sous-jeux live vivent sur LiveFeed et se lisent sans cache.
+  {
     const SG = gd.Value.SG || [];
     const wanted = [];
     for (const sg of SG) {
@@ -268,9 +275,9 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
     // Meme fragilite sur les sous-jeux (c'est la que vivent TOUTES les cotes
     // par set au tennis) : un echec de proxy effacait silencieusement le set
     // entier. Deuxieme essai systematique avant d'abandonner le sous-jeu.
-    const subUrl = (sid) => `${FEED}/service-api/LineFeed/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
+    const subUrl = (sid) => `${FEED}/service-api/${feedPath}/GetGameZip?id=${sid}&lng=fr&isSubGames=false&GroupEvents=true&countevents=250&grMode=4&country=${COUNTRY}&marketType=1&isNewBuilder=true`;
     const subs = await Promise.all(picked.slice(0, 6).map(async ({ sid, prefix }) => {
-      let sd = await viaWorker(subUrl(sid));
+      let sd = await viaWorker(subUrl(sid), { noCache: live });
       if (!sd?.Value?.GE) sd = await viaWorker(subUrl(sid), { noCache: true });
       return { prefix, sid, GE: sd?.Value?.GE || null };
     }));
