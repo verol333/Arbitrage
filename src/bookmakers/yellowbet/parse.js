@@ -5,9 +5,17 @@ import { isHalfLine } from '../../core/markets.js';
 const priceOf = (o) => { const p = parseFloat(o?.p); return isNaN(p) || p <= 1 ? null : p; };
 const lbl = (o) => String(o?.n ?? o?.id ?? '').trim().toLowerCase();
 const lineOf = (o) => { const l = parseFloat(o?.l ?? o?.sp ?? o?.hc); return isNaN(l) ? NaN : l; };
-const findMarket = (bts, name) => {
-  const target = name.toLowerCase();
-  return bts.find((m) => String(m?.n || '').trim().toLowerCase() === target) || null;
+const findMarket = (bts, ...names) => {
+  // YellowBet renomme SES MARCHES EN LIVE (releve 2026-09-17) : "GG/NG" devient
+  // "Both Team to Score", "HT 1X2" devient "Halftime : 3way", "HT U/O" devient
+  // "Halftime : Total". Une comparaison sur un seul nom perdait donc, en direct,
+  // tout le BTTS et tout le 1X2 mi-temps. On accepte donc plusieurs alias.
+  for (const name of names) {
+    const target = String(name).toLowerCase();
+    const hit = bts.find((m) => String(m?.n || '').trim().toLowerCase() === target);
+    if (hit) return hit;
+  }
+  return null;
 };
 
 // YellowBet LIVE : les marchés totaux (Under/Over, Team Totals, HT/H2 totals)
@@ -36,9 +44,15 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
       odds._ids[k] = {
         betTypeId: mkt?.id,
         betTypeName: String(mkt?.n || ''),
-        oddKey: String(o?.n ?? ''),
+        // ⚠️ oddKey = o.id, PAS o.n : la cle de l'issue et son libelle diffe-
+        // rent souvent ("o"/"over", "goal"/"Yes", "2"/"Over"). Envoyer le
+        // libelle rendait l'issue introuvable au moment de reposer le pari.
+        oddKey: String(o?.id ?? o?.n ?? ''),
         oddName: String(o?.n ?? ''),
-        oddDisplayName: String(o?.n ?? ''),
+        oddDisplayName: String(o?.dn ?? o?.n ?? ''),
+        // Ligne du marche (2.5, -1.5…) : indispensable, car une meme cle d'issue
+        // ("o"/"u") se repete sur TOUTES les lignes d'un meme marche.
+        oddLine: Number.isFinite(lineOf(o)) ? lineOf(o) : null,
         oddPrice: c,
         market_name_native: String(mkt?.n || ''),
         selection_name_native: String(o?.n ?? ''),
@@ -63,7 +77,7 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
     else if (n === '12') set('dc_12', c, o);
     else if (n === 'x2') set('dc_X2', c, o);
   }
-  const gg = findMarket(bts, 'GG/NG');
+  const gg = findMarket(bts, 'GG/NG', 'Both Team to Score', 'Both Teams to Score');
   mkt = gg; if (gg) for (const o of gg.odds || []) {
     const n = lbl(o), c = priceOf(o);
     if (n === 'yes') set('btts_yes', c, o);
@@ -76,14 +90,14 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
     if (n === 'over') set(totalKey(`match_over_${l}`), c, o);
     else if (n === 'under') set(totalKey(`match_under_${l}`), c, o);
   }
-  const htr = findMarket(bts, 'HT 1X2');
+  const htr = findMarket(bts, 'HT 1X2', 'Halftime : 3way');
   mkt = htr; if (htr) for (const o of htr.odds || []) {
     const n = lbl(o), c = priceOf(o);
     if (n === '1') set('ht_match_1', c, o);
     else if (n === 'x') set('ht_match_X', c, o);
     else if (n === '2') set('ht_match_2', c, o);
   }
-  const htuo = findMarket(bts, 'HT U/O');
+  const htuo = findMarket(bts, 'HT U/O', 'Halftime : Total');
   mkt = htuo; if (htuo) for (const o of htuo.odds || []) {
     const l = lineOf(o); if (!isHalfLine(l)) continue;
     const n = lbl(o), c = priceOf(o);
@@ -312,8 +326,9 @@ export function yellowbetTennisFlatOdds(bts, { home = '', away = '' } = {}) {
     if (mkt && o) {
       odds._ids[k] = {
         betTypeId: mkt?.id, betTypeName: String(mkt?.n || ''),
-        oddKey: String(o?.n ?? ''), oddName: String(o?.n ?? ''),
-        oddDisplayName: String(o?.n ?? ''), oddPrice: c,
+        oddKey: String(o?.id ?? o?.n ?? ''), oddName: String(o?.n ?? ''),
+        oddDisplayName: String(o?.dn ?? o?.n ?? ''), oddPrice: c,
+        oddLine: Number.isFinite(lineOf(o)) ? lineOf(o) : null,
         market_name_native: String(mkt?.n || ''),
         selection_name_native: String(o?.n ?? ''),
         market_path_native: null,
