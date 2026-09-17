@@ -1,6 +1,7 @@
 import { listPrematch, listLive } from './list.js';
 import { fetchMatchBts } from './api.js';
 import { yellowbetFlatOdds, yellowbetBasketFlatOdds, yellowbetTennisFlatOdds } from './parse.js';
+import { yellowbetHockeyFlatOdds, yellowbetTableTennisFlatOdds } from './parseSports.js';
 
 export default {
   key: 'yellowbet',
@@ -11,7 +12,8 @@ export default {
   supports: { prematch: true, live: true },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     // Tennis + Volleyball actives 2026-08-11 (structure sets identique tennis).
-    if (!['football','basket','tennis','volleyball'].includes(sport)) return [];
+    // Tennis de table + hockey sur glace actives le 2026-09-17.
+    if (!['football','basket','tennis','volleyball','table_tennis','hockey'].includes(sport)) return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
   async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
@@ -19,8 +21,11 @@ export default {
     // Handicap + Total Points ~= Total Games avec noms similaires).
     const flat = sport === 'basket' ? yellowbetBasketFlatOdds
                : sport === 'tennis' || sport === 'volleyball' ? yellowbetTennisFlatOdds
+               : sport === 'table_tennis' ? yellowbetTableTennisFlatOdds
+               : sport === 'hockey' ? yellowbetHockeyFlatOdds
                : yellowbetFlatOdds;
-    const opts = (sport === 'tennis' || sport === 'volleyball') ? { home: match.home, away: match.away } : { live };
+    // Hockey : les totaux individuels portent le nom de l'équipe → besoin des noms.
+    const opts = (sport === 'tennis' || sport === 'volleyball' || sport === 'hockey') ? { home: match.home, away: match.away } : { live };
     if (live || noCache) {
       const bts = await fetchMatchBts(match.id);
       if (bts.length) return flat(bts, opts);
