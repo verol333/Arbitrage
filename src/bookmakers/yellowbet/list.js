@@ -24,7 +24,7 @@ export async function listPrematch(horizonHours = 72, sport = 'football') {
   const PAGE = 500;
   // Pagination sans fromDate/toDate (bypass CF block). skip/take fonctionnent.
   for (let skip = 0; skip < 3000; skip += PAGE) {
-    const url = `${BASE_URL}/event/GetEvents?skip=${skip}&take=${PAGE}&count=${PAGE}`;
+    const url = `${BASE_URL}/event/GetEvents?skip=${skip}&take=${PAGE}&count=${PAGE}&sportTypeIds=${sportId}`;
     const data = await evapi(url);
     const events = Array.isArray(data?.data) ? data.data : [];
     if (!events.length) break;
@@ -57,7 +57,7 @@ export async function listLive(sport = 'football') {
   const collected = new Map();
   const PAGE = 100;
   for (let skip = 0; skip < 600; skip += PAGE) {
-    const data = await evapi(`${BASE_URL}/event/GetEvents?statusId=1&betTypeIds=-1&skip=${skip}&take=${PAGE}&count=${PAGE}`);
+    const data = await evapi(`${BASE_URL}/event/GetEvents?statusId=1&betTypeIds=-1&skip=${skip}&take=${PAGE}&count=${PAGE}&sportTypeIds=${sportId}`);
     const events = Array.isArray(data?.data) ? data.data : [];
     if (!events.length) break;
     for (const ev of events) {
