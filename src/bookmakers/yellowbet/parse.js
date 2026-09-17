@@ -492,9 +492,10 @@ export function yellowbetBasketFlatOdds(bts, { live = false } = {}) {
       odds._ids[k] = {
         betTypeId: mkt?.id,
         betTypeName: String(mkt?.n || ''),
-        oddKey: String(o?.n ?? ''),
+        oddKey: String(o?.id ?? o?.n ?? ''),
         oddName: String(o?.n ?? ''),
-        oddDisplayName: String(o?.n ?? ''),
+        oddDisplayName: String(o?.dn ?? o?.n ?? ''),
+        oddLine: Number.isFinite(lineOf(o)) ? lineOf(o) : null,
         oddPrice: c,
         market_name_native: String(mkt?.n || ''),
         selection_name_native: String(o?.n ?? ''),
