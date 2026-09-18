@@ -143,7 +143,14 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // lents repartent de leur dernier catalogue (et leur listage continue en
   // arrière-plan, ce qui rafraîchit ce catalogue pour le cycle suivant).
   // Objectif : détection puis envoi en 1 à 3 s au total.
-  const listDeadlineMs = live ? 1_200 : 20_000;
+  // 18/09/2026 — MESURE : 1,2 s coupait les books automatisables les plus lents
+  // AVANT la fin de leur liste (relevé du scan 08:26 vs sonde du même jour :
+  // yellowbet 2 au lieu de 13, congobet 3 au lieu de 15, apollo 1 au lieu de 11,
+  // betpawa 5 au lieu de 20, betmomo 10 au lieu de 28). Leur dernier catalogue
+  // connu restait donc tronqué lui aussi, cycle après cycle : la surface de
+  // comparaison entre books automatisables était réduite à 2-3 affiches.
+  // 2,5 s laisse leur liste arriver en entier pour ~1 s de cycle en plus.
+  const listDeadlineMs = live ? 2_500 : 20_000;
   const withDeadline = (b) => new Promise((resolve) => {
     const timer = setTimeout(() => {
       const kept = lastCatalogs.get(b.key);
