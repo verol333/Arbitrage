@@ -150,7 +150,16 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // connu restait donc tronqué lui aussi, cycle après cycle : la surface de
   // comparaison entre books automatisables était réduite à 2-3 affiches.
   // 2,5 s laisse leur liste arriver en entier pour ~1 s de cycle en plus.
-  const listDeadlineMs = live ? 2_500 : 20_000;
+  // 18/09/2026 — PLUS AUCUNE TRONCATURE DU LISTAGE, EN DIRECT COMME EN PRÉ-MATCH.
+  // Le catalogue est la matière première : un book coupé en pleine liste perd
+  // TOUTES les opportunités de ses matchs manquants pour le cycle. Mesuré le
+  // même jour : à 1,2 s, YellowBet rendait 2 matchs sur 13, Congobet 3 sur 15,
+  // Apollo 1 sur 11, betPawa 5 sur 20, BetMomo 10 sur 28 — la surface de
+  // comparaison entre books automatisables tombait à 2-3 affiches.
+  // La vitesse qui compte n'est PAS celle du listage : chaque paire de books
+  // envoie ses surebets dès SA propre fin (streamPair), sans attendre le cycle.
+  // Le délai ci-dessous n'est donc plus qu'un garde-fou contre un book bloqué.
+  const listDeadlineMs = 25_000;
   const withDeadline = (b) => new Promise((resolve) => {
     const timer = setTimeout(() => {
       const kept = lastCatalogs.get(b.key);
