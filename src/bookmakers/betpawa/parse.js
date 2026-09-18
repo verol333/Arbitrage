@@ -55,6 +55,11 @@ import { isHalfLine } from '../../core/markets.js';
 let _bpMarketName = null;
 function setBpMarket(name) { _bpMarketName = name ? String(name) : null; }
 function putBp(odds, key, v, p) {
+  // 18/09/2026 — betPawa publie la cote d'un prix qu'il a SUSPENDU
+  // (p.suspended === true) : affichée mais refusée à la pose (FOB_OFFLINE_PRICES).
+  // Ces prix ont produit 3 paris à découvert (YellowBet engagé, betPawa refusant).
+  // Un prix suspendu n'existe pas pour l'arbitrage : on ne l'émet pas.
+  if (p?.suspended === true) return;
   odds[key] = v;
   if (!odds._ids) odds._ids = {};
   odds._ids[key] = {
