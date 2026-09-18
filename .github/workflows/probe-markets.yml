@@ -1,0 +1,29 @@
+name: Probe — noms de marchés bruts 1win
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Dependance ws a la racine
+        working-directory: .
+        run: npm install ws got-scraping --no-save
+      - name: Sonde des marchés bruts
+        run: node probe-markets.mjs
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          SCRAPE_DO_KEY: ${{ secrets.SCRAPE_DO_KEY }}
