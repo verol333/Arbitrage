@@ -26,7 +26,7 @@ const findMarket = (bts, ...names) => {
 // Solution : en live, on préfixe ces clés avec "rest_" pour qu'elles ne soient
 // PAS comparées avec les autres books (qui eux exposent TOTAL match).
 // Marchés 1X2/DC/BTTS/Handicap restent stables (rien à changer).
-export function yellowbetFlatOdds(bts, { live = false } = {}) {
+export function yellowbetFlatOdds(bts, { live = false, home = '', away = '' } = {}) {
   const odds = { _ids: {} };
   if (!Array.isArray(bts)) return odds;
   // Helper : ecrit odds[k] = c ET odds._ids[k] = { betTypeId, betTypeName,
@@ -275,6 +275,96 @@ export function yellowbetFlatOdds(bts, { live = false } = {}) {
     const n = lbl(o), c = priceOf(o);
     if (n === 'odd') set('h2_odd', c, o);
     else if (n === 'even') set('h2_even', c, o);
+  }
+
+  // ── MARCHÉS YELLOWBET LUS AVEC LEURS VRAIS NOMS (audit 2026-09-18) ─────
+  // YellowBet publie 122 marchés par match, mais le lecteur n'en cherchait
+  // qu'une trentaine — et sous des noms qu'il n'utilise PAS : « HT Double
+  // Chance » au lieu de « 1st Half Double Chance », « HT GG/NG » au lieu de
+  // « 1st Half : Goal Goal / No Goal », « HT Odd/Even goals » au lieu de
+  // « 1st Half : Odd/Even Goals ». Les totaux par équipe, eux, portent le NOM
+  // DE L'ÉQUIPE (« Greuther Furth total ») : la recherche par mots-clés
+  // « home/away/team » ne pouvait rien trouver. Résultat : double chance
+  // mi-temps, BTTS des deux mi-temps, pair/impair par période, totaux par
+  // équipe, clean sheet, gagne sans encaisser et mi-temps la plus prolifique
+  // étaient TOUS muets chez YellowBet.
+  const nameSide = (mn) => {
+    const H = String(home || '').toLowerCase().trim();
+    const A = String(away || '').toLowerCase().trim();
+    if (H && mn.startsWith(H)) return 'home';
+    if (A && mn.startsWith(A)) return 'away';
+    if (/^home\b/.test(mn)) return 'home';
+    if (/^away\b/.test(mn)) return 'away';
+    return null;
+  };
+  const yesNo = (m, keyYes, keyNo) => {
+    mkt = m; if (!m) return;
+    for (const o of m.odds || []) {
+      const n = lbl(o), c = priceOf(o);
+      if (/^(yes|y|oui)$/.test(n)) set(keyYes, c, o);
+      else if (/^(no|n|non)$/.test(n)) set(keyNo, c, o);
+    }
+  };
+  const oddEven = (m, keyOdd, keyEven) => {
+    mkt = m; if (!m) return;
+    for (const o of m.odds || []) {
+      const n = lbl(o), c = priceOf(o);
+      if (n === 'odd') set(keyOdd, c, o);
+      else if (n === 'even') set(keyEven, c, o);
+    }
+  };
+  const doubleChance = (m, pfx) => {
+    mkt = m; if (!m) return;
+    for (const o of m.odds || []) {
+      const n = lbl(o).replace(/\s/g, ''), c = priceOf(o);
+      if (n === '1x') set(`${pfx}dc_1X`, c, o);
+      else if (n === '12') set(`${pfx}dc_12`, c, o);
+      else if (n === 'x2') set(`${pfx}dc_X2`, c, o);
+    }
+  };
+
+  // Marchés nommés d'après l'équipe : totaux, clean sheet, gagne sans encaisser,
+  // pair/impair. Le préfixe de période vient de « 1st half - » / « 2nd half - ».
+  for (const mktLoop of bts) {
+    const mn = String(mktLoop?.n || '').toLowerCase().trim();
+    if (!mn) continue;
+    const per = /^1st half\s*[-:]\s*/.test(mn) ? 'ht_' : /^2nd half\s*[-:]\s*/.test(mn) ? 'h2_' : '';
+    const rest = per ? mn.replace(/^(1st|2nd) half\s*[-:]\s*/, '') : mn;
+    const side = nameSide(rest);
+    if (!side) continue;
+    const what = rest.replace(/^\S.*?(?=(total|clean sheet|win to nil|odd\/even|to score in both halves|to win both halves|to win either half)\b)/, '');
+    mkt = mktLoop;
+    if (/\btotal\b/.test(what) && !/exact|range|multigoal/.test(what)) {
+      for (const o of mktLoop.odds || []) {
+        const l = lineOf(o); if (!isHalfLine(l)) continue;
+        const n = lbl(o), c = priceOf(o);
+        if (n === 'over') set(totalKey(`${per}tt_${side}_over_${l}`), c, o);
+        else if (n === 'under') set(totalKey(`${per}tt_${side}_under_${l}`), c, o);
+      }
+    } else if (/clean sheet/.test(what)) {
+      yesNo(mktLoop, `${per}cs_${side}_yes`, `${per}cs_${side}_no`);
+    } else if (/win to nil/.test(what)) {
+      yesNo(mktLoop, `tt_${side}_wins_to_nil_yes`, `tt_${side}_wins_to_nil_no`);
+    } else if (/odd\/even/.test(what)) {
+      oddEven(mktLoop, `${per}tt_${side}_odd`, `${per}tt_${side}_even`);
+    }
+  }
+
+  // Double chance 1re mi-temps (vrai nom YB).
+  doubleChance(findMarket(bts, '1st Half Double Chance', '1st half : Double Chance'), 'ht_');
+  // BTTS par mi-temps (vrais noms YB — issues « Y » / « N » en 1re période).
+  yesNo(findMarket(bts, '1st Half : Goal Goal / No Goal', '1st Half : GG/NG'), 'ht_btts_yes', 'ht_btts_no');
+  yesNo(findMarket(bts, '2nd Half : Both Teams to score', '2nd Half : GG/NG'), 'h2_btts_yes', 'h2_btts_no');
+  // Pair/impair par mi-temps (vrais noms YB).
+  oddEven(findMarket(bts, '1st Half : Odd/Even Goals', '1st Half : Odd / Even'), 'ht_odd', 'ht_even');
+  oddEven(findMarket(bts, '2nd Half : Odd / Even', '2nd Half : Odd/Even Goals'), 'h2_odd', 'h2_even');
+  // Mi-temps la plus prolifique.
+  const hsh = findMarket(bts, 'Highest Scoring Half');
+  mkt = hsh; if (hsh) for (const o of hsh.odds || []) {
+    const n = lbl(o), c = priceOf(o);
+    if (/^1st|^1$|first/.test(n)) set('half_most_ht', c, o);
+    else if (/^2nd|^2$|second/.test(n)) set('half_most_h2', c, o);
+    else if (/equal|tie|draw|^x$/.test(n)) set('half_most_equal', c, o);
   }
 
   // Garde-fou totaux : marge aberrante (< 0.9) → paire supprimée.
