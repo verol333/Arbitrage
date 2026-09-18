@@ -378,6 +378,29 @@ export function winFlatOdds(groups, names) {
         else putWin(odds, `hcp_away_${line}`, o);
       }
     }
+    // ── MARCHÉS 1WIN NOMMÉS D'APRÈS L'ÉQUIPE (audit 2026-09-18) ───────────
+    // 1win publie « <Équipe> to score in both halves » et « Last team to score »
+    // sur presque tous ses matchs de football, et Congobet publie exactement les
+    // mêmes familles : elles étaient donc arbitrables mais jamais lues.
+    if (/to score in both halves$/.test(low)) {
+      const team = rawName.replace(/\s*to score in both halves$/i, '');
+      const sH = tokenOverlap(team, names.home), sA = tokenOverlap(team, names.away);
+      const side = /^home\b/i.test(team) ? 'home' : /^away\b/i.test(team) ? 'away' : sH > sA ? 'home' : sA > sH ? 'away' : null;
+      if (side) for (const o of list) {
+        const n = (o.name || '').toLowerCase();
+        if (/^(yes|oui)/.test(n)) putWin(odds, `tt_${side}_score_each_half_yes`, o);
+        else if (/^(no|non)/.test(n)) putWin(odds, `tt_${side}_score_each_half_no`, o);
+      }
+    }
+    if (low === 'last team to score' || low === 'last goal') {
+      for (const o of list) {
+        const n = (o.name || '').toLowerCase();
+        if (/no goal|none|aucun|pas de but/.test(n)) putWin(odds, 'last_goal_X', o);
+        else if (isHome(n) && !isAway(n)) putWin(odds, 'last_goal_1', o);
+        else if (isAway(n) && !isHome(n)) putWin(odds, 'last_goal_2', o);
+      }
+    }
+
     const PFX = { '1st half.': 'ht_', '2nd half.': 'h2_', 'corners.': 'cor_', 'corners. 1st half.': 'cor_ht_' };
     let pfx = null, base = low;
     for (const [k, v] of Object.entries(PFX)) if (low.startsWith(k)) { pfx = v; base = low.slice(k.length).trim(); break; }
