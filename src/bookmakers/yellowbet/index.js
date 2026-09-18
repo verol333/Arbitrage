@@ -25,7 +25,9 @@ export default {
                : sport === 'hockey' ? yellowbetHockeyFlatOdds
                : yellowbetFlatOdds;
     // Hockey : les totaux individuels portent le nom de l'équipe → besoin des noms.
-    const opts = (sport === 'tennis' || sport === 'volleyball' || sport === 'hockey') ? { home: match.home, away: match.away } : { live };
+    // Le football a lui aussi besoin des noms d'équipes : YellowBet nomme ses
+    // totaux par équipe, clean sheets et « win to nil » d'après l'équipe.
+    const opts = { live, home: match.home, away: match.away };
     if (live || noCache) {
       const bts = await fetchMatchBts(match.id);
       if (bts.length) return flat(bts, opts);
