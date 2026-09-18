@@ -21,7 +21,7 @@ for (const sport of SPORTS) {
     for (const m of sample) {
       try {
         const odds = book.getOddsBatch
-          ? ((await book.getOddsBatch(sample, { sport, live: LIVE })).get(m.id) || {})
+          ? (await (async () => { const mp = await book.getOddsBatch(sample, { sport, live: LIVE }); return mp.get(m.id) || mp.get(String(m.id)) || mp.get(Number(m.id)) || {}; })())
           : (await book.getOdds(m, { sport, live: LIVE })) || {};
         const keys = Object.keys(odds).filter((k) => k !== '_ids');
         if (keys.length) read++;
