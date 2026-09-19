@@ -29,7 +29,6 @@ export const config = {
     // Aucun cap arbitraire. Les fausses opps doivent être éliminées par la
     // correction du code (parsers exacts, matching correct, orientation
     // vérifiée), pas masquées par un plafond.
-    maxProfitSanity: num(process.env.MAX_PROFIT_SANITY, 999),
     maxMatches: num(process.env.MAX_MATCHES, 400),
     horizonHours: num(process.env.HORIZON_HOURS, 72),
   },
