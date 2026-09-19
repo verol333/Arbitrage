@@ -4,13 +4,29 @@
 import { isHalfLine } from '../../core/markets.js';
 import { normalizeApolloOffers } from './legacyKeys.js';
 
+// ── COTE INCOHÉRENTE AVEC LA PROBABILITÉ D'APOLLO ─────────────────────────
+// Apollo publie, à côté de chaque cote, SA PROPRE probabilité (champ Probability).
+// Normalement 1/cote >= Probability (la marge du book). Quand une cote n'a pas
+// été rafraîchie, les deux se contredisent violemment : mesuré le 19/09/2026 sur
+// Fiorentina–Napoli « Team 1 - goals [0.5] » → Over à 2.85 (soit 0.351) alors
+// qu'Apollo annonce Probability = 0.705. Prise au pied de la lettre, cette cote
+// morte fabriquait un faux surebet de +33 % contre les six autres books.
+// On rejette donc la cote quand elle paie nettement moins que la probabilité
+// annoncée par Apollo lui-même — aucun plafond de marge, juste la cohérence
+// interne du book. Tolérance de 10 % pour les arrondis.
+function apolloPriceIsCoherent(od, cote) {
+  const prob = Number(od?.Probability);
+  if (!Number.isFinite(prob) || prob <= 0) return true; // pas de probabilité publiée
+  return 1 / cote >= prob * 0.9;
+}
+
 // eachOdd conserve son ancienne signature (t, name, c, sbv) pour compat.
 function eachOdd(offers, key, cb) {
   for (const o of offers) {
     if (String(o.BetTypeKey) !== String(key)) continue;
     for (const od of o.Odds || []) {
       const c = parseFloat(od.Odd);
-      if (!isNaN(c) && c > 1) cb(String(od.Type || ''), (od.Name || '').toString(), c, o.Sbv);
+      if (!isNaN(c) && c > 1 && apolloPriceIsCoherent(od, c)) cb(String(od.Type || ''), (od.Name || '').toString(), c, o.Sbv);
     }
   }
 }
@@ -25,7 +41,7 @@ function eachOddL(offers, key, cb) {
     const desc = o.Description || o.Name || '';
     for (const od of o.Odds || []) {
       const c = parseFloat(od.Odd);
-      if (!isNaN(c) && c > 1) cb(String(od.Type || ''), (od.Name || '').toString(), c, o.Sbv, desc, od);
+      if (!isNaN(c) && c > 1 && apolloPriceIsCoherent(od, c)) cb(String(od.Type || ''), (od.Name || '').toString(), c, o.Sbv, desc, od);
     }
   }
 }
