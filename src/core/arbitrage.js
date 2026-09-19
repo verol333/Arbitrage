@@ -1,12 +1,13 @@
 // Détection d'arbitrages (surebets) sur cotes plates standardisées.
 // Port fidèle de matchCore.ts (pushArb, pushArb3, compareTwoBooks).
-// Garde-fous conservés : cote > 80 ou profit > 40% → rejet (cotes gelées/corrompues).
+// Garde-fou conserve : cote > 80 -> rejet (cote gelee/corrompue). AUCUN plafond
+// de marge : une grosse marge doit remonter telle quelle (soit elle est reelle,
+// soit elle revele un bug de parsing a corriger a la source).
 import { config } from '../config.js';
 import { normalizeAliases } from './markets.js';
 import { teamSim } from './text.js';
 
 const MAX_ODD = 80;
-const MAX_PROFIT = () => config.scan.maxProfitSanity;
 
 // Helper : IDs bruts d'une cote pour SaveCoupon backend. Les parseurs ecrivent
 // odds._ids[key] = { ...ids natifs du book } en parallele de odds[key] = value.
@@ -19,7 +20,6 @@ export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook, a
   const invSum = 1 / aOdd + 1 / bOdd;
   if (invSum >= 1) return;
   const profit = (1 - invSum) * 100;
-  if (profit > MAX_PROFIT()) return;
   const stakeA = (1 / aOdd) / invSum * 100;
   const stakeB = (1 / bOdd) / invSum * 100;
   out.push({
