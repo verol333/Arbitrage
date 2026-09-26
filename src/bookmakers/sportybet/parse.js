@@ -39,7 +39,25 @@ function putSb(odds, key, v, m, o) {
   };
 }
 
+// Marchés / issues SUSPENDUS chez SportyBet : le site affiche « suspendu » et
+// refuse le pari, mais l'API renvoie toujours la dernière cote. On les écarte :
+// market.status !== 0 (1 = suspendu, 2 = désactivé, 3 = réglé) et
+// outcome.isActive === 0. Sans ça, des surebets impossibles à jouer s'affichaient.
+function activeOnly(markets) {
+  if (!Array.isArray(markets)) return markets;
+  const out = [];
+  for (const m of markets) {
+    if (m?.status != null && Number(m.status) !== 0) continue;
+    const outcomes = Array.isArray(m?.outcomes)
+      ? m.outcomes.filter((o) => o?.isActive == null || Number(o.isActive) === 1)
+      : m?.outcomes;
+    out.push({ ...m, outcomes });
+  }
+  return out;
+}
+
 export function sportybetFlatOdds(markets, { live = false, sport = 'football' } = {}) {
+  markets = activeOnly(markets);
   if (sport === 'tennis') return sportybetTennisFlatOdds(markets);
   if (sport === 'basket') return sportybetBasketFlatOdds(markets);
   if (sport === 'hockey') return sportybetHockeyFlatOdds(markets);
