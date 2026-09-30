@@ -48,10 +48,17 @@ const HANDICAPS = {
 const SET_SCOPED = new Set(['SetWinner', 'SetOverUnder', 'SetHandicap']);
 const isFirstSet = (name) => /\b1st\b/i.test(String(name || ''));
 
-function put(odds, key, value) {
+// e = issue Swarm : son id sert a generer le code de reservation (book_bet).
+function put(odds, key, value, e) {
   const v = Number(value);
   if (!Number.isFinite(v) || v <= 1) return;
-  if (odds[key] == null || v > odds[key]) odds[key] = v;
+  if (odds[key] == null || v > odds[key]) {
+    odds[key] = v;
+    if (e && e.id != null) {
+      if (!odds._ids) odds._ids = {};
+      odds._ids[key] = { eventId: Number(e.id) };
+    }
+  }
 }
 
 const fmt = (n) => String(Number(n));
@@ -69,7 +76,7 @@ export function maxibetTennisFlatOdds(markets = []) {
     if (fixed) {
       for (const e of events) {
         const key = fixed[e.type_1];
-        if (key) put(odds, key, e.price);
+        if (key) put(odds, key, e.price, e);
       }
       continue;
     }
@@ -79,8 +86,8 @@ export function maxibetTennisFlatOdds(markets = []) {
       for (const e of events) {
         const line = Number(e.base);
         if (!Number.isFinite(line) || !isHalfLine(line)) continue;
-        if (e.type_1 === 'Over') put(odds, total[0] + fmt(line), e.price);
-        else if (e.type_1 === 'Under') put(odds, total[1] + fmt(line), e.price);
+        if (e.type_1 === 'Over') put(odds, total[0] + fmt(line), e.price, e);
+        else if (e.type_1 === 'Under') put(odds, total[1] + fmt(line), e.price, e);
       }
       continue;
     }
@@ -90,8 +97,8 @@ export function maxibetTennisFlatOdds(markets = []) {
       for (const e of events) {
         const line = Number(e.base);
         if (!Number.isFinite(line) || !isHalfLine(line)) continue;
-        if (e.type_1 === 'Home') put(odds, hcp[0] + fmt(line), e.price);
-        else if (e.type_1 === 'Away') put(odds, hcp[1] + fmt(line), e.price);
+        if (e.type_1 === 'Home') put(odds, hcp[0] + fmt(line), e.price, e);
+        else if (e.type_1 === 'Away') put(odds, hcp[1] + fmt(line), e.price, e);
       }
     }
   }
