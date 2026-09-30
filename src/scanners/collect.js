@@ -679,6 +679,23 @@ function marketKeyFromOpp(o) {
   const fam = String(o.market_family || '');
   const aLbl = String(o.leg_a_label || '');
   const bLbl = String(o.leg_b_label || '');
+  // Vainqueur couvert par le +0.5 adverse (pushArbPeriodWinner : hockey
+  // "Match", basket Q1..Q4/1MT/2MT, corners). La jambe B est un HANDICAP +0.5,
+  // pas un match_2 : sans ce mapping -> noKey (hockey) ou re-prix faux.
+  const pw = fam.match(/^(Match|Q[1-4]|1MT|2MT|Corners 1MT|Corners) Vainqueur$/);
+  if (pw && /\+0\.5$/.test(bLbl)) {
+    const p = { Match: '', Q1: 'q1_', Q2: 'q2_', Q3: 'q3_', Q4: 'q4_', '1MT': 'h1_', '2MT': 'h2_', Corners: 'cor_', 'Corners 1MT': 'cor_ht_' }[pw[1]];
+    return aLbl.startsWith('Ext') ? { a: `${p}match_2`, b: `${p}hcp_home_0.5` } : { a: `${p}match_1`, b: `${p}hcp_away_0.5` };
+  }
+  // Hockey : Double Chance vs issue restante, et totaux de buts par equipe.
+  const dcVs = fam.match(/^Double Chance vs (Dom\.|Nul|Ext\.)$/);
+  if (dcVs) return { 'Dom.': { a: 'dc_X2', b: 'match_1' }, Nul: { a: 'dc_12', b: 'match_X' }, 'Ext.': { a: 'dc_1X', b: 'match_2' } }[dcVs[1]];
+  const ttButs = fam.match(/^Total Buts (Dom\.|Ext\.)\s*(\d+(?:\.\d+)?)$/);
+  if (ttButs) {
+    const side = ttButs[1] === 'Dom.' ? 'home' : 'away';
+    const l = parseFloat(ttButs[2]);
+    return { a: `tt_${side}_over_${l}`, b: `tt_${side}_under_${l}` };
+  }
   // Match Winner 2-way
   if (/^Match Winner$/.test(fam)) return { a: 'match_1', b: 'match_2' };
   // 1X2 + DC combinations
