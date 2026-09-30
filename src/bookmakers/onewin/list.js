@@ -6,7 +6,10 @@ async function winGetMany(sportId, offset, { live = false } = {}) {
     // Fenetre LIVE stricte : uniquement les matchs deja commences (pas +600s).
     // La fenetre "future" incluait des matchs pre-kickoff avec cotes pre-match.
     ? { sportId, isLive: true, startAtFrom: now - 4 * 3600, startAtTo: now, limit: 200, offset, l: 'en-001', p: PLATFORM }
-    : { sportId, startAtFrom: now - 3600, startAtTo: now + 3 * 86400, limit: 1000, offset, l: 'en-001', p: PLATFORM };
+    // 30/09/2026 : la fenêtre partait d'une heure AVANT maintenant → des matchs
+    // déjà en cours, avec leurs cotes live, passaient pour du pré-match et
+    // créaient de faux surebets à 40-48 % (totaux par équipe hockey).
+    : { sportId, startAtFrom: now + 60, startAtTo: now + 3 * 86400, limit: 1000, offset, l: 'en-001', p: PLATFORM };
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 12_000);
   try {
@@ -69,7 +72,9 @@ export async function listPrematch(sport = 'football') {
     }
   }
   const out = new Map();
+  const soon = Date.now() + 60_000;
   for (const m of raw.map(toMatch).filter(isReal)) {
+    if (m.start && m.start <= soon) continue; // déjà commencé = pas du pré-match
     if (!out.has(m.id)) out.set(m.id, m);
   }
   return [...out.values()];
