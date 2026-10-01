@@ -345,7 +345,9 @@ export function winFlatOdds(groups, names) {
       }
     }
     if (/\btotal$/.test(low) && low !== 'total'
-        && !/shot|foul|yellow|red|card|save|offside|throw|goal kick|corner|substitut|video|post|crossbar|even|odd|and |result|both teams|minute|1st|2nd|half/.test(low)) {
+        && !/shot|foul|yellow|red|card|save|offside|throw|goal kick|corner|substitut|video|post|crossbar|even|odd|and |result|both teams|minute|1st|2nd|3rd|4th|half|period|quarter|inning|set\b|overtime|\bot\b/.test(low)) {
+      // 01/10/2026 — « 3rd period. <équipe> total » (hockey) passait ce filtre et
+      // était lu comme un total du MATCH ENTIER → faux surebets à +45 %.
       let side;
       if (/\bhome team\b/.test(low)) side = 'home';
       else if (/\baway team\b/.test(low)) side = 'away';
