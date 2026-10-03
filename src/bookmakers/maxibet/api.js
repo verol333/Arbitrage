@@ -77,3 +77,32 @@ export async function fetchGames(sport, compIds, { batchSize = 20, type = TYPE_P
   }
   return rows;
 }
+
+// Relecture FRAICHE de matchs precis (confirmation d'un surebet). Sans elle, la
+// confirmation relisait les marches gardes depuis la liste : la meme cote
+// perimee passait deux fois le controle et partait comme surebet.
+export async function fetchGamesByIds(sport, gameIds) {
+  const id = sportId(sport);
+  if (!id || !gameIds.length) return new Map();
+  const res = await swarmSession([{
+    rid: 'ids',
+    params: {
+      source: 'betting',
+      what: { game: ['id', 'is_blocked'], market: ['id', 'name', 'type'], event: ['id', 'name', 'price', 'type_1', 'base'] },
+      where: { sport: { id }, game: { id: { '@in': gameIds.map(Number) } } },
+    },
+  }], { timeoutMs: 30_000 });
+  const out = new Map();
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.game) {
+      for (const g of Object.values(node.game)) {
+        out.set(String(g.id), g.is_blocked ? [] : Object.values(g.market || {}));
+      }
+      return;
+    }
+    for (const k of ['sport', 'region', 'competition']) if (node[k]) for (const v of Object.values(node[k])) walk(v);
+  };
+  walk(res.ids);
+  return out;
+}
