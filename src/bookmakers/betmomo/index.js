@@ -15,8 +15,9 @@ export default {
   // un re-fetch dédié via SWARM sur cet unique game → cotes fraîches.
   async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
     if (live || noCache) {
-      const markets = await fetchMatchOdds(match.id);
-      if (markets.length) return betmomoFlatOdds(markets, { sport });
+      // Plus de repli sur les cotes de la liste : relecture vide = match
+      // suspendu ou ferme, donc rien a confirmer (source de faux surebets).
+      return betmomoFlatOdds(await fetchMatchOdds(match.id), { sport });
     }
     return betmomoFlatOdds(match.__raw?.markets || [], { sport });
   },
