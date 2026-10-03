@@ -49,11 +49,12 @@ export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
 export async function fetchMatchOdds(matchId) {
   return swarmSession(async (send) => {
     const oddsData = await send(
-      { game: ['id'], market: ['name', 'type', 'col_count', 'group_name', 'group_id'], event: ['name', 'price', 'base', 'type_1', 'type'] },
+      { game: ['id', 'is_blocked'], market: ['name', 'type', 'col_count', 'group_name', 'group_id'], event: ['name', 'price', 'base', 'type_1', 'type'] },
       { game: { id: { '@eq': Number(matchId) } } },
     );
     const g = Object.values(oddsData?.game || {})[0];
-    return g ? Object.values(g.market || {}) : [];
+    // Match suspendu : les cotes affichees ne sont plus jouables.
+    return g && !g.is_blocked ? Object.values(g.market || {}) : [];
   }).catch(() => []);
 }
 
