@@ -20,6 +20,11 @@ on:
     - cron: '0 18 * * *'
     - cron: '0 22 * * *'
 
+# Un seul scan à la fois : le nouveau créneau remplace l'ancien (libère les machines).
+concurrency:
+  group: scan-prematch
+  cancel-in-progress: true
+
 jobs:
   prematch:
     name: prematch — ${{ matrix.sport }}
