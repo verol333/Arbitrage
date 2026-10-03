@@ -1,4 +1,5 @@
 import { listPrematch, listLive } from './list.js';
+import { fetchGamesByIds } from './api.js';
 import { maxibetFlatOdds } from './parse.js';
 import { maxibetTennisFlatOdds } from './parseTennis.js';
 import { maxibetHockeyFlatOdds } from './parseHockey.js';
@@ -20,7 +21,17 @@ export default {
     if (!['football', 'tennis', 'hockey', 'basket', 'volleyball', 'table_tennis'].includes(sport)) return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
   },
-  // Les marchés arrivent avec la liste : aucune requête supplémentaire ici.
+  // Les marches arrivent avec la liste. En CONFIRMATION (noCache) on relit le
+  // match en direct chez MaxiBet : un match suspendu ne renvoie plus rien.
+  async getOddsBatch(matches, { sport = 'football', noCache = false } = {}) {
+    const out = new Map();
+    const fresh = noCache ? await fetchGamesByIds(sport, matches.map((m) => m.id)) : null;
+    for (const m of matches) {
+      const markets = fresh ? (fresh.get(String(m.id)) || []) : (m.__raw?.markets || []);
+      out.set(m.id, await this.getOdds({ ...m, __raw: { markets } }, { sport }));
+    }
+    return out;
+  },
   async getOdds(match, { sport = 'football' } = {}) {
     if (!['football', 'tennis', 'hockey', 'basket', 'volleyball', 'table_tennis'].includes(sport)) return {};
     const markets = match.__raw?.markets || [];
