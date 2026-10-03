@@ -55,7 +55,7 @@ export async function fetchGames(sport, compIds, { batchSize = 20, type = TYPE_P
         source: 'betting',
         what: {
           competition: ['id', 'name'],
-          game: ['id', 'team1_name', 'team2_name', 'start_ts'],
+          game: ['id', 'team1_name', 'team2_name', 'start_ts', 'is_blocked'],
           market: ['id', 'name', 'type'],
           event: ['id', 'name', 'price', 'type_1', 'base'],
         },
