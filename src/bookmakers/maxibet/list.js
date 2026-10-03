@@ -44,6 +44,9 @@ export async function listLive(sport = 'football') {
     const home = clean(r.game.team1_name);
     const away = clean(r.game.team2_name);
     if (!home || !away || !r.markets.length) continue;
+    // Match SUSPENDU (point en cours, VAR, blessure) : MaxiBet garde les dernieres
+    // cotes affichees alors qu'elles ne sont plus jouables -> faux surebets.
+    if (r.game.is_blocked) continue;
     const ts = Number(r.game.start_ts);
     out.push({
       id: String(r.game.id),
