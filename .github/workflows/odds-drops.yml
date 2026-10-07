@@ -6,7 +6,7 @@ on:
       duration:
         description: 'Durée en minutes (max 350)'
         required: false
-        default: '10'
+        default: '350'
   schedule:
     - cron: '0 0 * * *'
     - cron: '0 6 * * *'
