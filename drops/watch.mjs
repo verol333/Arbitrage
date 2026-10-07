@@ -7,7 +7,7 @@ const END = Date.now() + Number(process.env.DURATION_MINUTES || 5) * 60000;
 // Seuils : chute brute >= 7 % en 10 s, ET au moins 7 % de baisse EN PLUS de ce que
 // le simple écoulement du temps explique (modèle de Poisson sur les buts restants).
 // Après 80', les cotes bougent surtout avec le chrono : on ne signale plus rien.
-const DROP = 0.07, EXCESS = 0.07, WINDOW = 10000, COOLDOWN = 60000, MATCH_COOL = 90000, GONE = 60000, LAST_MIN = 80;
+const DROP = 0.05, EXCESS = 0.05, MIN_GAP = 2, WINDOW = 10000, COOLDOWN = 60000, MATCH_COOL = 90000, GONE = 60000, LAST_MIN = 80;
 const poisCdf = (k, mu) => { if (k < 0) return 0; let t = Math.exp(-mu), c = t; for (let i = 1; i <= k; i++) { t *= mu / i; c += t; } return c; };
 // Probabilité de la sélection selon le nombre de buts attendus (mu) d'ici la fin.
 const probSel = (over, need, mu) => over ? 1 - poisCdf(need - 1, mu) : poisCdf(need - 1, mu);
@@ -22,7 +22,7 @@ function expectedOdd(over, line, goals, odd0, min0, min1) {
   const p1 = probSel(over, need, mu1);
   return p1 > 0 ? odd0 * (p0 / p1) : null;
 }
-const tier = (x) => (x >= 0.2 ? "forte" : x >= 0.12 ? "moyenne" : "faible");
+const tier = (x) => (x >= 0.2 ? "forte" : x >= 0.1 ? "moyenne" : "faible");
 const EXCLUDE = /penal|rush|volta|\b[2-9]\s?x\s?[2-9]\b/i;
 const H = { Accept: "application/json", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36" };
 import { createWriteStream } from "node:fs";
@@ -81,6 +81,9 @@ async function tick() {
       const top = h.reduce((a, b) => (b[1] > a[1] ? b : a));
       if (top[1] > 10 || e.C < 1.1 || e.C > top[1] * (1 - DROP) || m.cool[key] > now || m.minute >= LAST_MIN || m.matchCool > now) continue;
       const [gh, ga] = score.split("-").map(Number);
+      // Ligne à un seul but de basculer (ex : Moins 0.5 à 0-0, Moins 3.5 à 3-0) : la baisse est
+      // mécanique avec le chrono, ce n'est pas une vraie chute. On exige au moins 2 buts d'écart.
+      if (Math.floor(Number(e.P)) + 1 - (gh + ga) < MIN_GAP) continue;
       const exp = expectedOdd(e.T === 9, Number(e.P), gh + ga, top[1], top[2], m.minute);
       if (!exp) continue;
       const excess = 1 - e.C / exp;
