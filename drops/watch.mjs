@@ -36,7 +36,7 @@ const CONFIRM = 5000; // une chute attend 5 s : si un but s'affiche entre-temps,
 let pending = [], live = new Set();
 // Stratégie de patience : marge d'un but (ex : Moins 2.5 à 1-0) et cote >= 1.70 -> on vise
 // un but de plus (Plus goals+0.5), mais on attend : entrée dès 5 min sans but si la cote Plus
-// atteint 1.30, au plus tard 10 min après la chute (sinon on passe).
+// atteint 1.30, au plus tard 15 min après la chute (sinon on passe).
 const patience = new Map(); let entries = [];
 // Le flux principal ne donne qu'une ligne de buts : la cote du but supplémentaire
 // est lue dans le détail du match, toutes les 8 s par match en attente.
@@ -47,7 +47,7 @@ async function plusOdd(id, line) {
   const e = (ge?.E || []).flat().find((x) => x.T === 9 && Number(x.P) === line);
   return e ? e.C : null;
 }
-const PAT_MIN = 5, PAT_MAX = 10, PAT_ODD = 1.30;
+const PAT_MIN = 5, PAT_MAX = 15, PAT_ODD = 1.30;
 let drops = [], finals = [], lastFlush = Date.now(), ticks = 0, errors = 0;
 
 function selection(e) {
