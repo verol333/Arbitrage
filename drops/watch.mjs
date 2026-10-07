@@ -34,6 +34,11 @@ const lastOdd = new Map(); let rows = 0, liveCount = 0, linesRead = 0;
 const matches = new Map();
 const CONFIRM = 5000; // une chute attend 5 s : si un but s'affiche entre-temps, elle est annulée
 let pending = [], live = new Set();
+// Stratégie de patience : marge d'un but (ex : Moins 2.5 à 1-0) et cote >= 1.70 -> on vise
+// un but de plus (Plus goals+0.5), mais on attend : entrée dès 5 min sans but si la cote Plus
+// atteint 1.20, au plus tard 10 min après la chute (sinon on passe).
+const patience = new Map(); let entries = [];
+const PAT_MIN = 5, PAT_MAX = 10, PAT_ODD = 1.2;
 let drops = [], finals = [], lastFlush = Date.now(), ticks = 0, errors = 0;
 
 function selection(e) {
@@ -59,6 +64,7 @@ async function tick() {
     if (!m) { m = { score, hist: {}, cool: {} }; matches.set(g.I, m); }
     Object.assign(m, { seen: now, minute: minuteOf(sc), info: { match_id: g.I, champ_id: g.LI, league: g.L, team_home: g.O1, team_away: g.O2 } });
     liveCount++;
+    m.odds = {};
     if (m.score !== score) {
       // But : toute la mémoire des cotes est effacée, et les chutes en attente
       // de ce match sont annulées (c'est le but qui a fait baisser la cote).
@@ -73,6 +79,7 @@ async function tick() {
       if (!s || !s.label || !e.C) continue;
       const key = e.G + "/" + e.T + "/" + (e.P ?? "");
       linesRead++;
+      m.odds[key] = e.C;
       const lk = g.I + "|" + key;
       if (lastOdd.get(lk) !== e.C) { lastOdd.set(lk, e.C); rows++;
         gz.write(JSON.stringify({ t: now, id: g.I, l: g.L, h: g.O1, a: g.O2, min: m.minute, s: score, k: key, c: e.C }) + "\n"); }
@@ -102,10 +109,26 @@ async function tick() {
   for (const p of pending.filter((p) => p.due <= now)) {
     const m = matches.get(p.match_id);
     if (!m || m.score !== p.score_at_drop) continue;
-    const { due, ...d } = p; drops.push(d); live.add(p.match_id); m.matchCool = now + MATCH_COOL;
+    const { due, ...d } = p; drops.push(d);
+    const goals0 = d.score_at_drop.split("-").reduce((a, b) => a + Number(b), 0);
+    if (d.selection.startsWith("Moins") && d.odd_after >= 1.7 && Math.floor(Number(d.market_key.split("/")[2])) + 1 - goals0 === 2)
+      patience.set(d.match_id + "|" + d.detected_at, { match_id: d.match_id, detected_at: d.detected_at, minute: d.minute, goals: goals0, line: goals0 + 0.5 }); live.add(p.match_id); m.matchCool = now + MATCH_COOL;
     console.log("CHUTE CONFIRMÉE", d.team_home, "-", d.team_away, d.selection, d.odd_before, "->", d.odd_after, d.minute + "'", d.score_at_drop);
   }
   pending = pending.filter((p) => p.due > now);
+  for (const [k, p] of patience) {
+    const m = matches.get(p.match_id);
+    if (!m) { patience.delete(k); continue; }
+    const id = { match_id: p.match_id, detected_at: p.detected_at };
+    const goals = m.score.split("-").reduce((a, b) => a + Number(b), 0);
+    const odd = m.odds?.["17/9/" + p.line];
+    if (p.start == null && odd) { p.start = odd; entries.push({ ...id, plus_selection: "Plus " + p.line, plus_odd_at_drop: odd, entry_status: "waiting" }); }
+    const at = { entry_minute: m.minute, entry_score: m.score };
+    if (goals > p.goals) { entries.push({ ...id, ...at, entry_status: "goal_before" }); patience.delete(k); continue; }
+    const waited = m.minute - p.minute;
+    if (odd && odd >= PAT_ODD && waited >= PAT_MIN) { entries.push({ ...id, ...at, entry_status: "entered", entry_odd: odd }); patience.delete(k); console.log("ENTRÉE patience", m.info.team_home, "-", m.info.team_away, "Plus", p.line, odd, m.minute + "'"); }
+    else if (waited >= PAT_MAX) { entries.push({ ...id, ...at, entry_status: "skipped", entry_odd: odd || null }); patience.delete(k); }
+  }
   for (const [id, m] of matches) if (now - m.seen > GONE) {
     live.delete(id);
     finals.push({ match_id: id, final_score: m.score, final_minute: m.minute });
@@ -115,10 +138,11 @@ async function tick() {
 
 async function flush() {
   const liveRows = [...live].map((id) => matches.get(id)).filter(Boolean).map((m) => ({ match_id: m.info.match_id, score: m.score, minute: m.minute }));
-  if (!drops.length && !finals.length && !liveRows.length) return;
-  const body = JSON.stringify({ drops, finals, live: liveRows });
+  if (!drops.length && !finals.length && !liveRows.length && !entries.length) return;
+  const sent = entries.length;
+  const body = JSON.stringify({ drops, finals, live: liveRows, entries });
   const r = await fetch(HOOK, { method: "POST", headers: { "content-type": "application/json", "x-webhook-secret": SECRET }, body, signal: AbortSignal.timeout(30000) }).catch((e) => ({ ok: false, status: e.message }));
-  if (r.ok) { drops = []; finals = []; } else console.log("envoi refusé", r.status);
+  if (r.ok) { drops = []; finals = []; entries = entries.slice(sent); } else console.log("envoi refusé", r.status);
 }
 
 while (Date.now() < END) {
