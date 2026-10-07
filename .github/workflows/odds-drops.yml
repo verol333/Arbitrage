@@ -31,3 +31,10 @@ jobs:
         env:
           DURATION_MINUTES: ${{ github.event.inputs.duration || '355' }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+      - name: Relevé des cotes seconde par seconde
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cotes-${{ github.run_id }}
+          path: ticks.jsonl.gz
+          retention-days: 30
