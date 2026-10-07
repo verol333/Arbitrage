@@ -7,6 +7,12 @@ const END = Date.now() + Number(process.env.DURATION_MINUTES || 5) * 60000;
 const DROP = 0.15, WINDOW = 10000, COOLDOWN = 60000, GONE = 60000;
 const EXCLUDE = /penal|rush|volta|\b[2-9]\s?x\s?[2-9]\b/i;
 const H = { Accept: "application/json", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36" };
+import { createWriteStream } from "node:fs";
+import { createGzip } from "node:zlib";
+// Relevé complet : chaque cote de buts lue (une ligne dès qu'elle change, et
+// au moins une fois par match et par ligne) -> fichier joint au run GitHub.
+const gz = createGzip(); gz.pipe(createWriteStream("ticks.jsonl.gz"));
+const lastOdd = new Map(); let rows = 0, liveCount = 0, linesRead = 0;
 const matches = new Map();
 const CONFIRM = 5000; // une chute attend 5 s : si un but s'affiche entre-temps, elle est annulée
 let pending = [], live = new Set();
@@ -26,6 +32,7 @@ async function tick() {
   const r = await fetch(FEED, { headers: H, signal: AbortSignal.timeout(4000) });
   if (!r.ok) throw new Error("HTTP " + r.status);
   const games = (await r.json()).Value || [];
+  liveCount = 0; linesRead = 0;
   for (const g of games) {
     const sc = g.SC || {};
     if (EXCLUDE.test(g.L || "") || sc.GS === 128 || /d[ée]but|dans/i.test(sc.SLS || "")) continue;
@@ -33,6 +40,7 @@ async function tick() {
     let m = matches.get(g.I);
     if (!m) { m = { score, hist: {}, cool: {} }; matches.set(g.I, m); }
     Object.assign(m, { seen: now, minute: minuteOf(sc), info: { match_id: g.I, champ_id: g.LI, league: g.L, team_home: g.O1, team_away: g.O2 } });
+    liveCount++;
     if (m.score !== score) {
       // But : toute la mémoire des cotes est effacée, et les chutes en attente
       // de ce match sont annulées (c'est le but qui a fait baisser la cote).
@@ -46,6 +54,10 @@ async function tick() {
       const s = selection(e);
       if (!s || !s.label || !e.C) continue;
       const key = e.G + "/" + e.T + "/" + (e.P ?? "");
+      linesRead++;
+      const lk = g.I + "|" + key;
+      if (lastOdd.get(lk) !== e.C) { lastOdd.set(lk, e.C); rows++;
+        gz.write(JSON.stringify({ t: now, id: g.I, l: g.L, h: g.O1, a: g.O2, min: m.minute, s: score, k: key, c: e.C }) + "\n"); }
       const h = (m.hist[key] = (m.hist[key] || []).filter(([t]) => now - t <= WINDOW));
       h.push([now, e.C]);
       const top = h.reduce((a, b) => (b[1] > a[1] ? b : a));
@@ -84,8 +96,9 @@ while (Date.now() < END) {
   const t0 = Date.now();
   try { await tick(); ticks++; } catch (e) { errors++; if (errors % 30 === 1) console.log("lecture", e.message); }
   if (Date.now() - lastFlush > 5000) { lastFlush = Date.now(); await flush(); }
-  if (ticks % 300 === 0) console.log("tours", ticks, "erreurs", errors, "matchs suivis", matches.size);
+  if (ticks % 60 === 0) console.log("tours", ticks, "| erreurs", errors, "| matchs en cours", liveCount, "| cotes lues ce tour", linesRead, "| relevés", rows, "| en attente", pending.length);
   await new Promise((r) => setTimeout(r, Math.max(0, 1000 - (Date.now() - t0))));
 }
 await flush();
+await new Promise((r) => gz.end(r));
 console.log("fin", ticks, "tours", errors, "erreurs");
