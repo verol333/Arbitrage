@@ -38,7 +38,7 @@ let pending = [], live = new Set();
 // un but de plus (Plus goals+0.5), mais on attend : entrée dès 5 min sans but si la cote Plus
 // atteint 1.20, au plus tard 10 min après la chute (sinon on passe).
 const patience = new Map(); let entries = [];
-const PAT_MIN = 5, PAT_MAX = 10, PAT_ODD = 1.2;
+const PAT_MIN = 5, PAT_MAX = 10, PAT_ODD = 1.15;
 let drops = [], finals = [], lastFlush = Date.now(), ticks = 0, errors = 0;
 
 function selection(e) {
