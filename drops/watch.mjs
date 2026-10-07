@@ -1,10 +1,28 @@
 // Veilleur des chutes de cote — virtuel FIFA Megapari, cotes lues chaque seconde.
-// Une chute = cote qui perd au moins 15 % en moins de 10 s SANS changement de score.
+// Une chute = cote qui perd >= 7 % en 10 s sans but, au-delà de l'effet du temps.
 const FEED = "https://megapari.com/service-api/LiveFeed/Get1x2_VZip?sports=85&count=300&lng=fr&mode=4&country=93&getEmpty=true&virtualSports=true";
 const HOOK = "https://al-ve-pro.base44.app/functions/oddsDropWebhook";
 const SECRET = process.env.WEBHOOK_SECRET;
 const END = Date.now() + Number(process.env.DURATION_MINUTES || 5) * 60000;
-const DROP = 0.15, WINDOW = 10000, COOLDOWN = 60000, GONE = 60000;
+// Seuils : chute brute >= 7 % en 10 s, ET au moins 7 % de baisse EN PLUS de ce que
+// le simple écoulement du temps explique (modèle de Poisson sur les buts restants).
+// Après 80', les cotes bougent surtout avec le chrono : on ne signale plus rien.
+const DROP = 0.07, EXCESS = 0.07, WINDOW = 10000, COOLDOWN = 60000, MATCH_COOL = 90000, GONE = 60000, LAST_MIN = 80;
+const poisCdf = (k, mu) => { if (k < 0) return 0; let t = Math.exp(-mu), c = t; for (let i = 1; i <= k; i++) { t *= mu / i; c += t; } return c; };
+// Probabilité de la sélection selon le nombre de buts attendus (mu) d'ici la fin.
+const probSel = (over, need, mu) => over ? 1 - poisCdf(need - 1, mu) : poisCdf(need - 1, mu);
+// Cote attendue après le seul passage du temps (de min0 à min1), sans but.
+function expectedOdd(over, line, goals, odd0, min0, min1) {
+  const need = Math.floor(line) + 1 - goals; // buts nécessaires pour passer au-dessus
+  if (need <= 0) return null;
+  const p0 = Math.min(0.97, 0.95 / odd0), r0 = Math.max(1, 90 - min0), r1 = Math.max(0.5, 90 - min1);
+  let lo = 0.001, hi = 15; // trouve mu tel que probSel(mu) = p0
+  for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; const v = probSel(over, need, mid); if ((over ? v < p0 : v > p0)) lo = mid; else hi = mid; }
+  const mu1 = ((lo + hi) / 2) * (r1 / r0);
+  const p1 = probSel(over, need, mu1);
+  return p1 > 0 ? odd0 * (p0 / p1) : null;
+}
+const tier = (x) => (x >= 0.2 ? "forte" : x >= 0.12 ? "moyenne" : "faible");
 const EXCLUDE = /penal|rush|volta|\b[2-9]\s?x\s?[2-9]\b/i;
 const H = { Accept: "application/json", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36" };
 import { createWriteStream } from "node:fs";
@@ -59,21 +77,29 @@ async function tick() {
       if (lastOdd.get(lk) !== e.C) { lastOdd.set(lk, e.C); rows++;
         gz.write(JSON.stringify({ t: now, id: g.I, l: g.L, h: g.O1, a: g.O2, min: m.minute, s: score, k: key, c: e.C }) + "\n"); }
       const h = (m.hist[key] = (m.hist[key] || []).filter(([t]) => now - t <= WINDOW));
-      h.push([now, e.C]);
+      h.push([now, e.C, m.minute]);
       const top = h.reduce((a, b) => (b[1] > a[1] ? b : a));
-      if (top[1] <= 10 && e.C >= 1.1 && e.C <= top[1] * (1 - DROP) && !(m.cool[key] > now)) {
-        m.cool[key] = now + COOLDOWN;
-        pending.push({ due: now + CONFIRM, ...m.info, market: s.market, selection: s.label, market_key: key, odd_before: top[1], odd_after: e.C,
-          drop_pct: Math.round((1 - e.C / top[1]) * 1000) / 10, window_sec: Math.round((now - top[0]) / 100) / 10,
-          minute: m.minute, score_at_drop: score, detected_at: new Date(now).toISOString() });
-        console.log("candidate", g.O1, "-", g.O2, s.label, top[1], "->", e.C, "min", m.minute, score);
-      }
+      if (top[1] > 10 || e.C < 1.1 || e.C > top[1] * (1 - DROP) || m.cool[key] > now || m.minute >= LAST_MIN || m.matchCool > now) continue;
+      const [gh, ga] = score.split("-").map(Number);
+      const exp = expectedOdd(e.T === 9, Number(e.P), gh + ga, top[1], top[2], m.minute);
+      if (!exp) continue;
+      const excess = 1 - e.C / exp;
+      if (excess < EXCESS) continue; // baisse expliquée par le chrono
+      m.cool[key] = now + COOLDOWN;
+      const cand = { due: now + CONFIRM, ...m.info, market: s.market, selection: s.label, market_key: key, odd_before: top[1], odd_after: e.C,
+        drop_pct: Math.round((1 - e.C / top[1]) * 1000) / 10, window_sec: Math.round((now - top[0]) / 100) / 10,
+        expected_odd: Math.round(exp * 100) / 100, excess_pct: Math.round(excess * 1000) / 10, strength: tier(excess),
+        minute: m.minute, score_at_drop: score, detected_at: new Date(now).toISOString() };
+      // Anti-cascade : une seule chute par match en attente, la plus forte.
+      const i = pending.findIndex((p) => p.match_id === g.I);
+      if (i < 0) pending.push(cand); else if (pending[i].excess_pct < cand.excess_pct) pending[i] = { ...cand, due: pending[i].due };
+      console.log("candidate", g.O1, "-", g.O2, s.label, top[1], "->", e.C, "attendue", cand.expected_odd, "excès", cand.excess_pct + "%", "min", m.minute, score);
     }
   }
   for (const p of pending.filter((p) => p.due <= now)) {
     const m = matches.get(p.match_id);
     if (!m || m.score !== p.score_at_drop) continue;
-    const { due, ...d } = p; drops.push(d); live.add(p.match_id);
+    const { due, ...d } = p; drops.push(d); live.add(p.match_id); m.matchCool = now + MATCH_COOL;
     console.log("CHUTE CONFIRMÉE", d.team_home, "-", d.team_away, d.selection, d.odd_before, "->", d.odd_after, d.minute + "'", d.score_at_drop);
   }
   pending = pending.filter((p) => p.due > now);
