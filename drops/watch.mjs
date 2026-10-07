@@ -38,6 +38,15 @@ let pending = [], live = new Set();
 // un but de plus (Plus goals+0.5), mais on attend : entrée dès 5 min sans but si la cote Plus
 // atteint 1.20, au plus tard 10 min après la chute (sinon on passe).
 const patience = new Map(); let entries = [];
+// Le flux principal ne donne qu'une ligne de buts : la cote du but supplémentaire
+// est lue dans le détail du match, toutes les 8 s par match en attente.
+async function plusOdd(id, line) {
+  const r = await fetch(`https://megapari.com/service-api/LiveFeed/GetGameZip?id=${id}&lng=fr&isSubGames=true&GroupEvents=true&countevents=250&grMode=4&partner=192&marketType=1`, { headers: H, signal: AbortSignal.timeout(4000) }).catch(() => null);
+  if (!r?.ok) return undefined;
+  const ge = ((await r.json()).Value?.GE || []).find((x) => x.G === 17);
+  const e = (ge?.E || []).flat().find((x) => x.T === 9 && Number(x.P) === line);
+  return e ? e.C : null;
+}
 const PAT_MIN = 5, PAT_MAX = 10, PAT_ODD = 1.15;
 let drops = [], finals = [], lastFlush = Date.now(), ticks = 0, errors = 0;
 
@@ -121,13 +130,15 @@ async function tick() {
     if (!m) { patience.delete(k); continue; }
     const id = { match_id: p.match_id, detected_at: p.detected_at };
     const goals = m.score.split("-").reduce((a, b) => a + Number(b), 0);
-    const odd = m.odds?.["17/9/" + p.line];
+    if (!p.next || now >= p.next) { p.next = now + 8000; const o = await plusOdd(p.match_id, p.line); if (o !== undefined) p.odd = o; }
+    const odd = p.odd;
+    if (odd != null) p.best = Math.max(p.best || 0, odd);
     if (p.start == null && odd) { p.start = odd; entries.push({ ...id, plus_selection: "Plus " + p.line, plus_odd_at_drop: odd, entry_status: "waiting" }); }
     const at = { entry_minute: m.minute, entry_score: m.score };
     if (goals > p.goals) { entries.push({ ...id, ...at, entry_status: "goal_before" }); patience.delete(k); continue; }
-    const waited = m.minute - p.minute;
+    const waited = m.minute - Math.max(p.minute, m.minute > 45 && p.minute >= 45 ? 45 : p.minute);
     if (odd && odd >= PAT_ODD && waited >= PAT_MIN) { entries.push({ ...id, ...at, entry_status: "entered", entry_odd: odd }); patience.delete(k); console.log("ENTRÉE patience", m.info.team_home, "-", m.info.team_away, "Plus", p.line, odd, m.minute + "'"); }
-    else if (waited >= PAT_MAX) { entries.push({ ...id, ...at, entry_status: "skipped", entry_odd: odd || null }); patience.delete(k); }
+    else if (waited >= PAT_MAX) { entries.push({ ...id, ...at, entry_status: "skipped", entry_odd: p.best || null }); patience.delete(k); }
   }
   for (const [id, m] of matches) if (now - m.seen > GONE) {
     live.delete(id);
