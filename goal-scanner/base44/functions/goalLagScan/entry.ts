@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
   const ticks = { x: 0, b: 0, w: 0, c: 0, win: 0 };
   const saved: any[] = [];
   const signals: any[] = [];
-  let mkTicks = 0, mkMatches = 0, liveIds = new Set<number>();
+  let sent = 0, mkTicks = 0, mkMatches = 0, liveIds = new Set<number>();
   // Signaux « probabilités » en attente de résultat (cycles précédents)
   const pending = (await db.ProbLagSignal.filter({ status: "pending" }, { limit: 500 }).catch(() => ({ items: [] }))).items || [];
   const settle: Record<string, any> = {};
@@ -215,6 +215,8 @@ Deno.serve(async (req) => {
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked }, signals);
       }));
       mkTicks++;
+      // Envoi immédiat des signaux terminés (sans attendre la fin du cycle)
+      if (signals.length > sent) { const batch = signals.slice(sent); sent = signals.length; db.ProbLagSignal.bulkCreate(batch.map((p) => toSignal(p, runId))).catch(() => null); }
       await sleep(Math.max(0, 1000 - (Date.now() - s)));
     }
   };
@@ -227,7 +229,7 @@ Deno.serve(async (req) => {
   stream.stop();
   for (const m of matches.values()) for (const p of m.pend || []) signals.push(p);
   const sigRecs = signals.map((p) => toSignal(p, runId));
-  if (sigRecs.length) await db.ProbLagSignal.bulkCreate(sigRecs).catch(() => null);
+  if (sigRecs.length > sent) await db.ProbLagSignal.bulkCreate(sigRecs.slice(sent)).catch(() => null);
   // Résultat : match disparu du direct après la 85e = terminé au dernier score ; disparu plus tôt depuis 3 h = annulé
   for (const sig of pending) {
     const u = settle[sig.id] || {};
