@@ -121,9 +121,9 @@ async function tick() {
     const { due, ...d } = p;
     const sc = d.score_at_drop.split("-").map(Number), goals0 = sc[0] + sc[1];
     // Seules les chutes qui ouvrent la stratégie but supplémentaire sont gardées, et jamais sur un écart de 2 buts ou plus.
-    if (!(d.selection.startsWith("Moins") && d.odd_after >= 1.7 && Math.floor(Number(d.market_key.split("/")[2])) + 1 - goals0 === 2 && Math.abs(sc[0] - sc[1]) < 2)) continue;
-    drops.push(d);
-    patience.set(d.match_id + "|" + d.detected_at, { match_id: d.match_id, detected_at: d.detected_at, minute: d.minute, goals: goals0, line: goals0 + 0.5 }); live.add(p.match_id); m.matchCool = now + MATCH_COOL;
+    drops.push(d); // toutes les chutes sont gardées pour l'étude
+    if (d.selection.startsWith("Moins") && d.odd_after >= 1.7 && Math.floor(Number(d.market_key.split("/")[2])) + 1 - goals0 === 2 && Math.abs(sc[0] - sc[1]) < 2)
+      patience.set(d.match_id + "|" + d.detected_at, { match_id: d.match_id, detected_at: d.detected_at, minute: d.minute, goals: goals0, line: goals0 + 0.5 }); live.add(p.match_id); m.matchCool = now + MATCH_COOL;
     console.log("CHUTE CONFIRMÉE", d.team_home, "-", d.team_away, d.selection, d.odd_before, "->", d.odd_after, d.minute + "'", d.score_at_drop);
   }
   pending = pending.filter((p) => p.due > now);
