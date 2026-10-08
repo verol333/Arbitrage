@@ -1,0 +1,46 @@
+name: Scanner buts — continu (1 s)
+
+# Repo PUBLIC = minutes illimitées. Deux machines : "buts" (retard au but) et "proba" (probabilités en avance).
+# Chaque créneau tourne 350 min, puis le suivant prend le relais ; le veilleur de l'application relance si besoin.
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Durée en minutes (max 350)'
+        required: false
+        default: '350'
+  schedule:
+    - cron: '0 0 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
+
+concurrency:
+  group: goal-scanner
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: scanner — ${{ matrix.mode }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [buts, proba]
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    defaults:
+      run:
+        working-directory: goal-scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Scanner en continu
+        run: deno run -A run.ts
+        env:
+          MODE: ${{ matrix.mode }}
+          SCAN_DURATION_MINUTES: ${{ github.event.inputs.duration || '350' }}
+          SCAN_MAX_S: '1800'
+          INGEST_URL: https://al-ve-pro.base44.app/functions/goalLagIngest
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
