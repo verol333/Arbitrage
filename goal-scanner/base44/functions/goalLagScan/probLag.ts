@@ -1,7 +1,7 @@
 import { fair, label, type Mk } from "../../shared/liveMarkets.ts";
 
 // Scanner « probabilités en avance » : 1xBet (marge retirée) sert de référence.
-// Signal = la probabilité juste 1xBet d'une issue « buts » bouge d'au moins 3 points en
+// Signal = la probabilité juste 1xBet d'une issue « buts » gagne au moins 10 points et atteint 60 % en
 // ≤ 3,5 s, sans but récent, alors qu'un autre site n'a pas bougé et paie ≥ 5 % d'avantage.
 // Un mouvement brusque en 3 s n'est pas l'usure du temps (qui fait ~0,1 point/s au plus).
 export type Snap = { at: number; sc: [number, number]; min: number; x: Mk; xl: Set<string>; w?: Mk | null; wl?: Set<string>; b?: Mk | null; bl?: Set<string>; c?: Mk | null; cl?: Set<string> };
@@ -47,7 +47,8 @@ export function step(m: any, s: Snap, done: any[]) {
     let side = 0;
     for (let i = 1; i < p1.length; i++) if (p1[i] - p0[i] > p1[side] - p0[side]) side = i;
     STATS.lignes++;
-    if (p1[side] - p0[side] < 0.03) continue;
+    // Seulement les vrais sauts : +10 points au moins, et 1xBet donne l'issue à 60 % ou plus (ex. 45 → 60 %)
+    if (p1[side] - p0[side] < 0.10 || p1[side] < 0.60) continue;
     STATS.mouvements1xbet++;
     for (const [bk, name] of BOOKS) {
       const mk = (s as any)[bk] as Mk | null, mk0 = (base as any)[bk] as Mk | null, lk = (s as any)[bk + "l"] as Set<string> | undefined;
