@@ -39,8 +39,8 @@ export function step(m: any, s: Snap, done: any[]) {
     const base = h.find((o) => s.at - o.at <= 10000 && s.at - o.at >= 900 && o.x[k] && !o.xl.has(k));
     if (!base) continue;
     const line = tot ? parseFloat(k.split("_")[1]) : 0;
-    // Lignes réalistes seulement : le prochain but ou le suivant (ex. à 1-0 : plus/moins 1.5 et 2.5)
-    if (tot && (line < goalsFor(k, s.sc) || line - goalsFor(k, s.sc) > 1.5)) continue;
+    // Toutes les lignes encore ouvertes jusqu'à 3 buts de plus (ex. à 1-0 : plus/moins 1.5, 2.5, 3.5)
+    if (tot && (line < goalsFor(k, s.sc) || line - goalsFor(k, s.sc) > 2.5)) continue;
     if (base.x[k].length !== s.x[k].length) continue;
     const p0 = fair(base.x[k]), p1 = fair(s.x[k]);
     // Issue qui a le plus gagné en probabilité chez 1xBet (2 ou 3 issues)
@@ -49,6 +49,8 @@ export function step(m: any, s: Snap, done: any[]) {
     STATS.lignes++;
     // Seulement les vrais sauts : +10 points au moins, et 1xBet donne l'issue à 60 % ou plus (ex. 45 → 60 %)
     if (p1[side] - p0[side] < 0.10 || p1[side] < 0.60) continue;
+    // Pas de « moins de 0.5 » à 0-0 : simple usure du temps
+    if (tot && line === 0.5 && side === 1 && goalsFor(k, s.sc) === 0) continue;
     STATS.mouvements1xbet++;
     for (const [bk, name] of BOOKS) {
       const mk = (s as any)[bk] as Mk | null, mk0 = (base as any)[bk] as Mk | null, lk = (s as any)[bk + "l"] as Set<string> | undefined;
