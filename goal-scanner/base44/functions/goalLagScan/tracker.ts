@@ -59,11 +59,13 @@ export function toRecord(ev: GoalEv, m: any, runId: string, truncated: boolean) 
     team_line: `Plus de ${ev.teamKey.split("_")[1]}`, match_line: `Plus de ${ev.matchKey.split("_")[1]}`,
     cancelled: ev.cancelled, truncated, timeline: ev.timeline, playable: false,
   };
+  // But confirmé = au moins deux sites l'ont affiché ; sinon c'est une erreur de score d'un site
+  const confirmed = BOOKS.filter((b) => ev.seen[b] != null).length >= 2;
   for (const b of BOOKS) {
     if (ev.seen[b] != null) r[`${b}_seen_s`] = Math.round(ev.seen[b]! / 100) / 10;
     for (const k of ["team", "match"]) {
       const o = ev.open[`${b}_${k}`];
-      if (o) { const f = (o as any).from; r[`${b}_${k}_from_s`] = f; const dur = Math.round((o.s - f) * 10) / 10; r[`${b}_${k}_open_s`] = dur; r[`${b}_${k}_odd`] = o.odd; if (!ev.cancelled && dur >= PLACE_S) r.playable = true; }
+      if (o) { const f = (o as any).from; r[`${b}_${k}_from_s`] = f; const dur = Math.round((o.s - f) * 10) / 10; r[`${b}_${k}_open_s`] = dur; r[`${b}_${k}_odd`] = o.odd; if (!ev.cancelled && confirmed && dur >= PLACE_S) r.playable = true; }
     }
   }
   return r;

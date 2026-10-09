@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "../../../sdk-shim.ts";
-import { fetchLiveMatches } from "../../shared/onewinLiveWs.ts";
+import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { sleep, xbetList, xbetSnap, bpSnap, wParse, cbList, cbSnap } from "../../shared/liveMarkets.ts";
@@ -183,12 +183,13 @@ Deno.serve(async (req) => {
       if (Date.now() >= stopAt && !open.length) break;
       await Promise.all(open.map(async ([m, ev]) => {
         if (Date.now() - ev.t0 > WINDOW_MS) return finish(m, ev, false);
-        const [x, b, c] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null]);
+        // 1win : relevé neuf à chaque seconde (le flux continu garde les options retirées en mémoire = cotes figées)
+        const [x, b, c, wf] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null]);
         const at = Date.now();
         if (x) onScore(m, "x", [x.sh, x.sa], at, x.min);
         if (b?.score) onScore(m, "b", b.score, at);
         if (c?.score) onScore(m, "c", c.score, at);
-        const wl = new Set<string>(), wm = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
+        const wl = new Set<string>(), wm = m.w && wf ? wParse(wf.odds.get(m.w) as any, m.wHome, wl) : null;
         sample(ev, at, {
           x: x ? { sc: m.sc.x, team: line(x.mk, x.locked, ev.teamKey), match: line(x.mk, x.locked, ev.matchKey) } : null,
           w: wm ? { sc: m.sc.w || null, team: line(wm, wl, ev.teamKey), match: line(wm, wl, ev.matchKey) } : null,
