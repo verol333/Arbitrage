@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
@@ -6,6 +6,7 @@ import { sleep, xbetList, xbetSnap, bpSnap, wParse, cbList, cbSnap } from "../..
 import { OnewinStream } from "./onewinStream.ts";
 import { type Book, type GoalEv, type Line, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
+import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 
 // Scanner « buts » : TOUS les matchs de foot en direct, scores lus chaque seconde chez
 // 1xBet et betPawa, poussés en direct par 1win. À chaque but, suivi seconde par seconde
@@ -20,6 +21,17 @@ Deno.serve(async (req) => {
   const t0 = Date.now(), stopAt = t0 + Math.min(Number(body.seconds || 140), MAXS) * 1000;
   const runId = `${new Date(t0).toISOString()}`;
   const db = base44.asServiceRole.entities;
+  // Contrôle de la connexion 1win de la mise auto, sans miser
+  if (body.mode === "betcheck") return Response.json(await createAutoBet(db, { odds: new Map() }).check());
+  // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
+  if (body.mode === "replay") {
+    const { execBet } = await import("../../shared/probAutoExec.ts");
+    const sigs = (await db.ProbLagSignal.filter({ book: "1win", edge_pct: { $gte: 15, $lte: 45 }, book_odd: { $lt: 2.5 }, minute: { $lt: 60 } }, { sort: "-created_date", limit: Number(body.limit || 5) })).items;
+    const out = [];
+    for (const s of sigs) out.push({ match: s.match_label, market: s.market_label, ...(await execBet(db, { dry: true, o: { id: "test", cf: s.book_odd, status: 1 },
+      base: { signal_key: `replay|${s.id}`, source: "prob", xbet_id: s.xbet_id, match_label: s.match_label, minute: s.minute, score: s.score, market_key: s.market_key, market_label: s.market_label, odd: s.book_odd } })) });
+    return Response.json({ replay: out });
+  }
 
   const matches = new Map<number, any>();          // clé : identifiant 1xBet
   const byW = new Map<number, any>(), byB = new Map<string, any>();
@@ -32,7 +44,11 @@ Deno.serve(async (req) => {
   // Signaux « probabilités » en attente de résultat (cycles précédents)
   const pending = (await db.ProbLagSignal.filter({ status: "pending" }, { limit: 500 }).catch(() => ({ items: [] }))).items || [];
   const settle: Record<string, any> = {};
+  // Paris automatiques 1win encore ouverts
+  const openBets = body.mode === "proba" ? await loadOpenBets(db) : [];
+  const betSettle: Record<string, any> = {};
   const track = (id: number, sc: [number, number], min: number) => {
+    for (const b of openBets) if (b.xbet_id === id && !betSettle[b.id]?.status) betSettle[b.id] = { ...settleBet(b, sc, false), last_minute: min };
     for (const sig of pending) if (sig.xbet_id === id && !settle[sig.id]?.status) {
       const v = verdict(sig, sc, false);
       settle[sig.id] = { last_score: sc.join("-"), last_minute: min, ...(v ? { status: v, settled_at: new Date().toISOString() } : {}) };
@@ -74,6 +90,7 @@ Deno.serve(async (req) => {
 
   const stream = new OnewinStream((id, sc, at) => { const m = byW.get(id); if (m) onScore(m, "w", sc, at); });
   stream.start();
+  const autoBet = createAutoBet(db, stream, { dry: !!body.dry });
 
   const cats = await listBetpawaCategories().catch(() => []);
   const foot = cats.find((c: any) => /^(football|soccer)$/i.test(c.name.trim()));
@@ -190,6 +207,7 @@ Deno.serve(async (req) => {
         if (b?.score) onScore(m, "b", b.score, at);
         if (c?.score) onScore(m, "c", c.score, at);
         const wl = new Set<string>(), wm = m.w && wf ? wParse(wf.odds.get(m.w) as any, m.wHome, wl) : null;
+        queueMicrotask(() => autoBet.goal(m, ev));
         sample(ev, at, {
           x: x ? { sc: m.sc.x, team: line(x.mk, x.locked, ev.teamKey), match: line(x.mk, x.locked, ev.matchKey) } : null,
           w: wm ? { sc: m.sc.w || null, team: line(wm, wl, ev.teamKey), match: line(wm, wl, ev.matchKey) } : null,
@@ -214,6 +232,7 @@ Deno.serve(async (req) => {
         if (!x) return;
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked }, signals);
+        if (m.w) autoBet.scan(m);
       }));
       mkTicks++;
       // Envoi immédiat des signaux terminés (sans attendre la fin du cycle)
@@ -239,6 +258,16 @@ Deno.serve(async (req) => {
     if (min >= 85) settle[sig.id] = { ...u, status: verdict(sig, sc, true), settled_at: new Date().toISOString() };
     else if (Date.now() - new Date(sig.created_date).getTime() > 3 * 3600e3) settle[sig.id] = { ...u, status: "void", settled_at: new Date().toISOString() };
   }
+  await autoBet.done();
+  for (const b of openBets) {
+    const u = betSettle[b.id] || {};
+    if (u.status || liveIds.has(b.xbet_id)) continue;
+    const min = u.last_minute ?? b.last_minute, sc = String(u.last_score ?? b.last_score).split("-").map(Number) as [number, number];
+    if (min >= 85) betSettle[b.id] = settleBet(b, sc, true);
+    else if (Date.now() - new Date(b.created_date).getTime() > 3 * 3600e3) betSettle[b.id] = { status: "void", profit: 0, settled_at: new Date().toISOString() };
+  }
+  const bUpd = Object.entries(betSettle).map(([id, v]) => { const { last_minute, ...rest } = v; return { id, ...rest, ...(last_minute != null ? { last_minute } : {}) }; });
+  if (bUpd.length) await db.ProbAutoBet.bulkUpdate(bUpd).catch(() => null);
   const upd = Object.entries(settle).map(([id, v]) => ({ id, ...v }));
   if (upd.length) await db.ProbLagSignal.bulkUpdate(upd).catch(() => null);
   // Suivi encore incomplet (limite serveur) : on n'enregistre pas un but à moitié observé
@@ -265,5 +294,5 @@ Deno.serve(async (req) => {
     ...(proba ? { filtres: { ...STATS } } : {}),
   };
   await db.AppLog.create({ area: proba ? "scanner_proba" : "scanner_buts", action: "cycle", level: "info", ok: true, message: `${summary.matchs} matchs suivis, ${summary.buts} buts`, duration_ms: Date.now() - t0, details: summary }).catch(() => null);
-  return Response.json({ ...summary, detail: saved.map((r) => `${r.match_label} ${r.score_after} premier ${r.first_book}`), signaux: sigRecs.map((r) => `${r.match_label} ${r.minute}' ${r.score} [${r.market_label}] 1xBet ${r.ref_prob_before}→${r.ref_prob_after}% | ${r.book} @${r.book_odd} (${r.book_prob}%) +${r.edge_pct}% ouvert ${r.open_s}s ${r.followed_s == null ? "pas suivi" : `suit en ${r.followed_s}s`}${r.goal_during ? " BUT" : ""}`) });
+  return Response.json({ ...summary, miseAuto: autoBet.results, detail: saved.map((r) => `${r.match_label} ${r.score_after} premier ${r.first_book}`), signaux: sigRecs.map((r) => `${r.match_label} ${r.minute}' ${r.score} [${r.market_label}] 1xBet ${r.ref_prob_before}→${r.ref_prob_after}% | ${r.book} @${r.book_odd} (${r.book_prob}%) +${r.edge_pct}% ouvert ${r.open_s}s ${r.followed_s == null ? "pas suivi" : `suit en ${r.followed_s}s`}${r.goal_during ? " BUT" : ""}`) });
 });

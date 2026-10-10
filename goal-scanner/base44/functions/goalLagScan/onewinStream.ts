@@ -25,7 +25,7 @@ export class OnewinStream {
         const mt = body?.messageType || "", d = body?.data || {};
         if (mt.includes("odds") && d.matchId) {
           const cur = this.odds.get(d.matchId) || {};
-          for (const g of d.oddsGroups || []) if (g?.name && g.oddsList?.length) cur[g.name] = g.oddsList.map((o: any) => ({ name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) }));
+          for (const g of d.oddsGroups || []) if (g?.name && g.oddsList?.length) cur[g.name] = g.oddsList.map((o: any) => ({ id: o.id, name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) }));
           this.odds.set(d.matchId, cur);
         } else if (mt.includes("info") && d.matchId) {
           const h = Number(d.matchScore?.t1 ?? d.scoreHome), a = Number(d.matchScore?.t2 ?? d.scoreAway);
