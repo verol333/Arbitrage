@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
@@ -7,6 +7,7 @@ import { OnewinStream } from "./onewinStream.ts";
 import { type Book, type GoalEv, type Line, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
+import { detect, sampleInc, incRecord, INC_MS } from "./incidents.ts";
 
 // Scanner « buts » : TOUS les matchs de foot en direct, scores lus chaque seconde chez
 // 1xBet et betPawa, poussés en direct par 1win. À chaque but, suivi seconde par seconde
@@ -23,6 +24,7 @@ Deno.serve(async (req) => {
   const db = base44.asServiceRole.entities;
   // Contrôle de la connexion 1win de la mise auto, sans miser
   if (body.mode === "betcheck") return Response.json(await createAutoBet(db, { odds: new Map() }).check());
+  if (body.mode === "selftest") return Response.json(await (await import("./selfTest.ts")).selfTest(db).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
   if (body.mode === "replay") {
     const { execBet } = await import("../../shared/probAutoExec.ts");
@@ -127,6 +129,7 @@ Deno.serve(async (req) => {
         if (!m) { m = { x: g.id, name: `${g.home} - ${g.away}`, home: g.home, away: g.away, league: g.league, sc: {}, events: [] }; matches.set(g.id, m); link(m); }
         m.min = g.min;
         onScore(m, "x", [g.sh, g.sa], at, g.min);
+        if (body.mode !== "proba" && at < stopAt) detect(m, g, at);
       }
     }
   });
@@ -220,6 +223,29 @@ Deno.serve(async (req) => {
     }
   };
 
+  // Penalty / carton rouge : observation seule, relevé des trois sites chaque seconde pendant 60 s
+  let incSaved = 0;
+  const loopInc = async () => {
+    const end = Math.min(stopAt + INC_MS, t0 + (MAXS + 8) * 1000);
+    while (Date.now() < end) {
+      const s = Date.now();
+      const open: [any, any][] = [];
+      for (const m of matches.values()) for (const inc of m.inc || []) if (!inc.done) open.push([m, inc]);
+      if (Date.now() >= stopAt && !open.length) break;
+      await Promise.all(open.map(async ([m, inc]) => {
+        if (Date.now() - inc.t0 > INC_MS) {
+          inc.done = true;
+          if (inc.q.w.some(Boolean) || inc.q.b.some(Boolean)) { incSaved++; await db.IncidentLagEvent.create(incRecord(inc, m, runId)).catch(() => null); }
+          return;
+        }
+        const [x, b, wf] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null]);
+        const wl = new Set<string>(), wm = m.w && wf ? wParse(wf.odds.get(m.w) as any, m.wHome, wl) : null;
+        sampleInc(inc, Date.now(), { x: x ? { mk: x.mk, lk: x.locked } : null, w: wm ? { mk: wm, lk: wl } : null, b: b ? { mk: b.mk, lk: b.locked } : null });
+      }));
+      await sleep(Math.max(0, 1000 - (Date.now() - s)));
+    }
+  };
+
   // Probabilités : marchés « buts » des matchs présents chez au moins un autre site, chaque seconde
   const loopMk = async () => {
     await sleep(1500);
@@ -244,8 +270,9 @@ Deno.serve(async (req) => {
   // Deux scanners séparés (chacun son propre serveur) pour garder le rythme d'1 s :
   // mode "buts" = retard au but, mode "proba" = probabilités en avance.
   const proba = body.mode === "proba";
-  await Promise.all([loopX(), loopB(), loopC(), loopW(), proba ? loopMk() : loopWin()]);
+  await Promise.all([loopX(), loopB(), loopC(), loopW(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
   if (!proba) await loopWin(); // fin des suivis ouverts après l'arrêt des relevés
+  await autoBet.done(); // les relances lisent encore les cotes 1win en direct
   stream.stop();
   for (const m of matches.values()) for (const p of m.pend || []) signals.push(p);
   const sigRecs = signals.map((p) => toSignal(p, runId));
@@ -288,7 +315,7 @@ Deno.serve(async (req) => {
     releves1xbet: ticks.x, relevesBetpawa: ticks.b,
     rythme1xbet: ticks.x ? `${Math.round(secs / ticks.x * 10) / 10}s` : null,
     rythmeBetpawa: ticks.b ? `${Math.round(secs / ticks.b * 10) / 10}s` : null,
-    buts: saved.length, jouables: saved.filter((r) => r.playable).length,
+    buts: saved.length, incidents: incSaved, jouables: saved.filter((r) => r.playable).length,
     matchsMarches: mkMatches, rythmeMarches: mkTicks ? `${Math.round(secs / mkTicks * 10) / 10}s` : null,
     signauxProba: sigRecs.length, resultatsMisAJour: upd.length,
     ...(proba ? { filtres: { ...STATS } } : {}),
