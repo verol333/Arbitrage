@@ -118,9 +118,10 @@ export function fetchOddsAndInfo(
           const existing = odds.get(id) || {};
           for (const g of (body.data?.oddsGroups || [])) {
             if (!g?.name || !g.oddsList?.length) continue;
-            existing[g.name] = g.oddsList.map((o: any) => ({
-              id: String(o.id), name: String(o.name ?? o.outcome ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1),
-            }));
+            // Groupes homonymes (plusieurs « Total ») : fusion par cote, jamais d'écrasement.
+            const byId = new Map((existing[g.name] || []).map((o: any) => [o.id, o]));
+            for (const o of g.oddsList) byId.set(String(o.id), { id: String(o.id), name: String(o.name ?? o.outcome ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) });
+            existing[g.name] = [...byId.values()];
           }
           odds.set(id, existing);
           started = true; lastUpdate = Date.now();
