@@ -22,7 +22,14 @@ export async function xbetList() {
     .map((g: any) => ({
       id: g.I as number, home: g.O1E || g.O1, away: g.O2E || g.O2, league: g.LE || g.L || "",
       sh: Number(g.SC?.FS?.S1 || 0), sa: Number(g.SC?.FS?.S2 || 0), min: Math.floor((g.SC?.TS || 0) / 60),
+      rc: stat(g, 71), pen: stat(g, 72),
     }));
+}
+
+/** Statistique 1xBet du direct (71 = cartons rouges, 72 = penalties) : [domicile, extérieur] ou null. */
+function stat(g: any, id: number): [number, number] | null {
+  const s = (g.SC?.ST?.[0]?.Value || []).find((x: any) => x.ID === id);
+  return s ? [Number(s.S1 || 0), Number(s.S2 || 0)] : null;
 }
 
 export async function xbetSnap(id: number) {
