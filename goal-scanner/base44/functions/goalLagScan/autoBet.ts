@@ -6,11 +6,16 @@ import { verdict } from "./probLag.ts";
 // Filtre validé : avantage 15–45 %, cote < 2,5, avant la 60e minute. 100 F par pari.
 // Capital, connexion et placement : base44/shared/probAutoExec.ts.
 export const STAKE = 100;
+const PAUSE = 25000, TRIES = 8; // 1 essai + 7 relances = 3 min
 export const eligible = (p: any) => p.bk === "w" && p.edge >= 0.15 && p.edge <= 0.45 && p.odd < 2.5 && p.min < 60;
 
 /** Identifiant 1win de la cote visée (mêmes règles de lecture que wParse). */
 export function findOdd(groups: Record<string, any[]> | undefined, home: string, key: string, side: number) {
   if (!groups) return null;
+  // Derbys au nom proche (« CSKA Sofia 1948 » / « CSKA Sofia ») : les deux noms ressemblent à l'équipe à domicile.
+  // On retient comme domicile le nom identique, sinon le premier qui ressemble.
+  const teams = Object.keys(groups).map((g) => g.trim()).filter((g) => / total$/i.test(g) && !/corner|card|half|yellow|foul|shot|offside/i.test(g)).map((g) => g.replace(/ total$/i, ""));
+  const homeName = teams.find((t) => t.toLowerCase() === home.trim().toLowerCase()) || teams.find((t) => sameTeam(t, home));
   for (const [gn, list] of Object.entries(groups)) {
     const n = gn.trim().toLowerCase();
     if (key === "1X2" && /^(full time result|1x2|match result)$/.test(n) && list.length === 3) {
@@ -24,7 +29,7 @@ export function findOdd(groups: Record<string, any[]> | undefined, home: string,
     if (!ln) continue;
     const isTot = n === "total", isTeam = / total$/.test(n) && !/corner|card|half|yellow|foul|shot|offside/.test(n);
     if (pre === "TOT" ? !isTot : !isTeam) continue;
-    if (pre !== "TOT" && sameTeam(gn.trim().replace(/ total$/i, ""), home) !== (pre === "ITH")) continue;
+    if (pre !== "TOT" && (gn.trim().replace(/ total$/i, "") === homeName) !== (pre === "ITH")) continue;
     const hit = list.find((o) => (side ? /^under/i : /^over/i).test(o.name) && parseFloat(o.name.replace(/[^\d.]/g, "")) === Number(ln));
     if (hit) return hit;
   }
@@ -39,7 +44,7 @@ const trace = (db: any, action: string, message: string, ok = true) =>
   db.AppLog.create({ area: "mise_auto_proba", action, level: ok ? "info" : "error", ok, message: message.slice(0, 2000), book: "1win" }).catch(() => null);
 
 export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}) {
-  let queue: Promise<any> = Promise.resolve();
+  const tasks: Promise<any>[] = [];
   const results: any[] = [];
   const place = async (p: any) => {
     const m = p.m, source = p.source || "prob";
@@ -47,10 +52,21 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
     const base = { signal_key, xbet_id: m.x, onewin_match_id: m.w, match_label: m.name, minute: p.min, score: p.sc, market_key: p.key,
       market_label: label(p.key, p.side), line: p.line, side: p.key === "1X2" ? ["1", "X", "2"][p.side] : p.key === "BTTS" ? ["oui", "non"][p.side] : p.side ? "moins" : "plus",
       edge_pct: Math.round(p.edge * 1000) / 10, odd: p.odd, stake: STAKE, last_score: p.sc, last_minute: p.min, source };
-    const f = findOdd(stream.odds.get(m.w), m.wHome, p.key, p.side);
-    const o = f ? { id: f.id, cf: f.cf, status: f.status } : null;
-    await trace(db, "signal", `Signal ${source} retenu : ${m.name} ${p.min}' [${base.market_label}] @${p.odd}, cote 1win ${o ? `${o.cf} (état ${o.status})` : "absente"}${opts.dry ? " (à blanc)" : ""}`);
-    const r = await run(db, { base, o, dry: !!opts.dry });
+    // Refus (cote fermée, marché bloqué…) : relance avec la cote relue à chaque essai.
+    // Probabilités : toutes les 25 s pendant 3 min, tant que la cote reste proche de celle du signal.
+    // Retard de but : la fenêtre ne dure que quelques secondes, relance toutes les 2 s pendant 12 s.
+    let r: any;
+    const goal = source === "goal";
+    const tries = goal ? 6 : TRIES, pause = goal ? 2000 : PAUSE;
+    for (let i = 0; i < tries; i++) {
+      const f = findOdd(stream.odds.get(m.w), m.wHome, p.key, p.side);
+      let o = f ? { id: f.id, cf: f.cf, status: f.status } : null;
+      if (o && i && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
+      await trace(db, "signal", `Signal ${source} ${i ? `relance ${i}/${tries - 1}` : "retenu"} : ${m.name} ${p.min}' [${base.market_label}] @${p.odd}, cote lue dans le flux 1win ${o ? `${o.cf} (état ${o.status})` : "absente"}${opts.dry ? " (à blanc)" : ""}`);
+      r = await run(db, { base, o, dry: !!opts.dry, final: i === tries - 1 });
+      if (!["cote", "refus", "connexion"].includes(r?.step)) break;
+      if (i < tries - 1) await new Promise((s) => setTimeout(s, pause));
+    }
     results.push({ match: m.name, market: base.market_label, source, ...r });
   };
   const fail = (e: any) => trace(db, "erreur", String(e?.message || e), false);
@@ -65,7 +81,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       for (const p of m.pend || []) {
         if (p.betTried || !eligible(p)) continue;
         p.betTried = true;
-        queue = queue.then(() => place(p)).catch(fail);
+        tasks.push(place(p).catch(fail)); // en parallèle : les 3 min de relance ne bloquent pas les autres signaux
       }
     },
     /** Retard de but : dès que 1win laisse ouverte une option déjà gagnée (but vu sur au moins 2 sites), on mise. */
@@ -77,9 +93,9 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       ev.betTried = true;
       const key = k === "team" ? ev.teamKey : ev.matchKey;
       const p = { source: "goal", m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[`w_${k}`].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") };
-      queue = queue.then(() => place(p)).catch(fail);
+      tasks.push(place(p).catch(fail));
     },
-    done: () => queue,
+    done: () => Promise.all(tasks),
   };
 }
 
