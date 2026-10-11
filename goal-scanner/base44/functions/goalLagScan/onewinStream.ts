@@ -25,7 +25,12 @@ export class OnewinStream {
         const mt = body?.messageType || "", d = body?.data || {};
         if (mt.includes("odds") && d.matchId) {
           const cur = this.odds.get(d.matchId) || {};
-          for (const g of d.oddsGroups || []) if (g?.name && g.oddsList?.length) cur[g.name] = g.oddsList.map((o: any) => ({ id: o.id, name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) }));
+          // 1win envoie plusieurs groupes du même nom (ex. « Total » 3.0 puis « Total » 1.5–6.5) : on fusionne par cote au lieu d'écraser.
+          for (const g of d.oddsGroups || []) if (g?.name && g.oddsList?.length) {
+            const byId = new Map((cur[g.name] || []).map((o: any) => [o.id, o]));
+            for (const o of g.oddsList) byId.set(o.id, { id: o.id, name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) });
+            cur[g.name] = [...byId.values()];
+          }
           this.odds.set(d.matchId, cur);
         } else if (mt.includes("info") && d.matchId) {
           const h = Number(d.matchScore?.t1 ?? d.scoreHome), a = Number(d.matchScore?.t2 ?? d.scoreAway);
