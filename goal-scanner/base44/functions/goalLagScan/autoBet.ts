@@ -44,6 +44,7 @@ const run = async (db: any, x: any) => REMOTE ? db.ProbAutoBet.autoPlace(x) : (a
 const trace = (db: any, action: string, message: string, ok = true) =>
   db.AppLog.create({ area: "mise_auto_proba", action, level: ok ? "info" : "error", ok, message: message.slice(0, 2000), book: "1win" }).catch(() => null);
 
+const seenKeys = new Set<string>();
 export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}) {
   const tasks: Promise<any>[] = [];
   const results: any[] = [];
@@ -54,6 +55,9 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
     const base = { signal_key, book, xbet_id: m.x, onewin_match_id: m.w, match_label: m.name, minute: p.min, score: p.sc, market_key: p.key,
       market_label: label(p.key, p.side), line: p.line, side: p.key === "1X2" ? ["1", "X", "2"][p.side] : ["BTTS", "CSH", "CSA"].includes(p.key) ? ["oui", "non"][p.side] : p.side ? "moins" : "plus",
       edge_pct: Math.round(p.edge * 1000) / 10, odd: p.odd, stake: STAKE, last_score: p.sc, last_minute: p.min, source };
+    // Même signal vu deux fois (but relu en double) : une seule série de tentatives.
+    if (seenKeys.has(signal_key)) return;
+    seenKeys.add(signal_key);
     // Refus (cote fermée, marché bloqué…) : relance avec la cote relue à chaque essai.
     // Probabilités : toutes les 25 s pendant 3 min, tant que la cote reste proche de celle du signal.
     // Retard de but : la fenêtre ne dure que quelques secondes, relance toutes les 2 s pendant 12 s.
