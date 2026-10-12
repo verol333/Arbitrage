@@ -97,6 +97,11 @@ export function toSignal(p: any, runId: string) {
 /** Issue d'un signal selon un score : gagné/perdu dès que la ligne est dépassée, sinon à la fin du match. */
 export function verdict(sig: any, sc: [number, number], final: boolean) {
   if (sig.market_key === "1X2") return final ? ((sc[0] > sc[1] ? "1" : sc[0] < sc[1] ? "2" : "X") === sig.side ? "won" : "lost") : null;
+  if (sig.market_key === "CSH" || sig.market_key === "CSA") {
+    const conceded = sig.market_key === "CSH" ? sc[1] > 0 : sc[0] > 0;
+    if (conceded) return sig.side === "non" ? "won" : "lost";
+    return final ? (sig.side === "non" ? "lost" : "won") : null;
+  }
   if (sig.market_key === "BTTS") {
     const both = sc[0] > 0 && sc[1] > 0;
     if (both) return sig.side === "oui" ? "won" : "lost";
