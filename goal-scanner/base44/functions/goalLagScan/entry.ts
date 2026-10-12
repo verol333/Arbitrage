@@ -7,7 +7,7 @@ import { OnewinStream } from "./onewinStream.ts";
 import { type Book, type GoalEv, type Line, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
-import { detect, sampleInc, incRecord, INC_MS } from "./incidents.ts";
+import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
 
 // Scanner « buts » : TOUS les matchs de foot en direct, scores lus chaque seconde chez
 // 1xBet et betPawa, poussés en direct par 1win. À chaque but, suivi seconde par seconde
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
         if (!m) { m = { x: g.id, name: `${g.home} - ${g.away}`, home: g.home, away: g.away, league: g.league, sc: {}, events: [] }; matches.set(g.id, m); link(m); }
         m.min = g.min;
         onScore(m, "x", [g.sh, g.sa], at, g.min);
-        if (body.mode !== "proba" && at < stopAt) detect(m, g, at);
+        // Suivi penalty / carton rouge retiré : aucun site ne propose ces marchés en direct.
       }
     }
   });
