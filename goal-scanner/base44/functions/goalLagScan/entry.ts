@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
+import { createClientFromRequest } from "../../../sdk-shim.ts";
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
