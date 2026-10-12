@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
         if (!x) return;
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked }, signals);
-        if (m.w) autoBet.scan(m);
+        autoBet.scan(m);
       }));
       mkTicks++;
       // Envoi immédiat des signaux terminés (sans attendre la fin du cycle)
