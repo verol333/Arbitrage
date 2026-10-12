@@ -12,7 +12,7 @@ const BP_H: Record<string, string> = {
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Football réel uniquement : ni virtuel, ni e-sport, ni formats spéciaux, ni « équipe vs joueur ».
-const FAKE = /alternat|virtu|cyber|fifa|esport|e-sport|penalt|short|2x2|3x3|4x4|5x5|rush|student|\blfl\b|special|statist|player|joueur/i;
+const FAKE = /alternat|virtu|cyber|fifa|esport|e-sport|penalt|short|2x2|3x3|4x4|5x5|rush|student|\blfl\b|special|statist|player|joueur|\(sub\)|\bsub\b/i;
 
 /** Tous les matchs de foot en direct chez 1xBet, avec score et minute (un seul appel). */
 export async function xbetList() {
@@ -73,10 +73,14 @@ export async function bpSnap(id: string, dbg: any[] = []) {
   const j = await fetch(`https://cg.betpawa.com/api/sportsbook/v4/events/${id}`, { headers: BP_H, signal: AbortSignal.timeout(4000) }).then((r) => r.json()).catch(() => null);
   const mk: Mk = {};
   const locked = new Set<string>();
+  const ids: Record<string, string[]> = {};
   for (const m of j?.markets || []) {
     const name = String(m?.marketType?.name || "").trim();
     if (/half|mi-temps|corner|card|carton/i.test(name)) continue;
-    for (const row of m.row || []) {
+    for (const r0 of m.row || []) {
+      // Clean sheet : on range toujours [Oui, Non]
+      const flip = /^clean sheet/i.test(name) && /^(no|non)/i.test(String(r0.prices?.[0]?.name || ""));
+      const row = flip ? { ...r0, prices: [...r0.prices].reverse() } : r0;
       const p = (row.prices || []).map((x: any) => Number(x.odds));
       const susp = !!(m.suspended || row.suspended || (row.prices || []).some((x: any) => x.suspended));
       let key = "";
@@ -85,11 +89,13 @@ export async function bpSnap(id: string, dbg: any[] = []) {
       else if (/^total score over\/under - ft$/i.test(name) && p.length === 2 && row.handicap != null) key = `TOT_${Number(row.handicap) / 4}`;
       else if (/^total score over\/under - ft - (home|away) team$/i.test(name) && p.length === 2 && row.handicap != null) key = `IT${/home/i.test(name) ? "H" : "A"}_${Number(row.handicap) / 4}`;
       else if (/^both teams to score - ft$/i.test(name) && p.length === 2) key = "BTTS";
-      if (key) { mk[key] = p; if (susp) locked.add(key); }
+      // Clean sheet (équipe qui n'encaisse pas) : rangé [Oui, Non]
+      else if (/^clean sheet (home|away) team - ft$/i.test(name) && p.length === 2) key = /home/i.test(name) ? "CSH" : "CSA";
+      if (key) { mk[key] = p; ids[key] = (row.prices || []).map((x: any) => String(x.id ?? "")); if (susp) locked.add(key); }
     }
     if (dbg.length < 60) dbg.push({ name, row: (m.row || []).slice(0, 2).map((r: any) => ({ h: r.handicap, p: (r.prices || []).map((x: any) => `${x.name}:${x.odds}`) })) });
   }
-  return { mk, locked, score: bpScore(j) };
+  return { mk, locked, ids, score: bpScore(j) };
 }
 
 /** 1win : `locked` reçoit les marchés dont l'issue « Plus » n'est pas au statut ouvert (1). */
@@ -159,4 +165,4 @@ export async function cbSnap(id: string) {
 }
 
 export const fair = (o: number[]) => { const s = o.reduce((a, c) => a + 1 / c, 0); return o.map((c) => 1 / c / s); };
-export const label = (k: string, i: number) => k === "1X2" ? ["1", "X", "2"][i] : k === "BTTS" ? ["BTTS oui", "BTTS non"][i] : `${k.startsWith("ITH") ? "Dom. " : k.startsWith("ITA") ? "Ext. " : "Match "}${i ? "moins" : "plus"} de ${k.split("_")[1]}`;
+export const label = (k: string, i: number) => k === "CSH" || k === "CSA" ? `${k === "CSH" ? "Dom." : "Ext."} n'encaisse pas : ${i ? "non" : "oui"}` : k === "1X2" ? ["1", "X", "2"][i] : k === "BTTS" ? ["BTTS oui", "BTTS non"][i] : `${k.startsWith("ITH") ? "Dom. " : k.startsWith("ITA") ? "Ext. " : "Match "}${i ? "moins" : "plus"} de ${k.split("_")[1]}`;
