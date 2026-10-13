@@ -1,0 +1,39 @@
+name: Scanner hockey — continu (1 s)
+
+# Repo PUBLIC = minutes illimitées. Deux machines : "buts" (retard au but) et "proba" (probabilités en avance).
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Durée en minutes (max 350)'
+        required: false
+        default: '350'
+
+# Pas de créneaux fixes : chaque machine lance la suivante 4 min avant sa fin.
+# Si la chaîne casse, le veilleur de l'application relance dans les 10 min.
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  scan:
+    name: scanner — hockey
+        runs-on: ubuntu-latest
+    timeout-minutes: 358
+    defaults:
+      run:
+        working-directory: goal-scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Scanner en continu
+        run: deno run -A run.ts
+        env:
+          MODE: hockey
+          SCAN_DURATION_MINUTES: ${{ github.event.inputs.duration || '350' }}
+          SCAN_MAX_S: '1800'
+          INGEST_URL: https://al-ve-pro.base44.app/functions/goalLagIngest
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

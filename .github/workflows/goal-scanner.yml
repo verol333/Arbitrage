@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [buts, proba, corners, hockey]
+        mode: [buts, proba, corners]
     runs-on: ubuntu-latest
     timeout-minutes: 358
     defaults:

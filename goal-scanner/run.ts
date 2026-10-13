@@ -11,8 +11,8 @@ while (true) {
   const len = Math.floor(Math.min(CYCLE, (end - Date.now()) / 1000));
   if (len < 60) {
     // Relais : la machine suivante démarre avant la fin de celle-ci (chevauchement, aucun trou)
-    if (MODE === "buts") {
-      const r = await fetch(`https://api.github.com/repos/${Deno.env.get("GITHUB_REPOSITORY")}/actions/workflows/goal-scanner.yml/dispatches`, {
+    if (MODE === "buts" || MODE === "hockey") {
+      const r = await fetch(`https://api.github.com/repos/${Deno.env.get("GITHUB_REPOSITORY")}/actions/workflows/${MODE === "hockey" ? "hockey-scanner.yml" : "goal-scanner.yml"}/dispatches`, {
         method: "POST", headers: { Authorization: `Bearer ${Deno.env.get("GITHUB_TOKEN")}`, Accept: "application/vnd.github+json" },
         body: JSON.stringify({ ref: "main", inputs: { duration: "350" } }),
       }).catch(() => null);
