@@ -11,7 +11,7 @@ export const PLACE_S = 18;
 export type Line = { odd: number; locked: boolean } | null;
 export type GoalEv = {
   key: string; sc: [number, number]; before: string; side: "H" | "A"; t0: number; first: Book; minute: number;
-  seen: Partial<Record<Book, number>>; teamKey: string; matchKey: string;
+  seen: Partial<Record<Book, number>>; teamKey: string; matchKey: string; h1TeamKey: string; h1MatchKey: string;
   open: Record<string, { s: number; odd: number }>; timeline: string[]; cancelled: boolean; done: boolean;
 };
 
@@ -20,20 +20,24 @@ export function newGoal(prev: [number, number], sc: [number, number], book: Book
   const n = side === "H" ? sc[0] : sc[1], g = sc[0] + sc[1];
   return {
     key: sc.join("-"), sc, before: prev.join("-"), side, t0: at, first: book, minute, seen: { [book]: 0 },
-    teamKey: `IT${side}_${n - 0.5}`, matchKey: `TOT_${g - 0.5}`, open: {}, timeline: [], cancelled: false, done: false,
+    teamKey: `IT${side}_${n - 0.5}`, matchKey: `TOT_${g - 0.5}`,
+    // But en 1re mi-temps : score de la mi-temps = score du match, donc les totaux de la mi-temps sont aussi gagnés
+    h1TeamKey: minute <= 45 ? `H1IT${side}_${n - 0.5}` : "", h1MatchKey: minute <= 45 ? `H1TOT_${g - 0.5}` : "", open: {}, timeline: [], cancelled: false, done: false,
   };
 }
 
 const fmt = (l: Line) => !l ? "fermé (retiré)" : l.locked ? "fermé (suspendu)" : `OUVERT @${l.odd}`;
 
 /** Un relevé : pour chaque site, score affiché + état des deux options gagnées. */
-export function sample(ev: GoalEv, at: number, st: Record<Book, { sc: [number, number] | null; team: Line; match: Line } | null>) {
+export function sample(ev: GoalEv, at: number, st: Record<Book, { sc: [number, number] | null; team: Line; match: Line; h1team?: Line; h1match?: Line } | null>) {
   const t = Math.round((at - ev.t0) / 100) / 10;
   const parts: string[] = [];
   for (const b of BOOKS) {
     const s = st[b];
     if (!s) continue;
-    for (const [k, l] of [["team", s.team], ["match", s.match]] as const) {
+    const kinds: [string, Line | undefined][] = [["team", s.team], ["match", s.match]];
+    if (ev.h1MatchKey) kinds.push(["h1team", s.h1team], ["h1match", s.h1match]);
+    for (const [k, l] of kinds) {
       // Jouable = le site n'a PAS encore affiché le but, et l'option déjà gagnée est
       // affichée, non bloquée, à une cote ≥ 1,05. Dès qu'elle se ferme une fois, la fenêtre est finie.
       const id = `${b}_${k}`;
@@ -46,7 +50,7 @@ export function sample(ev: GoalEv, at: number, st: Record<Book, { sc: [number, n
       else if (isOpen && o && !(o as any).closed) o.s = t;
       else if (!isOpen && o) (o as any).closed = true;
     }
-    parts.push(`${NAMES[b]} ${s.sc ? s.sc.join("-") : "?"} équipe ${fmt(s.team)} match ${fmt(s.match)}`);
+    parts.push(`${NAMES[b]} ${s.sc ? s.sc.join("-") : "?"} équipe ${fmt(s.team)} match ${fmt(s.match)}${ev.h1MatchKey ? ` | MT équipe ${fmt(s.h1team ?? null)} MT match ${fmt(s.h1match ?? null)}` : ""}`);
   }
   if (ev.timeline.length < 90) ev.timeline.push(`+${t}s | ${parts.join(" | ")}`);
 }
@@ -57,6 +61,7 @@ export function toRecord(ev: GoalEv, m: any, runId: string, truncated: boolean) 
     scoring_side: ev.side === "H" ? "domicile" : "exterieur", detected_at: new Date(ev.t0).toISOString(),
     first_book: NAMES[ev.first], books: BOOKS.filter((b) => b === "x" || m[b]).map((b) => NAMES[b]),
     team_line: `Plus de ${ev.teamKey.split("_")[1]}`, match_line: `Plus de ${ev.matchKey.split("_")[1]}`,
+    ...(ev.h1MatchKey ? { half_team_line: `1re MT plus de ${ev.h1TeamKey.split("_")[1]}`, half_match_line: `1re MT plus de ${ev.h1MatchKey.split("_")[1]}` } : {}),
     cancelled: ev.cancelled, truncated, timeline: ev.timeline, playable: false,
   };
   // But confirmé = au moins deux sites l'ont affiché ; sinon c'est une erreur de score d'un site
@@ -66,6 +71,14 @@ export function toRecord(ev: GoalEv, m: any, runId: string, truncated: boolean) 
     for (const k of ["team", "match"]) {
       const o = ev.open[`${b}_${k}`];
       if (o) { const f = (o as any).from; r[`${b}_${k}_from_s`] = f; const dur = Math.round((o.s - f) * 10) / 10; r[`${b}_${k}_open_s`] = dur; r[`${b}_${k}_odd`] = o.odd; if (!ev.cancelled && confirmed && dur >= PLACE_S) r.playable = true; }
+    }
+    // Totaux de la 1re mi-temps : observation seule (pas de mise auto pour l'instant)
+    for (const k of ["h1team", "h1match"]) {
+      const o = ev.open[`${b}_${k}`];
+      if (!o) continue;
+      const f = (o as any).from, dur = Math.round((o.s - f) * 10) / 10;
+      (r.half_open ||= {})[`${NAMES[b]} ${k === "h1team" ? "équipe" : "match"}`] = { from_s: f, open_s: dur, odd: o.odd };
+      if (!ev.cancelled && confirmed && dur >= PLACE_S) r.half_playable = true;
     }
   }
   return r;
