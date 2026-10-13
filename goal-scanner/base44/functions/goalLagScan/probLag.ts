@@ -96,6 +96,12 @@ export function toSignal(p: any, runId: string) {
 
 /** Issue d'un signal selon un score : gagné/perdu dès que la ligne est dépassée, sinon à la fin du match. */
 export function verdict(sig: any, sc: [number, number], final: boolean) {
+  // « Qui va marquer le n-ième but » : gagné si l'équipe désignée garde au moins le score qu'elle avait au moment du pari
+  if (/^GOAL\d+$/.test(sig.market_key)) {
+    if (!final) return null;
+    const [bh, ba] = String(sig.score || "").split("-").map(Number);
+    return (sig.side === "1" ? sc[0] >= bh : sig.side === "2" ? sc[1] >= ba : false) ? "won" : "lost";
+  }
   if (sig.market_key === "1X2") return final ? ((sc[0] > sc[1] ? "1" : sc[0] < sc[1] ? "2" : "X") === sig.side ? "won" : "lost") : null;
   if (sig.market_key === "CSH" || sig.market_key === "CSA") {
     const conceded = sig.market_key === "CSH" ? sc[1] > 0 : sc[0] > 0;
