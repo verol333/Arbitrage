@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
   const db = base44.asServiceRole.entities;
   // Contrôle de la connexion 1win de la mise auto, sans miser
   if (body.mode === "betcheck") return Response.json(await createAutoBet(db, { odds: new Map() }).check());
+  if (body.mode === "audit") return Response.json(await (await import("./audit.ts")).audit(db, Number(body.limit || 12)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "selftest") return Response.json(await (await import("./selfTest.ts")).selfTest(db).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
   if (body.mode === "replay") {
@@ -210,12 +211,20 @@ Deno.serve(async (req) => {
         if (b?.score) onScore(m, "b", b.score, at);
         if (c?.score) onScore(m, "c", c.score, at);
         const wl = new Set<string>(), wm = m.w && wf ? wParse(wf.odds.get(m.w) as any, m.wHome, wl) : null;
+        // But validé par 1xBet : il a RETIRÉ l'option déjà gagnée (réglée), pas seulement suspendue (VAR / doute).
+        // Un relevé isolé peut tomber pendant un trou du flux 1xBet : on exige deux relevés de suite
+        // « score avec le but + option retirée ». Si 1xBet remet l'ancien score, le but est en doute : on bloque.
+        const xGoal = !!x && x.sh + x.sa >= ev.sc[0] + ev.sc[1];
+        const xOk = xGoal && Object.keys(x!.mk).length > 0 && !x!.mk[ev.matchKey];
+        // Un seul relevé suffit ; si 1xBet remet l'ancien score, le but est en doute : on bloque aussitôt.
+        if (x && !xGoal) (ev as any).xRemoved = false;
+        else if (xOk) (ev as any).xRemoved = true;
         queueMicrotask(() => autoBet.goal(m, ev));
         sample(ev, at, {
           x: x ? { sc: m.sc.x, team: line(x.mk, x.locked, ev.teamKey), match: line(x.mk, x.locked, ev.matchKey) } : null,
-          w: wm ? { sc: m.sc.w || null, team: line(wm, wl, ev.teamKey), match: line(wm, wl, ev.matchKey) } : null,
+          w: wm ? { sc: m.sc.w || null, team: line(wm, wl, ev.teamKey), match: line(wm, wl, ev.matchKey), h1team: line(wm, wl, ev.h1TeamKey), h1match: line(wm, wl, ev.h1MatchKey) } : null,
           b: b ? { sc: m.sc.b || null, team: line(b.mk, b.locked, ev.teamKey), match: line(b.mk, b.locked, ev.matchKey) } : null,
-          c: c ? { sc: m.sc.c || null, team: line(c.mk, c.locked, ev.teamKey), match: line(c.mk, c.locked, ev.matchKey) } : null,
+          c: c ? { sc: m.sc.c || null, team: line(c.mk, c.locked, ev.teamKey), match: line(c.mk, c.locked, ev.matchKey), h1team: line(c.mk, c.locked, ev.h1TeamKey), h1match: line(c.mk, c.locked, ev.h1MatchKey) } : null,
         });
       }));
       ticks.win++;
