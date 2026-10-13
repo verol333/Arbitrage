@@ -278,13 +278,14 @@ Deno.serve(async (req) => {
     await sleep(1500);
     while (Date.now() < stopAt) {
       const s = Date.now();
-      const list = [...matches.values()].filter((m) => m.w || m.b || m.c);
+      const list = [...matches.values()].filter((m) => m.w || m.b || m.c || m.y);
       mkMatches = Math.max(mkMatches, list.length);
       await Promise.all(list.map(async (m) => {
-        const [x, b, c] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null]);
+        const [x, b, c, y] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.y ? ybSnap(m.y).catch(() => null) : null]);
         if (!x) return;
+        if (y?.score?.every(Number.isFinite)) m.sc.y = y.score;
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
-        step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked }, signals);
+        step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked }, signals);
         autoBet.scan(m);
       }));
       mkTicks++;
@@ -297,7 +298,7 @@ Deno.serve(async (req) => {
   // Deux scanners séparés (chacun son propre serveur) pour garder le rythme d'1 s :
   // mode "buts" = retard au but, mode "proba" = probabilités en avance.
   const proba = body.mode === "proba";
-  await Promise.all([loopX(), loopB(), loopC(), loopW(), proba ? null : loopY(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
+  await Promise.all([loopX(), loopB(), loopC(), loopW(), loopY(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
   if (!proba) await loopWin(); // fin des suivis ouverts après l'arrêt des relevés
   await autoBet.done(); // les relances lisent encore les cotes 1win en direct
   stream.stop();
