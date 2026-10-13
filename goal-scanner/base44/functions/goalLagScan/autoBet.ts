@@ -45,6 +45,13 @@ const trace = (db: any, action: string, message: string, ok = true) =>
   db.AppLog.create({ area: "mise_auto_proba", action, level: ok ? "info" : "error", ok, message: message.slice(0, 2000), book: "1win" }).catch(() => null);
 
 const seenKeys = new Set<string>();
+// Sens d'un pari : +1 = parie sur des buts, −1 = parie contre, 0 = neutre (1X2)
+const dir = (key: string, side: string) => {
+  if (/^(TOT|ITH|ITA)_/.test(key)) return side === "plus" ? 1 : -1;
+  if (key === "BTTS") return side === "oui" ? 1 : -1;
+  if (key === "CSH" || key === "CSA") return side === "non" ? 1 : -1;
+  return 0;
+};
 export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}) {
   const tasks: Promise<any>[] = [];
   const results: any[] = [];
@@ -58,6 +65,12 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
     // Même signal vu deux fois (but relu en double) : une seule série de tentatives.
     if (seenKeys.has(signal_key)) return;
     seenKeys.add(signal_key);
+    // Pas de paris contradictoires sur un même match (ex. « plus de 1.5 » puis « moins de 2.5 »).
+    const d = dir(p.key, base.side);
+    if (d) {
+      const prev = await db.ProbAutoBet.filter({ xbet_id: m.x, status: "placed" }, { limit: 20, fields: ["market_key", "side"] }).then((r: any) => r.items).catch(() => []);
+      if (prev.some((b: any) => dir(b.market_key, b.side) === -d)) return;
+    }
     // Refus (cote fermée, marché bloqué…) : relance avec la cote relue à chaque essai.
     // Probabilités : toutes les 25 s pendant 3 min, tant que la cote reste proche de celle du signal.
     // Retard de but : la fenêtre ne dure que quelques secondes, relance toutes les 2 s pendant 12 s.
@@ -65,6 +78,8 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
     const goal = source === "goal";
     const tries = goal ? 6 : TRIES, pause = goal ? 2000 : PAUSE;
     for (let i = 0; i < tries; i++) {
+      // But remis en doute pendant les relances (1xBet revient à l'ancien score) : on arrête tout de suite
+      if (p.ev && (p.ev.cancelled || !p.ev.xRemoved)) { r = { step: "annule", reason: "but remis en doute chez 1xBet" }; break; }
       let o: any = null;
       if (bp) {
         const s = await bpSnap(m.b).catch(() => null);
@@ -104,8 +119,9 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
     },
     /** Retard de but : dès que 1win laisse ouverte une option déjà gagnée (but vu sur au moins 2 sites), on mise. */
     goal(m: any, ev: any) {
-      if (ev.cancelled) return;
-      if (Object.values(ev.seen || {}).filter((v) => v != null).length < 2) return;
+      // On ne mise que si 1xBet a RETIRÉ l'option déjà gagnée (but validé chez lui).
+      // Option seulement suspendue = but en doute (VAR, erreur) : on attend.
+      if (ev.cancelled || !ev.xRemoved) return;
       ev.betTried ||= {};
       // Chaque site (1win, betPawa) est misé séparément, avec son propre capital.
       for (const [bk, id] of [["w", m.w], ["b", m.b]] as const) {
@@ -114,7 +130,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         if (!k) continue;
         ev.betTried[bk] = true;
         const key = k === "team" ? ev.teamKey : ev.matchKey;
-        const p = { source: "goal", bk, m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[`${bk}_${k}`].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") };
+        const p = { ev, source: "goal", bk, m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[`${bk}_${k}`].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") };
         tasks.push(place(p).catch(fail));
       }
       // Options supplémentaires déjà gagnées, misées tant que le site affiche encore l'ancien score :
@@ -130,7 +146,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
           const tk = `${bk}_${key}`;
           if (ev.betTried[tk]) continue;
           ev.betTried[tk] = true;
-          tasks.push(place({ source: "goal", extra: true, bk, m, key, side, line: 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
+          tasks.push(place({ ev, source: "goal", extra: true, bk, m, key, side, line: 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
         }
       }
     },
