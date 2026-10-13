@@ -5,9 +5,9 @@ import { fair, label, type Mk } from "./liveMarkets.ts";
 // ≤ 3,5 s, sans but récent, alors qu'un autre site n'a pas bougé et paie ≥ 5 % d'avantage.
 // Un mouvement brusque en 3 s n'est pas l'usure du temps (qui fait ~0,1 point/s au plus).
 // Réglages par match : m.lo / m.hi = minutes lues (10e-85e par défaut), m.span = buts d'écart max entre score et ligne (2.5).
-export type Snap = { at: number; sc: [number, number]; min: number; x: Mk; xl: Set<string>; w?: Mk | null; wl?: Set<string>; b?: Mk | null; bl?: Set<string>; c?: Mk | null; cl?: Set<string> };
+export type Snap = { at: number; sc: [number, number]; min: number; x: Mk; xl: Set<string>; w?: Mk | null; wl?: Set<string>; b?: Mk | null; bl?: Set<string>; c?: Mk | null; cl?: Set<string>; y?: Mk | null; yl?: Set<string> };
 const KEY = /^(TOT|ITH|ITA)_\d+\.5$/;
-const BOOKS = [["w", "1win"], ["b", "betPawa"], ["c", "Congobet"]] as const;
+const BOOKS = [["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"]] as const;
 const goalsFor = (k: string, sc: [number, number]) => k.startsWith("ITH") ? sc[0] : k.startsWith("ITA") ? sc[1] : sc[0] + sc[1];
 const pct = (v: number) => Math.round(v * 1000) / 10;
 
@@ -27,7 +27,7 @@ export function step(m: any, s: Snap, done: any[]) {
   const g = s.sc[0] + s.sc[1];
   // 30 s sans but, et tous les sites d'accord sur le score
   if (s.at - h[0].at < 30000 || h.slice(-30).some((o) => o.sc[0] + o.sc[1] !== g)) return;
-  for (const o of [m.sc?.w, m.sc?.b, m.sc?.c]) if (o && o[0] + o[1] !== g) return;
+  for (const o of [m.sc?.w, m.sc?.b, m.sc?.c, m.sc?.y]) if (o && o[0] + o[1] !== g) return;
 
   for (const k of Object.keys(s.x)) {
     const tot = KEY.test(k);
