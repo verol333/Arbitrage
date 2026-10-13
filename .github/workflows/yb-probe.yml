@@ -1,0 +1,11 @@
+name: Test Yellowbet
+on: workflow_dispatch
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: goal-scanner } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - run: deno run -A ybProbe.ts
