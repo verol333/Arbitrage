@@ -1,8 +1,9 @@
 // Suivi d'un but : qui l'affiche en premier, puis seconde par seconde, chez chaque site,
 // l'état des deux options déjà gagnées (total de l'équipe qui a marqué, total du match).
-export const BOOKS = ["x", "w", "b", "c"] as const;
+// y = Yellowbet : observation seule (aucune mise automatique)
+export const BOOKS = ["x", "w", "b", "c", "y"] as const;
 export type Book = typeof BOOKS[number];
-export const NAMES: Record<Book, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet" };
+export const NAMES: Record<Book, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet" };
 export const WINDOW_MS = 75000;
 // Temps réel mesuré de notre mise auto en direct (médiane des paris placés sur 1win et betPawa) :
 // une fenêtre plus courte ne laisse pas le temps au robot de poser le pari.
