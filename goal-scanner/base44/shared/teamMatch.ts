@@ -125,6 +125,8 @@ const ALIASES: [RegExp, string][] = [
   [/\bal hikma( beirut)?\b/g, "sagesse"],
   [/\bal (ikhaa|akhaa) al ahli( aley)?\b/g, "akhaa ahli"],
   [/\binter milano\b/g, "internazionale milano"],
+  // Hockey russe : translittérations différentes (Yekaterinburg / Ekaterinburg, Reaktor / Reactor)
+  [/\bye(katerinburg|lets)\b/g, "e$1"], [/\breaktor\b/g, "reactor"],
 ];
 
 export function normTeam(s: unknown): string {
