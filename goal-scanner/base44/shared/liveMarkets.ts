@@ -150,19 +150,21 @@ export async function cbList() {
 export async function cbSnap(id: string) {
   const j = await fetch(`${CB}events/${id}`, { headers: CB_H, signal: AbortSignal.timeout(4000) }).then((r) => r.json()).catch(() => null);
   if (!j) return null;
-  const mk: Mk = {}, locked = new Set<string>();
+  // ids[k][i] = sélection à miser { bt: marché, it: option } ; GOALn = « qui va marquer le n-ième but » (1, X, 2)
+  const mk: Mk = {}, locked = new Set<string>(), ids: Record<string, { bt: number; it: number }[]> = {};
   for (const bt of j.eventBetTypes || []) {
     const name = String(bt.name || "").trim(), its = bt.eventBetTypeItems || [];
     const shut = !bt.bettingAllowed || its.some((i: any) => !i.bettingAllowed || !(Number(i.odds) > 1));
-    const put = (k: string, o: number[]) => { mk[k] = o; if (shut) locked.add(k); };
-    const ou = () => { const ov = its.find((i: any) => /^>/.test(i.shortName || i.name)), un = its.find((i: any) => /^</.test(i.shortName || i.name)); return ov && un ? { line: parseFloat(String(ov.shortName || ov.name).replace(/[^\d.]/g, "")), o: [Number(ov.odds), Number(un.odds)] } : null; };
-    if (name === "Résultat du match" && its.length === 3) put("1X2", its.map((i: any) => Number(i.odds)));
-    else if (name === "Les deux équipes marquent" && its.length === 2) put("BTTS", its.map((i: any) => Number(i.odds)));
-    else if (name === "Nombre de buts") { const r = ou(); if (r && Number.isFinite(r.line)) put(`TOT_${r.line}`, r.o); }
-    else if (/^Total de /.test(name)) { const r = ou(); if (r && Number.isFinite(r.line)) put(`IT${sameTeam(name.slice(9), j.homeTeamName) ? "H" : "A"}_${r.line}`, r.o); }
+    const put = (k: string, sel: any[]) => { mk[k] = sel.map((i) => Number(i.odds)); ids[k] = sel.map((i) => ({ bt: bt.id, it: i.id })); if (shut) locked.add(k); };
+    const ou = () => { const ov = its.find((i: any) => /^>/.test(i.shortName || i.name)), un = its.find((i: any) => /^</.test(i.shortName || i.name)); return ov && un ? { line: parseFloat(String(ov.shortName || ov.name).replace(/[^\d.]/g, "")), sel: [ov, un] } : null; };
+    if (name === "Résultat du match" && its.length === 3) put("1X2", its);
+    else if (name === "Les deux équipes marquent" && its.length === 2) put("BTTS", its);
+    else if (name === "Nombre de buts") { const r = ou(); if (r && Number.isFinite(r.line)) put(`TOT_${r.line}`, r.sel); }
+    else if (/^Total de /.test(name)) { const r = ou(); if (r && Number.isFinite(r.line)) put(`IT${sameTeam(name.slice(9), j.homeTeamName) ? "H" : "A"}_${r.line}`, r.sel); }
+    else if (name === "Qui va marquer ce but ?" && its.length === 3) { const n = parseInt(String(its[0].shortName || its[0].name)); if (n) put(`GOAL${n}`, its); }
   }
-  return { mk, locked, score: cbScore(j.score) };
+  return { mk, locked, ids, score: cbScore(j.score) };
 }
 
 export const fair = (o: number[]) => { const s = o.reduce((a, c) => a + 1 / c, 0); return o.map((c) => 1 / c / s); };
-export const label = (k: string, i: number) => k === "CSH" || k === "CSA" ? `${k === "CSH" ? "Dom." : "Ext."} n'encaisse pas : ${i ? "non" : "oui"}` : k === "1X2" ? ["1", "X", "2"][i] : k === "BTTS" ? ["BTTS oui", "BTTS non"][i] : `${k.startsWith("ITH") ? "Dom. " : k.startsWith("ITA") ? "Ext. " : "Match "}${i ? "moins" : "plus"} de ${k.split("_")[1]}`;
+export const label = (k: string, i: number) => /^GOAL\d+$/.test(k) ? `${k.slice(4)}e but : ${["domicile", "personne", "extérieur"][i]}` : k === "CSH" || k === "CSA" ? `${k === "CSH" ? "Dom." : "Ext."} n'encaisse pas : ${i ? "non" : "oui"}` : k === "1X2" ? ["1", "X", "2"][i] : k === "BTTS" ? ["BTTS oui", "BTTS non"][i] : `${k.startsWith("ITH") ? "Dom. " : k.startsWith("ITA") ? "Ext. " : "Match "}${i ? "moins" : "plus"} de ${k.split("_")[1]}`;
