@@ -118,6 +118,10 @@ export function wParse(groups: Record<string, any[]> | undefined, home: string, 
       const a = ok.find((o) => o !== d && o !== h);
       if (d && h && a) mk["1X2"] = [h.cf, d.cf, a.cf];
     } else if (n === "total") lines("TOT", locked ? list : ok);
+    else if (n === "1st half. total") lines("H1TOT", locked ? list : ok);
+    else if (/^1st half\. .+ total$/.test(n) && !/corner|card|yellow|foul|shot|offside/.test(n)) {
+      lines(sameTeam(gn.trim().replace(/^1st half\. /i, "").replace(/ total$/i, ""), home) ? "H1ITH" : "H1ITA", locked ? list : ok);
+    }
     else if (/ total$/.test(n) && !/corner|card|half|yellow|foul|shot|offside/.test(n)) {
       lines(sameTeam(gn.trim().replace(/ total$/i, ""), home) ? "ITH" : "ITA", locked ? list : ok);
     } else if (/both teams to score/.test(n) && !/half/.test(n)) {
@@ -160,6 +164,8 @@ export async function cbSnap(id: string) {
     if (name === "Résultat du match" && its.length === 3) put("1X2", its);
     else if (name === "Les deux équipes marquent" && its.length === 2) put("BTTS", its);
     else if (name === "Nombre de buts") { const r = ou(); if (r && Number.isFinite(r.line)) put(`TOT_${r.line}`, r.sel); }
+    else if (name === "1ère mi-temps - Nombre de buts") { const r = ou(); if (r && Number.isFinite(r.line)) put(`H1TOT_${r.line}`, r.sel); }
+    else if (/^1ère mi-temps - Nombre de buts de /.test(name)) { const r = ou(); if (r && Number.isFinite(r.line)) put(`H1IT${sameTeam(name.slice(34), j.homeTeamName) ? "H" : "A"}_${r.line}`, r.sel); }
     else if (/^Total de /.test(name)) { const r = ou(); if (r && Number.isFinite(r.line)) put(`IT${sameTeam(name.slice(9), j.homeTeamName) ? "H" : "A"}_${r.line}`, r.sel); }
     else if (name === "Qui va marquer ce but ?" && its.length === 3) { const n = parseInt(String(its[0].shortName || its[0].name)); if (n) put(`GOAL${n}`, its); }
   }
