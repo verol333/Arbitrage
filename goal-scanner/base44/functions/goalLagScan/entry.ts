@@ -8,6 +8,7 @@ import { type Book, type GoalEv, type Line, newGoal, sample, toRecord, WINDOW_MS
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
+import { ybList, ybSnap } from "../../shared/yellowbetLive.ts";
 
 // Scanner « buts » : TOUS les matchs de foot en direct, scores lus chaque seconde chez
 // 1xBet et betPawa, poussés en direct par 1win. À chaque but, suivi seconde par seconde
@@ -39,9 +40,9 @@ Deno.serve(async (req) => {
 
   const matches = new Map<number, any>();          // clé : identifiant 1xBet
   const byW = new Map<number, any>(), byB = new Map<string, any>();
-  const byC = new Map<string, any>();
-  let wList: any[] = [], bList: any[] = [], cList: any[] = [];
-  const ticks = { x: 0, b: 0, w: 0, c: 0, win: 0 };
+  const byC = new Map<string, any>(), byY = new Map<string, any>();
+  let wList: any[] = [], bList: any[] = [], cList: any[] = [], yList: any[] = [];
+  const ticks = { x: 0, b: 0, w: 0, c: 0, y: 0, win: 0 };
   const saved: any[] = [];
   const signals: any[] = [];
   let sent = 0, mkTicks = 0, mkMatches = 0, liveIds = new Set<number>();
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
       if (Date.now() >= stopAt) return; // scan terminé : on ne fait que finir les suivis en cours
       const ev = newGoal(prev, sc, book, at, minute ?? m.min);
       // Un site qui affichait DÉJÀ ce score n'est pas « en retard » : sinon sa cote d'une option gagnée passe pour jouable
-      for (const k of ["x", "w", "b", "c"] as Book[]) { const o = m.sc[k]; if (k !== book && o && o[0] >= sc[0] && o[1] >= sc[1]) ev.seen[k] = 0; }
+      for (const k of ["x", "w", "b", "c", "y"] as Book[]) { const o = m.sc[k]; if (k !== book && o && o[0] >= sc[0] && o[1] >= sc[1]) ev.seen[k] = 0; }
       m.events.push(ev);
     }
   };
@@ -90,6 +91,7 @@ Deno.serve(async (req) => {
     if (!m.w) { const w = wList.find((x) => !byW.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (w) { m.w = w.id; m.wHome = w.home; byW.set(w.id, m); stream.add([w.id]); } }
     if (!m.b) { const b = bList.find((x) => !byB.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (b) { m.b = b.id; byB.set(b.id, m); } }
     if (!m.c) { const c = cList.find((x) => !byC.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (c) { m.c = c.id; byC.set(c.id, m); } }
+    if (!m.y) { const y = yList.find((x) => !byY.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (y) { m.y = y.id; byY.set(y.id, m); } }
   };
 
   const stream = new OnewinStream((id, sc, at) => { const m = byW.get(id); if (m) onScore(m, "w", sc, at); });
@@ -168,6 +170,19 @@ Deno.serve(async (req) => {
     }
   };
 
+  // Yellowbet : liste en direct avec scores toutes les 3 s (observation seule)
+  const loopY = async () => {
+    while (Date.now() < stopAt) {
+      const s = Date.now();
+      const l = await ybList().catch(() => null);
+      if (l?.length) { yList = l; ticks.y++; }
+      const at = Date.now();
+      for (const e of yList) { const m = byY.get(e.id); if (m && e.score) onScore(m, "y", e.score, at); }
+      for (const m of matches.values()) if (!m.y) link(m);
+      await sleep(Math.max(0, 3000 - (Date.now() - s)));
+    }
+  };
+
   // 1win : nouvelle liste toutes les 30 s (les scores arrivent en direct)
   const loopW = async () => { while (Date.now() < stopAt) { await sleep(30000); if (Date.now() < stopAt) { await loadW(); ticks.w++; } } };
 
@@ -206,8 +221,9 @@ Deno.serve(async (req) => {
       await Promise.all(open.map(async ([m, ev]) => {
         if (Date.now() - ev.t0 > WINDOW_MS) return finish(m, ev, false);
         // 1win : relevé neuf à chaque seconde (le flux continu garde les options retirées en mémoire = cotes figées)
-        const [x, b, c, wf] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null]);
+        const [x, b, c, wf, y] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null, m.y ? ybSnap(m.y).catch(() => null) : null]);
         const at = Date.now();
+        if (y?.score?.every(Number.isFinite)) onScore(m, "y", y.score, at);
         if (x) onScore(m, "x", [x.sh, x.sa], at, x.min);
         if (b?.score) onScore(m, "b", b.score, at);
         if (c?.score) onScore(m, "c", c.score, at);
@@ -226,6 +242,7 @@ Deno.serve(async (req) => {
           w: wm ? { sc: m.sc.w || null, team: line(wm, wl, ev.teamKey), match: line(wm, wl, ev.matchKey), h1team: line(wm, wl, ev.h1TeamKey), h1match: line(wm, wl, ev.h1MatchKey) } : null,
           b: b ? { sc: m.sc.b || null, team: line(b.mk, b.locked, ev.teamKey), match: line(b.mk, b.locked, ev.matchKey) } : null,
           c: c ? { sc: m.sc.c || null, team: line(c.mk, c.locked, ev.teamKey), match: line(c.mk, c.locked, ev.matchKey), h1team: line(c.mk, c.locked, ev.h1TeamKey), h1match: line(c.mk, c.locked, ev.h1MatchKey) } : null,
+          y: y ? { sc: m.sc.y || null, team: line(y.mk, y.locked, ev.teamKey), match: line(y.mk, y.locked, ev.matchKey), h1team: line(y.mk, y.locked, ev.h1TeamKey), h1match: line(y.mk, y.locked, ev.h1MatchKey) } : null,
         });
       }));
       ticks.win++;
@@ -280,7 +297,7 @@ Deno.serve(async (req) => {
   // Deux scanners séparés (chacun son propre serveur) pour garder le rythme d'1 s :
   // mode "buts" = retard au but, mode "proba" = probabilités en avance.
   const proba = body.mode === "proba";
-  await Promise.all([loopX(), loopB(), loopC(), loopW(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
+  await Promise.all([loopX(), loopB(), loopC(), loopW(), proba ? null : loopY(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
   if (!proba) await loopWin(); // fin des suivis ouverts après l'arrêt des relevés
   await autoBet.done(); // les relances lisent encore les cotes 1win en direct
   stream.stop();
@@ -322,6 +339,7 @@ Deno.serve(async (req) => {
   const secs = (Date.now() - t0) / 1000;
   const summary = {
     matchs: all.length, avec1win: all.filter((m) => m.w).length, avecBetpawa: all.filter((m) => m.b).length, avecCongobet: all.filter((m) => m.c).length,
+    avecYellowbet: all.filter((m) => m.y).length, listeYellowbet: yList.length, relevesYellowbet: ticks.y,
     releves1xbet: ticks.x, relevesBetpawa: ticks.b,
     rythme1xbet: ticks.x ? `${Math.round(secs / ticks.x * 10) / 10}s` : null,
     rythmeBetpawa: ticks.b ? `${Math.round(secs / ticks.b * 10) / 10}s` : null,
