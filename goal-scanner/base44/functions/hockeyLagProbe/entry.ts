@@ -3,7 +3,7 @@ import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts
 import { listBetpawaCategories, listBetpawaLive } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { xbetSnap, bpSnap, cbSnap, wParse } from "../../shared/liveMarkets.ts";
-import { step, toSignal, verdict } from "../../shared/probLag.ts";
+import { step, toSignal, verdict, STATS } from "../../shared/probLag.ts";
 
 // Hockey sur glace en observation (aucune mise) :
 // 1) retard au but : score lu chaque seconde chez 1xBet, 1win, betPawa et Congobet ;
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
   const all = [...M.values()];
   const summary = {
     matchs: all.length, avec1win: all.filter((m) => m.w).length, avecBetpawa: all.filter((m) => m.b).length, avecCongobet: all.filter((m) => m.c).length,
-    liste1win: wList.length, categorieBetpawa: bCat ?? null, releves: ticks, buts: recs.length, signauxProba: sigRecs.length, resultatsMisAJour: upd.length,
+    liste1win: wList.length, categorieBetpawa: bCat ?? null, releves: ticks, buts: recs.length, signauxProba: sigRecs.length, filtreProba: { ...STATS }, resultatsMisAJour: upd.length,
   };
   await db.AppLog.create({ area: "scanner_hockey", action: "cycle", level: "info", ok: true, message: `${summary.matchs} matchs hockey, ${summary.buts} buts, ${summary.signauxProba} signaux`, duration_ms: Date.now() - t0, details: summary }).catch(() => null);
   return Response.json({ ...summary, buts_detail: recs.map((r) => `${r.match_label} ${r.score_after} premier ${r.first_book}`), signaux: sigRecs.map((r) => `${r.match_label} ${r.minute}' [${r.market_label}] ${r.book} @${r.book_odd} +${r.edge_pct}%`) });
