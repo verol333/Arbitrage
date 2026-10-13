@@ -9,3 +9,6 @@ jobs:
       - uses: denoland/setup-deno@v2
         with: { deno-version: v2.x }
       - run: deno run -A ybProbe.ts
+        env:
+          YB_RELAY_URL: ${{ secrets.YB_RELAY_URL }}
+          YB_RELAY_SECRET: ${{ secrets.YB_RELAY_SECRET }}
