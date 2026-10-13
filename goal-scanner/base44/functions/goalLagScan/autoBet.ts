@@ -1,7 +1,7 @@
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { label } from "../../shared/liveMarkets.ts";
 import { verdict } from "./probLag.ts";
-import { bpSnap } from "../../shared/liveMarkets.ts";
+import { bpSnap, cbSnap } from "../../shared/liveMarkets.ts";
 
 // Mise automatique 1win des signaux « probabilités en avance » et « retard de but ».
 // Filtre validé : avantage 15–45 %, cote < 2,5, avant la 60e minute. 100 F par pari.
@@ -57,10 +57,10 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
   const results: any[] = [];
   const place = async (p: any) => {
     const m = p.m, source = p.source || "prob";
-    const bp = p.bk === "b", book = bp ? "betpawa" : "1win";
-    const signal_key = (source === "goal" ? `goal|${m.x}|${p.sc}${p.extra ? `|${p.key}` : ""}` : `${m.x}|${p.key}|${p.side}|${p.min}`) + (bp ? "|bp" : "");
+    const bp = p.bk === "b", cb = p.bk === "c", book = bp ? "betpawa" : cb ? "congobet" : "1win";
+    const signal_key = (source === "goal" ? `goal|${m.x}|${p.sc}${p.extra || cb ? `|${p.key}` : ""}` : `${m.x}|${p.key}|${p.side}|${p.min}`) + (bp ? "|bp" : cb ? "|cb" : "");
     const base = { signal_key, book, xbet_id: m.x, onewin_match_id: m.w, match_label: m.name, minute: p.min, score: p.sc, market_key: p.key,
-      market_label: label(p.key, p.side), line: p.line, side: p.key === "1X2" ? ["1", "X", "2"][p.side] : ["BTTS", "CSH", "CSA"].includes(p.key) ? ["oui", "non"][p.side] : p.side ? "moins" : "plus",
+      market_label: label(p.key, p.side), line: p.line, side: p.key === "1X2" || /^GOAL/.test(p.key) ? ["1", "X", "2"][p.side] : ["BTTS", "CSH", "CSA"].includes(p.key) ? ["oui", "non"][p.side] : p.side ? "moins" : "plus",
       edge_pct: Math.round(p.edge * 1000) / 10, odd: p.odd, stake: STAKE, last_score: p.sc, last_minute: p.min, source };
     // Même signal vu deux fois (but relu en double) : une seule série de tentatives.
     if (seenKeys.has(signal_key)) return;
@@ -81,7 +81,11 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       // But remis en doute pendant les relances (1xBet revient à l'ancien score) : on arrête tout de suite
       if (p.ev && (p.ev.cancelled || !p.ev.xRemoved)) { r = { step: "annule", reason: "but remis en doute chez 1xBet" }; break; }
       let o: any = null;
-      if (bp) {
+      if (cb) {
+        const s = await cbSnap(m.c).catch(() => null);
+        const id = s?.ids?.[p.key]?.[p.side], cf = s?.mk?.[p.key]?.[p.side];
+        if (id && cf) o = { id: id.it, bt: id.bt, ev: Number(m.c), cf, status: s!.locked.has(p.key) ? 0 : 1 };
+      } else if (bp) {
         const s = await bpSnap(m.b).catch(() => null);
         const id = s?.ids?.[p.key]?.[p.side], cf = s?.mk?.[p.key]?.[p.side];
         if (id && cf) o = { id, cf, status: s!.locked.has(p.key) ? 0 : 1 };
@@ -91,7 +95,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       }
       if (o && !p.odd) base.odd = p.odd = o.cf; // option ajoutée (BTTS, clean sheet) : cote lue au premier relevé
       if (o && o.cf < 1.05) o = null; // cote ridicule : le site a déjà vu le but
-      if (o && i && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
+      if (o && i && !cb && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
       // betPawa retire la ligne dès qu'il a vu le but : absente = il a déjà réagi, inutile d'insister ni de noter un échec
       if (bp && !o) { r = { step: "ferme_betpawa" }; break; }
       await trace(db, "signal", `Signal ${source} ${i ? `relance ${i}/${tries - 1}` : "retenu"} : ${m.name} ${p.min}' [${base.market_label}] @${p.odd}, cote lue chez ${bp ? "betPawa" : "1win"} ${o ? `${o.cf} (état ${o.status})` : "absente"}${opts.dry ? " (à blanc)" : ""}`);
@@ -148,6 +152,14 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
           ev.betTried[tk] = true;
           tasks.push(place({ ev, source: "goal", extra: true, bk, m, key, side, line: 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
         }
+      }
+      // Congobet : toutes les options gagnées par ce but sont misées en même temps, quelle que soit la durée d'ouverture.
+      // Total match, total de l'équipe, BTTS oui (2e équipe qui ouvre son compteur), « qui va marquer le n-ième but ».
+      if (m.c && !ev.betTried.c) {
+        ev.betTried.c = true;
+        const opts: [string, number][] = [[ev.teamKey, 0], [ev.matchKey, 0], [`GOAL${h + a}`, ev.side === "H" ? 0 : 2]];
+        if (first && h > 0 && a > 0) opts.push(["BTTS", 0]);
+        for (const [key, side] of opts) tasks.push(place({ ev, source: "goal", bk: "c", m, key, side, line: /_/.test(key) ? Number(key.split("_")[1]) : 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
       }
     },
     done: () => Promise.all(tasks),
