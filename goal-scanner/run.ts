@@ -4,7 +4,7 @@ const MINUTES = Number(Deno.env.get("SCAN_DURATION_MINUTES") || 350);
 const CYCLE = Number(Deno.env.get("SCAN_MAX_S") || 1800);
 let handler: ((r: Request) => Promise<Response>) | null = null;
 (Deno as any).serve = (h: any) => { handler = h; return { finished: Promise.resolve() }; };
-await import("./base44/functions/goalLagScan/entry.ts");
+await import(MODE === "corners" ? "./base44/functions/statLagProbe/entry.ts" : "./base44/functions/goalLagScan/entry.ts");
 const end = Date.now() + MINUTES * 60e3 - 3 * 60e3;
 const runs: Promise<void>[] = [];
 while (true) {
