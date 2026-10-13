@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
   // Contrôle de la connexion 1win de la mise auto, sans miser
   if (body.mode === "betcheck") return Response.json(await createAutoBet(db, { odds: new Map() }).check());
   if (body.mode === "audit") return Response.json(await (await import("./audit.ts")).audit(db, Number(body.limit || 12)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
+  if (body.mode === "unlinked") return Response.json(await (await import("./unlinked.ts")).unlinked().catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "selftest") return Response.json(await (await import("./selfTest.ts")).selfTest(db).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
   if (body.mode === "replay") {
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
   const signals: any[] = [];
   let sent = 0, mkTicks = 0, mkMatches = 0, liveIds = new Set<number>();
   // Signaux « probabilités » en attente de résultat (cycles précédents)
-  const pending = (await db.ProbLagSignal.filter({ status: "pending" }, { limit: 500 }).catch(() => ({ items: [] }))).items || [];
+  const pending = (await db.ProbLagSignal.filter({ status: "pending", sport: { $ne: "hockey" } }, { limit: 500 }).catch(() => ({ items: [] }))).items || [];
   const settle: Record<string, any> = {};
   // Paris automatiques 1win encore ouverts
   const openBets = body.mode === "proba" ? await loadOpenBets(db) : [];
