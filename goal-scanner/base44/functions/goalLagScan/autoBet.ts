@@ -77,6 +77,8 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       if (o && !p.odd) base.odd = p.odd = o.cf; // option ajoutée (BTTS, clean sheet) : cote lue au premier relevé
       if (o && o.cf < 1.05) o = null; // cote ridicule : le site a déjà vu le but
       if (o && i && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
+      // betPawa retire la ligne dès qu'il a vu le but : absente = il a déjà réagi, inutile d'insister ni de noter un échec
+      if (bp && !o) { r = { step: "ferme_betpawa" }; break; }
       await trace(db, "signal", `Signal ${source} ${i ? `relance ${i}/${tries - 1}` : "retenu"} : ${m.name} ${p.min}' [${base.market_label}] @${p.odd}, cote lue chez ${bp ? "betPawa" : "1win"} ${o ? `${o.cf} (état ${o.status})` : "absente"}${opts.dry ? " (à blanc)" : ""}`);
       r = await run(db, { base, o, dry: !!opts.dry, final: i === tries - 1 });
       if (!["cote", "refus", "connexion"].includes(r?.step)) break;
