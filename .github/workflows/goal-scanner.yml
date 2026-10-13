@@ -41,3 +41,5 @@ jobs:
           INGEST_URL: https://al-ve-pro.base44.app/functions/goalLagIngest
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          YB_RELAY_URL: ${{ secrets.YB_RELAY_URL }}
+          YB_RELAY_SECRET: ${{ secrets.YB_RELAY_SECRET }}
