@@ -2,14 +2,13 @@ import { sameTeam } from "../../shared/teamMatch.ts";
 import { label } from "../../shared/liveMarkets.ts";
 import { verdict } from "./probLag.ts";
 import { bpSnap, cbSnap } from "../../shared/liveMarkets.ts";
-import { fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 
 // Mise automatique 1win des signaux « probabilités en avance » et « retard de but ».
 // Filtre validé : avantage 15–45 %, cote < 2,5, avant la 60e minute. 100 F par pari.
 // Capital, connexion et placement : base44/shared/probAutoExec.ts.
 export const STAKE = 100;
 const PAUSE = 25000, TRIES = 8; // 1 essai + 7 relances = 3 min
-export const eligible = (p: any) => (p.bk === "w" || p.bk === "b") && p.edge >= 0.15 && p.edge <= 0.45 && p.odd < 2.5 && p.min < 60;
+export const eligible = (p: any) => (p.bk === "w" || p.bk === "b") && p.edge >= 0.15 && p.edge <= 0.45 && p.odd >= 1.2 && p.odd < 2.5 && p.min < 60; // sous 1,20 : on passe
 
 /** Identifiant 1win de la cote visée (mêmes règles de lecture que wParse). */
 export function findOdd(groups: Record<string, any[]> | undefined, home: string, key: string, side: number) {
@@ -91,17 +90,13 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         const id = s?.ids?.[p.key]?.[p.side], cf = s?.mk?.[p.key]?.[p.side];
         if (id && cf) o = { id, cf, status: s!.locked.has(p.key) ? 0 : 1 };
       } else {
-        // Probabilités : le flux continu de 1win garde parfois l'ancienne cote alors que 1win l'a déjà corrigée
-        // (pari confirmé à 1.11 au lieu de 1.57). On relit la cote par une connexion neuve juste avant de miser.
-        const fresh = goal ? null : (await fetchOddsAndInfo([m.w], 2500, 600).catch(() => null))?.odds?.get(m.w);
-        const f = findOdd(fresh || stream.odds.get(m.w), m.wHome, p.key, p.side);
+        const f = findOdd(stream.odds.get(m.w), m.wHome, p.key, p.side);
         o = f ? { id: f.id, cf: f.cf, status: f.status } : null;
       }
       if (o && !p.odd) base.odd = p.odd = o.cf; // option ajoutée (BTTS, clean sheet) : cote lue au premier relevé
       if (o && o.cf < 1.05) o = null; // cote ridicule : le site a déjà vu le but
       // La cote a trop baissé : l'avantage a disparu (probabilités : dès le 1er essai, le site a déjà corrigé)
-      if (o && goal && i && o.cf < p.odd * 0.95) o = null;
-      if (o && !goal && !cb && o.cf < p.odd * 0.95) { r = { step: "corrigee", odd: o.cf }; await trace(db, "corrigee", `Cote déjà corrigée chez ${bp ? "betPawa" : "1win"} (${o.cf} au lieu de ${p.odd}), pas de mise : ${m.name} ${p.min}' [${base.market_label}]`); break; }
+      if (o && i && !cb && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
       // betPawa retire la ligne dès qu'il a vu le but : absente = il a déjà réagi, inutile d'insister ni de noter un échec
       if (bp && !o) { r = { step: "ferme_betpawa" }; break; }
       await trace(db, "signal", `Signal ${source} ${i ? `relance ${i}/${tries - 1}` : "retenu"} : ${m.name} ${p.min}' [${base.market_label}] @${p.odd}, cote lue chez ${bp ? "betPawa" : "1win"} ${o ? `${o.cf} (état ${o.status})` : "absente"}${opts.dry ? " (à blanc)" : ""}`);
