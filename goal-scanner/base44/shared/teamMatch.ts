@@ -116,6 +116,17 @@ const COUNTRIES: [RegExp, string][] = [
   [/\berythree\b/g, "eritrea"], [/\blibye\b/g, "libya"],
 ];
 
+// 13/10/2026 — matchs non reliés relevés en direct : « II » (souvent tapé « ll ») = équipe réserve,
+// et noms de clubs qui ne se ressemblent pas d'un site à l'autre.
+const ALIASES: [RegExp, string][] = [
+  [/\b(ii|ll|res)\b/g, "reserve"],
+  [/\bqpr\b/g, "queens park rangers"],
+  [/\bcong an ha noi\b/g, "hanoi police"], [/\bcong an hanoi\b/g, "hanoi police"],
+  [/\bal hikma( beirut)?\b/g, "sagesse"],
+  [/\bal (ikhaa|akhaa) al ahli( aley)?\b/g, "akhaa ahli"],
+  [/\binter milano\b/g, "internazionale milano"],
+];
+
 export function normTeam(s: unknown): string {
   let out = String(s ?? "")
     .toLowerCase()
@@ -123,7 +134,10 @@ export function normTeam(s: unknown): string {
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(/\s+/g, " ");
   for (const [rx, to] of COUNTRIES) out = out.replace(rx, to);
+  for (const [rx, to] of ALIASES) out = out.replace(rx, to);
   for (const [rx, to] of QUALIFIERS) out = out.replace(rx, to);
+  // « Reserve U21 » = « U21 » : la catégorie d'âge suffit
+  if (/\bu\d{2}\b/.test(out)) out = out.replace(/\breserve\b/g, " ");
   return out
     .replace(NOISE, " ")
     .replace(/\s+/g, " ")
