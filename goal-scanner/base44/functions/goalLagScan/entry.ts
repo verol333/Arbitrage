@@ -1,10 +1,10 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { sleep, xbetList, xbetSnap, bpSnap, wParse, cbList, cbSnap } from "../../shared/liveMarkets.ts";
 import { OnewinStream } from "./onewinStream.ts";
-import { type Book, type GoalEv, type Line, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
+import { type Book, type GoalEv, type Line, BOOKS, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
@@ -68,7 +68,11 @@ Deno.serve(async (req) => {
     // top = plus haut total déjà affiché par un site : un site qui rattrape en retard n'est pas un nouveau but
     if (!prev) { m.top = Math.max(m.top ?? 0, tot); return; }
     const ptot = prev[0] + prev[1];
-    // Annulation : seulement si 1xBet (référence) revient en arrière
+    // Annulation : seulement si 1xBet (référence) revient en arrière sur DEUX relevés de suite.
+    // Ses deux sources (liste + fiche du match) se contredisent parfois une seconde : ce n'est pas un but refusé.
+    if (book === "x") m.xLow = tot < ptot ? (m.xLow || 0) + 1 : 0;
+    // 1er relevé en arrière : ignoré (on garde le score précédent pour comparer au relevé suivant)
+    if (book === "x" && tot < ptot && m.xLow < 2) { m.sc[book] = prev; return; }
     if (book === "x" && tot < ptot) {
       m.top = tot;
       for (const ev of m.events as GoalEv[]) if (ev.sc[0] + ev.sc[1] > tot && !ev.cancelled) {
@@ -233,9 +237,11 @@ Deno.serve(async (req) => {
         // « score avec le but + option retirée ». Si 1xBet remet l'ancien score, le but est en doute : on bloque.
         const xGoal = !!x && x.sh + x.sa >= ev.sc[0] + ev.sc[1];
         const xOk = xGoal && Object.keys(x!.mk).length > 0 && !x!.mk[ev.matchKey];
-        // Un seul relevé suffit ; si 1xBet remet l'ancien score, le but est en doute : on bloque aussitôt.
+        // RAPIDITÉ (2026-10-14) : on n'attend plus que 1xBet règle l'option (souvent 10 s de « suspendu »).
+        // But retenu dès que 1xBet affiche le score ET qu'un 2e site l'affiche aussi — ou que 1xBet a retiré l'option.
+        const twoBooks = BOOKS.filter((k) => ev.seen[k] != null).length >= 2;
         if (x && !xGoal) (ev as any).xRemoved = false;
-        else if (xOk) (ev as any).xRemoved = true;
+        else if (xOk || (xGoal && twoBooks)) (ev as any).xRemoved = true;
         queueMicrotask(() => autoBet.goal(m, ev));
         sample(ev, at, {
           x: x ? { sc: m.sc.x, team: line(x.mk, x.locked, ev.teamKey), match: line(x.mk, x.locked, ev.matchKey) } : null,
