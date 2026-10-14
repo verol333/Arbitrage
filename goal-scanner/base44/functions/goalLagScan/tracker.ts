@@ -7,7 +7,8 @@ export const NAMES: Record<Book, string> = { x: "1xBet", w: "1win", b: "betPawa"
 export const WINDOW_MS = 75000;
 // Temps réel mesuré de notre mise auto en direct (médiane des paris placés sur 1win et betPawa) :
 // une fenêtre plus courte ne laisse pas le temps au robot de poser le pari.
-export const PLACE_S = 18;
+// Jouable = option gagnée restée ouverte au moins 2 s (la mise part dès le but retenu, sans attendre 1xBet).
+export const PLACE_S = 2;
 
 export type Line = { odd: number; locked: boolean } | null;
 export type GoalEv = {
