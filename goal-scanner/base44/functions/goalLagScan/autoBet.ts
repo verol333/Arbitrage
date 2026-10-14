@@ -95,6 +95,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       }
       if (o && !p.odd) base.odd = p.odd = o.cf; // option ajoutée (BTTS, clean sheet) : cote lue au premier relevé
       if (o && o.cf < 1.05) o = null; // cote ridicule : le site a déjà vu le but
+      if (o && !goal && o.cf < 1.2) o = null; // probabilités : jamais sous 1,20, même si la cote a baissé depuis le signal
       // La cote a trop baissé : l'avantage a disparu (probabilités : dès le 1er essai, le site a déjà corrigé)
       if (o && i && !cb && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
       // betPawa retire la ligne dès qu'il a vu le but : absente = il a déjà réagi, inutile d'insister ni de noter un échec
@@ -128,12 +129,11 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       // Option seulement suspendue = but en doute (VAR, erreur) : on attend.
       if (ev.cancelled || !ev.xRemoved) return;
       ev.betTried ||= {};
-      // Chaque site (1win, betPawa) est misé séparément, avec son propre capital.
-      for (const [bk, id] of [["w", m.w], ["b", m.b]] as const) {
-        if (ev.betTried[bk] || !id) continue;
-        const k = ev.open[`${bk}_team`] ? "team" : ev.open[`${bk}_match`] ? "match" : null;
-        if (!k) continue;
-        ev.betTried[bk] = true;
+      // Chaque site (1win, betPawa) est misé séparément ; total équipe ET total match misés en même temps.
+      for (const [bk, id] of [["w", m.w], ["b", m.b]] as const) for (const k of ["team", "match"] as const) {
+        const tk = `${bk}_${k}`;
+        if (ev.betTried[tk] || !id || !ev.open[tk]) continue;
+        ev.betTried[tk] = true;
         const key = k === "team" ? ev.teamKey : ev.matchKey;
         const p = { ev, source: "goal", bk, m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[`${bk}_${k}`].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") };
         tasks.push(place(p).catch(fail));
