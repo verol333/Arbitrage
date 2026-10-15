@@ -28,6 +28,14 @@ export function findOdd(groups: Record<string, any[]> | undefined, home: string,
     if (key === "BTTS" && /both teams to score/.test(n) && !/half/.test(n)) return list.find((o) => (side ? /^no$/i : /^yes$/i).test(o.name.trim())) || null;
     const [pre, ln] = key.split("_");
     if (!ln) continue;
+    // 1re mi-temps : « 1st half. total » et « 1st half. <équipe> total »
+    if (pre.startsWith("H1")) {
+      const tot = n === "1st half. total", tm = /^1st half\. (.+) total$/.exec(gn.trim());
+      if (pre === "H1TOT" ? !tot : !tm || tot || /corner|card|yellow|foul|shot|offside/i.test(gn) || sameTeam(tm[1], home) !== (pre === "H1ITH")) continue;
+      const hit = list.find((o) => (side ? /^under/i : /^over/i).test(o.name) && parseFloat(o.name.replace(/[^\d.]/g, "")) === Number(ln));
+      if (hit) return hit;
+      continue;
+    }
     const isTot = n === "total", isTeam = / total$/.test(n) && !/corner|card|half|yellow|foul|shot|offside/.test(n);
     if (pre === "TOT" ? !isTot : !isTeam) continue;
     if (pre !== "TOT" && (gn.trim().replace(/ total$/i, "") === homeName) !== (pre === "ITH")) continue;
@@ -85,7 +93,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       if (cb) {
         const s = await cbSnap(m.c).catch(() => null);
         const id = s?.ids?.[p.key]?.[p.side], cf = s?.mk?.[p.key]?.[p.side];
-        if (id && cf) o = { id: id.it, bt: id.bt, ev: Number(m.c), cf, status: s!.locked.has(p.key) ? 0 : 1 };
+        if (id && cf) o = { id: id.it, bt: id.bt, ev: Number(m.c), cf, status: id.ok ? 1 : 0 }; // Congobet ferme l'option perdante seule : on juge l'option visée
       } else if (bp) {
         const s = await bpSnap(m.b).catch(() => null);
         const id = s?.ids?.[p.key]?.[p.side], cf = s?.mk?.[p.key]?.[p.side];
@@ -139,6 +147,14 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         const p = { ev, source: "goal", bk, m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[`${bk}_${k}`].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") };
         tasks.push(place(p).catch(fail));
       }
+      // But en 1re mi-temps : totaux 1re MT (équipe et match) déjà gagnés aussi, misés chez 1win dès qu'ils restent ouverts
+      if (m.w && ev.h1MatchKey) for (const k of ["h1team", "h1match"] as const) {
+        const tk = `w_${k}`;
+        if (ev.betTried[tk] || !ev.open[tk]) continue;
+        ev.betTried[tk] = true;
+        const key = k === "h1team" ? ev.h1TeamKey : ev.h1MatchKey;
+        tasks.push(place({ ev, source: "goal", extra: true, bk: "w", m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[tk].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
+      }
       // Options supplémentaires déjà gagnées, misées tant que le site affiche encore l'ancien score :
       // BTTS oui (la 2e équipe vient d'ouvrir son compteur) et « n'encaisse pas : non » (betPawa).
       const [h, a] = ev.sc, first = ev.side === "H" ? h === 1 : a === 1;
@@ -161,8 +177,19 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         ev.betTried.c = true;
         const opts: [string, number][] = [[ev.teamKey, 0], [ev.matchKey, 0], [`GOAL${h + a}`, ev.side === "H" ? 0 : 2]];
         if (first && h > 0 && a > 0) opts.push(["BTTS", 0]);
+        if (ev.h1MatchKey) opts.push([ev.h1TeamKey, 0], [ev.h1MatchKey, 0]);
         for (const [key, side] of opts) tasks.push(place({ ev, source: "goal", bk: "c", m, key, side, line: /_/.test(key) ? Number(key.split("_")[1]) : 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
       }
+    },
+    /** But annulé : une fois les mises en cours terminées, cash-out 1win de toutes les options posées sur ce but. */
+    cancel(m: any, ev: any) {
+      if (opts.dry || ev.cashoutDone || !ev.betTried || !(m.w || m.b)) return;
+      ev.cashoutDone = true;
+      const arg = { xbet_id: m.x, score: ev.sc.join("-") };
+      tasks.push(Promise.all([...tasks]).then(async () => {
+        const r = REMOTE ? await db.ProbAutoBet.autoCashout(arg) : await (await import("../../shared/onewinCashout.ts")).cashoutCancelledGoal(db, arg);
+        results.push({ match: m.name, cashout: r });
+      }).catch(fail));
     },
     done: () => Promise.all(tasks),
   };
