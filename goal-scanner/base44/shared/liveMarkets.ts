@@ -12,7 +12,7 @@ const BP_H: Record<string, string> = {
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Football réel uniquement : ni virtuel, ni e-sport, ni formats spéciaux, ni « équipe vs joueur ».
-const FAKE = /alternat|virtu|cyber|fifa|esport|e-sport|penalt|short|2x2|3x3|4x4|5x5|rush|student|\blfl\b|special|statist|player|joueur|\(sub\)|\bsub\b/i;
+const FAKE = /alternat|virtu|cyber|fifa|esport|e-sport|penalt|short|2x2|3x3|4x4|5x5|6x6|7x7|8x8|\+|rush|student|\blfl\b|special|statist|player|joueur|\(sub\)|\bsub\b/i;
 
 /** Tous les matchs de foot en direct chez 1xBet, avec score et minute (un seul appel). */
 export async function xbetList() {
