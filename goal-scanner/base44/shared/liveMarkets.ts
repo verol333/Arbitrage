@@ -22,7 +22,7 @@ export async function xbetList() {
     .map((g: any) => ({
       id: g.I as number, home: g.O1E || g.O1, away: g.O2E || g.O2, league: g.LE || g.L || "",
       sh: Number(g.SC?.FS?.S1 || 0), sa: Number(g.SC?.FS?.S2 || 0), min: Math.floor((g.SC?.TS || 0) / 60),
-      rc: stat(g, 71), pen: stat(g, 72),
+      rc: stat(g, 71), pen: stat(g, 72), cp: Number(g.SC?.CP || 0), // période en cours : 1 = 1re mi-temps
     }));
 }
 
@@ -55,7 +55,7 @@ export async function xbetSnap(id: number) {
     if (g.G === 19) { const y = flat.find((e: any) => e.T === 180)?.C, n = flat.find((e: any) => e.T === 181)?.C; if (y && n) mk.BTTS = [y, n]; }
   }
   const fs = v.SC?.FS || {};
-  return { mk, locked, sh: fs.S1 || 0, sa: fs.S2 || 0, min: Math.floor((v.SC?.TS || 0) / 60) };
+  return { mk, locked, sh: fs.S1 || 0, sa: fs.S2 || 0, min: Math.floor((v.SC?.TS || 0) / 60), cp: Number(v.SC?.CP || 0) };
 }
 
 function bpScore(j: any): [number, number] | null {
@@ -76,7 +76,7 @@ export async function bpSnap(id: string, dbg: any[] = []) {
   const ids: Record<string, string[]> = {};
   for (const m of j?.markets || []) {
     const name = String(m?.marketType?.name || "").trim();
-    if (/half|mi-temps|corner|card|carton/i.test(name)) continue;
+    if (/half|mi-temps|corner|card|carton/i.test(name)) { if (dbg.length < 60) dbg.push({ name, row: (m.row || []).slice(0, 2).map((r: any) => ({ h: r.handicap, p: (r.prices || []).map((x: any) => `${x.name}:${x.odds}`) })) }); continue; }
     for (const r0 of m.row || []) {
       // Clean sheet : on range toujours [Oui, Non]
       const flip = /^clean sheet/i.test(name) && /^(no|non)/i.test(String(r0.prices?.[0]?.name || ""));
@@ -155,11 +155,11 @@ export async function cbSnap(id: string) {
   const j = await fetch(`${CB}events/${id}`, { headers: CB_H, signal: AbortSignal.timeout(4000) }).then((r) => r.json()).catch(() => null);
   if (!j) return null;
   // ids[k][i] = sélection à miser { bt: marché, it: option } ; GOALn = « qui va marquer le n-ième but » (1, X, 2)
-  const mk: Mk = {}, locked = new Set<string>(), ids: Record<string, { bt: number; it: number }[]> = {};
+  const mk: Mk = {}, locked = new Set<string>(), ids: Record<string, { bt: number; it: number; ok: boolean }[]> = {};
   for (const bt of j.eventBetTypes || []) {
     const name = String(bt.name || "").trim(), its = bt.eventBetTypeItems || [];
     const shut = !bt.bettingAllowed || its.some((i: any) => !i.bettingAllowed || !(Number(i.odds) > 1));
-    const put = (k: string, sel: any[]) => { mk[k] = sel.map((i) => Number(i.odds)); ids[k] = sel.map((i) => ({ bt: bt.id, it: i.id })); if (shut) locked.add(k); };
+    const put = (k: string, sel: any[]) => { mk[k] = sel.map((i) => Number(i.odds)); ids[k] = sel.map((i) => ({ bt: bt.id, it: i.id, ok: !!bt.bettingAllowed && !!i.bettingAllowed && Number(i.odds) > 1 })); if (shut) locked.add(k); };
     const ou = () => { const ov = its.find((i: any) => /^>/.test(i.shortName || i.name)), un = its.find((i: any) => /^</.test(i.shortName || i.name)); return ov && un ? { line: parseFloat(String(ov.shortName || ov.name).replace(/[^\d.]/g, "")), sel: [ov, un] } : null; };
     if (name === "Résultat du match" && its.length === 3) put("1X2", its);
     else if (name === "Les deux équipes marquent" && its.length === 2) put("BTTS", its);
@@ -173,4 +173,4 @@ export async function cbSnap(id: string) {
 }
 
 export const fair = (o: number[]) => { const s = o.reduce((a, c) => a + 1 / c, 0); return o.map((c) => 1 / c / s); };
-export const label = (k: string, i: number) => /^GOAL\d+$/.test(k) ? `${k.slice(4)}e but : ${["domicile", "personne", "extérieur"][i]}` : k === "CSH" || k === "CSA" ? `${k === "CSH" ? "Dom." : "Ext."} n'encaisse pas : ${i ? "non" : "oui"}` : k === "1X2" ? ["1", "X", "2"][i] : k === "BTTS" ? ["BTTS oui", "BTTS non"][i] : `${k.startsWith("ITH") ? "Dom. " : k.startsWith("ITA") ? "Ext. " : "Match "}${i ? "moins" : "plus"} de ${k.split("_")[1]}`;
+export const label = (k: string, i: number) => /^GOAL\d+$/.test(k) ? `${k.slice(4)}e but : ${["domicile", "personne", "extérieur"][i]}` : k === "CSH" || k === "CSA" ? `${k === "CSH" ? "Dom." : "Ext."} n'encaisse pas : ${i ? "non" : "oui"}` : k === "1X2" ? ["1", "X", "2"][i] : k === "BTTS" ? ["BTTS oui", "BTTS non"][i] : `${k.startsWith("H1") ? "1re MT " : ""}${/^(H1)?ITH/.test(k) ? "Dom. " : /^(H1)?ITA/.test(k) ? "Ext. " : "Match "}${i ? "moins" : "plus"} de ${k.split("_")[1]}`;
