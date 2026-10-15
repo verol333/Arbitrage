@@ -1,6 +1,6 @@
 import { createClientFromRequest } from "../../../sdk-shim.ts";
 
-// Tennis en observation (aucune mise) : 1xBet sert de référence. À chaque jeu gagné chez 1xBet,
+// Tennis avec mise automatique (1 pari par jeu et par site, journal de chaque tentative) : 1xBet sert de référence. À chaque jeu gagné chez 1xBet,
 // on regarde chaque seconde chez betPawa les options déjà gagnées (totaux de jeux du match,
 // du joueur, du set, plus de 2.5 sets, vainqueur du set terminé) et combien de temps elles restent ouvertes.
 const XH = { "user-agent": "Mozilla/5.0 Chrome/124", accept: "application/json" };
@@ -81,6 +81,16 @@ Deno.serve(async (req) => {
   const evs: any[] = [];
   const ticks = { x: 0, b: 0, w: 0 };
   const W = new Map<number, { info?: any; odds: Record<string, any[]> }>();
+  // Mise automatique : dès qu'une option déjà gagnée est vue ouverte (cote ≥ 1,05), on mise tout de suite.
+  // Un seul pari par jeu et par site ; le résultat (posé / refusé + raison) va dans le relevé et le journal.
+  const placedK = new Set<string>();
+  const autoBet = (ev: any, book: string, o: any, market: string, outcome: string, odd: number) => {
+    const sk = `tennis|${ev.m.name}|${ev.total}|${book}`; if (placedK.has(sk)) return; placedK.add(sk);
+    const base = { signal_key: sk, source: "tennis", book, match_label: ev.m.name, score: `${label(ev.before)} → ${label(ev.after)}`, market_key: market, market_label: `${market} — ${outcome}`, odd, onewin_match_id: book === "1win" ? ev.m.w : undefined };
+    (db as any).ProbAutoBet.autoPlace({ base, o })
+      .then((r: any) => { const t = `${Math.round((Date.now() - ev.at) / 1000)}s MISE AUTO ${book} : ${r?.step || "?"}${r?.error ? " (" + String(r.error).slice(0, 120) + ")" : ""}`; ev.tl.push(t); console.log(t, ev.m.name); })
+      .catch((e: any) => { ev.tl.push(`MISE AUTO ${book} erreur : ${String(e?.message || e).slice(0, 120)}`); });
+  };
 
   const loopX = async () => { while (Date.now() < endAt) {
     const t = Date.now();
@@ -144,7 +154,7 @@ Deno.serve(async (req) => {
             const mkName = String(mk.marketType?.displayName || "").trim() || name, prName = String(pr.name || "").trim() || (i === 0 ? "Plus de" : "Moins de");
             const key = `betPawa ${mkName}|${prName}${isNaN(line) ? "" : " " + line}`;
             const o = ev.opts.get(key) || { from: sec, last: sec, odd: Number(pr.odds) };
-            if (sec - o.last > 1) o.closed = true; if (!o.closed) o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
+            if (!ev.opts.has(key) && Number(pr.odds) >= 1.05) autoBet(ev, "betpawa", { id: pr.id, cf: Number(pr.odds), status: 1 }, name, String(pr.name ?? ""), Number(pr.odds)); if (sec - o.last > 1) o.closed = true; if (!o.closed) o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
           }
         }
         if (ev.tl.length < 120) ev.tl.push(`${sec}s bP ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
@@ -168,7 +178,7 @@ Deno.serve(async (req) => {
         const b = JSON.parse(m.slice(2))[1], d = b?.data, id = d?.matchId; if (!id) return;
         const w = W.get(id) || { odds: {} }; W.set(id, w);
         if (b.messageType.includes("info")) w.info = { ...(w.info || {}), ...d };
-        else for (const g of d.oddsGroups || []) { const by = new Map((w.odds[g.name] || []).map((o: any) => [String(o.id), o])); for (const o of g.oddsList || []) by.set(String(o.id), { name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) }); w.odds[g.name] = [...by.values()]; }
+        else for (const g of d.oddsGroups || []) { const by = new Map((w.odds[g.name] || []).map((o: any) => [String(o.id), o])); for (const o of g.oddsList || []) by.set(String(o.id), { id: String(o.id), name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) }); w.odds[g.name] = [...by.values()]; }
       } catch { /* ignoré */ }
     };
     ws.onclose = () => { ws = null; };
@@ -207,7 +217,7 @@ Deno.serve(async (req) => {
           if (!wonW(gn, o.name, ev.after, ev.before, m.home, away) || wonW(gn, o.name, ev.before, ev.before, m.home, away)) continue;
           const key = `1win ${gn}|${o.name}`;
           const x = ev.opts.get(key) || { from: sec, last: sec, odd: o.cf };
-          if (sec - x.last > 1) x.closed = true; if (!x.closed) x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
+          if (!ev.opts.has(key) && o.cf >= 1.05) autoBet(ev, "1win", { id: o.id, cf: o.cf, status: 1 }, gn, o.name, o.cf); if (sec - x.last > 1) x.closed = true; if (!x.closed) x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
         }
         if (ev.tl.length < 120) ev.tl.push(`${sec}s 1w ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
       }
