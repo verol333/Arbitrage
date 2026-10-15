@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
         sample(ev, at, {
           x: x ? { sc: m.sc.x, team: line(x.mk, x.locked, ev.teamKey), match: line(x.mk, x.locked, ev.matchKey) } : null,
           w: wm ? { sc: m.sc.w || null, team: line(wm, wl, ev.teamKey), match: line(wm, wl, ev.matchKey), h1team: line(wm, wl, ev.h1TeamKey), h1match: line(wm, wl, ev.h1MatchKey) } : null,
-          b: b ? { sc: m.sc.b || null, team: line(b.mk, b.locked, ev.teamKey), match: line(b.mk, b.locked, ev.matchKey) } : null,
+          b: b ? { sc: m.sc.b || null, team: line(b.mk, b.locked, ev.teamKey), match: line(b.mk, b.locked, ev.matchKey), h1team: line(b.mk, b.locked, ev.h1TeamKey), h1match: line(b.mk, b.locked, ev.h1MatchKey) } : null,
           c: c ? { sc: m.sc.c || null, team: line(c.mk, c.locked, ev.teamKey), match: line(c.mk, c.locked, ev.matchKey), h1team: line(c.mk, c.locked, ev.h1TeamKey), h1match: line(c.mk, c.locked, ev.h1MatchKey) } : null,
           y: y ? { sc: m.sc.y || null, team: line(y.mk, y.locked, ev.teamKey), match: line(y.mk, y.locked, ev.matchKey), h1team: line(y.mk, y.locked, ev.h1TeamKey), h1match: line(y.mk, y.locked, ev.h1MatchKey) } : null,
         });
