@@ -159,7 +159,9 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // La vitesse qui compte n'est PAS celle du listage : chaque paire de books
   // envoie ses surebets dès SA propre fin (streamPair), sans attendre le cycle.
   // Le délai ci-dessous n'est donc plus qu'un garde-fou contre un book bloqué.
-  const listDeadlineMs = 25_000;
+  // Live : 6 s max. Un book plus lent reprend son dernier catalogue (< 2 min),
+  // qui se met à jour en arrière-plan ; les cotes restent relues fraîches.
+  const listDeadlineMs = live ? 6_000 : 25_000;
   const withDeadline = (b) => new Promise((resolve) => {
     const timer = setTimeout(() => {
       const kept = lastCatalogs.get(b.key);
