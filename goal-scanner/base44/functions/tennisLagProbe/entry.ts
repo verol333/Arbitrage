@@ -173,22 +173,6 @@ Deno.serve(async (req) => {
     };
     ws.onclose = () => { ws = null; };
   };
-  // Vérification en direct : nouvelle connexion 1win = photo fraîche des cotes du match (pas notre copie en mémoire)
-  const verifyW = (id: number) => new Promise<any>((res) => {
-    const fresh: any = {}; let done = false;
-    const v = new WebSocket(`wss://api-gateway.top-parser.com/push-server-v2/?Language=en-001&externalPartnerId=${WP}&EIO=4&transport=websocket`);
-    const end = () => { if (done) return; done = true; try { v.close(); } catch { /* fermé */ } res(fresh); };
-    setTimeout(end, 3000);
-    v.onerror = end;
-    v.onmessage = (e: MessageEvent) => {
-      const m = String(e.data);
-      if (m.startsWith("0")) { v.send("40"); return; }
-      if (m.startsWith("40")) { v.send("42" + JSON.stringify(["subscribe", { messageType: "subscribe-match-odds", data: { matchIds: [id], isBaseOddsGroups: false } }])); return; }
-      if (m === "2") { v.send("3"); return; }
-      if (!m.startsWith("42")) return;
-      try { const d = JSON.parse(m.slice(2))[1]?.data; if (Number(d?.matchId) !== id) return; for (const g of d.oddsGroups || []) for (const o of g.oddsList || []) fresh[`${g.name}|${o.name}`] = { cf: Number(o.cf), status: Number(o.status ?? 1) }; } catch { /* ignoré */ }
-    };
-  });
   const loopW = async () => { while (Date.now() < endAt) {
     const t = Date.now();
     if (t - wList > 10e3) {
@@ -223,8 +207,7 @@ Deno.serve(async (req) => {
           if (!wonW(gn, o.name, ev.after, ev.before, m.home, away) || wonW(gn, o.name, ev.before, ev.before, m.home, away)) continue;
           const key = `1win ${gn}|${o.name}`;
           const x = ev.opts.get(key) || { from: sec, last: sec, odd: o.cf };
-          if (sec - x.last > 2) { x.max = Math.max(x.max || 0, x.last - x.from + 1); x.from = sec; } x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
-          if (x.check == null) { x.check = "attente"; const nm = o.name; verifyW(m.w).then((f: any) => { const o2 = f[`${gn}|${nm}`]; x.check = o2 && o2.status === 1 && o2.cf > 1 ? "ok" : "ferme"; if (ev.tl.length < 120) ev.tl.push(`${Math.round((Date.now() - ev.at) / 1000)}s 1w vérif directe ${nm} : ${x.check === "ok" ? "accepte @" + o2.cf : "fermé"}`); }); }
+          if (sec - x.last > 1) x.closed = true; if (!x.closed) x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
         }
         if (ev.tl.length < 120) ev.tl.push(`${sec}s 1w ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
       }
@@ -259,16 +242,17 @@ Deno.serve(async (req) => {
 
 function toRec(e: any, runId: string) {
   {
-    const options = [...e.opts.entries()].map(([k, o]: any) => { const [market, outcome] = k.split("|"); return { market, outcome, odd: o.odd, from_s: o.from, open_s: Math.max(o.max || 0, o.last - o.from + 1), check: o.check }; });
-    // 1win ne compte que si la vérification en direct a confirmé que le marché accepte les paris
-    const best = options.filter((o: any) => !o.market.startsWith("1win") || o.check === "ok").reduce((a, o) => Math.max(a, o.open_s), 0);
+    const options = [...e.opts.entries()].map(([k, o]: any) => { const [market, outcome] = k.split("|"); return { market, outcome, odd: o.odd, from_s: o.from, open_s: o.last - o.from + 1 }; });
+    // Même règle que le foot : cote ≥ 1,05, fenêtre finie dès la 1re fermeture, ouverte au moins 2 s
+    const best = options.filter((o: any) => o.odd >= 1.05).reduce((a, o) => Math.max(a, o.open_s), 0);
+    const confirmed = e.bSeen != null || e.wSeen != null;
     return {
       run_id: runId, match_label: e.m.name, league: e.m.league, kind: e.kind,
       score_before: label(e.before), score_after: label(e.after), detected_at: new Date(e.at).toISOString(),
       first_book: [["betPawa", e.bSeen], ["1win", e.wSeen]].filter((x: any) => x[1] != null && x[1] < 0).sort((a: any, b: any) => a[1] - b[1])[0]?.[0] || "1xBet",
       b_seen_s: e.bSeen == null ? undefined : Math.round(e.bSeen * 10) / 10, w_seen_s: e.wSeen == null ? undefined : Math.round(e.wSeen * 10) / 10,
       options, options_count: options.length, best_open_s: best, best_odd: options.reduce((a, o) => Math.max(a, o.odd), 0) || undefined,
-      playable: !e.cancelled && best >= 3, cancelled: !!e.cancelled, timeline: e.tl,
+      playable: !e.cancelled && confirmed && best >= 2, cancelled: !!e.cancelled, timeline: e.tl,
     };
   }
 }
