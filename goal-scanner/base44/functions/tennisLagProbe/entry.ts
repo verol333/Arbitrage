@@ -42,6 +42,34 @@ function bpState(e: any): St | null {
   return { sets, sw: [ft(h), ft(a)] };
 }
 
+// ── 1win : flux poussé en continu (WebSocket), état relu chaque seconde ──
+const WP = "44ba10e5-7df2-47ab-a44d-dc93803c7a6e", WAPI = "https://api-gateway.top-parser.com";
+const WH = { "Content-Type": "application/json", Origin: "https://1win.ng", Referer: "https://1win.ng/", "User-Agent": "Mozilla/5.0 Chrome/120" };
+const lastTok = (s: string) => { const t = toks(s.split("/")[0]); return t[t.length - 1]; };
+const sameW = (x: string, w: string) => { const k = lastTok(w); return !!k && toks(x.split("/")[0]).includes(k); };
+function wState(d: any): St | null {
+  const ps = d?.periodsScore; if (!Array.isArray(ps) || !ps.length) return null;
+  return { sets: ps.map((p: any) => [Number(p.t1) || 0, Number(p.t2) || 0]), sw: [Number(d.matchScore?.t1) || 0, Number(d.matchScore?.t2) || 0] };
+}
+// Option 1win gagnée dans l'état s (prev = état précédent, pour le vainqueur du jeu qui vient de finir)
+function wonW(g: string, o: string, s: St, prev: St, home: string, away: string): boolean {
+  const G = games(s), ov = o.match(/^Over ([\d.]+)/), L = ov ? Number(ov[1]) : NaN;
+  if (g === "Total") return G[0] + G[1] > L;
+  let m = g.match(/^(\d)\w* set\. Total$/);
+  if (m) { const v = s.sets[Number(m[1]) - 1]; return !!v && v[0] + v[1] > L; }
+  m = g.match(/^(.+) total$/);
+  if (m && ov) { if (sameW(home, m[1])) return G[0] > L; if (sameW(away, m[1])) return G[1] > L; return false; }
+  m = g.match(/^(\d)\w* set\. Winner$/);
+  if (m) { const n = Number(m[1]), v = s.sets[n - 1]; if (!v || s.sw[0] + s.sw[1] < n) return false; return sameW(v[0] > v[1] ? home : away, o); }
+  if (g === "Game winner") {
+    const q = o.match(/^Win (.+) in Set (\d+), Game (\d+)/); if (!q) return false;
+    const si = Number(q[2]) - 1, gn = Number(q[3]), a = s.sets[si], b = prev.sets[si] || [0, 0];
+    if (!a || a[0] + a[1] !== gn || b[0] + b[1] !== gn - 1) return false;
+    return sameW(a[0] > b[0] ? home : away, q[1]);
+  }
+  return false;
+}
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const me = await base44.auth.me().catch(() => null);
@@ -51,7 +79,8 @@ Deno.serve(async (req) => {
   const t0 = Date.now(), stopAt = t0 + Math.min(seconds, 1800) * 1000, endAt = stopAt + FOLLOW, runId = new Date(t0).toISOString();
   const M = new Map<number, any>();
   const evs: any[] = [];
-  const ticks = { x: 0, b: 0 };
+  const ticks = { x: 0, b: 0, w: 0 };
+  const W = new Map<number, { info?: any; odds: Record<string, any[]> }>();
 
   const loopX = async () => { while (Date.now() < endAt) {
     const t = Date.now();
@@ -68,8 +97,8 @@ Deno.serve(async (req) => {
       if (nt < pt) for (const e of evs) if (e.m === m && t - e.at < FOLLOW && nt < e.total) e.cancelled = true;
       if (nt > pt && t < stopAt && !evs.some((e) => e.m === m && e.total === nt && t - e.at < FOLLOW)) {
         const set = st.sw[0] + st.sw[1] > m.x.sw[0] + m.x.sw[1];
-        const bAt = m.bAt[nt];
-        evs.push({ m, at: t, total: nt, kind: set ? "set" : "jeu", before: m.x, after: st, bSeen: bAt ? (bAt - t) / 1000 : null, opts: new Map(), tl: [] });
+        const bAt = m.bAt[nt], wAt = m.wAt?.[nt];
+        evs.push({ m, at: t, total: nt, kind: set ? "set" : "jeu", before: m.x, after: st, bSeen: bAt ? (bAt - t) / 1000 : null, wSeen: wAt ? (wAt - t) / 1000 : null, opts: new Map(), tl: [] });
       }
       m.x = st;
     } }
@@ -111,31 +140,92 @@ Deno.serve(async (req) => {
             if (i == null || wonIdx(name, line, ev.before) === i) continue;
             const pr = r.prices?.[i];
             if (!pr || !(Number(pr.odds) > 1) || mk.suspended || r.suspended || pr.suspended) continue;
-            const key = `${mk.marketType?.displayName || name}|${pr.name}${isNaN(line) ? "" : " " + line}`;
+            const key = `betPawa ${mk.marketType?.displayName || name}|${pr.name}${isNaN(line) ? "" : " " + line}`;
             const o = ev.opts.get(key) || { from: sec, last: sec, odd: Number(pr.odds) };
             o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
           }
         }
-        if (ev.tl.length < 60) ev.tl.push(`${sec}s bP ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
+        if (ev.tl.length < 120) ev.tl.push(`${sec}s bP ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
       }
     }));
     ticks.b++;
     await sleep(Math.max(0, 1000 - (Date.now() - t)));
   } };
 
+  // 1win : liste toutes les 10 s, une connexion poussée qui reste ouverte, relevé chaque seconde
+  let ws: WebSocket | null = null, subd = new Set<number>(), wList = 0;
+  const openWs = () => {
+    ws = new WebSocket(`wss://api-gateway.top-parser.com/push-server-v2/?Language=en-001&externalPartnerId=${WP}&EIO=4&transport=websocket`);
+    subd = new Set();
+    ws.onmessage = (e: MessageEvent) => {
+      const m = String(e.data);
+      if (m.startsWith("0")) { ws!.send("40"); return; }
+      if (m === "2") { ws!.send("3"); return; }
+      if (!m.startsWith("42")) return;
+      try {
+        const b = JSON.parse(m.slice(2))[1], d = b?.data, id = d?.matchId; if (!id) return;
+        const w = W.get(id) || { odds: {} }; W.set(id, w);
+        if (b.messageType.includes("info")) w.info = { ...(w.info || {}), ...d };
+        else for (const g of d.oddsGroups || []) { const by = new Map((w.odds[g.name] || []).map((o: any) => [String(o.id), o])); for (const o of g.oddsList || []) by.set(String(o.id), { name: String(o.name ?? ""), cf: Number(o.cf), status: Number(o.status ?? 1) }); w.odds[g.name] = [...by.values()]; }
+      } catch { /* ignoré */ }
+    };
+    ws.onclose = () => { ws = null; };
+  };
+  const loopW = async () => { while (Date.now() < endAt) {
+    const t = Date.now();
+    if (t - wList > 10e3) {
+      wList = t;
+      const l = await fetch(`${WAPI}/matches/get-many`, { method: "POST", headers: WH, body: JSON.stringify({ sportId: 33, isLive: true, limit: 100, offset: 0, l: "en-001", p: WP }), signal: AbortSignal.timeout(5000) }).then((r) => r.json()).catch(() => null);
+      for (const it of l?.result?.items || []) {
+        const wh = it.homeTeam?.name, wa = it.awayTeam?.name; if (!wh || !wa || it.service !== "LIVE") continue;
+        for (const m of M.values()) if (!m.w && sameW(m.home, wh) && sameW(m.name.split(" - ")[1] || "", wa)) m.w = Number(it.id);
+      }
+    }
+    if (!ws) openWs();
+    const ids = [...M.values()].filter((m) => m.w && !subd.has(m.w)).map((m) => m.w);
+    if (ids.length && ws?.readyState === 1) {
+      ws.send("42" + JSON.stringify(["subscribe", { messageType: "subscribe-match-odds", data: { matchIds: ids, isBaseOddsGroups: false } }]));
+      ws.send("42" + JSON.stringify(["subscribe", { messageType: "subscribe-match-info", data: { matchIds: ids } }]));
+      ids.forEach((i) => subd.add(i));
+    }
+    const now = Date.now();
+    for (const m of M.values()) {
+      const w = m.w && W.get(m.w); const s = w && wState(w.info); if (!s) continue;
+      const g = games(s), tot = g[0] + g[1];
+      if (!m.wAt) m.wAt = {};
+      if (!m.wAt[tot]) m.wAt[tot] = now;
+      for (const ev of evs) {
+        if (ev.m !== m || now - ev.at > FOLLOW || ev.cancelled) continue;
+        const sec = Math.round((now - ev.at) / 1000);
+        if (ev.wSeen == null && tot >= ev.total) ev.wSeen = (now - ev.at) / 1000;
+        const away = m.name.split(" - ")[1] || "", open: string[] = [];
+        for (const [gn, list] of Object.entries(w.odds)) for (const o of list as any[]) {
+          if (o.status !== 1 || !(o.cf > 1)) continue;
+          if (!wonW(gn, o.name, ev.after, ev.before, m.home, away) || wonW(gn, o.name, ev.before, ev.before, m.home, away)) continue;
+          const key = `1win ${gn}|${o.name}`;
+          const x = ev.opts.get(key) || { from: sec, last: sec, odd: o.cf };
+          x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
+        }
+        if (ev.tl.length < 120) ev.tl.push(`${sec}s 1w ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
+      }
+    }
+    ticks.w++;
+    await sleep(Math.max(0, 1000 - (Date.now() - t)));
+  } try { ws?.close(); } catch { /* fermé */ } };
+
   // Chaque jeu est enregistré dès la fin de son suivi de 45 s (pas d'attente de fin de cycle)
   let saved = 0, playable = 0;
   const flush = async (all = false) => {
     const done = evs.filter((e) => !e.saved && (all || Date.now() - e.at > FOLLOW + 1500));
     done.forEach((e) => (e.saved = true));
-    const recs = done.filter((e) => e.m.b).map((e) => toRec(e, runId));
+    const recs = done.filter((e) => e.m.b || e.m.w).map((e) => toRec(e, runId));
     if (recs.length) await db.TennisLagEvent.bulkCreate(recs).catch((e: any) => console.error("écriture", e));
     saved += recs.length; playable += recs.filter((r) => r.playable).length;
   };
   const loopF = async () => { while (Date.now() < endAt) { await sleep(5000); await flush(); } };
-  await Promise.all([loopX(), loopB(), loopF()]);
+  await Promise.all([loopX(), loopB(), loopW(), loopF()]);
   await flush(true);
-  return Response.json({ matches: M.size, linked: [...M.values()].filter((m) => m.b).length, events: saved, playable, ticks });
+  return Response.json({ matches: M.size, linked: [...M.values()].filter((m) => m.b).length, linked_1win: [...M.values()].filter((m) => m.w).length, events: saved, playable, ticks });
 });
 
 function toRec(e: any, runId: string) {
@@ -145,7 +235,8 @@ function toRec(e: any, runId: string) {
     return {
       run_id: runId, match_label: e.m.name, league: e.m.league, kind: e.kind,
       score_before: label(e.before), score_after: label(e.after), detected_at: new Date(e.at).toISOString(),
-      first_book: e.bSeen != null && e.bSeen < 0 ? "betPawa" : "1xBet", b_seen_s: e.bSeen == null ? undefined : Math.round(e.bSeen * 10) / 10,
+      first_book: [["betPawa", e.bSeen], ["1win", e.wSeen]].filter((x: any) => x[1] != null && x[1] < 0).sort((a: any, b: any) => a[1] - b[1])[0]?.[0] || "1xBet",
+      b_seen_s: e.bSeen == null ? undefined : Math.round(e.bSeen * 10) / 10, w_seen_s: e.wSeen == null ? undefined : Math.round(e.wSeen * 10) / 10,
       options, options_count: options.length, best_open_s: best, best_odd: options.reduce((a, o) => Math.max(a, o.odd), 0) || undefined,
       playable: !e.cancelled && best >= 3, cancelled: !!e.cancelled, timeline: e.tl,
     };
