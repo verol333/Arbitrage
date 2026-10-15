@@ -85,6 +85,8 @@ Deno.serve(async (req) => {
   // Un seul pari par jeu et par site ; le résultat (posé / refusé + raison) va dans le relevé et le journal.
   const placedK = new Set<string>();
   const autoBet = (ev: any, book: string, o: any, market: string, outcome: string, odd: number) => {
+    // Seuls les vainqueurs de set sont misés (vainqueur du jeu : toujours refusé par les sites)
+    if (!/set\. Winner|Moneyline - \dS/i.test(market)) return;
     const sk = `tennis|${ev.m.name}|${ev.total}|${book}`; if (placedK.has(sk)) return; placedK.add(sk);
     const base = { signal_key: sk, source: "tennis", book, match_label: ev.m.name, score: `${label(ev.before)} → ${label(ev.after)}`, market_key: market, market_label: `${market} — ${outcome}`, odd, onewin_match_id: book === "1win" ? ev.m.w : undefined };
     (db as any).ProbAutoBet.autoPlace({ base, o })
