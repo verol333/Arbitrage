@@ -213,16 +213,25 @@ Deno.serve(async (req) => {
     await sleep(Math.max(0, 1000 - (Date.now() - t)));
   } try { ws?.close(); } catch { /* fermé */ } };
 
-  // Chaque jeu est enregistré dès la fin de son suivi de 45 s (pas d'attente de fin de cycle)
+  // Chaque jeu est envoyé dès sa détection (seconde près), puis complété à la fin de son suivi de 45 s
   let saved = 0, playable = 0;
   const flush = async (all = false) => {
-    const done = evs.filter((e) => !e.saved && (all || Date.now() - e.at > FOLLOW + 1500));
-    done.forEach((e) => (e.saved = true));
-    const recs = done.filter((e) => e.m.b || e.m.w).map((e) => toRec(e, runId));
-    if (recs.length) await db.TennisLagEvent.bulkCreate(recs).catch((e: any) => console.error("écriture", e));
-    saved += recs.length; playable += recs.filter((r) => r.playable).length;
+    const fresh = evs.filter((e) => !e.id && !e.sending && (e.m.b || e.m.w));
+    if (fresh.length) {
+      fresh.forEach((e) => (e.sending = true));
+      const r = await db.TennisLagEvent.bulkCreate(fresh.map((e) => toRec(e, runId))).catch((x: any) => { console.error("écriture", x); return null; });
+      fresh.forEach((e, i) => { e.sending = false; if (r?.[i]?.id) e.id = r[i].id; });
+      if (r) saved += fresh.length;
+    }
+    const done = evs.filter((e) => e.id && !e.saved && (all || Date.now() - e.at > FOLLOW + 1500));
+    if (done.length) {
+      done.forEach((e) => (e.saved = true));
+      const recs = done.map((e) => ({ id: e.id, ...toRec(e, runId) }));
+      await db.TennisLagEvent.bulkUpdate(recs).catch((x: any) => console.error("mise à jour", x));
+      playable += recs.filter((r) => r.playable).length;
+    }
   };
-  const loopF = async () => { while (Date.now() < endAt) { await sleep(5000); await flush(); } };
+  const loopF = async () => { while (Date.now() < endAt) { await sleep(1000); await flush(); } };
   await Promise.all([loopX(), loopB(), loopW(), loopF()]);
   await flush(true);
   return Response.json({ matches: M.size, linked: [...M.values()].filter((m) => m.b).length, linked_1win: [...M.values()].filter((m) => m.w).length, events: saved, playable, ticks });
