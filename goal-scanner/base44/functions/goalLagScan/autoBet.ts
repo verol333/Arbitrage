@@ -76,7 +76,8 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
     // Retard de but : la fenêtre ne dure que quelques secondes, relance toutes les 2 s pendant 12 s.
     let r: any;
     const goal = source === "goal";
-    const tries = goal ? 6 : TRIES, pause = goal ? 2000 : PAUSE;
+    // betPawa (retard de but) : relu chaque seconde pendant 75 s, tant que l'option reste ouverte
+    const tries = goal && bp ? 75 : goal ? 6 : TRIES, pause = goal && bp ? 1000 : goal ? 2000 : PAUSE;
     for (let i = 0; i < tries; i++) {
       // But remis en doute pendant les relances (1xBet revient à l'ancien score) : on arrête tout de suite
       if (p.ev && (p.ev.cancelled || !p.ev.xRemoved)) { r = { step: "annule", reason: "but remis en doute chez 1xBet" }; break; }
@@ -99,7 +100,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       // La cote a trop baissé : l'avantage a disparu (probabilités : dès le 1er essai, le site a déjà corrigé)
       if (o && i && !cb && o.cf < p.odd * 0.95) o = null; // la cote a trop baissé : l'avantage a disparu
       // betPawa retire la ligne dès qu'il a vu le but : absente = il a déjà réagi, inutile d'insister ni de noter un échec
-      if (bp && !o) { r = { step: "ferme_betpawa" }; break; }
+      if (bp && !o) { r = { step: "ferme_betpawa" }; if (goal && i < tries - 1) { await new Promise((s) => setTimeout(s, pause)); continue; } break; }
       await trace(db, "signal", `Signal ${source} ${i ? `relance ${i}/${tries - 1}` : "retenu"} : ${m.name} ${p.min}' [${base.market_label}] @${p.odd}, cote lue chez ${bp ? "betPawa" : "1win"} ${o ? `${o.cf} (état ${o.status})` : "absente"}${opts.dry ? " (à blanc)" : ""}`);
       r = await run(db, { base, o, dry: !!opts.dry, final: i === tries - 1 });
       if (!["cote", "refus", "connexion"].includes(r?.step)) break;
