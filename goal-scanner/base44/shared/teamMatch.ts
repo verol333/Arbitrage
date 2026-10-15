@@ -120,6 +120,9 @@ const COUNTRIES: [RegExp, string][] = [
 // et noms de clubs qui ne se ressemblent pas d'un site à l'autre.
 const ALIASES: [RegExp, string][] = [
   [/\b(ii|ll|res)\b/g, "reserve"],
+  // 15/10/2026 — équipes B qui ne portent pas « II » : ne jamais les confondre avec l'équipe première
+  [/\bjong\b/g, "reserve"], [/\bcastilla\b/g, "reserve"], [/\bsevilla atletico\b/g, "sevilla reserve"],
+  [/\bshabab al ahli\b/g, "shababalahli"],
   [/\bqpr\b/g, "queens park rangers"],
   [/\bcong an ha noi\b/g, "hanoi police"], [/\bcong an hanoi\b/g, "hanoi police"],
   [/\bal hikma( beirut)?\b/g, "sagesse"],
@@ -140,6 +143,10 @@ export function normTeam(s: unknown): string {
   for (const [rx, to] of QUALIFIERS) out = out.replace(rx, to);
   // « Reserve U21 » = « U21 » : la catégorie d'âge suffit
   if (/\bu\d{2}\b/.test(out)) out = out.replace(/\breserve\b/g, " ");
+  // 15/10/2026 — betPawa écrit « Tobol Reserve YOUTH » pour « Tobol II » : réserve + jeunes = réserve
+  out = out.replace(/\breserve youth\b|\byouth reserve\b/g, "reserve");
+  // « Spartak 2 Moscow » / « Spartak-2 » = « Spartak Moscow II » (chiffre 2 isolé = équipe réserve)
+  out = out.replace(/^(\D+?) 2\b(?! \d)/, "$1 reserve");
   return out
     .replace(NOISE, " ")
     .replace(/\s+/g, " ")
@@ -167,8 +174,10 @@ function translit(w: string): string {
     // règle, l'identité du match était déclarée fausse et l'opportunité
     // abandonnée : 16 abandons sur ce seul match dans la journée.
     .replace(/zh/g, "j")    // zhetysu → jetysu
+    .replace(/^ye/, "e")    // yelimay → elimai (15/10/2026)
     .replace(/y/g, "i")     // yenisey → ienisei
     .replace(/kh/g, "h")    // khimki → himki
+    .replace(/sh/g, "s")    // shahdag → sahdag (15/10/2026)
     .replace(/ou/g, "u")    // oufa → ufa
     .replace(/ck/g, "k")
     .replace(/(.)\1+/g, "$1"); // ienissei → ienisei
