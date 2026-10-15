@@ -148,12 +148,12 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         tasks.push(place(p).catch(fail));
       }
       // But en 1re mi-temps : totaux 1re MT (équipe et match) déjà gagnés aussi, misés chez 1win dès qu'ils restent ouverts
-      if (m.w && ev.h1MatchKey) for (const k of ["h1team", "h1match"] as const) {
-        const tk = `w_${k}`;
-        if (ev.betTried[tk] || !ev.open[tk]) continue;
+      if (ev.h1MatchKey) for (const [bk, id] of [["w", m.w], ["b", m.b]] as const) for (const k of ["h1team", "h1match"] as const) {
+        const tk = `${bk}_${k}`;
+        if (!id || ev.betTried[tk] || !ev.open[tk]) continue;
         ev.betTried[tk] = true;
         const key = k === "h1team" ? ev.h1TeamKey : ev.h1MatchKey;
-        tasks.push(place({ ev, source: "goal", extra: true, bk: "w", m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[tk].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
+        tasks.push(place({ ev, source: "goal", extra: true, bk, m, key, side: 0, line: Number(key.split("_")[1]), odd: ev.open[tk].odd, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
       }
       // Options supplémentaires déjà gagnées, misées tant que le site affiche encore l'ancien score :
       // BTTS oui (la 2e équipe vient d'ouvrir son compteur) et « n'encaisse pas : non » (betPawa).
