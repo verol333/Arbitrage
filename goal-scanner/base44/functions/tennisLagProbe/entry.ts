@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
             const mkName = String(mk.marketType?.displayName || "").trim() || name, prName = String(pr.name || "").trim() || (i === 0 ? "Plus de" : "Moins de");
             const key = `betPawa ${mkName}|${prName}${isNaN(line) ? "" : " " + line}`;
             const o = ev.opts.get(key) || { from: sec, last: sec, odd: Number(pr.odds) };
-            if (sec - o.last > 2) { o.max = Math.max(o.max || 0, o.last - o.from + 1); o.from = sec; } o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
+            if (sec - o.last > 1) o.closed = true; if (!o.closed) o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
           }
         }
         if (ev.tl.length < 120) ev.tl.push(`${sec}s bP ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
