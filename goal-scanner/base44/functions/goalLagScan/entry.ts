@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
   // Contrôle de la connexion 1win de la mise auto, sans miser
   if (body.mode === "betcheck") return Response.json(await createAutoBet(db, { odds: new Map() }).check());
   if (body.mode === "audit") return Response.json(await (await import("./audit.ts")).audit(db, Number(body.limit || 12)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
+  if (body.mode === "h1check") return Response.json(await (await import("./h1check.ts")).h1check(Number(body.limit || 4)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "unlinked") return Response.json(await (await import("./unlinked.ts")).unlinked().catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "selftest") return Response.json(await (await import("./selfTest.ts")).selfTest(db).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
@@ -79,12 +80,16 @@ Deno.serve(async (req) => {
         ev.cancelled = true;
         // Fiche déjà enregistrée : on met à jour la même case
         if ((ev as any).recId) db.GoalLagEvent.update((ev as any).recId, { cancelled: true, playable: false }).catch(() => null);
+        autoBet.cancel(m, ev); // paris 1win déjà posés sur ce but : cash-out au montant proposé par 1win
       }
     }
     if (tot > ptot && tot > (m.top ?? 0)) {
       m.top = tot;
       if (Date.now() >= stopAt) return; // scan terminé : on ne fait que finir les suivis en cours
       const ev = newGoal(prev, sc, book, at, minute ?? m.min);
+      // Totaux 1re MT seulement si 1xBet indique la 1re période (la minute seule se trompe : 45' au début de la 2e MT, 46'+ dans le temps additionnel)
+      if (m.cp !== 1) { ev.h1TeamKey = ""; ev.h1MatchKey = ""; }
+      else if (!ev.h1MatchKey) { const g = sc[0] + sc[1], n = sc[ev.side === "H" ? 0 : 1]; ev.h1TeamKey = `H1IT${ev.side}_${n - 0.5}`; ev.h1MatchKey = `H1TOT_${g - 0.5}`; }
       // Un site qui affichait DÉJÀ ce score n'est pas « en retard » : sinon sa cote d'une option gagnée passe pour jouable
       for (const k of ["x", "w", "b", "c", "y"] as Book[]) { const o = m.sc[k]; if (k !== book && o && o[0] >= sc[0] && o[1] >= sc[1]) ev.seen[k] = 0; }
       m.events.push(ev);
@@ -135,7 +140,7 @@ Deno.serve(async (req) => {
         track(g.id, [g.sh, g.sa], g.min);
         let m = matches.get(g.id);
         if (!m) { m = { x: g.id, name: `${g.home} - ${g.away}`, home: g.home, away: g.away, league: g.league, sc: {}, events: [] }; matches.set(g.id, m); link(m); }
-        m.min = g.min;
+        m.min = g.min; m.cp = g.cp;
         onScore(m, "x", [g.sh, g.sa], at, g.min);
         // Suivi penalty / carton rouge retiré : aucun site ne propose ces marchés en direct.
       }
@@ -224,8 +229,6 @@ Deno.serve(async (req) => {
       if (Date.now() >= stopAt && !open.length) break;
       await Promise.all(open.map(async ([m, ev]) => {
         if (Date.now() - ev.t0 > WINDOW_MS) return finish(m, ev, false);
-        // Envoi immédiat : la fiche part dès la détection du but, puis elle est complétée à la fin du suivi
-        if (!(ev as any).sentNow) { (ev as any).sentNow = true; try { db.GoalLagEvent.create(toRecord(ev, m, runId, false)).catch(() => null); } catch { /* fiche complète à la fin */ } }
         // 1win : relevé neuf à chaque seconde (le flux continu garde les options retirées en mémoire = cotes figées)
         const [x, b, c, wf, y] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null, m.y ? ybSnap(m.y).catch(() => null) : null]);
         const at = Date.now();
@@ -241,9 +244,10 @@ Deno.serve(async (req) => {
         const xOk = xGoal && Object.keys(x!.mk).length > 0 && !x!.mk[ev.matchKey];
         // RAPIDITÉ (2026-10-14) : on n'attend plus que 1xBet règle l'option (souvent 10 s de « suspendu »).
         // But retenu dès que 1xBet affiche le score ET qu'un 2e site l'affiche aussi — ou que 1xBet a retiré l'option.
-        const twoBooks = BOOKS.filter((k) => ev.seen[k] != null).length >= 2;
-        if (x && !xGoal) (ev as any).xRemoved = false;
-        else if (xOk || (xGoal && twoBooks)) (ev as any).xRemoved = true;
+        // RÈGLE (2026-10-15) : un seul site qui affiche le but suffit, mise immédiate sans autre confirmation.
+        // Seul un but annulé (score revenu en arrière) arrête la mise.
+        void xOk;
+        (ev as any).xRemoved = !ev.cancelled;
         queueMicrotask(() => autoBet.goal(m, ev));
         sample(ev, at, {
           x: x ? { sc: m.sc.x, team: line(x.mk, x.locked, ev.teamKey), match: line(x.mk, x.locked, ev.matchKey) } : null,
@@ -282,7 +286,6 @@ Deno.serve(async (req) => {
   };
 
   // Probabilités : marchés « buts » des matchs présents chez au moins un autre site, chaque seconde
-  const sendSigs = (b: any[]) => Promise.all(b.map((p) => p.recId ? db.ProbLagSignal.update(p.recId, toSignal(p, runId)).catch(() => null) : db.ProbLagSignal.create(toSignal(p, runId)).catch(() => null)));
   const loopMk = async () => {
     await sleep(1500);
     while (Date.now() < stopAt) {
@@ -296,12 +299,10 @@ Deno.serve(async (req) => {
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked }, signals);
         autoBet.scan(m);
-        // Envoi immédiat de chaque signal dès sa détection (complété quand le suivi se termine)
-        for (const p of m.pend || []) if (!p.sending) { p.sending = true; db.ProbLagSignal.create(toSignal(p, runId)).then((r: any) => { p.recId = r?.id; }).catch(() => null); }
       }));
       mkTicks++;
       // Envoi immédiat des signaux terminés (sans attendre la fin du cycle)
-      if (signals.length > sent) { const batch = signals.slice(sent); sent = signals.length; sendSigs(batch); }
+      if (signals.length > sent) { const batch = signals.slice(sent); sent = signals.length; db.ProbLagSignal.bulkCreate(batch.map((p) => toSignal(p, runId))).catch(() => null); }
       await sleep(Math.max(0, 1000 - (Date.now() - s)));
     }
   };
@@ -315,7 +316,7 @@ Deno.serve(async (req) => {
   stream.stop();
   for (const m of matches.values()) for (const p of m.pend || []) signals.push(p);
   const sigRecs = signals.map((p) => toSignal(p, runId));
-  if (signals.length > sent) await sendSigs(signals.slice(sent));
+  if (sigRecs.length > sent) await db.ProbLagSignal.bulkCreate(sigRecs.slice(sent)).catch(() => null);
   // Résultat : match disparu du direct après la 85e = terminé au dernier score ; disparu plus tôt depuis 3 h = annulé
   for (const sig of pending) {
     const u = settle[sig.id] || {};
