@@ -132,7 +132,8 @@ Deno.serve(async (req) => {
         const sec = Math.round((now - ev.at) / 1000);
         if (ev.bSeen == null && tot >= ev.total) ev.bSeen = (now - ev.at) / 1000;
         const open: string[] = [];
-        for (const mk of e.markets || []) {
+        // Retard réel uniquement : betPawa affiche encore l'ancien score (sinon marché déjà réglé/figé)
+        if (tot < ev.total) for (const mk of e.markets || []) {
           const name = String(mk.marketType?.name || "");
           for (const r of mk.row || []) {
             const line = Number(r.specifier?.total ?? r.prices?.[0]?.handicap);
@@ -140,7 +141,8 @@ Deno.serve(async (req) => {
             if (i == null || wonIdx(name, line, ev.before) === i) continue;
             const pr = r.prices?.[i];
             if (!pr || !(Number(pr.odds) > 1) || mk.suspended || r.suspended || pr.suspended) continue;
-            const key = `betPawa ${mk.marketType?.displayName || name}|${pr.name}${isNaN(line) ? "" : " " + line}`;
+            const mkName = String(mk.marketType?.displayName || "").trim() || name, prName = String(pr.name || "").trim() || (i === 0 ? "Plus de" : "Moins de");
+            const key = `betPawa ${mkName}|${prName}${isNaN(line) ? "" : " " + line}`;
             const o = ev.opts.get(key) || { from: sec, last: sec, odd: Number(pr.odds) };
             o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
           }
@@ -199,7 +201,8 @@ Deno.serve(async (req) => {
         const sec = Math.round((now - ev.at) / 1000);
         if (ev.wSeen == null && tot >= ev.total) ev.wSeen = (now - ev.at) / 1000;
         const away = m.name.split(" - ")[1] || "", open: string[] = [];
-        for (const [gn, list] of Object.entries(w.odds)) for (const o of list as any[]) {
+        // Retard réel uniquement : 1win affiche encore l'ancien score
+        if (tot < ev.total) for (const [gn, list] of Object.entries(w.odds)) for (const o of list as any[]) {
           if (o.status !== 1 || !(o.cf > 1)) continue;
           if (!wonW(gn, o.name, ev.after, ev.before, m.home, away) || wonW(gn, o.name, ev.before, ev.before, m.home, away)) continue;
           const key = `1win ${gn}|${o.name}`;
