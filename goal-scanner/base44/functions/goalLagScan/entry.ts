@@ -224,6 +224,8 @@ Deno.serve(async (req) => {
       if (Date.now() >= stopAt && !open.length) break;
       await Promise.all(open.map(async ([m, ev]) => {
         if (Date.now() - ev.t0 > WINDOW_MS) return finish(m, ev, false);
+        // Envoi immédiat : la fiche part dès la détection du but, puis elle est complétée à la fin du suivi
+        if (!(ev as any).sentNow) { (ev as any).sentNow = true; try { db.GoalLagEvent.create(toRecord(ev, m, runId, false)).catch(() => null); } catch { /* fiche complète à la fin */ } }
         // 1win : relevé neuf à chaque seconde (le flux continu garde les options retirées en mémoire = cotes figées)
         const [x, b, c, wf, y] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null, m.y ? ybSnap(m.y).catch(() => null) : null]);
         const at = Date.now();
@@ -280,6 +282,7 @@ Deno.serve(async (req) => {
   };
 
   // Probabilités : marchés « buts » des matchs présents chez au moins un autre site, chaque seconde
+  const sendSigs = (b: any[]) => Promise.all(b.map((p) => p.recId ? db.ProbLagSignal.update(p.recId, toSignal(p, runId)).catch(() => null) : db.ProbLagSignal.create(toSignal(p, runId)).catch(() => null)));
   const loopMk = async () => {
     await sleep(1500);
     while (Date.now() < stopAt) {
@@ -293,10 +296,12 @@ Deno.serve(async (req) => {
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked }, signals);
         autoBet.scan(m);
+        // Envoi immédiat de chaque signal dès sa détection (complété quand le suivi se termine)
+        for (const p of m.pend || []) if (!p.sending) { p.sending = true; db.ProbLagSignal.create(toSignal(p, runId)).then((r: any) => { p.recId = r?.id; }).catch(() => null); }
       }));
       mkTicks++;
       // Envoi immédiat des signaux terminés (sans attendre la fin du cycle)
-      if (signals.length > sent) { const batch = signals.slice(sent); sent = signals.length; db.ProbLagSignal.bulkCreate(batch.map((p) => toSignal(p, runId))).catch(() => null); }
+      if (signals.length > sent) { const batch = signals.slice(sent); sent = signals.length; sendSigs(batch); }
       await sleep(Math.max(0, 1000 - (Date.now() - s)));
     }
   };
@@ -310,7 +315,7 @@ Deno.serve(async (req) => {
   stream.stop();
   for (const m of matches.values()) for (const p of m.pend || []) signals.push(p);
   const sigRecs = signals.map((p) => toSignal(p, runId));
-  if (sigRecs.length > sent) await db.ProbLagSignal.bulkCreate(sigRecs.slice(sent)).catch(() => null);
+  if (signals.length > sent) await sendSigs(signals.slice(sent));
   // Résultat : match disparu du direct après la 85e = terminé au dernier score ; disparu plus tôt depuis 3 h = annulé
   for (const sig of pending) {
     const u = settle[sig.id] || {};
