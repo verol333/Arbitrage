@@ -76,6 +76,18 @@ export async function bpSnap(id: string, dbg: any[] = []) {
   const ids: Record<string, string[]> = {};
   for (const m of j?.markets || []) {
     const name = String(m?.marketType?.name || "").trim();
+    // 1re mi-temps : « Total Score Over/Under - 1H » (+ « - Home/Away Team »), ligne codée ×4 comme le match
+    const h1 = /^total score over\/under - 1h(?: - (home|away) team)?$/i.exec(name);
+    if (h1) {
+      for (const row of m.row || []) {
+        const p = (row.prices || []).map((x: any) => Number(x.odds));
+        if (p.length !== 2 || row.handicap == null) continue;
+        const key = `${h1[1] ? `H1IT${/home/i.test(h1[1]) ? "H" : "A"}` : "H1TOT"}_${Number(row.handicap) / 4}`;
+        mk[key] = p; ids[key] = (row.prices || []).map((x: any) => String(x.id ?? ""));
+        if (m.suspended || row.suspended || (row.prices || []).some((x: any) => x.suspended)) locked.add(key);
+      }
+      continue;
+    }
     if (/half|mi-temps|corner|card|carton/i.test(name)) { if (dbg.length < 60) dbg.push({ name, row: (m.row || []).slice(0, 2).map((r: any) => ({ h: r.handicap, p: (r.prices || []).map((x: any) => `${x.name}:${x.odds}`) })) }); continue; }
     for (const r0 of m.row || []) {
       // Clean sheet : on range toujours [Oui, Non]
