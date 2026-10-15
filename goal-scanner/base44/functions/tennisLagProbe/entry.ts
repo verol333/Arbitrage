@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
             const mkName = String(mk.marketType?.displayName || "").trim() || name, prName = String(pr.name || "").trim() || (i === 0 ? "Plus de" : "Moins de");
             const key = `betPawa ${mkName}|${prName}${isNaN(line) ? "" : " " + line}`;
             const o = ev.opts.get(key) || { from: sec, last: sec, odd: Number(pr.odds) };
-            o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
+            if (sec - o.last > 2) { o.max = Math.max(o.max || 0, o.last - o.from + 1); o.from = sec; } o.last = sec; ev.opts.set(key, o); open.push(`${pr.name}${isNaN(line) ? "" : " " + line}@${pr.odds}`);
           }
         }
         if (ev.tl.length < 120) ev.tl.push(`${sec}s bP ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
           if (!wonW(gn, o.name, ev.after, ev.before, m.home, away) || wonW(gn, o.name, ev.before, ev.before, m.home, away)) continue;
           const key = `1win ${gn}|${o.name}`;
           const x = ev.opts.get(key) || { from: sec, last: sec, odd: o.cf };
-          x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
+          if (sec - x.last > 2) { x.max = Math.max(x.max || 0, x.last - x.from + 1); x.from = sec; } x.last = sec; ev.opts.set(key, x); open.push(`${o.name}@${o.cf}`);
         }
         if (ev.tl.length < 120) ev.tl.push(`${sec}s 1w ${label(s)}${open.length ? " ouvert: " + open.slice(0, 4).join(", ") : ""}`);
       }
@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
 
 function toRec(e: any, runId: string) {
   {
-    const options = [...e.opts.entries()].map(([k, o]: any) => { const [market, outcome] = k.split("|"); return { market, outcome, odd: o.odd, from_s: o.from, open_s: o.last - o.from + 1 }; });
+    const options = [...e.opts.entries()].map(([k, o]: any) => { const [market, outcome] = k.split("|"); return { market, outcome, odd: o.odd, from_s: o.from, open_s: Math.max(o.max || 0, o.last - o.from + 1) }; });
     const best = options.reduce((a, o) => Math.max(a, o.open_s), 0);
     return {
       run_id: runId, match_label: e.m.name, league: e.m.league, kind: e.kind,
