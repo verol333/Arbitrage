@@ -9,9 +9,23 @@ const BOOKS: [string, string][] = [["x", "1xBet"], ["w", "1win"], ["b", "betPawa
 const pct = (v: number) => Math.round(v * 1000) / 10;
 const odd = (s: any, b: string, k: string) => (s[b]?.[k] && !s[b + "l"]?.has(k) ? s[b][k][0] : null);
 
+// Une chute n'est gardée que si AUCUN but ne tombe dans les 45 s qui suivent (sinon c'était un but déjà affiché
+// sur un site avant 1xBet, pas un signal) et si tous les sites affichent le même score au moment de la chute.
+const CONFIRM_MS = 45000;
+const goals = (m: any, s: any) => [s.sc, m.sc?.w, m.sc?.b, m.sc?.c, m.sc?.y, m.sc?.p].filter(Boolean).map((o: any) => o[0] + o[1]);
+
 export function detectDrops(m: any, done: any[]) {
   const h = m.hist || [], s = h[h.length - 1];
-  if (!s || s.min < 10 || s.min > 75) return;
+  if (!s) return;
+  const now = goals(m, s);
+  m.dropPend = (m.dropPend || []).filter((p: any) => {
+    if (now.some((g: number) => g !== p.g)) return false; // but juste après : faux signal
+    if (s.at - p.t0 < CONFIRM_MS) return true;
+    done.push(p);
+    return false;
+  });
+  if (s.min < 10 || s.min > 75) return;
+  if (new Set(now).size > 1) return;
   const base = h.find((o: any) => s.at - o.at >= 50000);
   if (!base) return;
   const g = s.sc[0] + s.sc[1];
@@ -32,8 +46,8 @@ export function detectDrops(m: any, done: any[]) {
         return `${on} ${a ?? "-"} → ${z ?? "-"}${a && z ? ` (${z < a ? "−" : "+"}${pct(Math.abs(1 - z / a))} %)` : ""}`;
       });
       const p = fair(s[b][k]);
-      done.push({
-        m, key: k, bk: b, book: "Chute", side: 0, line: parseFloat(k.split("_")[1]), t0: s.at, odd: o1, q: p[0], pref: p[0],
+      m.dropPend.push({
+        g, m, key: k, bk: b, book: "Chute", side: 0, line: parseFloat(k.split("_")[1]), t0: s.at, odd: o1, q: p[0], pref: p[0],
         p0: fair(base[b][k])[0], edge: drop, min: s.min, sc: s.sc.join("-"), open_s: sec, followed_s: null, goal: false, closed: true,
         trace: [`${name} ${label(k, 0)} : ${o0} → ${o1} (−${pct(drop)} %) en ${sec} s`, ...others],
       });
