@@ -187,8 +187,13 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       ev.cashoutDone = true;
       const arg = { xbet_id: m.x, score: ev.sc.join("-") };
       tasks.push(Promise.all([...tasks]).then(async () => {
-        const r = REMOTE ? await db.ProbAutoBet.autoCashout(arg) : await (await import("../../shared/onewinCashout.ts")).cashoutCancelledGoal(db, arg);
-        results.push({ match: m.name, cashout: r });
+        // Le site peut bloquer le rachat un moment : nouvel essai toutes les 15 s pendant 2 min (seuls les paris encore ouverts sont repris)
+        for (let i = 0; i <= 8; i++) {
+          const r = REMOTE ? await db.ProbAutoBet.autoCashout(arg) : await (await import("../../shared/onewinCashout.ts")).cashoutCancelledGoal(db, arg);
+          results.push({ match: m.name, cashout: r, essai: i + 1 });
+          if (!Array.isArray(r) || r.every((x: any) => x.ok)) break;
+          await new Promise((s) => setTimeout(s, 15000));
+        }
       }).catch(fail));
     },
     done: () => Promise.all(tasks),
