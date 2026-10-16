@@ -137,6 +137,9 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       // On ne mise que si 1xBet a RETIRÉ l'option déjà gagnée (but validé chez lui).
       // Option seulement suspendue = but en doute (VAR, erreur) : on attend.
       if (ev.cancelled || !ev.xRemoved) return;
+      // RÈGLE ÉCART (2026-10-16) : au moins 2 sites affichent le but, avec ≥ 3 s d'écart entre le premier et le dernier.
+      const seenT = Object.values(ev.seen || {}).filter((v) => v != null) as number[];
+      if (seenT.length < 2 || Math.max(...seenT) - Math.min(...seenT) < 3000) return;
       ev.betTried ||= {};
       // Chaque site (1win, betPawa) est misé séparément ; total équipe ET total match misés en même temps.
       for (const [bk, id] of [["w", m.w], ["b", m.b]] as const) for (const k of ["team", "match"] as const) {
