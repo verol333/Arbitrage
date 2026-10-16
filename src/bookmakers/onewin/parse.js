@@ -234,11 +234,17 @@ export function winBasketFlatOdds(groups, names) {
         const line = parseFloat(mLine[1]);
         if (!isHalfLine(line)) continue;
         const teamPart = n.replace(/-?\d+(?:\.\d+)?/g, '').trim();
-        const sH = tokenOverlap(teamPart, names.home);
-        const sA = tokenOverlap(teamPart, names.away);
-        if (sH === 0 && sA === 0) continue;
-        if (sH >= sA) putWin(odds, `${pfx}hcp_home_${line}`, o);
-        else putWin(odds, `${pfx}hcp_away_${line}`, o);
+        // Cote natif 1win d'abord (outcome 1 = domicile, 2 = exterieur, verifie
+        // sur 274 options le 16/10/2026) ; le nom ne sert qu'en secours.
+        const oc = String(o.outcome || '').trim();
+        let side = oc === '1' ? 'home' : oc === '2' ? 'away' : null;
+        if (!side) {
+          const sH = tokenOverlap(teamPart, names.home);
+          const sA = tokenOverlap(teamPart, names.away);
+          side = sH > sA ? 'home' : sA > sH ? 'away' : null;
+        }
+        if (!side) continue;
+        putWin(odds, `${pfx}hcp_${side}_${line}`, o);
       }
       continue;
     }
@@ -449,11 +455,16 @@ export function winFlatOdds(groups, names) {
           const line = parseFloat(mLine[1]);
           if (!isHalfLine(line)) continue;
           const teamPart = n.replace(/[+-]?\d+(?:\.\d+)?/g, '').trim();
-          const scoreHome = tokenOverlap(teamPart, names.home);
-          const scoreAway = tokenOverlap(teamPart, names.away);
-          if (scoreHome === 0 && scoreAway === 0) continue;
-          if (scoreHome >= scoreAway) putWin(odds, `${pfx}hcp_home_${line}`, o);
-          else putWin(odds, `${pfx}hcp_away_${line}`, o);
+          // Cote natif 1win d'abord (outcome 1 = domicile, 2 = exterieur).
+          const oc = String(o.outcome || '').trim();
+          let side = oc === '1' ? 'home' : oc === '2' ? 'away' : null;
+          if (!side) {
+            const scoreHome = tokenOverlap(teamPart, names.home);
+            const scoreAway = tokenOverlap(teamPart, names.away);
+            side = scoreHome > scoreAway ? 'home' : scoreAway > scoreHome ? 'away' : null;
+          }
+          if (!side) continue;
+          putWin(odds, `${pfx}hcp_${side}_${line}`, o);
         }
       } else if (base === 'total. even/odd' || base === 'odd/even' || base === 'even/odd') {
         for (const o of list) {
