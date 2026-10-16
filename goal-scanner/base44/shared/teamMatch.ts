@@ -128,6 +128,16 @@ const ALIASES: [RegExp, string][] = [
   [/\bal hikma( beirut)?\b/g, "sagesse"],
   [/\bal (ikhaa|akhaa) al ahli( aley)?\b/g, "akhaa ahli"],
   [/\binter milano\b/g, "internazionale milano"],
+  // 16/10/2026 — matchs non reliés relevés en direct (1win, betPawa, Congobet)
+  [/\b(b)\b/g, "reserve"],
+  [/\bpraha\b/g, "prague"], [/\bnakhchivan\b/g, "naxcivan"], [/\bkauno\b/g, "kaunas"], [/\boued akbou\b/g, "olympique akbou"],
+  [/\bsheger\b/g, "shaggar"], [/\b(ketema|kenema)\b/g, "city"],
+  [/\bstars\b/g, "star"], [/\balytaus\b/g, "alytus"],
+  [/\b(aalesund|aafk)\b/g, "alesund"], [/\broea\b/g, "roa"],
+  [/\barmee patriotique rwandaise\b/g, "apr"],
+  [/\bbaltijos futbolo akademija\b/g, "bfa"],
+  [/\ba xiii auhof center\b/g, "austria xiii"], [/\blysis\b/g, "lysi"],
+  [/\bacademia de balompie boliviano\b/g, "abb"],
   // Hockey russe : translittérations différentes (Yekaterinburg / Ekaterinburg, Reaktor / Reactor)
   [/\bye(katerinburg|lets)\b/g, "e$1"], [/\breaktor\b/g, "reactor"],
 ];
@@ -135,7 +145,7 @@ const ALIASES: [RegExp, string][] = [
 export function normTeam(s: unknown): string {
   let out = String(s ?? "")
     .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i")
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(/\s+/g, " ");
   for (const [rx, to] of COUNTRIES) out = out.replace(rx, to);
@@ -201,7 +211,8 @@ function wordMatch(a: string, b: string): boolean {
  * autre tournoi : deux matchs différents, donc zéro couverture.
  * Un camp à deux joueurs ne peut jamais désigner un camp à un seul joueur.
  */
-const isPair = (s: unknown) => /[\/&]|\s\+\s|\band\b/i.test(String(s ?? ""));
+// « Sellier&Bellot Vlasim » : un « & » collé entre deux mots fait partie du nom du club
+const isPair = (s: unknown) => /\/|\s&\s|\s\+\s|\band\b/i.test(String(s ?? ""));
 
 /**
  * QUALIFICATIFS OBLIGATOIRES DES DEUX CÔTÉS.
