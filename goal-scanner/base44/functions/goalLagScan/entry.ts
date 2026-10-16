@@ -174,7 +174,10 @@ Deno.serve(async (req) => {
         if (!m) { m = { x: g.id, name: `${g.home} - ${g.away}`, home: g.home, away: g.away, league: g.league, sc: {}, events: [] }; matches.set(g.id, m); link(m); }
         m.min = g.min; m.cp = g.cp;
         onScore(m, "x", [g.sh, g.sa], at, g.min);
-        // Suivi penalty / carton rouge retiré : aucun site ne propose ces marchés en direct.
+        // Penalty / carton rouge : on note l'heure, une chute de cote juste après n'est pas un vrai signal
+        const ev = `${g.rc?.join("-") || ""}|${g.pen?.join("-") || ""}`;
+        if (m.evKey !== undefined && m.evKey !== ev) m.incAt = at;
+        m.evKey = ev;
       }
     }
   });
