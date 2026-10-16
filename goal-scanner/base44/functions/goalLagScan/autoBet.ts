@@ -202,7 +202,8 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         }
       }).catch(fail));
     },
-    done: () => Promise.all(tasks),
+    // Attend aussi les tâches ajoutées pendant l'attente (ex. cash-out lancé en fin de cycle)
+    done: async () => { let n = -1; while (n !== tasks.length) { n = tasks.length; await Promise.all([...tasks]); } },
   };
 }
 
