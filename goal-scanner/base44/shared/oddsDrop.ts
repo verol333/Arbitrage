@@ -1,12 +1,13 @@
 import { fair, label } from "./liveMarkets.ts";
 
-// Chutes de cote en direct (observation, aucune mise) : une issue 1xBet perd ≥ 15 % de cote en ~1 min
-// sans but ni changement de score. L'usure normale du temps (≈ 1-2 %/min) est écartée :
-// pas de « moins de » (qui baisse seul avec le temps), minutes 10e-75e, cote finale 1.30-4.
-// Enregistré comme signal « Chute » (book = "Chute") : réglé au score final par le scanner.
-const KEY = /^(TOT|ITH|ITA)_\d+\.5$/;
-const goalsFor = (k: string, sc: [number, number]) => k.startsWith("ITH") ? sc[0] : k.startsWith("ITA") ? sc[1] : sc[0] + sc[1];
+// Chutes de cote en direct (observation, aucune mise) — UNIQUEMENT le nombre de buts du match (« plus de X »).
+// Une cote perd ≥ 15 % en ~1 min sans but, chez n'importe quel site (1xBet, 1win, betPawa).
+// À chaque chute, on note la cote des autres sites au même instant pour voir lequel a bougé le premier.
+// Minutes 10e-75e, cote finale 1.30-4. Enregistré comme signal « Chute », réglé au score final.
+const KEY = /^TOT_\d+\.5$/;
+const BOOKS: [string, string][] = [["x", "1xBet"], ["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"]];
 const pct = (v: number) => Math.round(v * 1000) / 10;
+const odd = (s: any, b: string, k: string) => (s[b]?.[k] && !s[b + "l"]?.has(k) ? s[b][k][0] : null);
 
 export function detectDrops(m: any, done: any[]) {
   const h = m.hist || [], s = h[h.length - 1];
@@ -15,26 +16,26 @@ export function detectDrops(m: any, done: any[]) {
   if (!base) return;
   const g = s.sc[0] + s.sc[1];
   if (h.some((o: any) => o.at >= base.at && o.sc[0] + o.sc[1] !== g)) return;
-  for (const k of Object.keys(s.x)) {
-    const tot = KEY.test(k);
-    if ((!tot && k !== "1X2" && k !== "BTTS") || s.xl.has(k) || !base.x[k] || base.xl.has(k) || base.x[k].length !== s.x[k].length) continue;
-    const line = tot ? parseFloat(k.split("_")[1]) : 0;
-    if (tot && line < goalsFor(k, s.sc)) continue;
-    for (let side = 0; side < s.x[k].length; side++) {
-      if (tot && side === 1) continue;
-      if (k === "BTTS" && side === 1) continue;
-      const o0 = base.x[k][side], o1 = s.x[k][side], drop = 1 - o1 / o0;
+  const sec = Math.round((s.at - base.at) / 1000);
+  for (const [b, name] of BOOKS) {
+    for (const k of Object.keys(s[b] || {})) {
+      if (!KEY.test(k) || parseFloat(k.split("_")[1]) < g) continue;
+      const o0 = odd(base, b, k), o1 = odd(s, b, k);
+      if (!o0 || !o1) continue;
+      const drop = 1 - o1 / o0;
       if (drop < 0.15 || o1 < 1.3 || o1 > 4) continue;
-      const id = "drop" + k + side;
+      const id = "drop" + k; // une seule fiche par ligne de buts, quel que soit le site
       if ((m.last ||= {})[id] && s.at - m.last[id] < 300000) continue;
       m.last[id] = s.at;
-      const p1 = fair(s.x[k])[side], books = [["w", "1win"], ["b", "betPawa"]].map(([b, n]) => {
-        const mk = s[b]?.[k]; return mk && !s[b + "l"]?.has(k) ? `${n} @${mk[side]}` : `${n} -`;
+      const others = BOOKS.map(([ob, on]) => {
+        const a = odd(base, ob, k), z = odd(s, ob, k);
+        return `${on} ${a ?? "-"} → ${z ?? "-"}${a && z ? ` (${z < a ? "−" : "+"}${pct(Math.abs(1 - z / a))} %)` : ""}`;
       });
+      const p = fair(s[b][k]);
       done.push({
-        m, key: k, bk: "x", book: "Chute", side, line, t0: s.at, odd: o1, q: p1, pref: p1, p0: fair(base.x[k])[side],
-        edge: drop, min: s.min, sc: s.sc.join("-"), open_s: Math.round((s.at - base.at) / 1000), followed_s: null, goal: false, closed: true,
-        trace: [`1xBet ${label(k, side)} : ${o0} → ${o1} (−${pct(drop)} %) en ${Math.round((s.at - base.at) / 1000)} s`, `Au même instant : ${books.join(" · ")}`],
+        m, key: k, bk: b, book: "Chute", side: 0, line: parseFloat(k.split("_")[1]), t0: s.at, odd: o1, q: p[0], pref: p[0],
+        p0: fair(base[b][k])[0], edge: drop, min: s.min, sc: s.sc.join("-"), open_s: sec, followed_s: null, goal: false, closed: true,
+        trace: [`${name} ${label(k, 0)} : ${o0} → ${o1} (−${pct(drop)} %) en ${sec} s`, ...others],
       });
     }
   }
