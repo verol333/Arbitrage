@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "../../../sdk-shim.ts";
+// appariement des équipes : version du 16/10
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
@@ -10,6 +11,7 @@ import { detectDrops } from "../../shared/oddsDrop.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
 import { ybList, ybSnap } from "../../shared/yellowbetLive.ts";
+import { pnList, pnMarkets, pnSnap } from "../../shared/pinnacleLive.ts";
 
 // Scanner « buts » : TOUS les matchs de foot en direct, scores lus chaque seconde chez
 // 1xBet et betPawa, poussés en direct par 1win. À chaque but, suivi seconde par seconde
@@ -42,9 +44,9 @@ Deno.serve(async (req) => {
 
   const matches = new Map<number, any>();          // clé : identifiant 1xBet
   const byW = new Map<number, any>(), byB = new Map<string, any>();
-  const byC = new Map<string, any>(), byY = new Map<string, any>();
-  let wList: any[] = [], bList: any[] = [], cList: any[] = [], yList: any[] = [];
-  const ticks = { x: 0, b: 0, w: 0, c: 0, y: 0, win: 0 };
+  const byC = new Map<string, any>(), byY = new Map<string, any>(), byP = new Map<string, any>();
+  let wList: any[] = [], bList: any[] = [], cList: any[] = [], yList: any[] = [], pList: any[] = [];
+  const ticks = { x: 0, b: 0, w: 0, c: 0, y: 0, p: 0, win: 0 };
   const saved: any[] = [];
   const signals: any[] = [];
   let sent = 0, mkTicks = 0, mkMatches = 0, liveIds = new Set<number>();
@@ -110,7 +112,7 @@ Deno.serve(async (req) => {
       if (m.cp !== 1) { ev.h1TeamKey = ""; ev.h1MatchKey = ""; }
       else if (!ev.h1MatchKey) { const g = sc[0] + sc[1], n = sc[ev.side === "H" ? 0 : 1]; ev.h1TeamKey = `H1IT${ev.side}_${n - 0.5}`; ev.h1MatchKey = `H1TOT_${g - 0.5}`; }
       // Un site qui affichait DÉJÀ ce score n'est pas « en retard » : sinon sa cote d'une option gagnée passe pour jouable
-      for (const k of ["x", "w", "b", "c", "y"] as Book[]) { const o = m.sc[k]; if (k !== book && o && o[0] >= sc[0] && o[1] >= sc[1]) ev.seen[k] = 0; }
+      for (const k of ["x", "w", "b", "c", "y", "p"] as Book[]) { const o = m.sc[k]; if (k !== book && o && o[0] >= sc[0] && o[1] >= sc[1]) ev.seen[k] = 0; }
       m.events.push(ev);
     }
   };
@@ -120,7 +122,18 @@ Deno.serve(async (req) => {
     if (!m.b) { const b = bList.find((x) => !byB.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (b) { m.b = b.id; byB.set(b.id, m); } }
     if (!m.c) { const c = cList.find((x) => !byC.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (c) { m.c = c.id; byC.set(c.id, m); } }
     if (!m.y) { const y = yList.find((x) => !byY.has(x.id) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away)); if (y) { m.y = y.id; byY.set(y.id, m); } }
+    // Pinnacle : mêmes équipes, même catégorie (U20, réserve, féminines) ET même score que 1xBet au moment du lien.
+    // Un mauvais lien ferait croire à un but : on préfère ne pas lier.
+    if (!m.p && m.sc.x) {
+      // Catégorie lue dans équipes + championnat (Pinnacle met « U20 » dans le championnat, 1xBet dans les équipes).
+      // Lien si les deux équipes concordent, ou une seule équipe + même score.
+      const ok = (x: any) => !byP.has(x.id) && cat(`${x.home} ${x.away} ${x.league}`) === cat(`${m.home} ${m.away} ${m.league}`) && x.score[0] === m.sc.x[0] && x.score[1] === m.sc.x[1];
+      const p = pList.find((x) => ok(x) && sameTeam(x.home, m.home) && sameTeam(x.away, m.away))
+        || pList.find((x) => ok(x) && (sameTeam(x.home, m.home) || sameTeam(x.away, m.away)));
+      if (p) { m.p = p.id; m.pKids = p.kids; byP.set(p.id, m); }
+    }
   };
+  const cat = (s: string) => [/\bu-?\d{2}\b|youth/i, /\b(ii|b|reserves?)\b/i, /\b(women|w|femenino|feminin|ladies)\b/i].map((r) => (r.test(s) ? 1 : 0)).join("");
 
   const stream = new OnewinStream((id, sc, at) => { const m = byW.get(id); if (m) onScore(m, "w", sc, at); });
   stream.start();
@@ -211,6 +224,16 @@ Deno.serve(async (req) => {
     }
   };
 
+  // Pinnacle : liste en direct avec scores chaque seconde (observation seule, ~20 ms par lecture)
+  const loopP = () => every(1000, async (fresh) => {
+    const l = await pnList();
+    if (!l || !fresh()) return;
+    pList = l; ticks.p++;
+    const at = Date.now();
+    for (const e of pList) { const m = byP.get(e.id); if (!m) continue; m.pKids = e.kids; m.pMode = e.modes.join(" / "); onScore(m, "p", e.score, at); }
+    for (const m of matches.values()) if (!m.p) link(m);
+  });
+
   // 1win : nouvelle liste toutes les 30 s (les scores arrivent en direct)
   const loopW = async () => { while (Date.now() < stopAt) { await sleep(30000); if (Date.now() < stopAt) { await loadW(); ticks.w++; } } };
 
@@ -246,8 +269,11 @@ Deno.serve(async (req) => {
       const open: [any, GoalEv][] = [];
       for (const m of matches.values()) for (const ev of m.events as GoalEv[]) if (!ev.done) open.push([m, ev]);
       if (Date.now() >= stopAt && !open.length) break;
+      // Pinnacle : tous les marchés en une seule lecture par seconde
+      const pm = open.some(([m]) => m.p) ? await pnMarkets() : null;
       await Promise.all(open.map(async ([m, ev]) => {
         if (Date.now() - ev.t0 > WINDOW_MS) return finish(m, ev, false);
+        const p = pm && m.p ? pnSnap(pm, m.pKids || []) : null;
         // 1win : relevé neuf à chaque seconde (le flux continu garde les options retirées en mémoire = cotes figées)
         const [x, b, c, wf, y] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.w ? fetchOddsAndInfo([m.w], 2500, 600).catch(() => null) : null, m.y ? ybSnap(m.y).catch(() => null) : null]);
         const at = Date.now();
@@ -274,6 +300,7 @@ Deno.serve(async (req) => {
           b: b ? { sc: m.sc.b || null, team: line(b.mk, b.locked, ev.teamKey), match: line(b.mk, b.locked, ev.matchKey), h1team: line(b.mk, b.locked, ev.h1TeamKey), h1match: line(b.mk, b.locked, ev.h1MatchKey) } : null,
           c: c ? { sc: m.sc.c || null, team: line(c.mk, c.locked, ev.teamKey), match: line(c.mk, c.locked, ev.matchKey), h1team: line(c.mk, c.locked, ev.h1TeamKey), h1match: line(c.mk, c.locked, ev.h1MatchKey) } : null,
           y: y ? { sc: m.sc.y || null, team: line(y.mk, y.locked, ev.teamKey), match: line(y.mk, y.locked, ev.matchKey), h1team: line(y.mk, y.locked, ev.h1TeamKey), h1match: line(y.mk, y.locked, ev.h1MatchKey) } : null,
+          p: p ? { sc: m.sc.p || null, team: line(p.mk, p.locked, ev.teamKey), match: line(p.mk, p.locked, ev.matchKey), h1team: line(p.mk, p.locked, ev.h1TeamKey), h1match: line(p.mk, p.locked, ev.h1MatchKey) } : null,
         });
       }));
       ticks.win++;
@@ -309,14 +336,17 @@ Deno.serve(async (req) => {
     await sleep(1500);
     while (Date.now() < stopAt) {
       const s = Date.now();
-      const list = [...matches.values()].filter((m) => m.w || m.b || m.c || m.y);
+      const list = [...matches.values()].filter((m) => m.w || m.b || m.c || m.y || m.p);
       mkMatches = Math.max(mkMatches, list.length);
+      // Pinnacle : tous ses marchés en une lecture par seconde (chutes de cote)
+      const pm = list.some((m) => m.p) ? await pnMarkets().catch(() => null) : null;
       await Promise.all(list.map(async (m) => {
+        const p = pm && m.p ? pnSnap(pm, m.pKids || []) : null;
         const [x, b, c, y] = await Promise.all([xbetSnap(m.x), m.b ? bpSnap(m.b) : null, m.c ? cbSnap(m.c) : null, m.y ? ybSnap(m.y).catch(() => null) : null]);
         if (!x) return;
         if (y?.score?.every(Number.isFinite)) m.sc.y = y.score;
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
-        step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked }, signals);
+        step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked, p: p?.mk || null, pl: p?.locked } as any, signals);
         detectDrops(m, signals);
         autoBet.scan(m);
       }));
@@ -330,7 +360,7 @@ Deno.serve(async (req) => {
   // Deux scanners séparés (chacun son propre serveur) pour garder le rythme d'1 s :
   // mode "buts" = retard au but, mode "proba" = probabilités en avance.
   const proba = body.mode === "proba";
-  await Promise.all([loopX(), loopB(), loopC(), loopW(), loopY(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
+  await Promise.all([loopX(), loopB(), loopC(), loopW(), loopY(), loopP(), proba ? loopMk() : loopWin(), proba ? null : loopInc()]);
   if (!proba) await loopWin(); // fin des suivis ouverts après l'arrêt des relevés
   await autoBet.done(); // les relances lisent encore les cotes 1win en direct
   stream.stop();
@@ -373,6 +403,7 @@ Deno.serve(async (req) => {
   const summary = {
     matchs: all.length, avec1win: all.filter((m) => m.w).length, avecBetpawa: all.filter((m) => m.b).length, avecCongobet: all.filter((m) => m.c).length,
     avecYellowbet: all.filter((m) => m.y).length, listeYellowbet: yList.length, relevesYellowbet: ticks.y,
+    avecPinnacle: all.filter((m) => m.p).length, listePinnacle: pList.length, relevesPinnacle: ticks.p,
     releves1xbet: ticks.x, relevesBetpawa: ticks.b,
     rythme1xbet: ticks.x ? `${Math.round(secs / ticks.x * 10) / 10}s` : null,
     rythmeBetpawa: ticks.b ? `${Math.round(secs / ticks.b * 10) / 10}s` : null,
