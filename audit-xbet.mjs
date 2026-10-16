@@ -1,5 +1,0 @@
-const HD={accept:'application/json','user-agent':'Mozilla/5.0 Chrome/126',referer:'https://1xbet.cg/en/line'};
-async function get(id){for(const u of ['https://1xbet.cg/service-api/LineFeed/GetGameZip?id='+id+'&lng=en&isSubGames=true&GroupEvents=true&countevents=1000&grMode=4&partner=192&country=93&marketType=1','https://1xbet.cg/LineFeed/GetGameZip?id='+id+'&lng=en&isSubGames=true&GroupEvents=true&countevents=1000&grMode=4&partner=192&country=93']){try{const j=await (await fetch(u,{headers:HD})).json();if(j.Value)return j.Value}catch{}}}
-const pick=(V)=>Object.fromEntries((V.GE||[]).filter(g=>[17,15,62].includes(g.G)).map(g=>[g.G,g.E.flat().map(e=>e.T+'@'+e.P+'='+e.C).join(' ')]));
-const out={};for(const id of [761735854,761742868]){const V=await get(id);out[id]={main:pick(V),sg:[]};for(const s of (V.SG||[]).slice(0,4)){const S=await get(s.I);out[id].sg.push({I:s.I,name:s.PN||s.TG,P:s.P,g:S?pick(S):null});}}
-console.log('RESULT_JSON '+JSON.stringify(out));
