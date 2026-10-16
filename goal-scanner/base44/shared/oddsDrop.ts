@@ -20,16 +20,22 @@ export function detectDrops(m: any, done: any[]) {
   const now = goals(m, s);
   m.dropPend = (m.dropPend || []).filter((p: any) => {
     if (now.some((g: number) => g !== p.g)) return false; // but juste après : faux signal
+    if (m.incAt && m.incAt >= p.t0 - 120000) return false; // penalty ou carton rouge autour de la chute
     if (s.at - p.t0 < CONFIRM_MS) return true;
     done.push(p);
     return false;
   });
   if (s.min < 10 || s.min > 75) return;
   if (new Set(now).size > 1) return;
+  // Penalty ou carton rouge dans les 2 dernières minutes : la chute a une cause, on ignore
+  if (m.incAt && s.at - m.incAt < 120000) return;
+  // Marchés de buts 1xBet suspendus = action dangereuse en cours (penalty, VAR) : on ignore
+  if (Object.keys(s.x || {}).some((k) => KEY.test(k) && s.xl?.has(k))) return;
   const base = h.find((o: any) => s.at - o.at >= 50000);
   if (!base) return;
   const g = s.sc[0] + s.sc[1];
-  if (h.some((o: any) => o.at >= base.at && o.sc[0] + o.sc[1] !== g)) return;
+  // Aucun but dans les 2 dernières minutes : une cote qui chute juste après un but n'est qu'un rattrapage
+  if (h.some((o: any) => o.at >= Math.min(base.at, s.at - 120000) && o.sc[0] + o.sc[1] !== g)) return;
   const sec = Math.round((s.at - base.at) / 1000);
   for (const [b, name] of BOOKS) {
     for (const k of Object.keys(s[b] || {})) {
@@ -37,7 +43,13 @@ export function detectDrops(m: any, done: any[]) {
       const o0 = odd(base, b, k), o1 = odd(s, b, k);
       if (!o0 || !o1) continue;
       const drop = 1 - o1 / o0;
-      if (drop < 0.15 || o1 < 1.3 || o1 > 4) continue;
+      // Cote de départ ≤ 4.5 : une chute de 10 → 3 ne veut rien dire, une chute de 3 → 1.82 est un vrai signal
+      if (drop < 0.15 || o0 > 4.5 || o1 < 1.3 || o1 > 2.6) continue;
+      // Toute l'échelle décalée d'un cran (nouvelle cote « plus de X+1 » ≈ ancienne « plus de X ») :
+      // le site a intégré un but pas encore affiché ailleurs → ce n'est pas une chute normale
+      const ln = parseFloat(k.split("_")[1]);
+      const lo = odd(base, b, `TOT_${ln - 1}`), hi = odd(s, b, `TOT_${ln + 1}`);
+      if ((lo && Math.abs(o1 / lo - 1) < 0.1) || (hi && Math.abs(hi / o0 - 1) < 0.1)) continue;
       const id = "drop" + k; // une seule fiche par ligne de buts, quel que soit le site
       if ((m.last ||= {})[id] && s.at - m.last[id] < 300000) continue;
       m.last[id] = s.at;
