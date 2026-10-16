@@ -8,6 +8,7 @@ import { fair, label, type Mk } from "./liveMarkets.ts";
 export type Snap = { at: number; sc: [number, number]; min: number; x: Mk; xl: Set<string>; w?: Mk | null; wl?: Set<string>; b?: Mk | null; bl?: Set<string>; c?: Mk | null; cl?: Set<string>; y?: Mk | null; yl?: Set<string> };
 const KEY = /^(TOT|ITH|ITA)_\d+\.5$/;
 const BOOKS = [["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"]] as const;
+// Totaux 1re MT : misés seulement sur un but de 1re MT déjà marqué, donc même compte que le match à cet instant
 const goalsFor = (k0: string, sc: [number, number], k = k0.replace(/^H1/, "")) => k.startsWith("ITH") ? sc[0] : k.startsWith("ITA") ? sc[1] : sc[0] + sc[1];
 const pct = (v: number) => Math.round(v * 1000) / 10;
 
