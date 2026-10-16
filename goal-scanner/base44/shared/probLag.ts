@@ -8,7 +8,7 @@ import { fair, label, type Mk } from "./liveMarkets.ts";
 export type Snap = { at: number; sc: [number, number]; min: number; x: Mk; xl: Set<string>; w?: Mk | null; wl?: Set<string>; b?: Mk | null; bl?: Set<string>; c?: Mk | null; cl?: Set<string>; y?: Mk | null; yl?: Set<string> };
 const KEY = /^(TOT|ITH|ITA)_\d+\.5$/;
 const BOOKS = [["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"]] as const;
-const goalsFor = (k: string, sc: [number, number]) => k.startsWith("ITH") ? sc[0] : k.startsWith("ITA") ? sc[1] : sc[0] + sc[1];
+const goalsFor = (k0: string, sc: [number, number], k = k0.replace(/^H1/, "")) => k.startsWith("ITH") ? sc[0] : k.startsWith("ITA") ? sc[1] : sc[0] + sc[1];
 const pct = (v: number) => Math.round(v * 1000) / 10;
 
 // Compteurs du cycle : où les mouvements 1xBet sont écartés (visible dans le journal du scanner)
