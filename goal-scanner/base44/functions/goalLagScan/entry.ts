@@ -6,6 +6,7 @@ import { sleep, xbetList, xbetSnap, bpSnap, wParse, cbList, cbSnap } from "../..
 import { OnewinStream } from "./onewinStream.ts";
 import { type Book, type GoalEv, type Line, BOOKS, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
+import { detectDrops } from "../../shared/oddsDrop.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
 import { ybList, ybSnap } from "../../shared/yellowbetLive.ts";
@@ -316,6 +317,7 @@ Deno.serve(async (req) => {
         if (y?.score?.every(Number.isFinite)) m.sc.y = y.score;
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked }, signals);
+        detectDrops(m, signals);
         autoBet.scan(m);
       }));
       mkTicks++;
