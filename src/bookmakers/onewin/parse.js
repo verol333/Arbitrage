@@ -373,11 +373,20 @@ export function winFlatOdds(groups, names) {
         const line = parseFloat(mLine[1]);
         if (!isHalfLine(line)) continue;
         const teamPart = n.replace(/[+-]?\d+(?:\.\d+)?/g, '').trim();
-        const scoreHome = tokenOverlap(teamPart, names.home);
-        const scoreAway = tokenOverlap(teamPart, names.away);
-        if (scoreHome === 0 && scoreAway === 0) continue;
-        if (scoreHome >= scoreAway) putWin(odds, `hcp_home_${line}`, o);
-        else putWin(odds, `hcp_away_${line}`, o);
+        // Le cote de l'equipe vient d'abord du code natif 1win (outcome 1 =
+        // domicile, 2 = exterieur). Le rapprochement par nom ne sert qu'en
+        // secours : deux clubs d'une meme ville (Isloch Minsk / FC Minsk,
+        // audit du 16/10/2026) faisaient egalite et l'option exterieur etait
+        // lue comme domicile, creant un faux surebet a +8,5 %.
+        const oc = String(o.outcome || '').trim();
+        let side = oc === '1' ? 'home' : oc === '2' ? 'away' : null;
+        if (!side) {
+          const scoreHome = tokenOverlap(teamPart, names.home);
+          const scoreAway = tokenOverlap(teamPart, names.away);
+          side = scoreHome > scoreAway ? 'home' : scoreAway > scoreHome ? 'away' : null;
+        }
+        if (!side) continue;
+        putWin(odds, `hcp_${side}_${line}`, o);
       }
     }
     // ── MARCHÉS 1WIN NOMMÉS D'APRÈS L'ÉQUIPE (audit 2026-09-18) ───────────
