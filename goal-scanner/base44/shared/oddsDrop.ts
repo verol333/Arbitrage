@@ -5,7 +5,7 @@ import { fair, label } from "./liveMarkets.ts";
 // À chaque chute, on note la cote des autres sites au même instant pour voir lequel a bougé le premier.
 // Minutes 10e-75e, cote finale 1.30-4. Enregistré comme signal « Chute », réglé au score final.
 const KEY = /^TOT_\d+\.5$/;
-const BOOKS: [string, string][] = [["x", "1xBet"], ["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"]];
+const BOOKS: [string, string][] = [["x", "1xBet"], ["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"], ["p", "Pinnacle"]];
 const pct = (v: number) => Math.round(v * 1000) / 10;
 const odd = (s: any, b: string, k: string) => (s[b]?.[k] && !s[b + "l"]?.has(k) ? s[b][k][0] : null);
 
