@@ -173,7 +173,8 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       }
       // Congobet : toutes les options gagnées par ce but sont misées en même temps, quelle que soit la durée d'ouverture.
       // Total match, total de l'équipe, BTTS oui (2e équipe qui ouvre son compteur), « qui va marquer le n-ième but ».
-      if (m.c && !ev.betTried.c) {
+      // Seulement si le scanner a vu chez Congobet une option gagnée encore ouverte
+      if (m.c && !ev.betTried.c && ["c_team", "c_match", "c_h1team", "c_h1match"].some((k) => ev.open?.[k] && !ev.open[k].closed)) {
         ev.betTried.c = true;
         const opts: [string, number][] = [[ev.teamKey, 0], [ev.matchKey, 0], [`GOAL${h + a}`, ev.side === "H" ? 0 : 2]];
         if (first && h > 0 && a > 0) opts.push(["BTTS", 0]);
