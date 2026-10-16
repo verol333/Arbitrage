@@ -178,7 +178,12 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         const opts: [string, number][] = [[ev.teamKey, 0], [ev.matchKey, 0], [`GOAL${h + a}`, ev.side === "H" ? 0 : 2]];
         if (first && h > 0 && a > 0) opts.push(["BTTS", 0]);
         if (ev.h1MatchKey) opts.push([ev.h1TeamKey, 0], [ev.h1MatchKey, 0]);
-        for (const [key, side] of opts) tasks.push(place({ ev, source: "goal", bk: "c", m, key, side, line: /_/.test(key) ? Number(key.split("_")[1]) : 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail));
+        // Une option à la fois : envoyées ensemble, Congobet refusait toutes sauf la première (trop de demandes).
+        // Ordre : les options les mieux payées d'abord (n-ième but, 1re MT, puis totaux).
+        const order = [opts.find((o) => /^GOAL/.test(o[0])), ...opts.filter((o) => /^H1/.test(o[0])), ...opts.filter((o) => !/^(GOAL|H1)/.test(o[0]))].filter(Boolean) as [string, number][];
+        tasks.push((async () => {
+          for (const [key, side] of order) await place({ ev, source: "goal", bk: "c", m, key, side, line: /_/.test(key) ? Number(key.split("_")[1]) : 0, odd: 0, edge: 0, min: ev.minute, sc: ev.sc.join("-") }).catch(fail);
+        })());
       }
     },
     /** But annulé : une fois les mises en cours terminées, cash-out 1win de toutes les options posées sur ce but. */
