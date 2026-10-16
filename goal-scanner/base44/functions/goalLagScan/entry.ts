@@ -53,8 +53,14 @@ Deno.serve(async (req) => {
   // Paris automatiques 1win encore ouverts
   const openBets = body.mode === "proba" ? await loadOpenBets(db) : [];
   const betSettle: Record<string, any> = {};
-  const track = (id: number, sc: [number, number], min: number) => {
-    for (const b of openBets) if (b.xbet_id === id && !betSettle[b.id]?.status) betSettle[b.id] = { ...settleBet(b, sc, false), last_minute: min };
+  const track = (id: number, sc: [number, number], min: number, cp?: number) => {
+    for (const b of openBets) if (b.xbet_id === id && !betSettle[b.id]?.status) {
+      // Option 1re mi-temps : dès que la 1re période est finie, réglée sur le dernier score vu en 1re MT (un but de 2e MT ne compte pas)
+      if (/^H1/.test(b.market_key) && cp != null && cp !== 1) {
+        const h1 = String(betSettle[b.id]?.last_score ?? b.last_score).split("-").map(Number) as [number, number];
+        betSettle[b.id] = { ...settleBet(b, h1, true), last_minute: min };
+      } else betSettle[b.id] = { ...settleBet(b, sc, false), last_minute: min };
+    }
     for (const sig of pending) if (sig.xbet_id === id && !settle[sig.id]?.status) {
       const v = verdict(sig, sc, false);
       settle[sig.id] = { last_score: sc.join("-"), last_minute: min, ...(v ? { status: v, settled_at: new Date().toISOString() } : {}) };
@@ -76,6 +82,16 @@ Deno.serve(async (req) => {
     if (book === "x") m.xLow = back ? (m.xLow || 0) + 1 : 0;
     // 1er relevé en arrière : ignoré (on garde le score précédent pour comparer au relevé suivant)
     if (book === "x" && back && m.xLow < 2) { m.sc[book] = prev; return; }
+    // But fantôme : affiché par UN seul site (aucun autre ne l'a vu), puis ce site revient en arrière sur 2 relevés de suite → annulé
+    if (book !== "x") {
+      (m.low ||= {})[book] = back ? (m.low[book] || 0) + 1 : 0;
+      if (back && m.low[book] >= 2) for (const ev of m.events as GoalEv[]) if (!ev.cancelled && ev.first === book && (ev.sc[0] > sc[0] || ev.sc[1] > sc[1]) && Object.keys(ev.seen).every((k) => k === book)) {
+        ev.cancelled = true;
+        m.top = Math.min(m.top ?? tot, tot);
+        if ((ev as any).recId) db.GoalLagEvent.update((ev as any).recId, { cancelled: true, playable: false }).catch(() => null);
+        autoBet.cancel(m, ev);
+      }
+    }
     if (book === "x" && back) {
       m.top = Math.min(m.top ?? tot, tot);
       for (const ev of m.events as GoalEv[]) if ((ev.sc[0] > sc[0] || ev.sc[1] > sc[1]) && !ev.cancelled) {
@@ -139,7 +155,7 @@ Deno.serve(async (req) => {
       ticks.x++;
       if (list.length) liveIds = new Set(list.map((g: any) => g.id));
       for (const g of list) {
-        track(g.id, [g.sh, g.sa], g.min);
+        track(g.id, [g.sh, g.sa], g.min, g.cp);
         let m = matches.get(g.id);
         if (!m) { m = { x: g.id, name: `${g.home} - ${g.away}`, home: g.home, away: g.away, league: g.league, sc: {}, events: [] }; matches.set(g.id, m); link(m); }
         m.min = g.min; m.cp = g.cp;
@@ -332,7 +348,7 @@ Deno.serve(async (req) => {
     const u = betSettle[b.id] || {};
     if (u.status || liveIds.has(b.xbet_id)) continue;
     const min = u.last_minute ?? b.last_minute, sc = String(u.last_score ?? b.last_score).split("-").map(Number) as [number, number];
-    if (min >= 85) betSettle[b.id] = settleBet(b, sc, true);
+    if (min >= 85 || (/^H1/.test(b.market_key) && min > 50)) betSettle[b.id] = settleBet(b, sc, true);
     else if (Date.now() - new Date(b.created_date).getTime() > 3 * 3600e3) betSettle[b.id] = { status: "void", profit: 0, settled_at: new Date().toISOString() };
   }
   const bUpd = Object.entries(betSettle).map(([id, v]) => { const { last_minute, ...rest } = v; return { id, ...rest, ...(last_minute != null ? { last_minute } : {}) }; });
