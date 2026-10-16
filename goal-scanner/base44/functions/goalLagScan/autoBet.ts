@@ -138,6 +138,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       // Option seulement suspendue = but en doute (VAR, erreur) : on attend.
       if (ev.cancelled || !ev.xRemoved) return;
       // RÈGLE ÉCART (2026-10-16) : au moins 2 sites affichent le but, avec ≥ 3 s d'écart entre le premier et le dernier.
+      // Tous les sites ensemble + option encore ouverte = but retenu volontairement (VAR) → annulé 1 fois sur 2 dans l'historique.
       const seenT = Object.values(ev.seen || {}).filter((v) => v != null) as number[];
       if (seenT.length < 2 || Math.max(...seenT) - Math.min(...seenT) < 3000) return;
       ev.betTried ||= {};
@@ -176,7 +177,7 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
       }
       // Congobet : toutes les options gagnées par ce but sont misées en même temps, quelle que soit la durée d'ouverture.
       // Total match, total de l'équipe, BTTS oui (2e équipe qui ouvre son compteur), « qui va marquer le n-ième but ».
-      // Seulement si le scanner a vu chez Congobet une option gagnée encore ouverte
+      // Seulement si le scanner a vu chez Congobet une option gagnée encore ouverte (sinon Congobet a déjà retiré la ligne : tentative inutile)
       if (m.c && !ev.betTried.c && ["c_team", "c_match", "c_h1team", "c_h1match"].some((k) => ev.open?.[k] && !ev.open[k].closed)) {
         ev.betTried.c = true;
         const opts: [string, number][] = [[ev.teamKey, 0], [ev.matchKey, 0], [`GOAL${h + a}`, ev.side === "H" ? 0 : 2]];
