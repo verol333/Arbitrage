@@ -1,9 +1,10 @@
 // Suivi d'un but : qui l'affiche en premier, puis seconde par seconde, chez chaque site,
 // l'état des deux options déjà gagnées (total de l'équipe qui a marqué, total du match).
 // y = Yellowbet : observation seule (aucune mise automatique)
-export const BOOKS = ["x", "w", "b", "c", "y"] as const;
+// p = Pinnacle : observation seule (aucun compte), sert à voir le but plus tôt
+export const BOOKS = ["x", "w", "b", "c", "y", "p"] as const;
 export type Book = typeof BOOKS[number];
-export const NAMES: Record<Book, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet" };
+export const NAMES: Record<Book, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet", p: "Pinnacle" };
 export const WINDOW_MS = 75000;
 // Temps réel mesuré de notre mise auto en direct (médiane des paris placés sur 1win et betPawa) :
 // une fenêtre plus courte ne laisse pas le temps au robot de poser le pari.
@@ -65,6 +66,7 @@ export function toRecord(ev: GoalEv, m: any, runId: string, truncated: boolean) 
     team_line: `Plus de ${ev.teamKey.split("_")[1]}`, match_line: `Plus de ${ev.matchKey.split("_")[1]}`,
     ...(ev.h1MatchKey ? { half_team_line: `1re MT plus de ${ev.h1TeamKey.split("_")[1]}`, half_match_line: `1re MT plus de ${ev.h1MatchKey.split("_")[1]}` } : {}),
     cancelled: ev.cancelled, truncated, timeline: ev.timeline, playable: false,
+    ...(m.pMode ? { pinnacle_mode: m.pMode } : {}),
   };
   // But confirmé = au moins deux sites l'ont affiché ; sinon c'est une erreur de score d'un site
   const confirmed = BOOKS.filter((b) => ev.seen[b] != null).length >= 2;
@@ -72,7 +74,7 @@ export function toRecord(ev: GoalEv, m: any, runId: string, truncated: boolean) 
     if (ev.seen[b] != null) r[`${b}_seen_s`] = Math.round(ev.seen[b]! / 100) / 10;
     for (const k of ["team", "match"]) {
       const o = ev.open[`${b}_${k}`];
-      if (o) { const f = (o as any).from; r[`${b}_${k}_from_s`] = f; const dur = Math.round((o.s - f) * 10) / 10; r[`${b}_${k}_open_s`] = dur; r[`${b}_${k}_odd`] = o.odd; if (!ev.cancelled && confirmed && dur >= PLACE_S) r.playable = true; }
+      if (o) { const f = (o as any).from; r[`${b}_${k}_from_s`] = f; const dur = Math.round((o.s - f) * 10) / 10; r[`${b}_${k}_open_s`] = dur; r[`${b}_${k}_odd`] = o.odd; if (!ev.cancelled && confirmed && dur >= PLACE_S && b !== "p") r.playable = true; }
     }
     // Totaux de la 1re mi-temps : observation seule (pas de mise auto pour l'instant)
     for (const k of ["h1team", "h1match"]) {
@@ -80,7 +82,7 @@ export function toRecord(ev: GoalEv, m: any, runId: string, truncated: boolean) 
       if (!o) continue;
       const f = (o as any).from, dur = Math.round((o.s - f) * 10) / 10;
       (r.half_open ||= {})[`${NAMES[b]} ${k === "h1team" ? "équipe" : "match"}`] = { from_s: f, open_s: dur, odd: o.odd };
-      if (!ev.cancelled && confirmed && dur >= PLACE_S) r.half_playable = true;
+      if (!ev.cancelled && confirmed && dur >= PLACE_S && b !== "p") r.half_playable = true;
     }
   }
   return r;
