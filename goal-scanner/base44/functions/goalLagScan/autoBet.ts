@@ -197,6 +197,8 @@ export function createAutoBet(db: any, stream: any, opts: { dry?: boolean } = {}
         for (let i = 0; i <= 8; i++) {
           const r = REMOTE ? await db.ProbAutoBet.autoCashout(arg) : await (await import("../../shared/onewinCashout.ts")).cashoutCancelledGoal(db, arg);
           results.push({ match: m.name, cashout: r, essai: i + 1 });
+          // Aucun pari trouvé : une mise peut encore être en cours d'envoi au moment de l'annulation → on réessaie 1 min
+          if (Array.isArray(r) && !r.length && i < 4) { await new Promise((s) => setTimeout(s, 15000)); continue; }
           if (!Array.isArray(r) || r.every((x: any) => x.ok)) break;
           await new Promise((s) => setTimeout(s, 15000));
         }
