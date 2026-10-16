@@ -71,12 +71,14 @@ Deno.serve(async (req) => {
     const ptot = prev[0] + prev[1];
     // Annulation : seulement si 1xBet (référence) revient en arrière sur DEUX relevés de suite.
     // Ses deux sources (liste + fiche du match) se contredisent parfois une seconde : ce n'est pas un but refusé.
-    if (book === "x") m.xLow = tot < ptot ? (m.xLow || 0) + 1 : 0;
+    // « En arrière » = une des deux équipes perd un but, même si le total reste égal (but attribué à l'autre équipe : 0-1 → 1-0)
+    const back = sc[0] < prev[0] || sc[1] < prev[1];
+    if (book === "x") m.xLow = back ? (m.xLow || 0) + 1 : 0;
     // 1er relevé en arrière : ignoré (on garde le score précédent pour comparer au relevé suivant)
-    if (book === "x" && tot < ptot && m.xLow < 2) { m.sc[book] = prev; return; }
-    if (book === "x" && tot < ptot) {
-      m.top = tot;
-      for (const ev of m.events as GoalEv[]) if (ev.sc[0] + ev.sc[1] > tot && !ev.cancelled) {
+    if (book === "x" && back && m.xLow < 2) { m.sc[book] = prev; return; }
+    if (book === "x" && back) {
+      m.top = Math.min(m.top ?? tot, tot);
+      for (const ev of m.events as GoalEv[]) if ((ev.sc[0] > sc[0] || ev.sc[1] > sc[1]) && !ev.cancelled) {
         ev.cancelled = true;
         // Fiche déjà enregistrée : on met à jour la même case
         if ((ev as any).recId) db.GoalLagEvent.update((ev as any).recId, { cancelled: true, playable: false }).catch(() => null);
