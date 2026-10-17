@@ -5,14 +5,14 @@ import { fair, label } from "./liveMarkets.ts";
 // À chaque chute, on note la cote des autres sites au même instant pour voir lequel a bougé le premier.
 // Minutes 10e-75e, cote finale 1.30-4. Enregistré comme signal « Chute », réglé au score final.
 const KEY = /^TOT_\d+\.5$/;
-const BOOKS: [string, string][] = [["x", "1xBet"], ["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"], ["p", "Pinnacle"]];
+const BOOKS: [string, string][] = [["x", "1xBet"], ["w", "1win"], ["b", "betPawa"], ["c", "Congobet"], ["y", "Yellowbet"], ["p", "Pinnacle"], ["s", "SBOBET"]];
 const pct = (v: number) => Math.round(v * 1000) / 10;
 const odd = (s: any, b: string, k: string) => (s[b]?.[k] && !s[b + "l"]?.has(k) ? s[b][k][0] : null);
 
 // Une chute n'est gardée que si AUCUN but ne tombe dans les 45 s qui suivent (sinon c'était un but déjà affiché
 // sur un site avant 1xBet, pas un signal) et si tous les sites affichent le même score au moment de la chute.
 const CONFIRM_MS = 45000;
-const goals = (m: any, s: any) => [s.sc, m.sc?.w, m.sc?.b, m.sc?.c, m.sc?.y, m.sc?.p].filter(Boolean).map((o: any) => o[0] + o[1]);
+const goals = (m: any, s: any) => [s.sc, m.sc?.w, m.sc?.b, m.sc?.c, m.sc?.y, m.sc?.p, m.sc?.s].filter(Boolean).map((o: any) => o[0] + o[1]);
 
 export function detectDrops(m: any, done: any[]) {
   const h = m.hist || [], s = h[h.length - 1];
