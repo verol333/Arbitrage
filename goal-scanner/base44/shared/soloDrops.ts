@@ -14,6 +14,8 @@ type Ev = { id: string | number; home: string; away: string; league?: string };
 
 export function createSolo(signals: any[], pending: any[], settle: Record<string, any>) {
   const T = new Map<string, any>();
+  // Nombre de matchs qui « chutent » dans le même relevé d'un site : 3+ en même temps = défaut de lecture
+  const burst = new Map<string, Set<string>>();
   const live: Record<string, Set<string>> = {};
   const odd = (s: Snap, k: string) => (s.mk[k] && !s.lk?.has(k) ? s.mk[k][0] : null);
 
@@ -33,7 +35,7 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
     t.pend = t.pend.filter((p: any) => {
       if (g !== p.g) return false; // but juste après : faux signal
       if (s.at - p.t0 < 45000) return true;
-      signals.push(p);
+      if ((burst.get(`${bk}|${p.t0}`)?.size || 0) < 3) signals.push(p);
       return false;
     });
     if (s.min != null && (s.min < 10 || s.min > 75)) return;
@@ -57,6 +59,7 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
       if ((lo && Math.abs(o1 / lo - 1) < 0.1) || (hi && Math.abs(hi / o0 - 1) < 0.1)) continue;
       if (t.last[k] && s.at - t.last[k] < 300000) continue;
       t.last[k] = s.at;
+      const bz = `${bk}|${s.at}`; if (!burst.has(bz)) burst.set(bz, new Set()); burst.get(bz)!.add(String(e.id));
       const p = fair(s.mk[k]);
       t.pend.push({
         g, m: t.m, key: k, book: "Chute", side: 0, line: ln, t0: s.at, odd: o1, q: p[0], pref: p[0],
