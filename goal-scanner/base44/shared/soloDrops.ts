@@ -51,7 +51,7 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
       const o0 = odd(base, k), o1 = odd(s, k);
       if (!o0 || !o1) continue;
       const drop = 1 - o1 / o0;
-      if (drop < 0.10 || o0 > 4.5 || o1 < 1.3 || o1 > 2.6) continue;
+      if (drop < 0.15 || o0 > 4.5 || o1 < 1.3 || o1 > 2.6) continue;
       // Échelle décalée d'un cran = but déjà intégré par le site, pas une vraie chute
       const lo = odd(base, `TOT_${ln - 1}`), hi = odd(s, `TOT_${ln + 1}`);
       if ((lo && Math.abs(o1 / lo - 1) < 0.1) || (hi && Math.abs(hi / o0 - 1) < 0.1)) continue;
