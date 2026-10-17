@@ -56,8 +56,16 @@ Deno.serve(async (req) => {
   // Paris automatiques 1win encore ouverts
   const openBets = body.mode === "proba" ? await loadOpenBets(db) : [];
   const betSettle: Record<string, any> = {};
+  const cancelAsked = new Set<number>();
   const track = (id: number, sc: [number, number], min: number, cp?: number) => {
     for (const b of openBets) if (b.xbet_id === id && !betSettle[b.id]?.status) {
+      // But du pari annulé (score revenu sous celui du pari) : pari sorti du bilan + cash-out, un but plus tard ne compte pas
+      const bs = String(b.score || "").split("-").map(Number);
+      if (b.source === "goal" && bs.length === 2 && (sc[0] < bs[0] || sc[1] < bs[1])) {
+        betSettle[b.id] = { status: "void", profit: 0, last_score: sc.join("-"), last_minute: min, settled_at: new Date().toISOString(), error: `But annulé : score revenu à ${sc.join("-")} (pari à ${b.score}) — cash-out demandé` };
+        if (!cancelAsked.has(id)) { cancelAsked.add(id); autoBet.cancel({ x: id, w: 1, name: b.match_label }, { sc: bs, betTried: { any: true } }); }
+        continue;
+      }
       // Option 1re mi-temps : dès que la 1re période est finie, réglée sur le dernier score vu en 1re MT (un but de 2e MT ne compte pas)
       if (/^H1/.test(b.market_key) && cp != null && cp !== 1) {
         const h1 = String(betSettle[b.id]?.last_score ?? b.last_score).split("-").map(Number) as [number, number];
