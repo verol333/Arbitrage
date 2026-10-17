@@ -86,6 +86,7 @@ export function toSignal(p: any, runId: string) {
     ref_prob_before: pct(p.p0), ref_prob_after: pct(p.pref), book_prob: pct(p.q), book_odd: p.odd, edge_pct: pct(p.edge),
     open_s: p.open_s, followed_s: p.followed_s, goal_during: p.goal, timeline: p.trace, status: "pending",
     last_score: p.sc, last_minute: p.min,
+    book_ids: { "1xbet": p.m.x, "1win": p.m.w, betpawa: p.m.b, congobet: p.m.c, pinnacle: p.m.p, sbobet: p.m.s },
   };
 }
 
