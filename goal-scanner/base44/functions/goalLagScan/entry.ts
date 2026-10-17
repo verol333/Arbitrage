@@ -7,7 +7,8 @@ import { sleep, xbetList, xbetSnap, bpSnap, wParse, cbList, cbSnap } from "../..
 import { OnewinStream } from "./onewinStream.ts";
 import { type Book, type GoalEv, type Line, BOOKS, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
-import { detectDrops } from "../../shared/oddsDrop.ts";
+import { createSolo } from "../../shared/soloDrops.ts";
+import { fetchOddsAndInfo as wBatch } from "../../shared/onewinLiveWs.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
 import { ybList, ybSnap } from "../../shared/yellowbetLive.ts";
@@ -32,6 +33,15 @@ Deno.serve(async (req) => {
   if (body.mode === "audit") return Response.json(await (await import("./audit.ts")).audit(db, Number(body.limit || 12)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "h1check") return Response.json(await (await import("./h1check.ts")).h1check(Number(body.limit || 4)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "unlinked") return Response.json(await (await import("./unlinked.ts")).unlinked().catch((e: any) => ({ erreur: String(e?.stack || e) })));
+  if (body.mode === "sbcheck") {
+    const { sbList } = await import("../../shared/sbobetLive.ts");
+    const out: any[] = [];
+    const r0 = await fetch("https://www.sbobet.com/euro/live-betting/football", { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124" } }).catch((e) => String(e) as any);
+    const t0 = typeof r0 === "string" ? r0 : await r0.text();
+    out.push({ status: r0?.status, len: t0.length, debut: t0.slice(0, 300), oev: t0.includes("'oev'"), site: t0.includes("setToken('site'") });
+    for (let i = 0; i < 3; i++) { const t = Date.now(); const l = await sbList().catch((e) => String(e)); out.push({ ms: Date.now() - t, n: Array.isArray(l) ? l.length : l, avecTotaux: Array.isArray(l) ? l.filter((e) => Object.keys(e.mk).length).length : 0, ex: Array.isArray(l) ? l.slice(0, 3).map((e) => `${e.home} - ${e.away} ${e.score.join("-")} ${JSON.stringify(e.mk)}`) : null }); }
+    return Response.json(out);
+  }
   if (body.mode === "selftest") return Response.json(await (await import("./selfTest.ts")).selfTest(db).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
   if (body.mode === "replay") {
@@ -55,6 +65,9 @@ Deno.serve(async (req) => {
   // Signaux « probabilités » en attente de résultat (cycles précédents)
   const pending = (await db.ProbLagSignal.filter({ status: "pending", sport: { $ne: "hockey" } }, { limit: 500 }).catch(() => ({ items: [] }))).items || [];
   const settle: Record<string, any> = {};
+  // Chutes de cote : chaque site surveille tous ses propres matchs (aucune liaison entre sites)
+  const solo = createSolo(signals, pending, settle);
+  let xAll: any[] = [];
   // Paris automatiques 1win encore ouverts
   const openBets = body.mode === "proba" ? await loadOpenBets(db) : [];
   const betSettle: Record<string, any> = {};
@@ -142,6 +155,7 @@ Deno.serve(async (req) => {
         || pList.find((x) => ok(x) && (sameTeam(x.home, m.home) || sameTeam(x.away, m.away)));
       if (p) { m.p = p.id; m.pKids = p.kids; byP.set(p.id, m); }
     }
+    // SBOBET (chutes de cote seulement) : les DEUX équipes, même catégorie et même score que 1xBet
     if (!m.s && m.sc.x) {
       const s = sList.find((x) => !byS.has(x.id) && cat(`${x.home} ${x.away}`) === cat(`${m.home} ${m.away}`) && x.score[0] === m.sc.x[0] && x.score[1] === m.sc.x[1] && sameTeam(x.home, m.home) && sameTeam(x.away, m.away));
       if (s) { m.s = s.id; byS.set(s.id, m); }
@@ -181,7 +195,7 @@ Deno.serve(async (req) => {
       if (!fresh()) return;
       const at = Date.now();
       ticks.x++;
-      if (list.length) liveIds = new Set(list.map((g: any) => g.id));
+      if (list.length) { liveIds = new Set(list.map((g: any) => g.id)); xAll = list; }
       for (const g of list) {
         track(g.id, [g.sh, g.sa], g.min, g.cp);
         let m = matches.get(g.id);
@@ -251,11 +265,13 @@ Deno.serve(async (req) => {
     for (const m of matches.values()) if (!m.p) link(m);
   });
 
-  // SBOBET : chutes de cote uniquement
-  const loopS = () => every(2000, async (fresh) => {
-    const l = await sbList((id) => byS.has(id)).catch(() => null);
+  // SBOBET : matchs en direct + totaux de buts (~1,5 s par lecture), pour les chutes de cote uniquement
+  const loopS = () => every(5000, async (fresh) => {
+    const l = await sbList().catch(() => null);
     if (!l || !fresh()) return;
     sList = l; ticks.s++;
+    const at = Date.now();
+    for (const e of l) solo.feed("s", e, { at, sc: e.score, mk: e.mk, lk: e.locked });
     for (const e of sList) { const m = byS.get(e.id); if (m) { m.sb = e; m.sc.s = e.score; } }
     for (const m of matches.values()) if (!m.s) link(m);
   });
@@ -373,7 +389,6 @@ Deno.serve(async (req) => {
         if (y?.score?.every(Number.isFinite)) m.sc.y = y.score;
         const wl = new Set<string>(), w = m.w ? wParse(stream.odds.get(m.w), m.wHome, wl) : null;
         step(m, { at: Date.now(), sc: [x.sh, x.sa], min: x.min, x: x.mk, xl: x.locked, w, wl, b: b?.mk || null, bl: b?.locked, c: c?.mk || null, cl: c?.locked, y: y?.mk || null, yl: y?.locked, p: p?.mk || null, pl: p?.locked, s: m.sb?.mk || null, sl: m.sb?.locked } as any, signals);
-        detectDrops(m, signals);
         autoBet.scan(m);
       }));
       mkTicks++;
@@ -383,10 +398,52 @@ Deno.serve(async (req) => {
     }
   };
 
+  // Chutes de cote : chaque site relit en boucle les marchés de TOUS ses matchs en direct (toutes les ~2 s)
+  const soloLoop = async (bk: string, list: () => any[], snap: (e: any) => Promise<any>, conc: number) => {
+    await sleep(2000);
+    while (Date.now() < stopAt) {
+      const s = Date.now(), l = list();
+      let i = 0;
+      await Promise.all(Array.from({ length: conc }, async () => {
+        while (i < l.length && Date.now() < stopAt) {
+          const e = l[i++];
+          const sn = await snap(e).catch(() => null);
+          if (sn?.sc?.every(Number.isFinite)) solo.feed(bk, e, sn);
+        }
+      }));
+      await sleep(Math.max(0, 2000 - (Date.now() - s)));
+    }
+  };
+  const bpSc = (v: any) => { const p = String(v || "").split("-").map(Number); return p.length === 2 ? p as [number, number] : null; };
+  const soloAll = () => [
+    soloLoop("x", () => xAll, async (e) => { const x = await xbetSnap(e.id); return x && { at: Date.now(), min: x.min, sc: [x.sh, x.sa], mk: x.mk, lk: x.locked }; }, 15),
+    soloLoop("b", () => bList, async (e) => { const b = await bpSnap(e.id); const m = parseInt(e.minute); return b && { at: Date.now(), min: Number.isFinite(m) ? m : null, sc: b.score || bpSc(e.score), mk: b.mk, lk: b.locked }; }, 10),
+    soloLoop("c", () => cList, async (e) => { const c = await cbSnap(e.id); return c && { at: Date.now(), sc: c.score || e.score, mk: c.mk, lk: c.locked }; }, 6),
+    soloLoop("y", () => yList, async (e) => { const y = await ybSnap(e.id); return y && { at: Date.now(), sc: y.score || e.score, mk: y.mk, lk: y.locked }; }, 6),
+    // 1win : lots de 40 matchs par connexion
+    soloLoop("w", () => { const out = []; for (let i = 0; i < wList.length; i += 40) out.push({ id: `lot${i}`, home: "", away: "", lot: wList.slice(i, i + 40) }); return out; }, async (g) => {
+      const r = await wBatch(g.lot.map((x: any) => x.id), 4000, 800);
+      const at = Date.now();
+      for (const x of g.lot) {
+        const inf = r.info.get(x.id), o = r.odds.get(x.id);
+        if (!o || inf?.scoreHome == null || inf?.scoreAway == null) continue;
+        const lk = new Set<string>();
+        solo.feed("w", x, { at, min: inf.minute, sc: [inf.scoreHome, inf.scoreAway], mk: wParse(o as any, x.home, lk), lk });
+      }
+      return null;
+    }, 3),
+    // Pinnacle : tous les marchés en une lecture
+    soloLoop("p", () => [{ id: "all", home: "", away: "" }], async () => {
+      const pm = await pnMarkets(); const at = Date.now();
+      if (pm) for (const e of pList) { const p = pnSnap(pm, e.kids || []); solo.feed("p", e, { at, sc: e.score, mk: p.mk, lk: p.locked }); }
+      return null;
+    }, 1),
+  ];
+
   // Deux scanners séparés (chacun son propre serveur) pour garder le rythme d'1 s :
   // mode "buts" = retard au but, mode "proba" = probabilités en avance.
   const proba = body.mode === "proba";
-  await Promise.all([loopX(), loopB(), loopC(), loopW(), loopY(), loopP(), proba ? loopMk() : loopWin(), proba ? null : loopInc(), proba ? loopS() : null]);
+  await Promise.all([loopX(), loopB(), loopC(), loopW(), loopY(), loopP(), proba ? loopMk() : loopWin(), proba ? null : loopInc(), proba ? loopS() : null, ...(proba ? soloAll() : [])]);
   if (!proba) await loopWin(); // fin des suivis ouverts après l'arrêt des relevés
   await autoBet.done(); // les relances lisent encore les cotes 1win en direct
   stream.stop();
@@ -396,9 +453,10 @@ Deno.serve(async (req) => {
   // Résultat : match disparu du direct après la 85e = terminé au dernier score ; disparu plus tôt depuis 3 h = annulé
   for (const sig of pending) {
     const u = settle[sig.id] || {};
-    if (u.status || liveIds.has(sig.xbet_id)) continue;
+    if (u.status || liveIds.has(sig.xbet_id) || solo.isLive(sig)) continue;
     const min = u.last_minute ?? sig.last_minute, sc = String(u.last_score ?? sig.last_score).split("-").map(Number) as [number, number];
-    if (min >= 85) settle[sig.id] = { ...u, status: verdict(sig, sc, true), settled_at: new Date().toISOString() };
+    const age = Date.now() - new Date(sig.created_date).getTime();
+    if (min >= 85 || (sig.book === "Chute" && age > 2 * 3600e3)) settle[sig.id] = { ...u, status: verdict(sig, sc, true), settled_at: new Date().toISOString() };
     else if (Date.now() - new Date(sig.created_date).getTime() > 3 * 3600e3) settle[sig.id] = { ...u, status: "void", settled_at: new Date().toISOString() };
   }
   await autoBet.done();
@@ -436,7 +494,7 @@ Deno.serve(async (req) => {
     rythmeBetpawa: ticks.b ? `${Math.round(secs / ticks.b * 10) / 10}s` : null,
     buts: saved.length, incidents: incSaved, jouables: saved.filter((r) => r.playable).length,
     matchsMarches: mkMatches, rythmeMarches: mkTicks ? `${Math.round(secs / mkTicks * 10) / 10}s` : null,
-    signauxProba: sigRecs.length, resultatsMisAJour: upd.length,
+    signauxProba: sigRecs.length, chutesMatchsSuivis: solo.count(), chutes: sigRecs.filter((r) => r.book === "Chute").length, resultatsMisAJour: upd.length,
     ...(proba ? { filtres: { ...STATS } } : {}),
   };
   await db.AppLog.create({ area: proba ? "scanner_proba" : "scanner_buts", action: "cycle", level: "info", ok: true, message: `${summary.matchs} matchs suivis, ${summary.buts} buts`, duration_ms: Date.now() - t0, details: summary }).catch(() => null);
