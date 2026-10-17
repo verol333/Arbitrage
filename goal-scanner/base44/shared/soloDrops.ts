@@ -37,7 +37,9 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
       return false;
     });
     if (s.min != null && (s.min < 10 || s.min > 75)) return;
-    if (Object.keys(s.mk).some((k) => KEY.test(k) && s.lk?.has(k))) return; // marchés de buts suspendus
+    // Marchés de buts suspendus en bloc (incident en cours) ; une ligne isolée fermée ne bloque pas les autres
+    const tk = Object.keys(s.mk).filter((k) => KEY.test(k));
+    if (tk.length && tk.filter((k) => s.lk?.has(k)).length * 2 >= tk.length) return;
     const h = t.hist, base = h.find((o: Snap) => s.at - o.at >= 50000 && s.at - o.at <= 120000);
     if (!base) return;
     if (h.some((o: Snap) => o.sc[0] + o.sc[1] !== g)) return; // but dans les 3 dernières minutes
@@ -66,6 +68,6 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
 
   /** Le match du signal est encore en direct chez l'un de ses sites. */
   const isLive = (sig: any) => Object.entries(IDK).some(([bk, n]) => sig.book_ids?.[n] != null && live[bk]?.has(String(sig.book_ids[n])));
-  const count = () => T.size;
+  const count = () => Object.fromEntries(Object.entries(live).map(([bk, s]) => [NAME[bk], { matchs: s.size, avecTotaux: [...T.entries()].filter(([k, t]) => k.startsWith(bk + "|") && Object.keys(t.hist.at(-1)?.mk || {}).some((x) => KEY.test(x))).length }]));
   return { feed, isLive, count };
 }
