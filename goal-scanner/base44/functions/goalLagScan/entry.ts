@@ -447,10 +447,10 @@ Deno.serve(async (req) => {
       }
       return null;
     }, 3),
-    // Pinnacle : coupé (cotes lues ne correspondent pas au score du match → fausses chutes)
-    false && soloLoop("p", () => [{ id: "all", home: "", away: "" }], async () => {
+    // Pinnacle : tous les marchés en une lecture (minute lue chez Pinnacle)
+    soloLoop("p", () => [{ id: "all", home: "", away: "" }], async () => {
       const pm = await pnMarkets(); const at = Date.now();
-      if (pm) for (const e of pList) { const p = pnSnap(pm, e.kids || []); solo.feed("p", e, { at, sc: e.score, mk: p.mk, lk: p.locked }); }
+      if (pm) for (const e of pList) { const p = pnSnap(pm, e.kids || []); solo.feed("p", e, { at, min: e.min, sc: e.score, mk: p.mk, lk: p.locked }); }
       return null;
     }, 1),
   ];
