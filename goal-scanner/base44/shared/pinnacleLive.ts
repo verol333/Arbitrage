@@ -30,6 +30,9 @@ export async function pnList() {
     const e = by.get(id) || { id, home: p[0].name, away: p[1].name, league: m.league?.name, score: [hs, as] as [number, number], kids: [] as number[], modes: [] as string[] };
     e.kids.push(m.id);
     if (m.liveMode && !e.modes.includes(m.liveMode)) e.modes.push(m.liveMode);
+    // state 1 = 1re mi-temps, 2 = 2e mi-temps (minutes repartent de 0)
+    const st = m.state?.state, mn = Number(m.state?.minutes);
+    e.min = Number.isFinite(mn) && (st === 1 || st === 2) ? mn + (st === 2 ? 45 : 0) : null;
     if (pp?.[0]?.state?.corners != null) e.corners = [Number(pp[0].state.corners), Number(pp[1].state.corners)];
     by.set(id, e);
   }
