@@ -33,6 +33,21 @@ Deno.serve(async (req) => {
   if (body.mode === "audit") return Response.json(await (await import("./audit.ts")).audit(db, Number(body.limit || 12)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "h1check") return Response.json(await (await import("./h1check.ts")).h1check(Number(body.limit || 4)).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "unlinked") return Response.json(await (await import("./unlinked.ts")).unlinked().catch((e: any) => ({ erreur: String(e?.stack || e) })));
+  if (body.mode === "solocheck") {
+    const T = (mk: any) => Object.keys(mk || {}).filter((k) => /^TOT_\d+\.5$/.test(k)).length;
+    const out: any = {};
+    const pl = await pnList().catch((e) => String(e)), pm = await pnMarkets().catch(() => null);
+    out.pinnacle = Array.isArray(pl) ? { matchs: pl.length, marches: !!pm, avecTotaux: pm ? pl.filter((e: any) => T(pnSnap(pm, e.kids || []).mk)).length : 0, ex: pl[0] && { sc: pl[0].score, mk: pm && pnSnap(pm, pl[0].kids || []).mk } } : pl;
+    const { sbList } = await import("../../shared/sbobetLive.ts");
+    const sl = await sbList().catch((e) => String(e));
+    out.sbobet = Array.isArray(sl) ? { matchs: sl.length, avecTotaux: sl.filter((e: any) => T(e.mk)).length, ex: sl[0] && { sc: sl[0].score, mk: sl[0].mk } } : sl;
+    const cl = await cbList().catch((e) => String(e));
+    out.congobet = Array.isArray(cl) ? { matchs: cl.length, ex: cl[0] && { id: cl[0].id, sc: cl[0].score } } : cl;
+    if (Array.isArray(cl) && cl[0]) { const c = await cbSnap(cl[0].id).catch((e) => String(e)); out.congobet.snap = typeof c === "string" ? c : { sc: c?.score, tot: T(c?.mk) }; }
+    const yl = await ybList().catch((e) => String(e));
+    out.yellowbet = Array.isArray(yl) ? { matchs: yl.length } : yl;
+    return Response.json(out);
+  }
   if (body.mode === "sbcheck") {
     const { sbList } = await import("../../shared/sbobetLive.ts");
     const out: any[] = [];
