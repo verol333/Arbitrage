@@ -3,6 +3,17 @@ on: workflow_dispatch
 jobs:
   probe:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: goal-scanner
     steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - run: |
-          for i in 1 2 3; do curl -s -o p.html -w "%{http_code} %{size_download}\n" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124" https://www.sbobet.com/euro/live-betting/football; head -c 200 p.html; echo; grep -c "'oev'" p.html; grep -c "setToken('site'" p.html; sleep 2; done
+          cat > t.ts <<'EOF'
+          import { sbList } from "./base44/shared/sbobetLive.ts";
+          for (let i = 0; i < 4; i++) { const t = Date.now(); const l = await sbList(); console.log("LECTURE", i, Date.now() - t, "ms", l?.length, "matchs", l?.filter((e: any) => Object.keys(e.mk).length).length, "avec totaux"); if (i === 3) for (const e of (l || []).slice(0, 6)) console.log("EX", e.home, "-", e.away, e.score.join("-"), JSON.stringify(e.mk)); await new Promise((r) => setTimeout(r, 2000)); }
+          EOF
+          deno run -A t.ts
