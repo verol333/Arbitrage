@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
 
   // SBOBET : chutes de cote uniquement
   const loopS = () => every(2000, async (fresh) => {
-    const l = await sbList().catch(() => null);
+    const l = await sbList((id) => byS.has(id)).catch(() => null);
     if (!l || !fresh()) return;
     sList = l; ticks.s++;
     for (const e of sList) { const m = byS.get(e.id); if (m) { m.sb = e; m.sc.s = e.score; } }
