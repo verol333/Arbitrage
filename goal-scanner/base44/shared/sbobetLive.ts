@@ -7,7 +7,7 @@
 const BASE = "https://www.sbobet.com";
 const H = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124" };
 const FAKE = /virtu|cyber|esoccer|e-soccer|fifa|simulat|corner|booking|\(et\)|penalt/i;
-const N = 6, TTL = 10 * 60000;
+const N = 3, TTL = 10 * 60000;
 let pauseUntil = 0; // blocage Cloudflare 1015 (trop de demandes) : on se tait 2 min
 type Sess = { ck: string; v: string[]; ts: string; at: number; page: string };
 let pool: Sess[] = [];
@@ -34,9 +34,10 @@ async function open(): Promise<Sess | null> {
 const evRe = /\[(\d{7,9}),'((?:[^'\\]|\\.)*)','((?:[^'\\]|\\.)*)','[^']*',\d+,'[^']*','[^']*',(\d+),(\d+)/g;
 
 /** Matchs en direct avec score et totaux de buts : [{ id, home, away, league, score, mk: {TOT_x: [plus, moins]}, locked }]. */
-export async function sbList() {
+export async function sbList(want: (id: string) => boolean = () => true) {
   if (pool.length < N || Date.now() - pool[0].at > TTL) {
-    const fresh = (await Promise.all(Array.from({ length: N }, open))).filter(Boolean) as Sess[];
+    const fresh: Sess[] = [];
+    for (let i = 0; i < N; i++) { const s = await open(); if (s) fresh.push(s); } // sessions ouvertes l'une après l'autre
     if (fresh.length) pool = fresh;
   }
   if (!pool.length) return null;
@@ -49,8 +50,16 @@ export async function sbList() {
     evs.set(x[1], { id: x[1], home: x[2].replace(/\\'/g, "'"), away: x[3].replace(/\\'/g, "'"), league: "", score: [Number(x[4]), Number(x[5])] as [number, number], mk: {} as Record<string, number[]>, locked: new Set<string>() });
   }
   const list = [...evs.values()];
-  await Promise.all(list.map(async (e, i) => {
-    const s = pool[i % pool.length], w = [...s.v];
+  // Cotes lues UNIQUEMENT pour les matchs déjà reliés à 1xBet, une demande à la fois par session
+  // (lire tous les matchs en parallèle déclenchait le blocage Cloudflare 1015)
+  const todo = list.filter((e) => want(e.id));
+  await Promise.all(pool.map(async (s, k) => { for (let i = k; i < todo.length; i += pool.length) await readOne(todo[i], s); }));
+  return list;
+}
+
+async function readOne(e: any, s: Sess) {
+  {
+    const w = [...s.v];
     w[2] = "15"; w[6] = e.id;
     const b = await get(`/en/data/event?ts=${s.ts}&tk=${w.join(",")}`, s.ck).then((r) => r.text()).catch(() => "");
     const sc = [...b.matchAll(evRe)].find((x) => x[1] === e.id);
@@ -60,6 +69,5 @@ export async function sbList() {
       if (Math.abs(ln % 1 - 0.5) > 1e-6) continue; // lignes .5 seulement (pas de 2.25 / 2.75)
       e.mk[`TOT_${ln}`] = [Number(m[2]), Number(m[3])];
     }
-  }));
-  return list;
+  }
 }
