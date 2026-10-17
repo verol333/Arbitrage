@@ -7,7 +7,7 @@
 const BASE = "https://www.sbobet.com";
 const H = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124" };
 const FAKE = /virtu|cyber|esoccer|e-soccer|fifa|simulat|corner|booking|\(et\)|penalt/i;
-const N = 3, TTL = 10 * 60000;
+const N = 6, TTL = 10 * 60000;
 let pauseUntil = 0; // blocage Cloudflare 1015 (trop de demandes) : on se tait 2 min
 type Sess = { ck: string; v: string[]; ts: string; at: number; page: string };
 let pool: Sess[] = [];
