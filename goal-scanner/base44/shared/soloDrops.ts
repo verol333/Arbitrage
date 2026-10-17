@@ -10,6 +10,9 @@ const IDK: Record<string, string> = { x: "1xbet", w: "1win", b: "betpawa", c: "c
 const NAME: Record<string, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet", p: "Pinnacle", s: "SBOBET" };
 const pct = (v: number) => Math.round(v * 1000) / 10;
 export type Snap = { at: number; min?: number | null; sc: [number, number]; mk: Record<string, number[]>; lk?: Set<string> };
+// Relevé brut d'un site : heure, minute, score et toutes les cotes de buts (🔒 = fermée)
+const dump = (s: Snap) => `${new Date(s.at).toISOString().slice(11, 19)} ${s.min ?? "?"}' ${s.sc.join("-")} | ` +
+  Object.keys(s.mk).filter((k) => KEY.test(k)).sort().map((k) => `${k.slice(4)}:${s.mk[k].join("/")}${s.lk?.has(k) ? "🔒" : ""}`).join(" ");
 type Ev = { id: string | number; home: string; away: string; league?: string };
 
 export function createSolo(signals: any[], pending: any[], settle: Record<string, any>) {
@@ -33,9 +36,12 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
     t.hist.push(s);
     t.hist = t.hist.filter((o: Snap) => s.at - o.at <= 180000);
     t.pend = t.pend.filter((p: any) => {
-      if (g !== p.g) return false; // but juste après : faux signal
+      if (s.at !== p.t0) p.trace.push(`suivi ${dump(s)}`);
+      if (g !== p.g) { console.log(`[chute rejetée: but] ${p.trace.join(" || ")}`); return false; }
       if (s.at - p.t0 < 45000) return true;
-      if ((burst.get(`${bk}|${p.t0}`)?.size || 0) < 3) signals.push(p);
+      const n = burst.get(`${bk}|${p.t0}`)?.size || 0;
+      p.trace.push(`contrôle : ${n} match(s) en chute dans le même relevé ${NAME[bk]}`);
+      if (n < 3) signals.push(p); else console.log(`[chute rejetée: rafale ${n}] ${p.trace.join(" || ")}`);
       return false;
     });
     if (s.min != null && (s.min < 10 || s.min > 75)) return;
@@ -64,7 +70,8 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
       t.pend.push({
         g, m: t.m, key: k, book: "Chute", side: 0, line: ln, t0: s.at, odd: o1, q: p[0], pref: p[0],
         p0: fair(base.mk[k])[0], edge: drop, min: s.min ?? null, sc: s.sc.join("-"), open_s: sec, followed_s: null, goal: false,
-        trace: [`${NAME[bk]} ${label(k, 0)} : ${o0} → ${o1} (−${pct(drop)} %) en ${sec} s`],
+        trace: [`${NAME[bk]} ${label(k, 0)} : ${o0} → ${o1} (−${pct(drop)} %) en ${sec} s`,
+          ...h.filter((o: Snap) => o.at >= base.at).map((o: Snap) => `${o === base ? "départ" : o === s ? "chute" : "relevé"} ${dump(o)}`)],
       });
     }
   }
