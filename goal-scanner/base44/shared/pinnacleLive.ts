@@ -11,7 +11,7 @@ const B = "https://guest.api.arcadia.pinnacle.com/0.1";
 const H = { "X-API-Key": "CmX2KcMrXuFmNg6YFbmTxE0y9CIrOi0R", "User-Agent": "Mozilla/5.0", accept: "application/json" };
 const FAKE = /virtu|cyber|esoccer|e-soccer|fifa|simulat|\(corners\)|\(bookings\)/i;
 
-const get = (p: string) => fetch(B + p, { headers: H, signal: AbortSignal.timeout(4000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const get = (p: string, ms = 4000) => fetch(B + p, { headers: H, signal: AbortSignal.timeout(ms) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const dec = (p: number) => Math.round((p > 0 ? 1 + p / 100 : 1 + 100 / Math.abs(p)) * 1000) / 1000;
 
 /** Matchs en direct : id = match parent, kids = lignes qui portent les marchés. */
@@ -41,9 +41,11 @@ export async function pnList() {
 
 /** Tous les marchés « buts » en direct, par ligne enfant : { mk: {clé: [plus, moins]}, locked }. */
 export async function pnMarkets() {
-  const a = await get("/sports/29/markets/live/straight");
+  // 17/10/2026 : ~8 000 marchés (plusieurs Mo) — 4 s ne suffisaient pas depuis GitHub, et l'échec
+  // renvoyait une liste VIDE que le scanner enregistrait comme « aucun total » (3 matchs sur 198).
+  const a = await get("/sports/29/markets/live/straight", 15000);
   const out = new Map<number, { mk: Record<string, number[]>; locked: Set<string> }>();
-  if (!Array.isArray(a)) return out;
+  if (!Array.isArray(a)) return null;
   for (const x of a) {
     if ((x.type !== "total" && x.type !== "team_total") || (x.period !== 0 && x.period !== 1)) continue;
     const o = x.prices?.find((q: any) => q.designation === "over"), u = x.prices?.find((q: any) => q.designation === "under");
