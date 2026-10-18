@@ -44,7 +44,7 @@ export function detectDrops(m: any, done: any[]) {
       if (!o0 || !o1) continue;
       const drop = 1 - o1 / o0;
       // Cote de départ ≤ 4.5 : une chute de 10 → 3 ne veut rien dire, une chute de 3 → 1.82 est un vrai signal
-      if (drop < 0.10 || o0 > 4.5 || o1 < 1.3 || o1 > 2.6) continue;
+      if (drop < 0.10 || o0 > 4.5 || o1 < 1.3 || o1 >= 2) continue; // cote finale sous 2 (au-delà : bilan négatif)
       // Rattrapage : la cote de départ doit être proche (±15 %) de celle des autres sites au même instant,
       // sinon le site ne fait que se remettre au niveau du marché
       const peers = BOOKS.filter(([ob]) => ob !== b).map(([ob]) => odd(base, ob, k)).filter(Boolean) as number[];
