@@ -11,6 +11,8 @@ const N = 3, TTL = 10 * 60000;
 let pauseUntil = 0; // blocage Cloudflare 1015 (trop de demandes) : on se tait 2 min
 type Sess = { ck: string; v: string[]; ts: string; at: number; page: string };
 let pool: Sess[] = [];
+const PER = 10; let rr = 0;
+const memo = new Map<string, { mk: Record<string, number[]>; locked: Set<string> }>();
 
 const get = async (u: string, ck?: string) => {
   if (Date.now() < pauseUntil) throw new Error("pause");
@@ -52,7 +54,13 @@ export async function sbList(want: (id: string) => boolean = () => true) {
   const list = [...evs.values()];
   // Cotes lues UNIQUEMENT pour les matchs déjà reliés à 1xBet, une demande à la fois par session
   // (lire tous les matchs en parallèle déclenchait le blocage Cloudflare 1015)
-  const todo = list.filter((e) => want(e.id));
+  // 17/10/2026 : lire les ~60 matchs toutes les 5 s faisait ~750 demandes/min → blocage Cloudflare 1015
+  // permanent. On lit 10 matchs par passage, à tour de rôle (chaque match relu ~toutes les 30 s), et
+  // on garde ses dernières cotes connues entre deux lectures.
+  const all = list.filter((e) => want(e.id));
+  for (const e of all) { const m = memo.get(e.id); if (m) { e.mk = m.mk; e.locked = m.locked; } }
+  const todo = all.length <= PER ? all : Array.from({ length: PER }, (_, i) => all[(rr + i) % all.length]);
+  rr = (rr + PER) % Math.max(all.length, 1);
   await Promise.all(pool.map(async (s, k) => { for (let i = k; i < todo.length; i += pool.length) await readOne(todo[i], s); }));
   return list;
 }
@@ -62,6 +70,7 @@ async function readOne(e: any, s: Sess) {
     const w = [...s.v];
     w[2] = "15"; w[6] = e.id;
     const b = await get(`/en/data/event?ts=${s.ts}&tk=${w.join(",")}`, s.ck).then((r) => r.text()).catch(() => "");
+    if (b) e.mk = {};
     const sc = [...b.matchAll(evRe)].find((x) => x[1] === e.id);
     if (sc) e.score = [Number(sc[4]), Number(sc[5])];
     for (const m of b.matchAll(/\[\d{9},\[3,0,3,\d,\d+,(-?[\d.]+),\d+\],\[([\d.]+),([\d.]+)\]\]/g)) {
@@ -69,5 +78,6 @@ async function readOne(e: any, s: Sess) {
       if (Math.abs(ln % 1 - 0.5) > 1e-6) continue; // lignes .5 seulement (pas de 2.25 / 2.75)
       e.mk[`TOT_${ln}`] = [Number(m[2]), Number(m[3])];
     }
+    if (b) memo.set(e.id, { mk: e.mk, locked: e.locked });
   }
 }
