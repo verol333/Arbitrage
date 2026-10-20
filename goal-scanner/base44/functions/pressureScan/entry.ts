@@ -14,7 +14,8 @@ const FOLLOW = 3;
 const ST = (v: any[], id: number) => { const s = v.find((x: any) => x.ID === id); return [Number(s?.S1 || 0), Number(s?.S2 || 0)] as [number, number]; };
 const toSample = (sc: any, min: number): Sample | null => {
   const v = sc?.ST?.[0]?.Value || [];
-  if (!v.some((x: any) => x.ID === 58)) return null;
+  // Seulement les matchs riches en données : attaques, attaques dangereuses et tirs fournis
+  if (![45, 58, 59].every((id) => v.some((x: any) => x.ID === id))) return null;
   return { at: Date.now(), min, da: ST(v, 58), at_: ST(v, 45), on: ST(v, 59), off: ST(v, 60), co: ST(v, 70), poss: ST(v, 29), rc: ST(v, 71) };
 };
 
@@ -63,6 +64,14 @@ async function loop(db: any) {
       const top = rank.slice(0, FOLLOW).map((x) => x.id), keep = new Set(rank.slice(0, FOLLOW * 2).map((x) => x.id));
       for (const [id, f] of S.follow) if (!keep.has(id) && !f.pending.length) await end(db, id, f, "dropped");
       for (const id of top) if (S.follow.size < FOLLOW && !S.follow.has(id)) await start(db, id);
+    }
+    // Mémoire sauvegardée chaque minute : un redémarrage reprend l'historique sans temps de chauffe
+    if (Date.now() - (S.memAt || 0) > 60000) {
+      S.memAt = Date.now();
+      const hist: any = {};
+      for (const [id, h] of S.hist) { const n = h[h.length - 1]; const k = h.filter((s: Sample) => n.min - s.min <= 12); if (k.length) hist[id] = k; }
+      const data = { key: "main", hist, saved_at: new Date().toISOString() };
+      (S.memId ? db.PressureState.update(S.memId, data) : db.PressureState.create(data).then((r: any) => { S.memId = r.id; })).catch(() => null);
     }
     // Bilan de santé toutes les 3 min : quelles données sont réellement disponibles sur les matchs suivis
     if (Date.now() - (S.beatAt || 0) > 180000) {
@@ -153,6 +162,11 @@ Deno.serve(async (req) => {
     if (old.length) await db.PressureLive.bulkUpdate(old.map((r: any) => ({ id: r.id, status: "ended" }))).catch(() => null);
     const stale = (await db.PressureSignal.filter({ status: "pending", created_date: { $lt: new Date(Date.now() - 3 * 3600e3).toISOString() } }, { limit: 100 }).catch(() => null))?.items || [];
     if (stale.length) await db.PressureSignal.bulkUpdate(stale.map((r: any) => ({ id: r.id, status: "void" }))).catch(() => null);
+    const mem = (await db.PressureState.filter({ key: "main" }, { limit: 1 }).catch(() => null))?.items?.[0];
+    if (mem) {
+      S.memId = mem.id;
+      if (Date.now() - new Date(mem.saved_at).getTime() < 10 * 60e3) for (const [id, h] of Object.entries(mem.hist || {})) S.hist.set(Number(id), h as Sample[]);
+    }
     S.running = loop(db).catch((e) => console.error("pression", e)).finally(() => { S.running = null; });
   }
   await Promise.race([S.running, sleep(seconds * 1000)]);
