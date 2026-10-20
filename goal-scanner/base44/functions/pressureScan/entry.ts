@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { sleep, xbetList, xbetSnap, T22, H } from "../../shared/liveMarkets.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { fotmobFind, fotmobDetails } from "../../shared/fotmobLive.ts";
@@ -16,7 +16,7 @@ const toSample = (sc: any, min: number): Sample | null => {
   const v = sc?.ST?.[0]?.Value || [];
   // Seulement les matchs riches en données : attaques, attaques dangereuses et tirs fournis
   if (![45, 58, 59].every((id) => v.some((x: any) => x.ID === id))) return null;
-  return { at: Date.now(), min, da: ST(v, 58), at_: ST(v, 45), on: ST(v, 59), off: ST(v, 60), co: ST(v, 70), poss: ST(v, 29), rc: ST(v, 71) };
+  return { at: Date.now(), min, da: ST(v, 58), at_: ST(v, 45), on: ST(v, 59), off: ST(v, 60), co: ST(v, 70), poss: ST(v, 29), rc: ST(v, 71), yc: ST(v, 26), pen: ST(v, 72) };
 };
 
 const S: any = { hist: new Map<number, Sample[]>(), info: new Map<number, any>(), follow: new Map<number, any>(), t22: [] as any[], until: 0, running: null as Promise<void> | null, signals: 0 };
@@ -131,13 +131,17 @@ async function tick(db: any, id: number, f: any) {
     const mk = `${mt1 ? "H1TOT" : "TOT"}_${line}`;
     const o = [["1xBet", x], ["22Bet", t]].map(([b, m]: any) => ({ b, o: m && !m.locked.has(mk) ? m.mk[mk]?.[0] : null })).filter((z) => z.o);
     f.odds = o.sort((a, b) => b.o - a.o)[0] || null;
+    // Historique de la cote sur la même ligne (2 dernières minutes) : une baisse = le marché croit au but
+    if (f.oh?.line !== mk) f.oh = { line: mk, pts: [] };
+    if (f.odds) { f.oh.pts.push({ t: Date.now(), o: f.odds.o }); f.oh.pts = f.oh.pts.filter((p: any) => Date.now() - p.t <= 120000); }
   }
   if (h.length < 2) return;
-  const m = compute(h, f.fm, sc, f.odds?.o ?? null, mt1 ? 47 : 94);
+  const first = f.oh?.pts?.[0], oddDrop = first && f.odds && Date.now() - first.t >= 60000 ? first.o - f.odds.o : null;
+  const m = compute(h, f.fm, sc, f.odds?.o ?? null, mt1 ? 47 : 94, oddDrop);
   const key = `${mt1 ? "mt1" : "fin"}_${line}`;
   if (isSignal(min, m) && !f.sig.has(key)) {
     f.sig.add(key);
-    const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, period: mt1 ? "mt1" : "fin", metrics: m, status: "pending" })).catch(() => null);
+    const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, stars: m.stars, period: mt1 ? "mt1" : "fin", metrics: m, status: "pending" })).catch(() => null);
     if (rec?.id) { f.pending.push({ id: rec.id, goals: sc[0] + sc[1], mt1 }); S.signals++; }
   }
   // Fiche en direct : enregistrée toutes les 30 s (économie d'écritures)
