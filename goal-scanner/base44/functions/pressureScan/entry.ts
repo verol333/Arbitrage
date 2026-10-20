@@ -3,6 +3,7 @@ import { sleep, xbetList, xbetSnap, T22, H } from "../../shared/liveMarkets.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { fotmobFind, fotmobDetails } from "../../shared/fotmobLive.ts";
 import { compute, isSignal, type Sample } from "../../shared/pressureModel.ts";
+import { dbRetry } from "../../shared/dbRetry.ts";
 
 // Scanner « pression » (tourne en continu sur GitHub) :
 // - toutes les 15 s : compteurs de TOUS les matchs 1xBet → intensité des 10 dernières minutes de chacun ;
@@ -64,7 +65,7 @@ async function loop(db: any) {
       for (const id of top) if (S.follow.size < FOLLOW && !S.follow.has(id)) await start(db, id);
     }
     // 3. Matchs suivis : relevé à la seconde
-    await Promise.all([...S.follow.entries()].map(([id, f]) => tick(db, id, f)));
+    await Promise.all([...S.follow.entries()].map(([id, f]) => tick(db, id, f).catch((e) => { S.err = String(e?.stack || e).slice(0, 400); })));
     await sleep(1000);
   }
 }
@@ -73,7 +74,7 @@ async function start(db: any, id: number) {
   const i = S.info.get(id);
   const label = `${i.home} - ${i.away}`;
   const fotmob = await fotmobFind(i.home, i.away).catch(() => null);
-  const rec = await db.PressureLive.create({ xbet_id: id, fotmob_id: fotmob ?? undefined, match_label: label, league: i.league, status: "live", minute: i.min, score: i.sc.join("-"), updated_at: new Date().toISOString() }).catch(() => null);
+  const rec = await dbRetry(() => db.PressureLive.create({ xbet_id: id, fotmob_id: fotmob ?? undefined, match_label: label, league: i.league, status: "live", minute: i.min, score: i.sc.join("-"), updated_at: new Date().toISOString() })).catch(() => null);
   S.follow.set(id, { rec: rec?.id, label, fotmob, fm: null, fmAt: 0, t22: S.t22.find((t: any) => sameTeam(t.home, i.home) && sameTeam(t.away, i.away))?.id, odds: null, oddsAt: 0, series: [], sig: new Set<string>(), pending: [] as any[] });
 }
 
@@ -97,7 +98,7 @@ async function tick(db: any, id: number, f: any) {
   const i = S.info.get(id); if (i) { i.min = min; i.sc = sc; }
   // Signaux en cours : but marqué = gagné
   for (const p of [...f.pending]) if (sc[0] + sc[1] > p.goals) {
-    await db.PressureSignal.update(p.id, { status: "won", goal_minute: min, last_score: sc.join("-"), last_minute: min, settled_at: new Date().toISOString() }).catch(() => null);
+    await dbRetry(() => db.PressureSignal.update(p.id, { status: "won", goal_minute: min, last_score: sc.join("-"), last_minute: min, settled_at: new Date().toISOString() })).catch(() => null);
     f.pending = f.pending.filter((x: any) => x !== p);
   }
   // FotMob toutes les 30 s, cotes « +1 but » toutes les 3 s
@@ -114,7 +115,7 @@ async function tick(db: any, id: number, f: any) {
   const key = `${line}`;
   if (isSignal(min, m) && !f.sig.has(key)) {
     f.sig.add(key);
-    const rec = await db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, metrics: m, status: "pending" }).catch(() => null);
+    const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, metrics: m, status: "pending" })).catch(() => null);
     if (rec?.id) { f.pending.push({ id: rec.id, goals: sc[0] + sc[1] }); S.signals++; }
   }
   // Fiche en direct : enregistrée toutes les 30 s (économie d'écritures)
@@ -123,7 +124,7 @@ async function tick(db: any, id: number, f: any) {
   if (f.series.length > 45) f.series.shift();
   if (f.rec && Date.now() - (f.savedAt || 0) > 30000) {
     f.savedAt = Date.now();
-    await db.PressureLive.update(f.rec, { minute: min, score: sc.join("-"), metrics: { ...m, line, odd_book: f.odds?.b }, series: f.series, updated_at: new Date().toISOString() }).catch(() => null);
+    dbRetry(() => db.PressureLive.update(f.rec, { minute: min, score: sc.join("-"), metrics: { ...m, line, odd_book: f.odds?.b }, series: f.series, updated_at: new Date().toISOString() })).catch((e: any) => { S.err = "save " + String(e?.message || e).slice(0, 300); });
   }
 }
 
@@ -142,7 +143,7 @@ Deno.serve(async (req) => {
     S.running = loop(db).catch((e) => console.error("pression", e)).finally(() => { S.running = null; });
   }
   await Promise.race([S.running, sleep(seconds * 1000)]);
-  const summary = { matchsAvecStats: S.hist.size, suivis: [...S.follow.values()].map((f: any) => f.label), signaux: S.signals };
+  const summary = { matchsAvecStats: S.hist.size, suivis: [...S.follow.values()].map((f: any) => f.label), signaux: S.signals, erreur: S.err || null };
   await db.AppLog.create({ area: "scanner_pression", action: "cycle", level: "info", ok: true, message: `${summary.matchsAvecStats} matchs mesurés, ${summary.suivis.length} suivis`, duration_ms: Date.now() - t0, details: summary }).catch(() => null);
   return Response.json(summary);
 });
