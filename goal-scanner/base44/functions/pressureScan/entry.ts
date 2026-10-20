@@ -10,7 +10,7 @@ import { dbRetry } from "../../shared/dbRetry.ts";
 // - les 3 matchs les plus intenses (30e–45e et 65e–88e) sont suivis à la seconde : stats 1xBet, cotes 1xBet + 22Bet, FotMob (xG, momentum) ;
 // - opportunité « +1 but » (observation, aucune mise) → fiche + alerte téléphone.
 // L'état reste en mémoire entre deux cycles (même machine) : aucun temps de chauffe perdu.
-const FOLLOW = 3;
+const FOLLOW = 15; // tous les matchs dans la fenêtre sont relevés à la seconde
 const ST = (v: any[], id: number) => { const s = v.find((x: any) => x.ID === id); return [Number(s?.S1 || 0), Number(s?.S2 || 0)] as [number, number]; };
 const toSample = (sc: any, min: number): Sample | null => {
   const v = sc?.ST?.[0]?.Value || [];
@@ -150,7 +150,9 @@ async function tick(db: any, id: number, f: any) {
   if (f.series.length > 45) f.series.shift();
   if (f.rec && Date.now() - (f.savedAt || 0) > 30000) {
     f.savedAt = Date.now();
-    dbRetry(() => db.PressureLive.update(f.rec, { minute: min, score: sc.join("-"), metrics: { ...m, line, odd_book: f.odds?.b }, series: f.series, updated_at: new Date().toISOString() })).catch((e: any) => { S.err = "save " + String(e?.message || e).slice(0, 300); });
+    dbRetry(() => db.PressureLive.update(f.rec, { minute: min, score: sc.join("-"), metrics: { ...m, line, odd_book: f.odds?.b }, series: f.series, updated_at: new Date().toISOString() }))
+      .then(() => { if (String(S.err).startsWith("save")) S.err = null; })
+      .catch((e: any) => { f.savedAt = Date.now() - 25000; S.err = "save " + String(e?.message || e).slice(0, 300); }); // nouvel essai dans 5 s
   }
 }
 
