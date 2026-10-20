@@ -13,8 +13,8 @@ export function sameMatch(l1: unknown, l2: unknown): boolean {
 // Règles : chute ≥ 10 % en 50-120 s, cote de départ ≤ 4.5, arrivée 1.30-2.60, aucun but dans les 3 dernières
 // minutes, aucun but dans les 45 s qui suivent, marchés de buts non suspendus, 10e-75e minute (si connue).
 const KEY = /^TOT_\d+\.5$/;
-const IDK: Record<string, string> = { x: "1xbet", w: "1win", b: "betpawa", c: "congobet", y: "yellowbet", p: "pinnacle", s: "sbobet", u: "unibet", o: "sportybet" };
-const NAME: Record<string, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet", p: "Pinnacle", s: "SBOBET", u: "Unibet", o: "SportyBet" };
+const IDK: Record<string, string> = { x: "1xbet", w: "1win", b: "betpawa", c: "congobet", y: "yellowbet", p: "pinnacle", s: "sbobet", u: "unibet", o: "sportybet", t: "22bet" };
+const NAME: Record<string, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet", p: "Pinnacle", s: "SBOBET", u: "Unibet", o: "SportyBet", t: "22Bet" };
 const pct = (v: number) => Math.round(v * 1000) / 10;
 export type Snap = { at: number; min?: number | null; sc: [number, number]; mk: Record<string, number[]>; lk?: Set<string> };
 // Relevé brut d'un site : heure, minute, score et toutes les cotes de buts (🔒 = fermée)
@@ -22,7 +22,7 @@ const dump = (s: Snap) => `${new Date(s.at).toISOString().slice(11, 19)} ${s.min
   Object.keys(s.mk).filter((k) => KEY.test(k)).sort().map((k) => `${k.slice(4)}:${s.mk[k].join("/")}${s.lk?.has(k) ? "🔒" : ""}`).join(" ");
 type Ev = { id: string | number; home: string; away: string; league?: string };
 
-export function createSolo(signals: any[], pending: any[], settle: Record<string, any>) {
+export function createSolo(signals: any[], pending: any[], settle: Record<string, any>, patient?: { feed: (bk: string, e: any, s: Snap, h: Snap[]) => void }) {
   const T = new Map<string, any>();
   // Nombre de matchs qui « chutent » dans le même relevé d'un site : 3+ en même temps = défaut de lecture
   const burst = new Map<string, Set<string>>();
@@ -38,10 +38,11 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
     // Résultat des signaux en attente (cycles précédents) pour ce match chez ce site
     for (const sig of pending) if (String(sig.book_ids?.[IDK[bk]]) === String(e.id) && !settle[sig.id]?.status) {
       const v = verdict(sig, s.sc, false);
-      settle[sig.id] = { last_score: s.sc.join("-"), ...(s.min != null ? { last_minute: s.min } : {}), ...(v && sig.status === "pending" ? { status: v, settled_at: new Date().toISOString() } : {}) };
+      settle[sig.id] = { last_score: s.sc.join("-"), ...(s.min != null ? { last_minute: s.min } : {}), ...(v && v !== sig.status ? { status: v, settled_at: new Date().toISOString() } : {}) };
     }
     t.hist.push(s);
     t.hist = t.hist.filter((o: Snap) => s.at - o.at <= 180000);
+    patient?.feed(bk, e, s, t.hist);
     t.pend = t.pend.filter((p: any) => {
       if (s.at !== p.t0) p.trace.push(`suivi ${dump(s)}`);
       if (g !== p.g) { console.log(`[chute rejetée: but] ${p.trace.join(" || ")}`); return false; }
@@ -57,6 +58,10 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
       return false;
     });
     if (s.min != null && (s.min < 10 || s.min > 75)) return;
+    // Historique : 30e-45e = 41 % de réussite → ignorée
+    if (s.min != null && s.min >= 30 && s.min < 45) return;
+    // SportyBet en observation (36 % de réussite) : toujours suivi en direct, mais plus de nouveaux signaux
+    if (bk === "o") return;
     // Marchés de buts suspendus en bloc (incident en cours) ; une ligne isolée fermée ne bloque pas les autres
     const tk = Object.keys(s.mk).filter((k) => KEY.test(k));
     if (tk.length && tk.filter((k) => s.lk?.has(k)).length * 2 >= tk.length) return;
@@ -73,7 +78,12 @@ export function createSolo(signals: any[], pending: any[], settle: Record<string
       const o0 = odd(base, k), o1 = odd(s, k);
       if (!o0 || !o1) continue;
       const drop = 1 - o1 / o0;
-      if (drop < 0.15 || o0 > 4.5 || o1 < 1.3 || o1 > 1.9) continue; // cote finale 1.9 maximum
+      if (drop < 0.15 || o0 > 4.5 || o1 < 1.3 || o1 > 1.8) continue; // cote finale 1.8 maximum
+      // Historique des pertes : buts encore nécessaires selon la minute
+      const need = Math.round(ln - g + 0.5), mn = s.min ?? 0;
+      if (need >= 4) continue;                          // 4 buts ou plus : ~50 %
+      if (mn >= 60 && need > 1) continue;               // après la 60e : un seul but max
+      if (bk === "w" && mn >= 45 && need >= 3) continue; // 1win 2e MT, 3 buts : 27 %
       // Échelle décalée d'un cran = but déjà intégré par le site, pas une vraie chute
       const lo = odd(base, `TOT_${ln - 1}`), hi = odd(s, `TOT_${ln + 1}`);
       if ((lo && Math.abs(o1 / lo - 1) < 0.1) || (hi && Math.abs(hi / o0 - 1) < 0.1)) continue;

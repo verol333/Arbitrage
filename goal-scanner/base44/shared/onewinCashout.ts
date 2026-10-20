@@ -1,5 +1,6 @@
 import { connect1win, connectBook } from "./probAutoExec.ts";
 import { betpawaCashout } from "./betpawaCashout.ts";
+import { BETPAWA_COUNTRIES } from "./betpawaCountries.ts";
 import { ONEWIN_PLATFORM, ONEWIN_API } from "./onewinLiveWs.ts";
 
 // Cash-out 1win : le montant est celui PROPOSÉ par 1win (refundInfo de la fiche du pari), jamais choisi par nous.
@@ -34,7 +35,8 @@ export async function cashoutCancelledGoal(db: any, { xbet_id, score }: { xbet_i
     // Le site peut suspendre le cash-out quelques secondes juste après l'annulation : 5 essais espacés de 3 s
     let r: any = null;
     for (let i = 0; i < 5; i++) {
-      r = await (b.book === "betpawa" ? betpawaCashout(c, b.ticket_id) : cashoutTicket(c.token, b.ticket_id)).catch((e) => ({ ok: false, reason: String(e) }));
+      const bp = BETPAWA_COUNTRIES.find((x) => x.host === c.host) || BETPAWA_COUNTRIES[0];
+      r = await (b.book === "betpawa" ? betpawaCashout({ token: c.token, host: bp.host, brand: bp.brand, iso: bp.iso }, b.ticket_id) : cashoutTicket(c.token, b.ticket_id)).catch((e) => ({ ok: false, reason: String(e) }));
       if (r.ok) break;
       await new Promise((s) => setTimeout(s, 3000));
     }

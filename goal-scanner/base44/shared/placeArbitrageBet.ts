@@ -16,6 +16,7 @@ import { planStakes, minStakeOf } from "./autoStakePlan.ts";
 import { learnFromPartial, learnFromRefusal, readStakeLimits } from "./bookStakeLimits.ts";
 import { coverElsewhere } from "./coverElsewhere.ts";
 import { coverRefusedLeg, isTemporaryBlock } from "./coverRefusedLeg.ts";
+import { cashoutExposedLeg } from "./exposedCashout.ts";
 import { AUTO_SUSPENDED_BOOKS, bookLiveExcludedMessage, bookSuspendedMessage, isBookLiveExcluded, LIVE_AUTO_SUSPENDED, LIVE_SUSPENDED_MESSAGE } from "./liveSuspend.ts";
 import { normalizeLegLabel } from "./legLabelNormalize.ts";
 import { isOffline, isUnplayableRefusal, markOffline, OFFLINE_TTL_MS } from "./liveAvailability.ts";
@@ -904,6 +905,21 @@ export async function runPlacement(opts: {
 
   if (refused.length) {
     const accepted = (placed as any[]).filter((p) => p.success);
+    // Dernier filet : rachat (cash-out) de la jambe restée seule chez 1win / betPawa
+    if (accepted.length === 1) {
+      const acc = accepted[0];
+      const accLeg = legs.find((l) => l.book === acc.book);
+      const co = await cashoutExposedLeg(acc.book, accLeg?.conn, String(acc.ticketId || "")).catch((e: any) => ({ ok: false, reason: String(e) }));
+      steps.push(co.ok ? `Cash-out ${acc.book} : ${co.amount} F rendus sur ${acc.stake} F — plus aucune position à découvert` : `Cash-out ${acc.book} impossible (${co.reason})`);
+      if (co.ok) {
+        Object.assign(acc, { cashout: true, cashout_amount: co.amount });
+        return {
+          ok: false, stage: "placement", placed, plan: finalPlan, steps, sessions, odds, cashed_out: true,
+          unusable_books: refused.filter((p) => !p.skipped).map((p) => p.book),
+          reason: `Pari refusé chez ${refused.map((p) => p.book).join(", ")} — jambe ${acc.book} rachetée (cash-out ${co.amount} F sur ${acc.stake} F), aucune position à découvert`,
+        };
+      }
+    }
     return {
       ok: false, stage: "placement", placed, plan: finalPlan, steps, sessions, odds,
       unusable_books: refused.filter((p) => !p.skipped).map((p) => p.book),

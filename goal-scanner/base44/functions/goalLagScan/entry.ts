@@ -1,13 +1,14 @@
-import { createClientFromRequest } from "../../../sdk-shim.ts";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 // appariement des équipes : version du 16/10
 import { fetchLiveMatches, fetchOddsAndInfo } from "../../shared/onewinLiveWs.ts";
 import { listBetpawaLive, listBetpawaCategories } from "../../shared/betpawaLive.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
-import { sleep, xbetList, xbetSnap, bpSnap, wParse, cbList, cbSnap } from "../../shared/liveMarkets.ts";
+import { sleep, xbetList, xbetSnap, T22, bpSnap, wParse, cbList, cbSnap } from "../../shared/liveMarkets.ts";
 import { OnewinStream } from "./onewinStream.ts";
 import { type Book, type GoalEv, type Line, BOOKS, newGoal, sample, toRecord, WINDOW_MS } from "./tracker.ts";
 import { step, toSignal, verdict, STATS } from "./probLag.ts";
 import { createSolo, sameMatch } from "../../shared/soloDrops.ts";
+import { createPatient } from "../../shared/patientDrops.ts";
 import { fetchOddsAndInfo as wBatch } from "../../shared/onewinLiveWs.ts";
 import { createAutoBet, loadOpenBets, settleBet } from "./autoBet.ts";
 import { sampleInc, incRecord, INC_MS } from "./incidents.ts";
@@ -52,6 +53,9 @@ Deno.serve(async (req) => {
     out.unibet = Array.isArray(ul) ? { matchs: ul.length, ex: ul[0] && { ...ul[0], snap: await ubSnap(ul[0].id).then((s) => s.mk).catch((e) => String(e)) } } : ul;
     const sp = await spList().catch((e) => String(e));
     out.sportybet = Array.isArray(sp) ? { matchs: sp.length, avecTotaux: sp.filter((e: any) => T(e.mk)).length, ex: sp[0] && { sc: sp[0].score, min: sp[0].min, mk: sp[0].mk } } : sp;
+    const tl = await xbetList(T22, "").catch((e) => String(e));
+    out.bet22 = Array.isArray(tl) ? { matchs: tl.length, ligues: new Set(tl.map((e: any) => e.league)).size } : tl;
+    if (Array.isArray(tl)) { const sn = await Promise.all(tl.slice(0, 15).map((e: any) => xbetSnap(e.id, T22, "").catch(() => null))); out.bet22.avecTotaux = sn.filter((s) => s && T(s.mk)).length + "/15"; const e = tl.find((e: any) => e.min >= 50); out.bet22.ex = e && { m: `${e.home} - ${e.away}`, min: e.min, sc: `${e.sh}-${e.sa}` }; }
     return Response.json(out);
   }
   if (body.mode === "sbcheck") {
@@ -63,6 +67,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < 3; i++) { const t = Date.now(); const l = await sbList().catch((e) => String(e)); out.push({ ms: Date.now() - t, n: Array.isArray(l) ? l.length : l, avecTotaux: Array.isArray(l) ? l.filter((e) => Object.keys(e.mk).length).length : 0, ex: Array.isArray(l) ? l.slice(0, 3).map((e) => `${e.home} - ${e.away} ${e.score.join("-")} ${JSON.stringify(e.mk)}`) : null }); }
     return Response.json(out);
   }
+  if (body.mode === "patientcheck") return Response.json(await (await import("./patientCheck.ts")).patientCheck().catch((e: any) => ({ erreur: String(e?.stack || e) })));
   if (body.mode === "selftest") return Response.json(await (await import("./selfTest.ts")).selfTest(db).catch((e: any) => ({ erreur: String(e?.stack || e) })));
   // Essai à blanc du chemin complet (capital → cote → connexion 1win) sur un signal passé, sans miser
   if (body.mode === "replay") {
@@ -90,7 +95,9 @@ Deno.serve(async (req) => {
   pending.push(...wonLive);
   const settle: Record<string, any> = {};
   // Chutes de cote : chaque site surveille tous ses propres matchs (aucune liaison entre sites)
-  const solo = createSolo(signals, pending, settle);
+  // Chutes patientes (2e MT, cote +1 but ≥ 1.40) : observation administrateur
+  const patient = body.mode === "proba" ? await createPatient(db) : undefined;
+  const solo = createSolo(signals, pending, settle, patient);
   let xAll: any[] = [];
   // Paris automatiques 1win encore ouverts
   const openBets = body.mode === "proba" ? await loadOpenBets(db) : [];
@@ -471,6 +478,9 @@ Deno.serve(async (req) => {
     // Unibet : liste des matchs (minute + score) relue en continu, puis les totaux de chaque match
     soloLoop("U", () => [{ id: "liste", home: "", away: "" }], async () => { uList = await ubList(); await sleep(3000); return null; }, 1),
     soloLoop("u", () => uList, async (e) => { const u = await ubSnap(e.id); return { at: Date.now(), min: e.min, sc: e.score, mk: u.mk, lk: u.locked }; }, 6),
+    // 22Bet : liste relue toutes les ~10 s, puis les totaux de chaque match
+    soloLoop("T", () => [{ id: "liste", home: "", away: "" }], async () => { tList = await xbetList(T22, ""); await sleep(8000); return null; }, 1),
+    soloLoop("t", () => tList, async (e) => { const x = await xbetSnap(e.id, T22, ""); return x && { at: Date.now(), min: x.min, sc: [x.sh, x.sa], mk: x.mk, lk: x.locked }; }, 10),
     // SportyBet : tous les matchs et leurs totaux en une lecture (~6 Mo), toutes les ~5 s
     soloLoop("o", () => [{ id: "all", home: "", away: "" }], async () => {
       const l = await spList(); const at = Date.now();
@@ -479,7 +489,7 @@ Deno.serve(async (req) => {
       return null;
     }, 1),
   ];
-  let uList: any[] = [];
+  let uList: any[] = [], tList: any[] = [];
 
   // Deux scanners séparés (chacun son propre serveur) pour garder le rythme d'1 s :
   // mode "buts" = retard au but, mode "proba" = probabilités en avance.
@@ -497,7 +507,10 @@ Deno.serve(async (req) => {
     if (sig.status !== "pending" || u.status || liveIds.has(sig.xbet_id) || solo.isLive(sig)) continue;
     const min = u.last_minute ?? sig.last_minute, sc = String(u.last_score ?? sig.last_score).split("-").map(Number) as [number, number];
     const age = Date.now() - new Date(sig.created_date).getTime();
-    if (min >= 85 || (sig.book === "Chute" && age > 2 * 3600e3)) settle[sig.id] = { ...u, status: verdict(sig, sc, true), settled_at: new Date().toISOString() };
+    // Chute : jamais jugé sur un score de milieu de match — le score final officiel s'en charge
+    // Chute perdue au dernier score vu : on garde ce score mais on attend la confirmation officielle (but tardif possible)
+    if (sig.book === "Chute") { if (min < 85 || verdict(sig, sc, true) === "lost") continue; }
+    if (min >= 85) settle[sig.id] = { ...u, status: verdict(sig, sc, true), settled_at: new Date().toISOString() };
     else if (Date.now() - new Date(sig.created_date).getTime() > 3 * 3600e3) settle[sig.id] = { ...u, status: "void", settled_at: new Date().toISOString() };
   }
   await autoBet.done();
@@ -510,6 +523,7 @@ Deno.serve(async (req) => {
   }
   const bUpd = Object.entries(betSettle).map(([id, v]) => { const { last_minute, ...rest } = v; return { id, ...rest, ...(last_minute != null ? { last_minute } : {}) }; });
   if (bUpd.length) await db.ProbAutoBet.bulkUpdate(bUpd).catch(() => null);
+  await patient?.finish();
   const upd = Object.entries(settle).map(([id, v]) => ({ id, ...v }));
   if (upd.length) await db.ProbLagSignal.bulkUpdate(upd).catch(() => null);
   // Suivi encore incomplet (limite serveur) : on n'enregistre pas un but à moitié observé

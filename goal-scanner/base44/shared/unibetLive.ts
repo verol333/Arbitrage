@@ -5,7 +5,8 @@
 const BASE = "https://eu-offering-api.kambicdn.com/offering/v2018/ub";
 const Q = "lang=fr_FR&market=FR";
 const H = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124" };
-const FAKE = /virtu|cyber|esoccer|e-soccer|fifa|simulat|srl/i;
+// Matchs e-sport : pseudo du joueur entre parenthèses, ex. « Spain (vivienne) »
+const FAKE = /virtu|cyber|esoccer|e-soccer|fifa|simulat|srl|\([a-z0-9_]+\)/i;
 
 const get = async (u: string) => {
   const r = await fetch(`${BASE}${u}${u.includes("?") ? "&" : "?"}${Q}`, { headers: H, signal: AbortSignal.timeout(8000) });

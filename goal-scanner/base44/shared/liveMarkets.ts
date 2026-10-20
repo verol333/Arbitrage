@@ -15,8 +15,10 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const FAKE = /alternat|virtu|cyber|fifa|esport|e-sport|penalt|short|2x2|3x3|4x4|5x5|6x6|7x7|8x8|\+|rush|student|\blfl\b|special|statist|player|joueur|\(sub\)|\bsub\b/i;
 
 /** Tous les matchs de foot en direct chez 1xBet, avec score et minute (un seul appel). */
-export async function xbetList() {
-  const j = await fetch("https://1xbet.cg/service-api/LiveFeed/Get1x2_VZip?sports=1&count=1000&lng=en&mode=4&country=93&partner=159&getEmpty=true", { headers: H, signal: AbortSignal.timeout(5000) }).then((r) => r.json()).catch(() => null);
+// 22Bet : même moteur que 1xBet (mêmes formats), catalogue très large avec les divisions inférieures
+export const T22 = "https://22bet.ng/LiveFeed/";
+export async function xbetList(base = "https://1xbet.cg/service-api/LiveFeed/", q = "&country=93&partner=159") {
+  const j = await fetch(`${base}Get1x2_VZip?sports=1&count=1000&lng=en&mode=4${q}&getEmpty=true`, { headers: H, signal: AbortSignal.timeout(5000) }).then((r) => r.json()).catch(() => null);
   return (j?.Value || [])
     .filter((g: any) => !FAKE.test(g.L || "") && !FAKE.test(`${g.O1E || g.O1} ${g.O2E || g.O2}`))
     .map((g: any) => ({
@@ -32,8 +34,8 @@ function stat(g: any, id: number): [number, number] | null {
   return s ? [Number(s.S1 || 0), Number(s.S2 || 0)] : null;
 }
 
-export async function xbetSnap(id: number) {
-  const j = await fetch(`https://1xbet.cg/service-api/LiveFeed/GetGameZip?id=${id}&lng=en&country=93&partner=159&GroupEvents=true&grMode=4&marketType=1&countevents=250`, { headers: H, signal: AbortSignal.timeout(4000) }).then((r) => r.json()).catch(() => null);
+export async function xbetSnap(id: number, base = "https://1xbet.cg/service-api/LiveFeed/", q = "&country=93&partner=159") {
+  const j = await fetch(`${base}GetGameZip?id=${id}&lng=en${q}&GroupEvents=true&grMode=4&marketType=1&countevents=250`, { headers: H, signal: AbortSignal.timeout(4000) }).then((r) => r.json()).catch(() => null);
   const v = j?.Value;
   if (!v) return null;
   const mk: Mk = {};
