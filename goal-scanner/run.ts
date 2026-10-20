@@ -4,15 +4,15 @@ const MINUTES = Number(Deno.env.get("SCAN_DURATION_MINUTES") || 350);
 const CYCLE = Number(Deno.env.get("SCAN_MAX_S") || 1800);
 let handler: ((r: Request) => Promise<Response>) | null = null;
 (Deno as any).serve = (h: any) => { handler = h; return { finished: Promise.resolve() }; };
-await import(MODE === "corners" ? "./base44/functions/statLagProbe/entry.ts" : MODE === "basket" ? "./base44/functions/basketLagProbe/entry.ts" : MODE === "hockey" ? "./base44/functions/hockeyLagProbe/entry.ts" : MODE === "tennis" ? "./base44/functions/tennisLagProbe/entry.ts" : "./base44/functions/goalLagScan/entry.ts");
+await import(MODE === "pression" ? "./base44/functions/pressureScan/entry.ts" : MODE === "corners" ? "./base44/functions/statLagProbe/entry.ts" : MODE === "basket" ? "./base44/functions/basketLagProbe/entry.ts" : MODE === "hockey" ? "./base44/functions/hockeyLagProbe/entry.ts" : MODE === "tennis" ? "./base44/functions/tennisLagProbe/entry.ts" : "./base44/functions/goalLagScan/entry.ts");
 const end = Date.now() + MINUTES * 60e3 - 3 * 60e3;
 const runs: Promise<void>[] = [];
 while (true) {
   const len = Math.floor(Math.min(CYCLE, (end - Date.now()) / 1000));
   if (len < 60) {
     // Relais : la machine suivante démarre avant la fin de celle-ci (chevauchement, aucun trou)
-    if (MODE === "buts" || MODE === "hockey" || MODE === "tennis" || MODE === "basket") {
-      const r = await fetch(`https://api.github.com/repos/${Deno.env.get("GITHUB_REPOSITORY")}/actions/workflows/${MODE === "basket" ? "basket-scanner.yml" : MODE === "hockey" ? "hockey-scanner.yml" : MODE === "tennis" ? "tennis-scanner.yml" : "goal-scanner.yml"}/dispatches`, {
+    if (MODE === "buts" || MODE === "hockey" || MODE === "tennis" || MODE === "basket" || MODE === "pression") {
+      const r = await fetch(`https://api.github.com/repos/${Deno.env.get("GITHUB_REPOSITORY")}/actions/workflows/${MODE === "pression" ? "pressure-scanner.yml" : MODE === "basket" ? "basket-scanner.yml" : MODE === "hockey" ? "hockey-scanner.yml" : MODE === "tennis" ? "tennis-scanner.yml" : "goal-scanner.yml"}/dispatches`, {
         method: "POST", headers: { Authorization: `Bearer ${Deno.env.get("GITHUB_TOKEN")}`, Accept: "application/vnd.github+json" },
         body: JSON.stringify({ ref: "main", inputs: { duration: "350" } }),
       }).catch(() => null);
