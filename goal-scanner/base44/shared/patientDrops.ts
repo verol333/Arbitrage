@@ -21,14 +21,12 @@ export async function createPatient(db: any) {
     r.last_score = s.sc.join("-"); r.last_seen_at = iso(s.at); if (s.min != null) r.last_minute = s.min;
     seen.add(r.id || r._tmp); if (r.id) dirty.add(r.id);
     if (r.status === "signal") {
-      if (g > r.goals) { r.status = "won"; r.settled_at = iso(s.at); }
+      if (g > r.line) { r.status = "won"; r.settled_at = iso(s.at); return r; }
       return null;
     }
     if (r.status !== "watching") return null;
-    if (g !== r.goals) {
-      if (r.kind !== "forte") { r.status = "missed"; r.settled_at = iso(s.at); return null; }
-      r.goals = g; r.line = g + 0.5;
-    }
+    // Un but avant la prise de cote = la chute annonçait ce but : ce n'est plus une opportunité
+    if (g !== r.goals) { r.status = "missed"; r.settled_at = iso(s.at); return null; }
     if ((s.min ?? 0) >= STOP_MIN || s.at > Date.parse(r.deadline_at)) { r.status = "expired"; r.settled_at = iso(s.at); return null; }
     const o = odd(s, `TOT_${r.line}`);
     if (!o) return null;
@@ -60,14 +58,16 @@ export async function createPatient(db: any) {
     if (recs.some((r) => r.status === "watching" && sameMatch(r.match_label, label))) return;
     for (const k of tk.sort((a, b) => parseFloat(a.slice(4)) - parseFloat(b.slice(4)))) {
       const ln = parseFloat(k.slice(4));
-      if (ln < g) continue;
+      // Pari = une ligne sous la chute, et encore à gagner (ex. chute 1.5 à 0-0 → plus de 0.5)
+      const bet = ln - 1;
+      if (bet < g + 0.5) continue;
       const o0 = odd(base, k), o1 = odd(s, k);
       if (!o0 || !o1 || o0 > 4.5 || 1 - o1 / o0 < 0.15) continue;
-      const need = Math.round(ln - g + 0.5), kind = need >= 2 ? "forte" : "normale";
+      const need = Math.round(bet - g + 0.5), kind = need >= 2 ? "forte" : "normale";
       const r: any = {
         _tmp: `${bk}|${ev}|${s.at}`, book: bk, book_name: NAME[bk] || bk, event_id: ev, match_label: label, league: e.league || "",
         kind, drop_text: `Plus de ${ln} : ${o0} → ${o1}`, start_minute: s.min, start_score: s.sc.join("-"), start_at: iso(s.at),
-        deadline_at: iso(s.at + (kind === "forte" ? 10 : 5) * 60e3), goals: g, line: g + 0.5, status: "watching",
+        deadline_at: iso(s.at + (kind === "forte" ? 10 : 5) * 60e3), goals: g, line: bet, status: "watching",
       };
       recs.push(r);
       track(r, s);
@@ -83,7 +83,7 @@ export async function createPatient(db: any) {
       if (!r.id || seen.has(r.id)) continue;
       const age = now - Date.parse(r.last_seen_at || r.start_at);
       if (r.status === "watching" && now > Date.parse(r.deadline_at)) { r.status = "expired"; r.settled_at = iso(now); dirty.add(r.id); }
-      else if (r.status === "signal" && (r.last_minute ?? 0) >= 85 && age > 10 * 60e3) { r.status = "lost"; r.settled_at = iso(now); dirty.add(r.id); }
+      else if (r.status === "signal" && (((r.last_minute ?? 0) >= 85 && age > 10 * 60e3) || ((r.last_minute ?? 0) >= 70 && age > 25 * 60e3))) { r.status = "lost"; r.settled_at = iso(now); dirty.add(r.id); }
       else if (r.status === "signal" && age > 3 * 3600e3) { r.status = "void"; r.settled_at = iso(now); dirty.add(r.id); }
     }
     const upd = recs.filter((r) => r.id && dirty.has(r.id)).map((r) => ({ id: r.id, ...clean(r) }));
