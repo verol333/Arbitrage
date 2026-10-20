@@ -14,7 +14,7 @@ function ago(h: Sample[], mins: number) {
 }
 const d = (a: [number, number], b: [number, number]) => [Math.max(0, a[0] - b[0]), Math.max(0, a[1] - b[1])] as [number, number];
 
-export function compute(h: Sample[], fm: { momentum: { m: number; v: number }[]; shots: any[] } | null, sc: [number, number], odd: number | null) {
+export function compute(h: Sample[], fm: { momentum: { m: number; v: number }[]; shots: any[] } | null, sc: [number, number], odd: number | null, endMin = 94) {
   const now = h[h.length - 1], old = ago(h, 10), o5 = ago(h, 5);
   const span = Math.max(1, now.min - old.min);
   const da10 = d(now.da, old.da), da5 = d(now.da, o5.da), on10 = d(now.on, old.on), off10 = d(now.off, old.off), co10 = d(now.co, old.co), at10 = d(now.at_, old.at_);
@@ -34,7 +34,7 @@ export function compute(h: Sample[], fm: { momentum: { m: number; v: number }[];
   const diff = Math.abs(sc[0] - sc[1]);
   if (now.min >= 75 && diff <= 1) l10 *= 1.15; // l'équipe menée ou à égalité doit attaquer
   if (now.rc[0] + now.rc[1] > 0) l10 *= 1.1;
-  const rest = Math.max(2, 94 - now.min);
+  const rest = Math.max(2, endMin - now.min);
   const prob10 = 1 - Math.exp(-l10), prob = 1 - Math.exp(-l10 * rest / 10);
   const shareH = (da10[0] + da10[1]) ? da10[0] / (da10[0] + da10[1]) : 0.5;
   const side = shareH >= 0.65 ? "domicile" : shareH <= 0.35 ? "exterieur" : "les_deux";
@@ -48,7 +48,13 @@ export function compute(h: Sample[], fm: { momentum: { m: number; v: number }[];
   };
 }
 
-/** Règles d'alerte (observation) : 2e mi-temps, pression récente forte, cote qui paie. */
+/** Deux fenêtres de trading : surveillance dès la 30e (fin de 1re MT) et dès la 65e (fin de match). */
+export const watchWindow = (min: number) => (min >= 30 && min <= 45) || (min >= 65 && min <= 88);
+export const periodOf = (min: number) => (min <= 45 ? "mt1" : "fin");
+
+/** Règles d'alerte (observation) : 35e–44e (but avant la pause) ou 75e–88e (but avant la fin),
+ *  pression récente forte et en hausse, cote qui paie. */
 export function isSignal(min: number, m: ReturnType<typeof compute>) {
-  return min >= 60 && min <= 88 && m.span >= 6 && m.appm10 >= 1.0 && m.prob >= 50 && !!m.odd && m.odd >= 1.4 && (m.value ?? 0) >= 8;
+  const inAlert = (min >= 35 && min <= 44) || (min >= 75 && min <= 88);
+  return inAlert && m.span >= 5 && m.appm10 >= 1.0 && m.rising && m.prob >= 50 && !!m.odd && m.odd >= 1.4 && (m.value ?? 0) >= 8;
 }
