@@ -64,6 +64,12 @@ async function loop(db: any) {
       for (const [id, f] of S.follow) if (!keep.has(id) && !f.pending.length) await end(db, id, f, "dropped");
       for (const id of top) if (S.follow.size < FOLLOW && !S.follow.has(id)) await start(db, id);
     }
+    // Bilan de santé toutes les 3 min : quelles données sont réellement disponibles sur les matchs suivis
+    if (Date.now() - (S.beatAt || 0) > 180000) {
+      S.beatAt = Date.now();
+      const cov = [...S.follow.entries()].map(([id, f]: any) => { const h = S.hist.get(id) || [], n = h[h.length - 1]; return { match: f.label, min: S.info.get(id)?.min, stats1xbet: !!n, historique_min: h.length ? n.min - h[0].min : 0, fotmob: !!f.fm, cote: f.odds?.o ?? null }; });
+      db.AppLog.create({ area: "scanner_pression", action: "sante", level: "info", ok: true, message: `${S.hist.size} matchs mesurés, ${S.follow.size} suivis`, details: { suivis: cov, erreur: S.err || null } }).catch(() => null);
+    }
     // 3. Matchs suivis : relevé à la seconde
     await Promise.all([...S.follow.entries()].map(([id, f]) => tick(db, id, f).catch((e) => { S.err = String(e?.stack || e).slice(0, 400); })));
     await sleep(1000);
