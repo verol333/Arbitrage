@@ -2,12 +2,12 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
 import { sleep, xbetList, xbetSnap, T22, H } from "../../shared/liveMarkets.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { fotmobFind, fotmobDetails } from "../../shared/fotmobLive.ts";
-import { compute, isSignal, type Sample } from "../../shared/pressureModel.ts";
+import { compute, isSignal, watchWindow, type Sample } from "../../shared/pressureModel.ts";
 import { dbRetry } from "../../shared/dbRetry.ts";
 
 // Scanner « pression » (tourne en continu sur GitHub) :
 // - toutes les 15 s : compteurs de TOUS les matchs 1xBet → intensité des 10 dernières minutes de chacun ;
-// - les 3 matchs les plus intenses (55e–88e) sont suivis à la seconde : stats 1xBet, cotes 1xBet + 22Bet, FotMob (xG, momentum) ;
+// - les 3 matchs les plus intenses (30e–45e et 65e–88e) sont suivis à la seconde : stats 1xBet, cotes 1xBet + 22Bet, FotMob (xG, momentum) ;
 // - opportunité « +1 but » (observation, aucune mise) → fiche + alerte téléphone.
 // L'état reste en mémoire entre deux cycles (même machine) : aucun temps de chauffe perdu.
 const FOLLOW = 3;
@@ -55,7 +55,7 @@ async function loop(db: any) {
       for (const [id, f] of S.follow) if (!live.has(id)) { await end(db, id, f, "ended"); }
       // 2. Classement par intensité récente (attaques dangereuses/min sur 10 min)
       const rank = [...S.hist.entries()].map(([id, h]) => {
-        const i = S.info.get(id); if (!i || i.min < 55 || i.min > 88 || h.length < 3) return null;
+        const i = S.info.get(id); if (!i || !watchWindow(i.min) || h.length < 3) return null;
         const old = h.find((s: Sample) => i.min - s.min <= 10) || h[0], now = h[h.length - 1];
         const span = Math.max(1, now.min - old.min);
         return { id, r: (now.da[0] - old.da[0] + now.da[1] - old.da[1]) / span };
@@ -101,22 +101,29 @@ async function tick(db: any, id: number, f: any) {
     await dbRetry(() => db.PressureSignal.update(p.id, { status: "won", goal_minute: min, last_score: sc.join("-"), last_minute: min, settled_at: new Date().toISOString() })).catch(() => null);
     f.pending = f.pending.filter((x: any) => x !== p);
   }
+  // Alerte « avant la pause » : 2e mi-temps commencée sans but = perdu
+  if (min >= 46) for (const p of [...f.pending]) if (p.mt1) {
+    await dbRetry(() => db.PressureSignal.update(p.id, { status: "lost", last_score: sc.join("-"), last_minute: min, settled_at: new Date().toISOString() })).catch(() => null);
+    f.pending = f.pending.filter((x: any) => x !== p);
+  }
+  const mt1 = min <= 45;
   // FotMob toutes les 30 s, cotes « +1 but » toutes les 3 s
   if (f.fotmob && Date.now() - f.fmAt > 30000) { f.fmAt = Date.now(); f.fm = await fotmobDetails(f.fotmob).catch(() => f.fm); if (f.fm && !f.fm.covered) f.fm = null; }
   const line = sc[0] + sc[1] + 0.5;
   if (Date.now() - f.oddsAt > 3000) {
     f.oddsAt = Date.now();
     const [x, t] = await Promise.all([xbetSnap(id), f.t22 ? xbetSnap(f.t22, T22, "") : null]);
-    const o = [["1xBet", x], ["22Bet", t]].map(([b, m]: any) => ({ b, o: m && !m.locked.has(`TOT_${line}`) ? m.mk[`TOT_${line}`]?.[0] : null })).filter((z) => z.o);
+    const mk = `${mt1 ? "H1TOT" : "TOT"}_${line}`;
+    const o = [["1xBet", x], ["22Bet", t]].map(([b, m]: any) => ({ b, o: m && !m.locked.has(mk) ? m.mk[mk]?.[0] : null })).filter((z) => z.o);
     f.odds = o.sort((a, b) => b.o - a.o)[0] || null;
   }
   if (h.length < 2) return;
-  const m = compute(h, f.fm, sc, f.odds?.o ?? null);
-  const key = `${line}`;
+  const m = compute(h, f.fm, sc, f.odds?.o ?? null, mt1 ? 47 : 94);
+  const key = `${mt1 ? "mt1" : "fin"}_${line}`;
   if (isSignal(min, m) && !f.sig.has(key)) {
     f.sig.add(key);
-    const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, metrics: m, status: "pending" })).catch(() => null);
-    if (rec?.id) { f.pending.push({ id: rec.id, goals: sc[0] + sc[1] }); S.signals++; }
+    const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, period: mt1 ? "mt1" : "fin", metrics: m, status: "pending" })).catch(() => null);
+    if (rec?.id) { f.pending.push({ id: rec.id, goals: sc[0] + sc[1], mt1 }); S.signals++; }
   }
   // Fiche en direct : enregistrée toutes les 30 s (économie d'écritures)
   const last = f.series[f.series.length - 1];
