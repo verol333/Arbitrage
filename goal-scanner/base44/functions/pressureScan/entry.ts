@@ -99,7 +99,7 @@ async function end(db: any, id: number, f: any, status: string) {
   const i = S.info.get(id);
   for (const p of f.pending) {
     // Sorti du direct après la 85e sans nouveau but = perdu ; sinon annulé au bout de 3 h
-    if (status === "ended" && (i?.min ?? 0) >= 85) await db.PressureSignal.update(p.id, { status: "lost", last_score: i.sc.join("-"), last_minute: i.min, settled_at: new Date().toISOString() }).catch(() => null);
+    if (status === "ended" && (i?.min ?? 0) >= 85) await dbRetry(() => db.PressureSignal.update(p.id, { status: "lost", last_score: i.sc.join("-"), last_minute: i.min, settled_at: new Date().toISOString() })).catch(() => null);
   }
 }
 
