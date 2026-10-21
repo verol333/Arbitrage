@@ -98,12 +98,13 @@ export function compute(h: Sample[], fm: { momentum: { m: number; v: number }[];
 }
 
 /** Deux fenêtres de trading : surveillance dès la 30e (fin de 1re MT) et dès la 65e (fin de match). */
-export const watchWindow = (min: number) => (min >= 30 && min <= 45) || (min >= 65 && min <= 88);
+export const watchWindow = (min: number) => (min >= 30 && min <= 45) || (min >= 75 && min <= 90);
 export const periodOf = (min: number) => (min <= 45 ? "mt1" : "fin");
 
 /** Règles d'alerte (observation) : 35e–44e ou 75e–88e, au moins 3 étoiles (6 signaux sur 14),
  *  intensité forte, probabilité ≥ 50 %, cote qui paie. */
 export function isSignal(min: number, m: ReturnType<typeof compute>) {
-  const inAlert = (min >= 35 && min <= 44) || (min >= 75 && min <= 88);
-  return inAlert && m.span >= 5 && m.stars >= 3 && m.checks.includes("intensite") && m.prob >= 50 && !!m.odd && m.odd >= 1.4 && (m.value ?? 0) >= 8;
+  // Fin de match uniquement, et seulement des indicateurs de poussée (pas de pourcentage fixe)
+  const inAlert = min >= 85 && min <= 93;
+  return inAlert && m.span >= 5 && m.stars >= 3 && m.checks.includes("intensite") && !!m.odd && m.odd >= 1.4;
 }
