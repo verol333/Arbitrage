@@ -11,8 +11,9 @@ export async function fotmobFind(home: string, away: string): Promise<number | n
     const j = await fetch(`https://www.fotmob.com/api/data/matches?date=${key}`, { headers: H, signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null);
     if (j?.leagues) day = { key, at: Date.now(), list: j.leagues.flatMap((l: any) => l.matches || []) };
   }
-  const m = day.list.find((x: any) => sameTeam(x.home?.name, home) && sameTeam(x.away?.name, away))
-    || day.list.find((x: any) => sameTeam(x.home?.name, home) || sameTeam(x.away?.name, away));
+  // Les deux équipes doivent correspondre (une seule reliait des matchs sans rapport) et le statut féminin aussi
+  const wom = (s: string) => /women|femin|\(w\)|ladies/i.test(s || "");
+  const m = day.list.find((x: any) => sameTeam(x.home?.name, home) && sameTeam(x.away?.name, away) && wom(x.home?.name) === wom(home));
   return m?.id ?? null;
 }
 
