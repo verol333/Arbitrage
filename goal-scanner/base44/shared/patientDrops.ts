@@ -11,6 +11,9 @@ type Snap = { at: number; min?: number | null; sc: [number, number]; mk: Record<
 
 export async function createPatient(db: any) {
   const recs: any[] = (await db.PatientDrop.filter({ status: { $in: ["watching", "signal"] } }, { limit: 300 }).catch(() => ({ items: [] }))).items || [];
+  // Matchs déjà joués ces 4 dernières heures : servent seulement à éviter un 2e signal sur le même match
+  const done: any[] = (await db.PatientDrop.filter({ status: { $in: ["won", "lost"] }, created_date: { $gte: new Date(Date.now() - 4 * 3600e3).toISOString() } }, { limit: 300 }).catch(() => ({ items: [] }))).items || [];
+  recs.push(...done);
   const dirty = new Set<string>(), seen = new Set<string>();
   const odd = (s: Snap, k: string) => (s.mk[k] && !s.lk?.has(k) ? s.mk[k][0] : null);
   const iso = (t: number) => new Date(t).toISOString();
@@ -32,6 +35,7 @@ export async function createPatient(db: any) {
     if (!o) return null;
     r.last_odd = o; r.best_odd = Math.max(r.best_odd || 0, o);
     if (o < TARGET) return null;
+    if (recs.some((x) => x !== r && x.status === "signal" && sameMatch(x.match_label, r.match_label))) { r.status = "void"; r.settled_at = iso(s.at); return null; }
     Object.assign(r, { status: "signal", signal_odd: o, signal_minute: s.min ?? null, signal_score: s.sc.join("-"), signal_at: iso(s.at), wait_s: Math.round((s.at - Date.parse(r.start_at)) / 1000) });
     return r;
   }
@@ -39,6 +43,10 @@ export async function createPatient(db: any) {
   async function save(r: any) {
     const id = r.id, data = clean(r);
     if (id) { dirty.delete(id); return db.PatientDrop.update(id, data).catch(() => null); }
+    // Deux machines du scanner se chevauchent quelques minutes : on revérifie en base juste avant de créer
+    const since = new Date(Date.now() - 4 * 3600e3).toISOString();
+    const live: any[] = (await db.PatientDrop.filter({ status: { $in: ["watching", "signal", "won", "lost"] }, created_date: { $gte: since } }, { limit: 300 }).catch(() => ({ items: [] }))).items || [];
+    if (live.some((x) => sameMatch(x.match_label, r.match_label))) { r.status = "void"; return; }
     const c = await db.PatientDrop.create(data).catch(() => null);
     if (c?.id) { r.id = c.id; seen.add(c.id); }
   }
@@ -55,15 +63,16 @@ export async function createPatient(db: any) {
     const tk = Object.keys(s.mk).filter((k) => KEY.test(k));
     if (tk.length && tk.filter((k) => s.lk?.has(k)).length * 2 >= tk.length) return;
     const label = `${e.home} - ${e.away}`;
-    if (recs.some((r) => r.status === "watching" && sameMatch(r.match_label, label))) return;
+    // Un seul signal par match, même si plusieurs sites montrent la chute
+    if (recs.some((r) => ["watching", "signal", "won", "lost"].includes(r.status) && sameMatch(r.match_label, label))) return;
     for (const k of tk.sort((a, b) => parseFloat(a.slice(4)) - parseFloat(b.slice(4)))) {
       const ln = parseFloat(k.slice(4));
-      // Pari = une ligne sous la chute, et encore à gagner (ex. chute 1.5 à 0-0 → plus de 0.5)
-      const bet = ln - 1;
-      if (bet < g + 0.5) continue;
+      // Pari = toujours « plus de X,5 » basé sur le score en cours (X = buts actuels), jamais la ligne de la chute
+      const bet = g + 0.5;
+      if (ln < bet) continue;
       const o0 = odd(base, k), o1 = odd(s, k);
       if (!o0 || !o1 || o0 > 4.5 || 1 - o1 / o0 < 0.15) continue;
-      const need = Math.round(bet - g + 0.5), kind = need >= 2 ? "forte" : "normale";
+      const need = Math.round(ln - g + 0.5), kind = need >= 2 ? "forte" : "normale";
       const r: any = {
         _tmp: `${bk}|${ev}|${s.at}`, book: bk, book_name: NAME[bk] || bk, event_id: ev, match_label: label, league: e.league || "",
         kind, drop_text: `Plus de ${ln} : ${o0} → ${o1}`, start_minute: s.min, start_score: s.sc.join("-"), start_at: iso(s.at),
