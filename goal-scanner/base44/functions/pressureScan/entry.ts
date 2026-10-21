@@ -4,6 +4,7 @@ import { sameTeam } from "../../shared/teamMatch.ts";
 import { fotmobFind, fotmobDetails } from "../../shared/fotmobLive.ts";
 import { compute, isSignal, watchWindow, type Sample } from "../../shared/pressureModel.ts";
 import { dbRetry } from "../../shared/dbRetry.ts";
+import { lateProfile, lateOk } from "../../shared/lateGoals.ts";
 
 // Scanner « pression » (tourne en continu sur GitHub) :
 // - toutes les 15 s : compteurs de TOUS les matchs 1xBet → intensité des 10 dernières minutes de chacun ;
@@ -140,9 +141,10 @@ async function tick(db: any, id: number, f: any) {
   const m = compute(h, f.fm, sc, f.odds?.o ?? null, mt1 ? 47 : 94, oddDrop);
   const key = `${mt1 ? "mt1" : "fin"}_${line}`;
   // Filtres tirés de l'analyse des perdus : fin de match uniquement (85e+), une seule équipe qui pousse,
-  // 1 à 3 buts au tableau
-  const goals = sc[0] + sc[1];
-  const okFilter = !mt1 && min >= 85 && m.side !== "les_deux" && goals >= 1 && goals <= 3;
+  // Peu importe le score : l'équipe qui pousse doit avoir un profil de buts tardifs
+  // Profil d'avant-match (FotMob) : calculé une fois, dès que le match est suivi
+  if (f.fotmob && f.late === undefined) { f.late = null; f.late = await lateProfile(f.fotmob).catch(() => null); }
+  const okFilter = !mt1 && min >= 85 && m.side !== "les_deux" && lateOk(f.late, m.side);
   if (okFilter && isSignal(min, m) && !f.sig.has(key)) {
     f.sig.add(key);
     const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, stars: m.stars, period: mt1 ? "mt1" : "fin", metrics: m, status: "pending" })).catch(() => null);
