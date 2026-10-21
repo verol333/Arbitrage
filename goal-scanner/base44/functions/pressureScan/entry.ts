@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
+import { createClientFromRequest } from "../../../sdk-shim.ts";
 import { sleep, xbetList, xbetSnap, T22, H } from "../../shared/liveMarkets.ts";
 import { sameTeam } from "../../shared/teamMatch.ts";
 import { fotmobFind, fotmobDetails } from "../../shared/fotmobLive.ts";
