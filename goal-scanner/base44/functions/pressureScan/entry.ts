@@ -139,7 +139,11 @@ async function tick(db: any, id: number, f: any) {
   const first = f.oh?.pts?.[0], oddDrop = first && f.odds && Date.now() - first.t >= 60000 ? first.o - f.odds.o : null;
   const m = compute(h, f.fm, sc, f.odds?.o ?? null, mt1 ? 47 : 94, oddDrop);
   const key = `${mt1 ? "mt1" : "fin"}_${line}`;
-  if (isSignal(min, m) && !f.sig.has(key)) {
+  // Filtres tirés de l'analyse des perdus : fin de match uniquement (85e+), une seule équipe qui pousse,
+  // 1 à 3 buts au tableau, avantage annoncé < 40 % (au-delà le modèle se trompe)
+  const goals = sc[0] + sc[1];
+  const okFilter = !mt1 && min >= 85 && m.side !== "les_deux" && goals >= 1 && goals <= 3 && (m.value ?? 0) < 40;
+  if (okFilter && isSignal(min, m) && !f.sig.has(key)) {
     f.sig.add(key);
     const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, stars: m.stars, period: mt1 ? "mt1" : "fin", metrics: m, status: "pending" })).catch(() => null);
     if (rec?.id) { f.pending.push({ id: rec.id, goals: sc[0] + sc[1], mt1 }); S.signals++; }
