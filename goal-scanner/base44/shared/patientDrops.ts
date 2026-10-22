@@ -6,7 +6,9 @@ import { sameMatch } from "./soloDrops.ts";
 // Chute forte (2 buts ou plus annoncés) : 10 min, un but pendant l'attente = on passe à la ligne suivante.
 const KEY = /^TOT_\d+\.5$/;
 const NAME: Record<string, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet", p: "Pinnacle", s: "SBOBET", u: "Unibet", o: "SportyBet", t: "22Bet" };
-const TARGET = 1.4, MIN_START = 50, STOP_MIN = 88;
+// Bilan des pertes : signaux après 70', cotes > 1.75 et petites ligues = l'essentiel des perdus
+const TARGET = 1.4, MAX_ODD = 1.75, MIN_START = 50, STOP_MIN = 70;
+const MINOR = /NCAA|collegiate|universit|U\d{2}\b|youth|junior|reserve|amateur|women|femin|league [3-9]\b|division [3-9]\b|regional|\b(3|4|5)\.? ?liga|tercera|oberliga|landesliga|development/i;
 type Snap = { at: number; min?: number | null; sc: [number, number]; mk: Record<string, number[]>; lk?: Set<string> };
 
 export async function createPatient(db: any) {
@@ -34,7 +36,7 @@ export async function createPatient(db: any) {
     const o = odd(s, `TOT_${r.line}`);
     if (!o) return null;
     r.last_odd = o; r.best_odd = Math.max(r.best_odd || 0, o);
-    if (o < TARGET) return null;
+    if (o < TARGET || o > MAX_ODD) return null;
     if (recs.some((x) => x !== r && x.status === "signal" && sameMatch(x.match_label, r.match_label))) { r.status = "void"; r.settled_at = iso(s.at); return null; }
     Object.assign(r, { status: "signal", signal_odd: o, signal_minute: s.min ?? null, signal_score: s.sc.join("-"), signal_at: iso(s.at), wait_s: Math.round((s.at - Date.parse(r.start_at)) / 1000) });
     return r;
@@ -57,6 +59,7 @@ export async function createPatient(db: any) {
     const mine = recs.filter((r) => r.book === bk && r.event_id === ev && (r.status === "watching" || r.status === "signal"));
     for (const r of mine) { const hit = track(r, s); if (hit) save(hit); }
     if (mine.length || s.min == null || s.min < MIN_START || s.min >= STOP_MIN - 5) return;
+    if (MINOR.test(`${e.league || ""} ${e.home} ${e.away}`)) return;
     const g = s.sc[0] + s.sc[1];
     const base = hist.find((o) => s.at - o.at >= 50000 && s.at - o.at <= 120000);
     if (!base || hist.some((o) => o.sc[0] + o.sc[1] !== g)) return;
