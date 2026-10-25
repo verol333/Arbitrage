@@ -7,7 +7,7 @@ import { sameMatch } from "./soloDrops.ts";
 const KEY = /^TOT_\d+\.5$/;
 const NAME: Record<string, string> = { x: "1xBet", w: "1win", b: "betPawa", c: "Congobet", y: "Yellowbet", p: "Pinnacle", s: "SBOBET", u: "Unibet", o: "SportyBet", t: "22Bet" };
 // Bilan des pertes : signaux après 70', cotes > 1.75 et petites ligues = l'essentiel des perdus
-const TARGET = 1.4, MAX_ODD = 1.75, MIN_START = 50, STOP_MIN = 70;
+const TARGET = 1.35, MAX_ODD = 1.75, MIN_START = 50, STOP_MIN = 70;
 const MINOR = /NCAA|collegiate|universit|U\d{2}\b|youth|junior|reserve|amateur|women|femin|league [3-9]\b|division [3-9]\b|regional|\b(3|4|5)\.? ?liga|tercera|oberliga|landesliga|development/i;
 type Snap = { at: number; min?: number | null; sc: [number, number]; mk: Record<string, number[]>; lk?: Set<string> };
 
@@ -76,6 +76,8 @@ export async function createPatient(db: any) {
       const o0 = odd(base, k), o1 = odd(s, k);
       if (!o0 || !o1 || o0 > 4.5 || 1 - o1 / o0 < 0.15) continue;
       const need = Math.round(ln - g + 0.5), kind = need >= 2 ? "forte" : "normale";
+      // Règle : on ne retient que les chutes qui annoncent 2 buts de plus (81 % de réussite contre 70 %)
+      if (kind !== "forte") continue;
       const r: any = {
         _tmp: `${bk}|${ev}|${s.at}`, book: bk, book_name: NAME[bk] || bk, event_id: ev, match_label: label, league: e.league || "",
         kind, drop_text: `Plus de ${ln} : ${o0} → ${o1}`, start_minute: s.min, start_score: s.sc.join("-"), start_at: iso(s.at),
