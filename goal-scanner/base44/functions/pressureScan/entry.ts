@@ -5,6 +5,9 @@ import { fotmobFind, fotmobDetails } from "../../shared/fotmobLive.ts";
 import { compute, isSignal, watchWindow, type Sample } from "../../shared/pressureModel.ts";
 import { dbRetry } from "../../shared/dbRetry.ts";
 import { lateProfile, lateOk } from "../../shared/lateGoals.ts";
+import { matchContext, snap85 } from "../../shared/matchContext.ts";
+import { dailySelection, selected } from "../../shared/dailySelection.ts";
+import { lateDecision } from "../../shared/lateDecision.ts";
 
 // Scanner « pression » (tourne en continu sur GitHub) :
 // - toutes les 15 s : compteurs de TOUS les matchs 1xBet → intensité des 10 dernières minutes de chacun ;
@@ -40,9 +43,21 @@ async function loop(db: any) {
     if (Date.now() - lastList > 15000) {
       lastList = Date.now();
       if (Date.now() - realAt > 60000) { const l = await xbetList(); real.clear(); for (const g of l) real.add(g.id); realAt = Date.now(); S.t22 = await xbetList(T22, ""); }
+      // Sélection du jour : seuls les meilleurs matchs (avant-match solide) sont suivis
+      await dailySelection(async (list) => {
+        const ex = (await db.PressureState.filter({ key: "selection" }, { limit: 1 }).catch(() => null))?.items?.[0];
+        const data = { key: "selection", hist: { list }, saved_at: new Date().toISOString() };
+        return ex ? db.PressureState.update(ex.id, data) : db.PressureState.create(data);
+      }).catch(() => null);
       const live = new Set<number>();
-      for (const g of await rawList()) {
-        if (!real.has(g.I)) continue;
+      // Doublons 1xBet (même affiche sous deux noms, ex. « Lions » et « Queensland Lions ») : on garde le match d'origine.
+      const seen = new Map<string, number>();
+      const raw = ((await rawList()) as any[]).filter((g) => real.has(g.I)).sort((a, b) => a.I - b.I);
+      const tail = (n: string) => String(n || "").toLowerCase().trim().split(/\s+/).pop();
+      for (const g of raw) {
+        const k = `${g.LE || g.L}|${tail(g.O1E || g.O1)}|${tail(g.O2E || g.O2)}`;
+        if (seen.has(k)) continue;
+        seen.set(k, g.I);
         const min = Math.floor((g.SC?.TS || 0) / 60), s = toSample(g.SC, min);
         live.add(g.I);
         S.info.set(g.I, { home: g.O1E || g.O1, away: g.O2E || g.O2, league: g.LE || g.L || "", min, sc: [Number(g.SC?.FS?.S1 || 0), Number(g.SC?.FS?.S2 || 0)] });
@@ -57,7 +72,7 @@ async function loop(db: any) {
       for (const [id, f] of S.follow) if (!live.has(id)) { await end(db, id, f, "ended"); }
       // 2. Classement par intensité récente (attaques dangereuses/min sur 10 min)
       const rank = [...S.hist.entries()].map(([id, h]) => {
-        const i = S.info.get(id); if (!i || !watchWindow(i.min) || h.length < 3) return null;
+        const i = S.info.get(id); if (!i || !watchWindow(i.min) || h.length < 3 || !selected(i.home, i.away)) return null;
         const old = h.find((s: Sample) => i.min - s.min <= 10) || h[0], now = h[h.length - 1];
         const span = Math.max(1, now.min - old.min);
         return { id, r: (now.da[0] - old.da[0] + now.da[1] - old.da[1]) / span };
@@ -89,15 +104,20 @@ async function loop(db: any) {
 async function start(db: any, id: number) {
   const i = S.info.get(id);
   const label = `${i.home} - ${i.away}`;
-  const fotmob = await fotmobFind(i.home, i.away).catch(() => null);
-  const rec = await dbRetry(() => db.PressureLive.create({ xbet_id: id, fotmob_id: fotmob ?? undefined, match_label: label, league: i.league, status: "live", minute: i.min, score: i.sc.join("-"), updated_at: new Date().toISOString() })).catch(() => null);
-  S.follow.set(id, { rec: rec?.id, label, fotmob, fm: null, fmAt: 0, t22: S.t22.find((t: any) => sameTeam(t.home, i.home) && sameTeam(t.away, i.away))?.id, odds: null, oddsAt: 0, series: [], sig: new Set<string>(), pending: [] as any[] });
+  const sel = selected(i.home, i.away);
+  const fotmob = sel?.fotmob ?? await fotmobFind(i.home, i.away).catch(() => null);
+  // Une seule fiche par match, même si deux machines tournent en même temps
+  const ex: any = await db.PressureLive.filter({ xbet_id: id, status: "live" }, "-created_date", 1).catch(() => null);
+  const rec = ((Array.isArray(ex) ? ex : ex?.items) || [])[0] || await dbRetry(() => db.PressureLive.create({ xbet_id: id, fotmob_id: fotmob ?? undefined, match_label: label, league: i.league, status: "live", minute: i.min, score: i.sc.join("-"), updated_at: new Date().toISOString() })).catch(() => null);
+  if (rec?.id && sel) db.PressureLive.update(rec.id, { context: { ...sel.ctx, late: sel.late, prematch: { score: sel.score, parts: sel.parts } } }).catch(() => null);
+  S.follow.set(id, { rec: rec?.id, label, fotmob, sel, ctx: sel?.ctx, late: sel?.late, fm: null, fmAt: 0, t22: S.t22.find((t: any) => sameTeam(t.home, i.home) && sameTeam(t.away, i.away))?.id, odds: null, oddsAt: 0, series: [], sig: new Set<string>(), pending: [] as any[] });
 }
 
 async function end(db: any, id: number, f: any, status: string) {
   S.follow.delete(id);
-  if (f.rec) await db.PressureLive.update(f.rec, { status, updated_at: new Date().toISOString() }).catch(() => null);
   const i = S.info.get(id);
+  const fin = status === "ended" && f.s85 && i ? { score: i.sc.join("-"), late_goal: i.sc[0] + i.sc[1] > f.s85.goals } : {};
+  if (f.rec) await db.PressureLive.update(f.rec, { status, ...fin, updated_at: new Date().toISOString() }).catch(() => null);
   for (const p of f.pending) {
     // Sorti du direct après la 85e sans nouveau but = perdu ; sinon annulé au bout de 3 h
     if (status === "ended" && (i?.min ?? 0) >= 85) await dbRetry(() => db.PressureSignal.update(p.id, { status: "lost", last_score: i.sc.join("-"), last_minute: i.min, settled_at: new Date().toISOString() })).catch(() => null);
@@ -144,10 +164,38 @@ async function tick(db: any, id: number, f: any) {
   // Peu importe le score : l'équipe qui pousse doit avoir un profil de buts tardifs
   // Profil d'avant-match (FotMob) : calculé une fois, dès que le match est suivi
   if (f.fotmob && f.late === undefined) { f.late = null; f.late = await lateProfile(f.fotmob).catch(() => null); }
-  const okFilter = !mt1 && min >= 85 && m.side !== "les_deux" && lateOk(f.late, m.side);
-  if (okFilter && isSignal(min, m) && !f.sig.has(key)) {
+  // Contexte du match (classement, enjeu, favori, confrontations, forme) : enregistré pour chaque match suivi
+  if (f.fotmob && f.ctx === undefined) {
+    f.ctx = null; f.ctx = await matchContext(f.fotmob).catch(() => null);
+    if (f.rec && (f.ctx || f.late)) db.PressureLive.update(f.rec, { context: { ...(f.ctx || {}), late: f.late } }).catch(() => null);
+  }
+  // Photo à la 85e (même sans signal) : sert à mesurer plus tard ce qui annonce un but tardif
+  if (!mt1 && min >= 85 && !f.s85) {
+    f.s85 = snap85(f.ctx, sc, f.fm, s);
+    if (f.rec) db.PressureLive.update(f.rec, { snap85: f.s85 }).catch(() => null);
+  }
+  // Temps additionnel annoncé vers la 90e : ajouté à la photo dès qu'il est connu
+  if (f.s85 && f.s85.added_time == null && f.fm?.added90) {
+    f.s85.added_time = f.fm.added90;
+    if (f.rec) db.PressureLive.update(f.rec, { snap85: f.s85 }).catch(() => null);
+  }
+  // Décision 85e–90e : note d'avant-match + situation du match (la cote ne filtre pas, il faut juste un marché ouvert)
+  const dec = !mt1 && min >= 85 && min <= 90 && f.sel && f.s85 && m.odd && m.span >= 5 ? lateDecision(f.sel, sc, m, f.s85, s?.rc ?? null) : null;
+  if (dec?.go && !f.sig.size) {
     f.sig.add(key);
-    const rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, stars: m.stars, period: mt1 ? "mt1" : "fin", metrics: m, status: "pending" })).catch(() => null);
+    // Une seule opportunité par match, même si une autre machine du scanner tourne en parallèle
+    const since = new Date(Date.now() - 3 * 3600e3).toISOString();
+    // Cette version du SDK renvoie une liste (pas { items }) : on lit les deux formes.
+    const seen = async () => {
+      const r: any = await dbRetry(() => db.PressureSignal.filter({ $or: [{ xbet_id: id }, { match_label: f.label }], created_date: { $gte: since } }, "created_date", 10));
+      return (Array.isArray(r) ? r : r?.items) || [];
+    };
+    const before = await seen().catch(() => null);
+    if (!before || before.length) return; // déjà signalé (ou base illisible : on ne risque pas un doublon)
+    let rec = await dbRetry(() => db.PressureSignal.create({ xbet_id: id, match_label: f.label, league: i?.league, minute: min, score: sc.join("-"), line, odd: m.odd, odd_book: f.odds?.b, prob: m.prob, prob10: m.prob10, value_pct: m.value, side: m.side, stars: m.stars, period: mt1 ? "mt1" : "fin", metrics: m, context: { ...(f.ctx || {}), late: f.late, s85: f.s85, prematch: { score: f.sel.score, parts: f.sel.parts }, decision: dec }, description: `Avant-match ${f.sel.score}/100, décision ${dec.total}/100`, status: "pending" })).catch(() => null);
+    // Deux machines au même instant : seul le plus ancien signal reste
+    const after = rec?.id ? await seen().catch(() => []) : [];
+    if (after.length > 1 && after[0].id !== rec.id) { await db.PressureSignal.delete(rec.id).catch(() => null); rec = null; }
     if (rec?.id) { f.pending.push({ id: rec.id, goals: sc[0] + sc[1], mt1 }); S.signals++; }
   }
   // Fiche en direct : enregistrée toutes les 30 s (économie d'écritures)
