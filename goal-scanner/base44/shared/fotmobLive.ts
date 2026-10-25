@@ -26,5 +26,15 @@ export async function fotmobDetails(id: number) {
   const shots = (j.content.shotmap?.shots || []).map((s: any) => ({
     m: Number(s.min) + Number(s.minAdded || 0), home: s.teamId === homeId, xg: Number(s.expectedGoals || 0), on: !!s.isOnTarget, goal: s.eventType === "Goal",
   }));
-  return { momentum, shots, covered: momentum.length > 0 || shots.length > 0 };
+  const ev = j.content.matchFacts?.events?.events || [];
+  // Temps additionnel annoncé en 2e mi-temps (minutes)
+  const added90 = Number(ev.find((e: any) => e.type === "AddedTime" && Number(e.time) >= 90)?.minutesAddedInput) || null;
+  // Changements : poste habituel (0 gardien, 1 défenseur, 2 milieu, 3 attaquant) ; delta > 0 = changement offensif
+  const pos = new Map<string, number>();
+  for (const t of [j.content.lineup?.homeTeam, j.content.lineup?.awayTeam]) for (const p of [...(t?.starters || []), ...(t?.subs || [])]) pos.set(String(p.id), Number(p.usualPlayingPositionId));
+  const subs = ev.filter((e: any) => e.type === "Substitution" && e.swap?.length === 2).map((e: any) => {
+    const a = pos.get(String(e.swap[0].id)), b = pos.get(String(e.swap[1].id));
+    return { m: Number(e.time), home: !!e.isHome, delta: a != null && b != null ? a - b : null };
+  });
+  return { momentum, shots, added90, subs, covered: momentum.length > 0 || shots.length > 0 };
 }
