@@ -15,6 +15,9 @@ import { normalizeApolloOffers } from './legacyKeys.js';
 // annoncée par Apollo lui-même — aucun plafond de marge, juste la cohérence
 // interne du book. Tolérance de 10 % pour les arrondis.
 function apolloPriceIsCoherent(od, cote) {
+  // Identifiant de sélection 0 = cote figée/placeholder Apollo (vue le 27/10/2026 :
+  // hockey « Dom./Nul » à 3.65 avec l'équipe menée 0-1 → faux surebet +18 %).
+  if (od?.Id !== undefined && od?.Id !== null && String(od.Id) === '0') return false;
   const prob = Number(od?.Probability);
   if (!Number.isFinite(prob) || prob <= 0) return true; // pas de probabilité publiée
   return 1 / cote >= prob * 0.9;
