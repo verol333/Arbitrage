@@ -203,7 +203,10 @@ function orientationsMismatch(oa, ob) {
 // auto pose la 1re jambe, le book refuse ou derive la 2e, l'utilisateur perd.
 // On compare donc la probabilite implicite du VAINQUEUR entre les 2 books : si
 // elle diverge massivement, l'un des deux est perime -> on jette TOUT le match.
-const STALE_PROB_TOL = 0.25;
+// 0.25 laissait passer un book isole en desaccord avec tous les autres
+// (ex. 27/10/2026 Sichuan-Nanjing : Mozzart 61 % vs 45 % ailleurs -> faux
+// surebets de 6 a 11 %). Un vrai surebet ne s'ecarte jamais de 12 points.
+const STALE_PROB_TOL = 0.12;
 function mainImpliedProb(o) {
   const p1 = o.match_1, p2 = o.match_2, px = o.match_X;
   if (!p1 || !p2 || p1 <= 1 || p2 <= 1) return null;
