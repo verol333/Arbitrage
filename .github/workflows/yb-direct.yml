@@ -1,8 +1,0 @@
-name: YB direct test
-on: workflow_dispatch
-jobs:
-  t:
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          for u in https://yellowbet.cg/services/evapi/event/GetSportsMenu https://yellowbet.cg/; do echo "RES $u $(curl -s -o /tmp/b -w '%{http_code}' -A 'Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile' $u) $(head -c 60 /tmp/b | tr -cd '[:alnum:] {}:')"; done
