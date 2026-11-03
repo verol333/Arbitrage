@@ -59,6 +59,8 @@ export async function createPatient(db: any) {
     const mine = recs.filter((r) => r.book === bk && r.event_id === ev && (r.status === "watching" || r.status === "signal"));
     for (const r of mine) { const hit = track(r, s); if (hit) save(hit); }
     if (mine.length || s.min == null || s.min < MIN_START || s.min >= STOP_MIN - 5) return;
+    // Bilan : 22Bet = 65 % de réussite, on ne génère plus de signal depuis ce site
+    if (bk === "t") return;
     if (MINOR.test(`${e.league || ""} ${e.home} ${e.away}`)) return;
     const g = s.sc[0] + s.sc[1];
     const base = hist.find((o) => s.at - o.at >= 50000 && s.at - o.at <= 120000);
@@ -73,6 +75,8 @@ export async function createPatient(db: any) {
       // Pari = toujours « plus de X,5 » basé sur le score en cours (X = buts actuels), jamais la ligne de la chute
       const bet = g + 0.5;
       if (ln < bet) continue;
+      // Bilan : « plus de 3,5 » = 59 % de réussite, ligne retirée des signaux
+      if (bet === 3.5) return;
       const o0 = odd(base, k), o1 = odd(s, k);
       if (!o0 || !o1 || o0 > 4.5 || 1 - o1 / o0 < 0.15) continue;
       const need = Math.round(ln - g + 0.5), kind = need >= 2 ? "forte" : "normale";
