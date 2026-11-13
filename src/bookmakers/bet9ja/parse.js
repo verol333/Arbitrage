@@ -12,8 +12,8 @@
 // Totaux (demi-lignes), Handicap asiatique, Pair/Impair, 1re équipe à
 // marquer, Mi-temps la plus prolifique, Totaux par équipe.
 // Couvert — 1re et 2e mi-temps : 1X2, Double Chance, DNB, BTTS, Totaux.
-// Couvert — corners : total, 1re mi-temps, 2e mi-temps, handicap asiatique,
-// pair/impair, pair/impair 1re mi-temps.
+// Couvert — corners : total, 1re mi-temps, 2e mi-temps, handicap asiatique
+// (match, 1re et 2e mi-temps), pair/impair, pair/impair 1re mi-temps.
 //
 // Volontairement NON mappés (aucun équivalent standard → comparaison fausse) :
 // handicaps européens 3-way (S_1X2HND, S_HNDCORNER), corners 1X2 (S_TEAMCORNER),
@@ -55,6 +55,8 @@ const LINE_MAP = {
   S_C2HTOU:   (l, s) => (s === 'O' ? 'cor_h2_over_' + l : s === 'U' ? 'cor_h2_under_' + l : null),
   S_AH:       (l, s) => (s === '1' ? 'hcp_home_' + l : s === '2' ? 'hcp_away_' + neg(l) : null),
   S_CAH:      (l, s) => (s === '1' ? 'cor_hcp_home_' + l : s === '2' ? 'cor_hcp_away_' + neg(l) : null),
+  S_CAHH:     (l, s) => (s === '1' ? 'cor_ht_hcp_home_' + l : s === '2' ? 'cor_ht_hcp_away_' + neg(l) : null),
+  S_CAH2:     (l, s) => (s === '1' ? 'cor_h2_hcp_home_' + l : s === '2' ? 'cor_h2_hcp_away_' + neg(l) : null),
   S_HAOU:     (l, s) => ({ OH: 'tt_home_over_' + l, OA: 'tt_away_over_' + l, UH: 'tt_home_under_' + l, UA: 'tt_away_under_' + l }[s] || null),
 };
 
