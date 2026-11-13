@@ -206,7 +206,10 @@ export async function getOdds(matchId, { live = false, noCache = false, sport = 
   // cross-book. parseGE lit G=1 (1X2 regulation 3-way) + G=17 (total) + G=2 (hcp)
   // + G=15/62 (tt) + G=19 (btts) + G=8 (dc) + G=14 (odd/even) — tout compatible
   // regulation avec les autres books.
-  if (sport === 'hockey') {
+  // Handball : structure "regulation" identique au football (1X2 avec nul, total,
+  // handicap, totaux par equipe, pair/impair; ni BTTS ni corners). Probe du
+  // 2026-11-13 : 1X2 et double chance alignes sur CongoBet pour le meme match.
+  if (sport === 'hockey' || sport === 'handball') {
     parseGE(GE, odds, '');
     return odds;
   }
