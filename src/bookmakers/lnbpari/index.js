@@ -41,7 +41,11 @@ export default {
   // Flux "direct-feed" (BetLab) de lnbpari.com : joignable en direct depuis les
   // runners GitHub, sans compte ni Cloudflare. Pre-match ET direct : foot,
   // tennis, basket, tennis de table, hockey, volley.
-  supports: { prematch: true, live: true },
+  // DIRECT DESACTIVE (13/11/2026) : le flux direct de LNB Pari est en retard
+  // d'une partie deja jouee. Releve reel Cairns-Sydney : lui donnait le
+  // vainqueur a 1.60-1.85 quand sportybet le cotait 11.00 (l'autre camp etant
+  // a 1.05). Les paires directes fabriquaient des surebets a 28-37 %.
+  supports: { prematch: true, live: false },
   async listMatches({ live = false, horizonHours, sport = 'football' } = {}) {
     if (!SPORTS.has(sport)) return [];
     return live ? listLive(sport) : listPrematch(horizonHours, sport);
