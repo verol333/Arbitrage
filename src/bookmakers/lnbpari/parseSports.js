@@ -98,12 +98,19 @@ export function lnbpariSportOdds(markets = [], sport = 'basket') {
       } else if (type === 6) {
         put(pfx + 'even', by[6]); put(pfx + 'odd', by[7]);
       } else if (type === 7 && pfx === '') {
-        // TOTAL INDIVIDUEL ECARTE hors football (13/11/2026). Sur le hockey ce
-        // type ne correspond pas au marche : releve reel USA (F) - Danemark (F)
-        // -> LNB Pari affichait "Ext. +0.5" a 11.5 alors que 1win, 1xbet,
-        // maxibet et betmomo donnaient 1.40-1.47 pour l'inverse. Ces cotes
-        // fabriquaient des faux surebets a 19-23 %.
-        continue;
+        // TOTAL INDIVIDUEL : REACTIVE pour le hockey (13/11/2026, apres releve
+        // du flux reel). Verification sur donnees vivantes (KalPa, IIHF femmes) :
+        // les parametres sont bien [numero d'equipe, ligne] et 37/38 = plus/moins.
+        //   ex. ["2","0.5"] -> 37:110 (plus de 0.5) / 38:535 (moins de 0.5)
+        //   ex. ["1","1.5"] -> 37:130 / 38:320
+        // L'ancienne cote a 11.5 venait donc d'une lecture PERIODE (1re/2e/3e
+        // tiers) et non du temps plein : les prefixes de periode sont desormais
+        // filtres (PERIOD_PREFIX.hockey = {}), donc plus de melange.
+        const side = String(par[0]) === '1' ? 'home' : 'away';
+        const L = par[1];
+        if (!isHalfLine(L)) continue;
+        put('tt_' + side + '_over_' + fmt(L), by[37]);
+        put('tt_' + side + '_under_' + fmt(L), by[38]);
       } else if (type === 260 && pfx === '' && sport !== 'basket' && sport !== 'hockey') {
         // Handicap par SETS (et non par points/jeux).
         const L = Number(par[0]);
