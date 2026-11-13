@@ -97,6 +97,6 @@ export function periodOf(value) {
   if (/mi[- ]temps\s*\/|mi[- ]temps la plus|quart[- ]temps|\bquart\b|(?:set|manche)\s*(?:n[°o]?\s*)?[1-5]\b|[1-5](?:e|er|eme|ere|re)?\s+(?:set|manche)\b/.test(s)) return 'unsupported';
   if (/(?:2(?:e|eme)?|seconde|deuxieme)\s*(?:mi[- ]temps|mt\b|periode)|\b(?:mt\s*2|2\s*mt)\b/.test(s)) return 'h2_';
   if (/mi[- ]temps|\bmt\b|\b(?:mt\s*1|1\s*mt)\b|(?:1(?:e|er|ere|re)?|premiere)\s+periode/.test(s)) return 'ht_';
-  if (/\bperiode\b|[\d+\s*[-–]\s*\d+['’]/.test(s)) return 'unsupported';
+  if (/\bperiode\b|\b\d+\s*[-–]\s*\d+['’]/.test(s)) return 'unsupported';
   return '';
 }
