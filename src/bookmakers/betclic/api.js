@@ -32,7 +32,7 @@ async function relay(payload) {
 }
 
 // Mapping sport scanner -> slug Betclic (les slugs diffèrent pour basket/hockey).
-export const BETCLIC_SPORTS = { football: 'football', tennis: 'tennis', basket: 'basketball', hockey: 'ice_hockey', volleyball: 'volleyball' };
+export const BETCLIC_SPORTS = { football: 'football', tennis: 'tennis', basket: 'basketball', hockey: 'ice_hockey', volleyball: 'volleyball', handball: 'handball', table_tennis: 'table_tennis' };
 export const BETCLIC_PAGE = 40;
 
 /** Programme complet d'un sport : [{ id, home, away, league, start }]. */
