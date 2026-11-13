@@ -406,6 +406,41 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   log(`⏱️ readOdds par book (trié par lenteur) — ${timingLine}`);
   const covered = usable.map((b) => `${b.key}:${[...(oddsByBook.get(b.key) || new Map())].filter(([, o]) => Object.keys(o || {}).length).length}`);
   log(`💰 cotes lues — ${covered.join(' | ')}`);
+  // DIAGNOSTIC FIN DE CYCLE (tous books lus) : meilleure combinaison possible
+  // sur les 4 premiers matchs, toutes paires confondues. Mesure si l'absence
+  // d'opportunite vient de la couverture ou du prix des books.
+  {
+    let shown = 0;
+    for (const entry of sorted) {
+      if (shown >= 4) break;
+      const perBook = {};
+      for (const b of usable) {
+        const m = entry.matches[b.key];
+        const o = m ? oddsByBook.get(b.key)?.get(m.id) : null;
+        if (o && Object.keys(o).length > 1) perBook[b.key] = o;
+      }
+      const ks = Object.keys(perBook);
+      if (ks.length < 2) continue;
+      const all = ks.map((k) => perBook[k]);
+      let best = null;
+      const track = (label, inv) => { if (!Number.isFinite(inv)) return; if (!best || inv < best.inv) best = { label, inv }; };
+      const maxOf = (key) => { let v = 0, who = null; for (let i = 0; i < all.length; i++) { const x = all[i][key]; if (x > v) { v = x; who = ks[i]; } } return { v: v || null, who }; };
+      const m1 = maxOf('match_1'), mx = maxOf('match_X'), m2 = maxOf('match_2');
+      if (m1.v && mx.v && m2.v) track(`1X2 ${m1.who}/${mx.who}/${m2.who}`, 1 / m1.v + 1 / mx.v + 1 / m2.v);
+      const dx2 = maxOf('dc_X2'), d12 = maxOf('dc_12'), d1x = maxOf('dc_1X');
+      if (m1.v && dx2.v) track(`1 vs X2 ${m1.who}/${dx2.who}`, 1 / m1.v + 1 / dx2.v);
+      if (m2.v && d1x.v) track(`2 vs 1X ${m2.who}/${d1x.who}`, 1 / m2.v + 1 / d1x.v);
+      if (mx.v && d12.v) track(`X vs 12 ${mx.who}/${d12.who}`, 1 / mx.v + 1 / d12.v);
+      const lines = new Set();
+      for (const o of all) for (const k of Object.keys(o)) { const mm = k.match(/^match_(?:over|under)_(\d+(?:\.\d+)?)$/); if (mm) lines.add(mm[1]); }
+      for (const l of lines) { const ov = maxOf(`match_over_${l}`), un = maxOf(`match_under_${l}`); if (ov.v && un.v) track(`Total ${l} ${ov.who}/${un.who}`, 1 / ov.v + 1 / un.v); }
+      const hl = new Set();
+      for (const o of all) for (const k of Object.keys(o)) { const mm = k.match(/^hcp_home_(-?\d+(?:\.\d+)?)$/); if (mm) hl.add(mm[1]); }
+      for (const l of hl) { const hn = parseFloat(l); const hv = maxOf(`hcp_home_${l}`), av = maxOf(`hcp_away_${-hn}`); if (hv.v && av.v) track(`Handicap ${l} ${hv.who}/${av.who}`, 1 / hv.v + 1 / av.v); }
+      console.log(`[fin ${sport}] ${entry.ref.home} - ${entry.ref.away} | books:${ks.join(',')} | ${best ? `${best.label} -> ${best.inv.toFixed(4)}` : 'aucune combinaison'}`);
+      shown++;
+    }
+  }
   const deduped = all.slice().sort((a, b) => b.profit_pct - a.profit_pct);
   log(`🎯 ${deduped.length} opportunités candidates ≥ ${minP}% | ${Date.now() - t0}ms`);
 
