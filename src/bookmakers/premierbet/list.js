@@ -4,7 +4,10 @@ import { mget, isVirtual, isOutright, splitTeams } from './api.js';
 //   1=Football, 2=Basketball (WNBA/BSN/Euroligue), 3=Baseball, 4=Ice Hockey (KHL),
 //   5=Tennis (ATP/WTA/Challenger).
 // L'ancien mapping 2=Tennis etait faux (validation obsolete).
-const SPORT_IDS = { football: '1', tennis: '5', basket: '2', hockey: '4' };
+const SPORT_IDS = { football: '1', tennis: '5', basket: '2', hockey: '4', handball: '6' };
+// 6 = Handball (verifie le 13/11/2026 : 36 matchs a venir, « sportName:
+// Handball », Danemark 1. division). Le 1X2 y porte le libelle « Resultat du
+// Match » avec un id de marche different du foot -> voir parseHandball.js.
 // Regex "non-foot" appliquée UNIQUEMENT en mode football (filtre les catégories
 // tennis/basket/etc. leakées dans le feed foot). En tennis on ne filtre pas.
 const NON_FOOT_RE = /tennis|baseball|basketball|volleyball|hockey|mma|boxing|cricket|\bnfl\b|\bnba\b|\bnhl\b|\bmlb\b|table tennis|snooker|darts|handball|rugby|badminton|golf|esports?|counter.?strike|dota|starcraft|league of legends/i;
