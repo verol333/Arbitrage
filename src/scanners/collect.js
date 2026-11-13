@@ -255,24 +255,39 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
       if (o && Object.keys(o).length) oddsPerBook[b.key] = o;
     }
     const keys = Object.keys(oddsPerBook);
-    // DIAGNOSTIC : pour les 2 premiers matchs comparables, montrer combien de
-    // marches chaque book sert reellement et la meilleure somme d'inverses
-    // atteignable (handball/volley/etc. n'affichaient aucune opportunite).
-    if (diagShown < 2 && keys.length >= 2) {
-      const oa = oddsPerBook[keys[0]], ob = oddsPerBook[keys[1]];
-      const ka = Object.keys(oa).filter((x) => !x.startsWith('_'));
-      const kb = Object.keys(ob).filter((x) => !x.startsWith('_'));
-      const commons = ka.filter((x) => kb.includes(x));
-      let best = 9;
-      for (const k of commons) {
-        let other = null;
-        if (k.includes('match_over_')) other = k.replace('match_over_', 'match_under_');
-        else if (k.includes('match_under_')) other = k.replace('match_under_', 'match_over_');
-        else if (k.includes('hcp_home_')) other = k.replace('hcp_home_', 'hcp_away_');
-        else if (k.includes('hcp_away_')) other = k.replace('hcp_away_', 'hcp_home_');
-        if (other && kb.includes(other) && oa[k] && ob[other]) best = Math.min(best, 1 / oa[k] + 1 / ob[other]);
+    // DIAGNOSTIC : pour les 3 premiers matchs a 3 books et plus, mesurer la
+    // MEILLEURE combinaison atteignable toutes paires confondues (1X2, 1 vs X2,
+    // totaux). Sert a distinguer "aucun surebet n'existe" de "le comparateur
+    // rate quelque chose".
+    if (diagShown < 3 && keys.length >= 3) {
+      const all = keys.map((k) => oddsPerBook[k]);
+      let best = null;
+      const track = (label, inv) => { if (!Number.isFinite(inv)) return; if (!best || inv < best.inv) best = { label, inv }; };
+      const maxOf = (key) => {
+        let v = 0, who = null;
+        for (let i = 0; i < all.length; i++) { const x = all[i][key]; if (x > v) { v = x; who = keys[i]; } }
+        return { v: v || null, who };
+      };
+      const m1 = maxOf('match_1'), mx = maxOf('match_X'), m2 = maxOf('match_2');
+      if (m1.v && mx.v && m2.v) track(`1X2 ${m1.who}/${mx.who}/${m2.who}`, 1 / m1.v + 1 / mx.v + 1 / m2.v);
+      const dx2 = maxOf('dc_X2'), d12 = maxOf('dc_12'), d1x = maxOf('dc_1X');
+      if (m1.v && dx2.v) track(`1 vs X2 ${m1.who}/${dx2.who}`, 1 / m1.v + 1 / dx2.v);
+      if (m2.v && d1x.v) track(`2 vs 1X ${m2.who}/${d1x.who}`, 1 / m2.v + 1 / d1x.v);
+      if (mx.v && d12.v) track(`X vs 12 ${mx.who}/${d12.who}`, 1 / mx.v + 1 / d12.v);
+      const lines = new Set();
+      for (const o of all) for (const k of Object.keys(o)) { const mm = k.match(/^match_(?:over|under)_(\d+(?:\.\d+)?)$/); if (mm) lines.add(mm[1]); }
+      for (const l of lines) {
+        const ov = maxOf(`match_over_${l}`), un = maxOf(`match_under_${l}`);
+        if (ov.v && un.v) track(`Total ${l} ${ov.who}/${un.who}`, 1 / ov.v + 1 / un.v);
       }
-      console.log(`[diag ${sport}] ${ref.home} - ${ref.away} | ${keys[0]}:${ka.length} marches (${ka.slice(0, 6).join(',')}) | ${keys[1]}:${kb.length} (${kb.slice(0, 6).join(',')}) | communes:${commons.length} | bestInvSum:${best === 9 ? 'n/a' : best.toFixed(4)}`);
+      const hlines = new Set();
+      for (const o of all) for (const k of Object.keys(o)) { const mm = k.match(/^hcp_home_(-?\d+(?:\.\d+)?)$/); if (mm) hlines.add(mm[1]); }
+      for (const l of hlines) {
+        const hn = parseFloat(l);
+        const hv = maxOf(`hcp_home_${l}`), av = maxOf(`hcp_away_${-hn}`);
+        if (hv.v && av.v) track(`Handicap ${l} ${hv.who}/${av.who}`, 1 / hv.v + 1 / av.v);
+      }
+      console.log(`[best ${sport}] ${ref.home} - ${ref.away} | books:${keys.join(',')} | ${best ? `${best.label} -> ${best.inv.toFixed(4)}` : 'aucune combinaison'}`);
       diagShown++;
     }
     const debugMatches = buildDebugMatches(matches);
