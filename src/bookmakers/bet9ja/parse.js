@@ -71,7 +71,7 @@ const neg = (l) => fmt(-Number(l));
 function defsOf(D) {
   return (Array.isArray(D && D.MK) ? D.MK : [])
     .filter((m) => m && m.ID)
-    .map((m) => ({ sid: String(m.ID), name: m.DS || String(m.ID), category: m.GCAT || '' }))
+    .map((m) => ({ sid: String(m.ID), name: m.DS || m.NAME || String(m.ID), category: m.GCAT || '', labels: m.SGN || [], codes: m.SGNK || [] }))
     .sort((a, b) => b.sid.length - a.sid.length);
 }
 
@@ -107,14 +107,24 @@ export function b9KeyOf(sid, def, oddsValue) {
 // Cotes standard d'un match Bet9ja : { match_1: 1.62, 'match_over_2.5': 1.58, ... }
 export function parseB9Odds(D) {
   const defs = defsOf(D);
-  const odds = {};
+  const odds = { _ids: {} };
   const used = new Set();
   let ignored = 0;
   for (const [sid, raw] of Object.entries((D && D.O) || {})) {
     const def = defFor(sid, defs);
     const key = def ? b9KeyOf(sid, def, raw) : null;
     if (!key) { ignored++; continue; }
-    if (odds[key] == null) odds[key] = Number(raw);
+    if (odds[key] == null) {
+      odds[key] = Number(raw);
+      const sign = sid.slice(sid.lastIndexOf('_') + 1);
+      odds._ids[key] = {
+        eventId: Number(D.ID), sid, eventName: D.DS, leagueName: D.GN,
+        startdate: D.STARTDATE, region: D.SG, sport: D.S,
+        market_name_native: def.name,
+        selection_name_native: def.labels[def.codes.map(String).indexOf(sign)] || sign,
+        market_path_native: def.category,
+      };
+    }
     used.add(def.sid);
   }
   return { odds, mappedMarkets: [...used], ignored };
