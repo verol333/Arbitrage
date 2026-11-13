@@ -7,7 +7,7 @@
 //   "Écart de points"          -> hcp_home_<L> / hcp_away_<L>
 // Ignorés : "Score Final Sets", "Nombre
 // total de sets", marchés par set, points par joueuse. Demi-lignes seulement.
-import { norm, numFR, halfLine, sideOfSel, makePut, putEcart } from './util.js';
+import { norm, numFR, halfLine, sideOfSel, makePut, putEcart, isHalfScope } from './util.js';
 
 export function betclicVolleyballFlatOdds(markets, { home, away } = {}) {
   const odds = {}; const ids = {}; const put = makePut(odds, ids);
@@ -22,7 +22,11 @@ export function betclicVolleyballFlatOdds(markets, { home, away } = {}) {
       }
       continue;
     }
-    if (name.startsWith('ecart de points')) { putEcart(mk, home, away, 'hcp_', put); continue; }
+    if (name.startsWith('ecart de points')) {
+      // Ecart de mi-temps : jamais comparable au handicap du match entier.
+      if (isHalfScope(name)) continue;
+      putEcart(mk, home, away, 'hcp_', put); continue;
+    }
     if (name === 'nombre total de points') {
       for (const s of mk.selections) {
         const l = norm(s.name);

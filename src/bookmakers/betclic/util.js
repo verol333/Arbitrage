@@ -76,3 +76,13 @@ export function putEcart(mk, home, away, prefix, put) {
     put(prefix + e.side + '_' + String(e.line), s, mk);
   }
 }
+
+// ── MI-TEMPS ─────────────────────────────────────────────────────────────
+// Betclic nomme la premiere mi-temps « ... a la MT » (ou « 1re periode »),
+// sans autre marqueur. Un ecart de buts/points de mi-temps lu comme un
+// handicap du match entier s'opposait au handicap temps plein d'un autre book :
+// faux surebet a +14,75 % constate le 13/11/2026 sur Montpellier - Dunkerque
+// (Betclic « gagne de 5 ou + » a la MT, face a 1xBet +4,5 du match).
+export function isHalfScope(name) {
+  return /\bmt\b|mi-temps|mi temps|1ere periode|1re periode|premiere periode/.test(name);
+}

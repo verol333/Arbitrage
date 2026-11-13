@@ -7,6 +7,7 @@
 // sert qu'a determiner la periode (match / 1re / 2e mi-temps), le domaine
 // (buts ou corners) et l'equipe concernee.
 import { isHalfLine } from '../../core/markets.js';
+import { isHalfScope } from './util.js';
 
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
@@ -19,8 +20,10 @@ function line(n) { return isHalfLine(n) ? String(n) : null; }
 
 // Periode : prefixe de cle. '' = temps reglementaire.
 function scopeOf(name) {
-  if (/(1ere|1re|premiere) mi-temps/.test(name)) return 'ht_';
-  if (/(2eme|2e|seconde|deuxieme) mi-temps/.test(name)) return 'h2_';
+  if (/(2eme|2e|seconde|deuxieme) (mi-temps|periode)/.test(name)) return 'h2_';
+  // « a la MT » : Betclic n'ecrit pas toujours « mi-temps ». Sans ce test,
+  // « Ecart de buts a la MT » etait lu comme un handicap du match entier.
+  if (isHalfScope(name)) return 'ht_';
   return '';
 }
 

@@ -7,7 +7,7 @@
 //   "Nombre total de points - {team}" -> tt_home_over/under ou tt_away_over/under
 //   "Écart de points entre les équipes" -> hcp_home_<L> / hcp_away_<L>
 // Ignorés : quart-temps, scores exacts, joueurs. Demi-lignes seulement.
-import { norm, numFR, halfLine, sideOfSel, sideIn, makePut, putEcart } from './util.js';
+import { norm, numFR, halfLine, sideOfSel, sideIn, makePut, putEcart, isHalfScope } from './util.js';
 
 export function betclicBasketFlatOdds(markets, { home, away } = {}) {
   const odds = {}; const ids = {}; const put = makePut(odds, ids);
@@ -35,7 +35,11 @@ export function betclicBasketFlatOdds(markets, { home, away } = {}) {
       continue;
     }
     // Handicap points, publié en phrases sous "Écart de points".
-    if (name.startsWith('ecart de points')) { putEcart(mk, home, away, 'hcp_', put); continue; }
+    if (name.startsWith('ecart de points')) {
+      // Ecart de mi-temps : jamais comparable au handicap du match entier.
+      if (isHalfScope(name)) continue;
+      putEcart(mk, home, away, 'hcp_', put); continue;
+    }
     // Total par équipe : "Nombre total de points - Espagne F."
     if (name.startsWith('nombre total de points')) {
       const side = sideIn(name, home, away);
