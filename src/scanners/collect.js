@@ -240,6 +240,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   const emitted = new Set();
   const matchesIdx = matchesByBookOpp(sorted, usable);
   const pipeline = [];
+  let diagShown = 0; // diagnostic temporaire des sports recents
 
   // Candidats d'UNE SEULE paire de bookmakers, calculés dès que ces deux books
   // ont fini de lire leurs cotes — sans attendre les autres.
@@ -254,6 +255,26 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
       if (o && Object.keys(o).length) oddsPerBook[b.key] = o;
     }
     const keys = Object.keys(oddsPerBook);
+    // DIAGNOSTIC : pour les 2 premiers matchs comparables, montrer combien de
+    // marches chaque book sert reellement et la meilleure somme d'inverses
+    // atteignable (handball/volley/etc. n'affichaient aucune opportunite).
+    if (diagShown < 2 && keys.length >= 2) {
+      const oa = oddsPerBook[keys[0]], ob = oddsPerBook[keys[1]];
+      const ka = Object.keys(oa).filter((x) => !x.startsWith('_'));
+      const kb = Object.keys(ob).filter((x) => !x.startsWith('_'));
+      const commons = ka.filter((x) => kb.includes(x));
+      let best = 9;
+      for (const k of commons) {
+        let other = null;
+        if (k.includes('match_over_')) other = k.replace('match_over_', 'match_under_');
+        else if (k.includes('match_under_')) other = k.replace('match_under_', 'match_over_');
+        else if (k.includes('hcp_home_')) other = k.replace('hcp_home_', 'hcp_away_');
+        else if (k.includes('hcp_away_')) other = k.replace('hcp_away_', 'hcp_home_');
+        if (other && kb.includes(other) && oa[k] && ob[other]) best = Math.min(best, 1 / oa[k] + 1 / ob[other]);
+      }
+      console.log(`[diag ${sport}] ${ref.home} - ${ref.away} | ${keys[0]}:${ka.length} marches (${ka.slice(0, 6).join(',')}) | ${keys[1]}:${kb.length} (${kb.slice(0, 6).join(',')}) | communes:${commons.length} | bestInvSum:${best === 9 ? 'n/a' : best.toFixed(4)}`);
+      diagShown++;
+    }
     const debugMatches = buildDebugMatches(matches);
     const liveSnapshot = live ? consolidateLive(matches) : null;
     const i = keys.indexOf(k1);
