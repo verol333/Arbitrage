@@ -95,7 +95,7 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
     // ── Totaux : "+ de 2,5" / "- de 2,5" ─────────────────────────────────
     if (labels.some((l) => /^[+-] de /.test(l))) {
       if (!/\b(?:buts?|corners?)\b/.test(name)) continue;
-      if (/\s[-–]\s/.test(name.replace(/^(?:1ere|1re|premiere|2eme|2e|seconde|deuxieme) mi[- ]temps(?: \(seule\))?\s*[-–]\s*/, '')) && !teamSide) continue;
+      if (/(?:buts?|corners?)\s*(?:\([^)]*\))?\s*[-–]\s*/.test(name) && !teamSide) continue;
       for (const s of sels) {
         const l = norm(s.name);
         const over = l.startsWith('+');
