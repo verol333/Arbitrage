@@ -3,7 +3,7 @@
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
 import { dropInconsistentPairs } from '../core/markets.js';
-import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, compareVolleyballTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, compareVolleyballTwoBooks, compareHandballTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
@@ -232,6 +232,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
                 : sport === 'table_tennis' ? compareTennisTwoBooks
                 : sport === 'basket' ? compareBasketTwoBooks
                 : sport === 'hockey' ? compareHockeyTwoBooks
+                : sport === 'handball' ? compareHandballTwoBooks
                 : sport === 'volleyball' ? compareVolleyballTwoBooks
                 : compareTwoBooks;
   const all = [];
