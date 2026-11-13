@@ -7,7 +7,10 @@ import { CONGO_API, congoJson } from './api.js';
 // American Cup + Brésil U19 Paulista + Russie Pro League).
 // Table Tennis Congobet : sid=113 (confirmé F12 user 2026-08-13 : Czech Liga Pro,
 // Kasnik vs Sychra, Stolfa vs Janata, Cabis vs Zika — 12+ matchs actifs).
-const SPORT_IDS = { football: '101', tennis: '103', basket: '102', hockey: '111', volleyball: '114', table_tennis: '113' };
+// Handball Congobet : sid=110 (probe 2026-11-13 : LNH Starligue, Proligue, Bundesliga,
+// EHF). Les betTypeId sont ceux du foot (10001 1X2, 10003 total, 10008 DC,
+// 10016 ecart, 10055/10056 totaux equipe, 10031 pair/impair) -> parseur commun.
+const SPORT_IDS = { football: '101', tennis: '103', basket: '102', hockey: '111', volleyball: '114', table_tennis: '113', handball: '110' };
 
 async function listLeafCategories(sportId) {
   const cats = await congoJson(`${CONGO_API}eventCategories/${sportId}?l=fr`);
