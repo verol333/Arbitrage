@@ -13,4 +13,8 @@ export const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 
 // 1win.ng/betting/prematch/ice-hockey-35.
 // Volleyball 1win : sid=27 (confirme via probe 2026-08-11 - matchs Volei Renata U19,
 // Pan American Cup, USA vs Puerto Rico partages avec SportyBet/Congobet).
-export const WIN_SID = { football: 18, tennis: 33, basket: 23, hockey: 35, volleyball: 27, table_tennis: 24 };
+// Handball 1win : sid=34 (mesure le 13/11/2026 — Montpellier-Barcelona,
+// MC Alger (w)-HHB Saida (w) : vrais matchs de handball, 50 en direct).
+// Marches servis : Result (3 issues), Total (lignes 30.5-66.5), Handicap,
+// « <equipe> total », Total even — tous deja decodes par winFlatOdds.
+export const WIN_SID = { football: 18, tennis: 33, basket: 23, hockey: 35, volleyball: 27, table_tennis: 24, handball: 34 };
