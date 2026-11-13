@@ -58,7 +58,10 @@ export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', bask
 // 190/191=TT home/away total points, 196=Total sets exact, 202=Set N winner,
 // 203=Set N points handicap, 204=Set N total points, 314=Total sets O/U.
 // Confirmé via probe SportyBet 2026-08-14 : sr:sport:20 retourne 50 matchs TT.
-export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY, volleyball: MARKET_IDS_VOLLEYBALL, table_tennis: MARKET_IDS_TENNIS };
+// Handball : IDs presents sur l'API (verifies sur un event reel le 2026-11-13) :
+// 1=1X2, 10=Double Chance, 16=Handicap asiatique, 18=Total buts, 26=Pair/Impair.
+const MARKET_IDS_HANDBALL = '1,10,16,18,26';
+export const SB_MARKET_IDS = { football: MARKET_IDS_FOOTBALL, tennis: MARKET_IDS_TENNIS, basket: MARKET_IDS_BASKET, hockey: MARKET_IDS_HOCKEY, volleyball: MARKET_IDS_VOLLEYBALL, table_tennis: MARKET_IDS_TENNIS, handball: MARKET_IDS_HANDBALL };
 
 // Rotation d'user-agents pour eviter les 403 Cloudflare rate-limit.
 // Diag 5books tennis a montre : Chrome 151 marche, autres UAs parfois bloques.
