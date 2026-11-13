@@ -22,6 +22,11 @@ function iterate(g, cb) {
 // à null (règle : ne jamais fabriquer un libellé). Résolution possible via l'endpoint
 // séparé /GetTypeList mais trop coûteux par match — TODO cache global.
 function put1x(odds, key, i, c) {
+  // PREMIER ÉCRIVAIN GAGNE. Un second marché du même groupe qui retombait sur
+  // la même clé (variante, sous-marché) écrasait silencieusement la cote du
+  // marché principal : le surebet affichait alors une cote d'un AUTRE marché
+  // (ex. « Non » à 3,97 au lieu de 2,05 sur les deux équipes marquent).
+  if (odds[key] != null) return;
   odds[key] = c;
   if (!odds._ids) odds._ids = {};
   odds._ids[key] = {
