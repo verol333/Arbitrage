@@ -5,6 +5,7 @@ import { betclicTennisFlatOdds } from './parseTennis.js';
 import { betclicBasketFlatOdds } from './parseBasket.js';
 import { betclicHockeyFlatOdds } from './parseHockey.js';
 import { betclicVolleyballFlatOdds } from './parseVolleyball.js';
+import { betclicTableTennisFlatOdds } from './parseTableTennis.js';
 
 // Betclic (backend gRPC-web offering.begmedia.com, regulation CI) : lu via le
 // RELAIS Base44 (voir api.js — les IP GitHub sont refusees en HTTP 464).
@@ -12,13 +13,16 @@ import { betclicVolleyballFlatOdds } from './parseVolleyball.js';
 // live — voir list.js). Sports lus : foot,
 // tennis, basket, hockey, volley. Le relais expose deja les slugs correspondants.
 const RELAY_CHUNK = 12; // plafond du relais : 12 matchs par appel
-const SUPPORTED = ['football', 'tennis', 'basket', 'hockey', 'volleyball'];
+const SUPPORTED = ['football', 'tennis', 'basket', 'hockey', 'volleyball', 'handball', 'table_tennis'];
 
 function parserFor(sport) {
   if (sport === 'tennis') return betclicTennisFlatOdds;
   if (sport === 'basket') return betclicBasketFlatOdds;
   if (sport === 'hockey') return betclicHockeyFlatOdds;
   if (sport === 'volleyball') return betclicVolleyballFlatOdds;
+  // Handball : mêmes marchés que le foot (résultat 3-way, écart de buts, totaux).
+  if (sport === 'handball') return betclicFlatOdds;
+  if (sport === 'table_tennis') return betclicTableTennisFlatOdds;
   return betclicFlatOdds; // football
 }
 
