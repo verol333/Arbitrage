@@ -51,7 +51,8 @@ const MARKET_IDS_HOCKEY = '1,10,18,16,26,27,29,86';
 // 311=1st set O/E, 26=O/E match, 196=Exact sets. Note pas de 187/188 (game hcp),
 // remplaces par 309 (point handicap sets).
 const MARKET_IDS_VOLLEYBALL = '186,202,309,311,26,196,201';
-export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4', volleyball: 'sr:sport:23', table_tennis: 'sr:sport:20' };
+// Handball : sr:sport:6 (probe 2026-11-13 : 107 matchs a venir, Bundesliga incluse).
+export const SB_SPORT_IDS = { football: 'sr:sport:1', tennis: 'sr:sport:5', basket: 'sr:sport:2', hockey: 'sr:sport:4', volleyball: 'sr:sport:23', table_tennis: 'sr:sport:20', handball: 'sr:sport:6' };
 // Table Tennis : SR utilise les mêmes market IDs que tennis (structure sets identique).
 // 186=Winner, 187=Points handicap, 188=Set handicap, 189=Total points match,
 // 190/191=TT home/away total points, 196=Total sets exact, 202=Set N winner,
