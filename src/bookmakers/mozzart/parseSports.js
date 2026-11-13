@@ -116,9 +116,18 @@ export function mozzartTennisFlatOdds(kodds) {
 // ── BASKET ─────────────────────────────────────────────────────────────
 //  196 Match Winner (2 voies, OT inclus)   27/749-752 Total Points
 //  1/735-738 Match Points Handicap         181/183 Total Points par equipe
+// Garde-fou LIGNES DE PERIODE (13/11/2026) : les lignes d'un quart-temps ou
+// d'une mi-temps portent le meme intitule "handicap"/"total" que le match
+// complet. Releve reel Kyoto-Ibaraki : un handicap "-2.5" a 2.16 (cote de
+// quart-temps) croise avec un vrai -2.5 d'un autre book fabriquait un faux
+// surebet a 11.86 %. Toute ligne de periode est ecartee ici.
+const PERIOD_LINE = /quarter|period|1st|2nd|3rd|4th|\bq[1-4]\b|half|mi-temps|prolongation/;
+
 export function mozzartBasketFlatOdds(kodds) {
   const odds = {};
   for (const o of active(kodds)) {
+    const label = `${o?.subGame?.gameName || ''} ${o?.subGame?.subGameName || ''}`.toLowerCase();
+    if (PERIOD_LINE.test(label)) continue;
     const g = String(o.subGame.gameId);
     const n = nameOf(o);
     const gn = groupOf(o);
