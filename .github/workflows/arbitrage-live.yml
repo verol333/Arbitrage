@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sport: [football, tennis, basket, hockey, volleyball, table_tennis]
+        sport: [football, tennis, basket, hockey, volleyball, table_tennis, handball]
     runs-on: ubuntu-latest
     timeout-minutes: 360
     defaults:
