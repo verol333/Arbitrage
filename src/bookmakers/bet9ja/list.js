@@ -9,6 +9,10 @@ const SPORT_IDS = {
 // Les matchs « Players » / « Zoom » (sports 301, 303) sont des jeux virtuels :
 // on ne lit que les sports réels listés ci-dessus.
 
+// Bet9ja mélange le foot réel et des championnats SIMULÉS (Simulated Reality
+// League, e-soccer). On ne garde que le foot réel.
+const VIRTUAL = /simulated|\bSRL\b|e-?soccer|cyber|virtual|esport/i;
+
 const PAL_TTL_MS = 4 * 60_000;
 let palCache = { at: 0, data: null };
 
@@ -42,6 +46,7 @@ export async function listPrematch(sport = 'football', { horizonHours = 72, conc
     for (const [groupId, g] of Object.entries((sg && sg.G) || {})) {
       const next = isoToMs(String(g.D || '').replace(' ', 'T') + 'Z');
       if (next == null || next > until) continue;
+      if (VIRTUAL.test((sg.SG_DESC || '') + ' ' + (g.G_DESC || ''))) continue;
       groups.push({ groupId, league: (g.G_DESC || '').trim(), region: (sg.SG_DESC || '').trim() });
     }
   }
