@@ -7,7 +7,7 @@
 // sert qu'a determiner la periode (match / 1re / 2e mi-temps), le domaine
 // (buts ou corners) et l'equipe concernee.
 import { isHalfLine } from '../../core/markets.js';
-import { isHalfScope } from './util.js';
+import { makePut, periodOf } from './util.js';
 
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
@@ -19,13 +19,7 @@ function numFR(s) {
 function line(n) { return isHalfLine(n) ? String(n) : null; }
 
 // Periode : prefixe de cle. '' = temps reglementaire.
-function scopeOf(name) {
-  if (/(2eme|2e|seconde|deuxieme) (mi-temps|periode)/.test(name)) return 'h2_';
-  // « a la MT » : Betclic n'ecrit pas toujours « mi-temps ». Sans ce test,
-  // « Ecart de buts a la MT » etait lu comme un handicap du match entier.
-  if (isHalfScope(name)) return 'ht_';
-  return '';
-}
+function scopeOf(name) { return periodOf(name); }
 
 // Equipe citee dans le libelle du marche (totaux individuels, cage inviolee).
 //
@@ -60,10 +54,10 @@ function sideOfSel(sel, home, away) { return pickSide(norm(sel), home, away, 'st
  */
 function handicapLine(sel) {
   const s = norm(sel);
-  let m = s.match(/gagne de (\d+)(?: buts?)? ou \+/);
+  let m = s.match(/gagne de (\d+)(?: buts?)? ou \+$/);
   if (m) return -(Number(m[1]) - 0.5);
-  m = s.match(/ne perd pas ou perd de (\d+)(?: buts?)?(?: ou -| exactement)/);
-  if (m) return Number(m[1]) + 0.5;
+  m = s.match(/ne perd pas ou perd de (\d+)(?: buts?)? (ou -|exactement)$/);
+  if (m && (m[2] !== 'exactement' || Number(m[1]) === 1)) return Number(m[1]) + 0.5;
   if (/ne perd pas$/.test(s)) return 0.5;
   return null;
 }
@@ -73,17 +67,13 @@ function handicapLine(sel) {
  * Les marches et selections suspendus sont ignores (impossibles a poser).
  */
 export function betclicFlatOdds(markets, { home, away } = {}) {
-  const odds = {}; const ids = {};
-  const put = (key, sel, mk) => {
-    if (!key || odds[key] != null) return;
-    odds[key] = sel.odd;
-    ids[key] = { market_id: mk.id, market_name: mk.name, selection_id: sel.id, selection_name: sel.name };
-  };
+  const odds = {}; const ids = {}; const put = makePut(odds, ids);
 
   for (const mk of markets || []) {
     if (!mk || mk.suspended || !Array.isArray(mk.selections) || mk.selections.length < 2) continue;
     const name = norm(mk.name);
     const sc = scopeOf(name);
+    if (sc === 'unsupported') continue;
     const corners = /corner/.test(name);
     const dom = corners ? 'cor_' + sc : sc;          // cor_ / cor_ht_ / ht_ / ''
     // Marches STATISTIQUES : "1ere mi-temps - Plus grand nombre de cartons" a
@@ -97,13 +87,15 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
     // combine (plus courte) opposee a un vrai BTTS fabrique un faux surebet.
     // Un " ou " dans le NOM du marche signe toujours un combine chez Betclic
     // (la double chance, elle, porte le "ou" dans ses SELECTIONS, pas son nom).
-    if (/ (ou|et) /.test(name) && !/rembourse/.test(name)) continue;
+    if ((/ (ou|et) /.test(name) || name.includes('&')) && !/rembourse/.test(name)) continue;
     const teamSide = sideIn(name, home, away);
     const sels = mk.selections;
     const labels = sels.map((s) => norm(s.name));
 
     // ── Totaux : "+ de 2,5" / "- de 2,5" ─────────────────────────────────
     if (labels.some((l) => /^[+-] de /.test(l))) {
+      if (!/\b(?:buts?|corners?)\b/.test(name)) continue;
+      if (/\s[-–]\s/.test(name.replace(/^(?:1ere|1re|premiere|2eme|2e|seconde|deuxieme) mi[- ]temps(?: \(seule\))?\s*[-–]\s*/, '')) && !teamSide) continue;
       for (const s of sels) {
         const l = norm(s.name);
         const over = l.startsWith('+');
@@ -168,13 +160,13 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
         // ferait perdre la double chance X2.
         const has = (c) => codes.includes(c);
         const key = has('1') && has('X') ? 'dc_1X' : has('1') && has('2') ? 'dc_12' : has('X') && has('2') ? 'dc_X2' : null;
-        if (key) put(sc + key, s, mk);
+        if (key) put(dom + key, s, mk);
       }
       continue;
     }
 
     // ── Resultat sec 1X2 (3 issues) ──────────────────────────────────────
-    if (sels.length === 3 && labels.some((l) => l === 'nul' || l === 'match nul')) {
+    if (/\bresultat\b|(?:plus grand nombre|vainqueur).*corners/.test(name) && sels.length === 3 && labels.some((l) => l === 'nul' || l === 'match nul')) {
       const base = corners ? 'cor_' + sc + 'match_' : sc ? sc + 'match_' : 'match_';
       for (const s of sels) {
         const l = norm(s.name);
@@ -191,7 +183,7 @@ export function betclicFlatOdds(markets, { home, away } = {}) {
     if (/rembourse/.test(name) && sels.length === 2) {
       for (const s of sels) {
         const side = sideOfSel(s.name, home, away);
-        if (side) put(sc + 'dnb_' + (side === 'home' ? '1' : '2'), s, mk);
+        if (side) put(dom + 'dnb_' + (side === 'home' ? '1' : '2'), s, mk);
       }
       continue;
     }

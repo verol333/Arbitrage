@@ -1,12 +1,17 @@
 // Validation des parseurs Betclic (tennis/basket/hockey/volley) contre les
 // vraies cotes Betclic : liste -> 1er match -> odds -> parseur -> cles canoniques.
 import { bcListAll, bcMatchMarkets } from '../src/bookmakers/betclic/api.js';
+import { betclicFlatOdds } from '../src/bookmakers/betclic/parse.js';
+import { betclicTableTennisFlatOdds } from '../src/bookmakers/betclic/parseTableTennis.js';
 import { betclicTennisFlatOdds } from '../src/bookmakers/betclic/parseTennis.js';
 import { betclicBasketFlatOdds } from '../src/bookmakers/betclic/parseBasket.js';
 import { betclicHockeyFlatOdds } from '../src/bookmakers/betclic/parseHockey.js';
 import { betclicVolleyballFlatOdds } from '../src/bookmakers/betclic/parseVolleyball.js';
 
 const PARSERS = {
+  football: betclicFlatOdds,
+  handball: betclicFlatOdds,
+  table_tennis: betclicTableTennisFlatOdds,
   tennis: betclicTennisFlatOdds,
   basket: betclicBasketFlatOdds,
   hockey: betclicHockeyFlatOdds,
@@ -30,5 +35,5 @@ async function validate(sport) {
   }
 }
 
-for (const sp of ['tennis', 'basket', 'hockey', 'volleyball']) { await validate(sp); }
+for (const sp of Object.keys(PARSERS)) { await validate(sp); }
 log('\n=== FIN VALIDATION ===');

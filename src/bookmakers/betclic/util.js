@@ -38,8 +38,12 @@ export function sideIn(name, home, away) { return pickSide(name, home, away, 'in
 // Premier-wins : chaque marché Betclic apparaît une seule fois.
 export function makePut(odds, ids) {
   return (key, sel, mk) => {
-    if (!key || odds[key] != null) return;
-    odds[key] = sel.odd;
+    if (!key || odds[key] != null || sel.suspended || !Number.isFinite(Number(sel.odd)) || Number(sel.odd) <= 1) return;
+    const scope = periodOf(mk.name);
+    const unprefixed = key.replace(/^cor_/, '');
+    const targetScope = unprefixed.startsWith('ht_') ? 'ht_' : unprefixed.startsWith('h2_') ? 'h2_' : '';
+    if (scope === 'unsupported' || scope !== targetScope) return;
+    odds[key] = Number(sel.odd);
     ids[key] = { market_id: mk.id, market_name: mk.name, selection_id: sel.id, selection_name: sel.name };
   };
 }
@@ -63,8 +67,8 @@ export function ecartLine(selName, home, away) {
   const tail = hay.slice(team.length).trim();
   let m = /^gagne de (\d+) ou \+$/.exec(tail);
   if (m) return { side, line: -(Number(m[1]) - 0.5) };
-  m = /^ne perd pas ou perd de (\d+) (?:ou -|exactement)$/.exec(tail);
-  if (m) return { side, line: Number(m[1]) + 0.5 };
+  m = /^ne perd pas ou perd de (\d+) (ou -|exactement)$/.exec(tail);
+  if (m && (m[2] !== 'exactement' || Number(m[1]) === 1)) return { side, line: Number(m[1]) + 0.5 };
   return null;
 }
 
@@ -85,4 +89,14 @@ export function putEcart(mk, home, away, prefix, put) {
 // (Betclic « gagne de 5 ou + » a la MT, face a 1xBet +4,5 du match).
 export function isHalfScope(name) {
   return /\bmt\b|mi-temps|mi temps|1ere periode|1re periode|premiere periode/.test(name);
+}
+
+// Une periode non comparable ne doit JAMAIS retomber sur le match complet.
+export function periodOf(value) {
+  const s = norm(value);
+  if (/mi[- ]temps\s*\/|mi[- ]temps la plus|quart[- ]temps|\bquart\b|(?:set|manche)\s*(?:n[°o]?\s*)?[1-5]\b|[1-5](?:e|er|eme|ere|re)?\s+(?:set|manche)\b/.test(s)) return 'unsupported';
+  if (/(?:2(?:e|eme)?|seconde|deuxieme)\s*(?:mi[- ]temps|mt\b|periode)|\b(?:mt\s*2|2\s*mt)\b/.test(s)) return 'h2_';
+  if (/mi[- ]temps|\bmt\b|\b(?:mt\s*1|1\s*mt)\b|(?:1(?:e|er|ere|re)?|premiere)\s+periode/.test(s)) return 'ht_';
+  if (/\bperiode\b|[\d+\s*[-–]\s*\d+['’]/.test(s)) return 'unsupported';
+  return '';
 }

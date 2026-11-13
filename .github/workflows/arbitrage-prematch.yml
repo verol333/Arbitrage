@@ -56,6 +56,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Controle du mapping Betclic avant demarrage
+        run: npm run test:betclic
+
       - name: Build bundle depuis src (garantit prod == dernier code source)
         run: npm run build
 

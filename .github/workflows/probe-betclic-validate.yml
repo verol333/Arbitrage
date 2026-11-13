@@ -8,6 +8,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - name: Regression du mapping des sept sports
+        run: node --experimental-default-type=module --test src/bookmakers/betclic/mapping.test.mjs
       - name: Run validation
         run: node arbitrage-service/probe-betclic-validate.mjs
         env:

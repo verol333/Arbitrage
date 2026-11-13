@@ -7,13 +7,14 @@
 //   "Écart de points"          -> hcp_home_<L> / hcp_away_<L>
 // Ignorés : "Score Final Sets", "Nombre
 // total de sets", marchés par set, points par joueuse. Demi-lignes seulement.
-import { norm, numFR, halfLine, sideOfSel, makePut, putEcart, isHalfScope } from './util.js';
+import { norm, numFR, halfLine, sideOfSel, makePut, putEcart, isHalfScope, periodOf } from './util.js';
 
 export function betclicVolleyballFlatOdds(markets, { home, away } = {}) {
   const odds = {}; const ids = {}; const put = makePut(odds, ids);
   for (const mk of markets || []) {
     if (!mk || mk.suspended || !Array.isArray(mk.selections) || mk.selections.length < 2) continue;
     const name = norm(mk.name);
+    if (periodOf(name)) continue; // Periodes/sets isoles : pas des cotes du match.
 
     if (name === 'vainqueur du match') {
       for (const s of mk.selections) {

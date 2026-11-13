@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild ../src/cli.js --bundle --platform=node --format=esm --target=node20 --minify --packages=external --outfile=dist/action.min.js"
+    "build": "esbuild ../src/cli.js --bundle --platform=node --format=esm --target=node20 --minify --packages=external --outfile=dist/action.min.js",
+    "test:betclic": "node --experimental-default-type=module --test ../src/bookmakers/betclic/mapping.test.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
