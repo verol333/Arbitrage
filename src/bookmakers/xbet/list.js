@@ -6,7 +6,11 @@ import { teamSim } from '../../core/text.js';
 // Volleyball 1xbet : sid=6 (confirme via probe 2026-08-11, 20 matchs Pan American Cup + club).
 // Table Tennis 1xbet : sid=10 (confirmé via hint utilisateur 2026-08-15 —
 // URL 1xbet.cg/fr/line/table-tennis avec Get1x2_VZip?sports=10).
-const SPORT_IDS = { football: 1, tennis: 4, basket: 3, hockey: 2, volleyball: 6, table_tennis: 10 };
+// Handball 1xbet : sid=8 (probe 2026-11-13 : France Division 1, Bundesliga, EHF).
+// Groupes verifies sur Chambery - Nimes : G=1 1X2 (T1/T2/T3 : 1.76/8.9/2.486, alignes
+// sur CongoBet 1.82/8.2/2.45), G=8 double chance, G=17 total, G=2 handicap,
+// G=15/G=62 totaux par equipe, G=14 pair/impair : identiques au football.
+const SPORT_IDS = { football: 1, tennis: 4, basket: 3, hockey: 2, volleyball: 6, table_tennis: 10, handball: 8 };
 
 function isRealChamp(name) {
   return !/spéci|special|alternative|player|joueur|team vs|vs player|winner|vainqueur|to win|outright|long.?term|handicap match|first goalscorer|corner match|booking|cards?( match)?/i.test(name || '');
