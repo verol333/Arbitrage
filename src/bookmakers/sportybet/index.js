@@ -21,7 +21,7 @@ export default {
   async getOdds(match, { live = false, noCache = false, sport = 'football' } = {}) {
     // Tennis / Basket / TT : listPrematch filtre par MARKET_IDS_FOOTBALL → __raw pauvre.
     // Force fetch event detail pour recuperer TOUS les markets.
-    if (sport === 'tennis' || sport === 'basket' || sport === 'hockey' || sport === 'volleyball' || sport === 'table_tennis') {
+    if (sport === 'tennis' || sport === 'basket' || sport === 'hockey' || sport === 'volleyball' || sport === 'table_tennis' || sport === 'handball') {
       const evt = await sbFetchEvent(match.id, { live });
       const markets = Array.isArray(evt?.data?.markets) ? evt.data.markets : [];
       return markets.length ? sportybetFlatOdds(markets, { live, sport }) : {};
