@@ -1,5 +1,6 @@
 import { mget } from './api.js';
 import { premierbetFlatOdds } from './parse.js';
+import { premierbetHandballOdds } from './parseHandball.js';
 
 function dedupeMarkets(event) {
   const raw = [];
@@ -19,5 +20,7 @@ export async function getOdds(match, { live = false, noCache = false, sport = 'f
   if (!event) return {};
   const evObj = event?.data || event;
   const markets = dedupeMarkets(evObj);
+  // Handball : libelles stables mais ids instables -> parseur par nom.
+  if (sport === 'handball') return premierbetHandballOdds(markets);
   return premierbetFlatOdds(markets, { live, sport });
 }
