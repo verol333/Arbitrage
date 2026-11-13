@@ -1,8 +1,7 @@
 import { listPrematch } from './list.js';
 import { getOdds } from './odds.js';
 
-// Bet9ja (sports.bet9ja.com) : flux public anonyme, foot pré-match pour
-// l'instant. Le live du site passe par un autre point d'entrée (non couvert),
+// Bet9ja: football and independently validated basketball prematch. Le live du site passe par un autre point d'entrée (non couvert),
 // d'où supports.live = false.
 export default {
   key: 'bet9ja',

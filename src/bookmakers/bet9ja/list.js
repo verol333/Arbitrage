@@ -1,10 +1,8 @@
 import { b9Palette, feedD, B9_VERSION } from './api.js';
 
 // Identifiants de sports Bet9ja (palette publique, vérifiée 2026-11-13).
-const SPORT_IDS = {
-  football: '1', basket: '2', hockey: '4', tennis: '5',
-  volleyball: '23', table_tennis: '20', handball: '6',
-};
+// Only sports with a separately validated mapping are enabled.
+const SPORT_IDS = { football: '1', basket: '2' };
 
 // Les matchs « Players » / « Zoom » (sports 301, 303) sont des jeux virtuels :
 // on ne lit que les sports réels listés ci-dessus.
@@ -61,7 +59,7 @@ export async function listPrematch(sport = 'football', { horizonHours = 72, conc
       cursor += 1;
       let D;
       try {
-        D = await feedD('GetEventsInGroupV2?GROUPID=' + encodeURIComponent(group.groupId) + '&DISP=0&GROUPMARKETID=1&matches=true&v_cache_version=' + B9_VERSION);
+        D = await feedD('GetEventsInGroupV2?GROUPID=' + encodeURIComponent(group.groupId) + '&DISP=0&GROUPMARKETID=' + (sportId === '2' ? '12' : '1') + '&matches=true&v_cache_version=' + B9_VERSION);
       } catch {
         continue;
       }

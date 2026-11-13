@@ -21,6 +21,7 @@
 // (« Early », « 5/10/15 minutes »), multi-buts, tirs, cartons, fautes, hors-jeu.
 // ═══════════════════════════════════════════════════════════════════════════
 import { isHalfLine } from '../../core/markets.js';
+import { parseB9Basket } from './parseBasket.js';
 
 // Signes fixes (marchés sans ligne) : MARKETID → { SIGNE: clé standard }
 const SIGN_MAP = {
@@ -106,6 +107,8 @@ export function b9KeyOf(sid, def, oddsValue) {
 
 // Cotes standard d'un match Bet9ja : { match_1: 1.62, 'match_over_2.5': 1.58, ... }
 export function parseB9Odds(D) {
+  if (Number(D?.SID) === 2 || D?.S === 'Basketball') return parseB9Basket(D);
+  if (D?.SID && Number(D.SID) !== 1) return { odds: {}, mappedMarkets: [], ignored: Object.keys(D.O || {}).length };
   const defs = defsOf(D);
   const odds = { _ids: {} };
   const used = new Set();
