@@ -1,0 +1,31 @@
+name: Sonde — cartographie Bet9ja
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: arbitrage-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Installer les dépendances
+        run: npm install
+      - name: Dépendances à la racine
+        working-directory: .
+        run: npm install ws got-scraping --no-save
+      - name: Cartographie Bet9ja (matchs du jour + contrôle sur 3 matchs)
+        run: node probe-bet9ja-map.mjs
+        env:
+          PROXY_MODE: ${{ secrets.PROXY_MODE }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          JINA_API_KEY_2: ${{ secrets.JINA_API_KEY_2 }}
+          CF_WORKER_PROXY_URL: ${{ secrets.CF_WORKER_PROXY_URL }}
+          RESIDENTIAL_PROXY_URL: ${{ secrets.RESIDENTIAL_PROXY_URL }}
+          API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
