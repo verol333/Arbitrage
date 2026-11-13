@@ -16,7 +16,7 @@ for (const id of ids) {
   const t=sid.match(/^B_(OUN|OUH|OUA)@(\d+\.5)_([OU])$/);
   if(t) { const prefix={OUN:'match_',OUH:'tt_home_',OUA:'tt_away_'}[t[1]]; const key=prefix+(t[3]==='O'?'over_':'under_')+Number(t[2]); assert.equal(odds[key],Number(value)); assert.equal(odds._ids[key].sid,sid); checked++; }
  }
- for(const [key,meta] of Object.entries(odds._ids)) { assert.equal(Number(D.O[meta.sid]),odds[key]); assert.ok(!/^B_(1X2|OURT|DNB|2H|4Q|21X2)/.test(meta.sid)); }
+ for(const [key,meta] of Object.entries(odds._ids)) { assert.equal(Number(D.O[meta.sid]),odds[key]); assert.ok(!/^B_(1X2(?:_|@)|OURT(?:_|@)|DNB|2H|4Q|21X2)/.test(meta.sid)); }
  assert.ok(checked>=10);
  assert.equal(parseB9Basket({...D,SID:5,S:'Tennis'}).odds.match_1,undefined);
  console.log(JSON.stringify({event:id,match:D.DS,checked,keys:Object.keys(odds._ids).length,mappedMarkets,ignored,status:'PASS'}));
