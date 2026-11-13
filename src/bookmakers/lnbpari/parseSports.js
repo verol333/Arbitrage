@@ -98,11 +98,12 @@ export function lnbpariSportOdds(markets = [], sport = 'basket') {
       } else if (type === 6) {
         put(pfx + 'even', by[6]); put(pfx + 'odd', by[7]);
       } else if (type === 7 && pfx === '') {
-        const side = String(par[0]) === '1' ? 'home' : 'away';
-        const L = par[1];
-        if (!isHalfLine(L)) continue;
-        put('tt_' + side + '_over_' + fmt(L), by[37]);
-        put('tt_' + side + '_under_' + fmt(L), by[38]);
+        // TOTAL INDIVIDUEL ECARTE hors football (13/11/2026). Sur le hockey ce
+        // type ne correspond pas au marche : releve reel USA (F) - Danemark (F)
+        // -> LNB Pari affichait "Ext. +0.5" a 11.5 alors que 1win, 1xbet,
+        // maxibet et betmomo donnaient 1.40-1.47 pour l'inverse. Ces cotes
+        // fabriquaient des faux surebets a 19-23 %.
+        continue;
       } else if (type === 260 && pfx === '' && sport !== 'basket' && sport !== 'hockey') {
         // Handicap par SETS (et non par points/jeux).
         const L = Number(par[0]);
