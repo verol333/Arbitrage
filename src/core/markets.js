@@ -59,3 +59,72 @@ export function normalizeAliases(odds) {
   alias('goals_odd', 'odd'); alias('goals_even', 'even');
   return o;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLANCHER D'UN MARCHÉ À DEUX ISSUES — CORRECTIF CAUSE RACINE (13/11/2026)
+//
+// Un book ne publie JAMAIS deux issues complémentaires dont la somme des
+// probabilités implicites tombe SOUS 1 : il perdrait à coup sûr sur les deux
+// paris, quel que soit le résultat. Une telle paire n'est donc pas une
+// opportunité : c'est une LECTURE FAUSSE (cote prise dans le marché voisin,
+// dans une autre période, ou côté périmé).
+//
+// Cas réel qui a produit le faux surebet à 12,31 % :
+//   1xbet  « Suisse U20 – Roumanie U20 » — les deux équipes marquent
+//   btts_yes 1.58  +  btts_no 3.97   →  1/1.58 + 1/3.97 = 0.884
+//   alors que le « Non » affiché sur 1xBet valait 2.05.
+// Les deux jambes ne couvraient donc pas le même match/marché : le « profit
+// garanti » était impossible à placer.
+//
+// Le garde-fou existant (twoWaySane) ne vérifiait que le PLAFOND (somme ≤ 1,20)
+// et n'était appelé nulle part. Ici on vérifie le PLANCHER, sur chaque book,
+// avant toute comparaison : une paire incohérente est retirée des cotes du book
+// pour le cycle, donc elle ne peut plus alimenter un surebet.
+const PAIR_FLOOR = 0.98;
+
+// Clé complémentaire d'un marché à deux issues, ou null si la clé n'en fait pas
+// partie (1X2 et marchés à trois issues exclus : le nul est une issue réelle).
+export function complementKey(key) {
+  const k = String(key || '');
+  // Les deux équipes marquent / clean sheet : _yes ↔ _no (tous préfixes).
+  if (/_yes$/.test(k)) return k.slice(0, -4) + '_no';
+  if (/_no$/.test(k)) return k.slice(0, -3) + '_yes';
+  // Pair / impair.
+  if (k === 'odd') return 'even';
+  if (k === 'even') return 'odd';
+  if (/_odd$/.test(k)) return k.slice(0, -4) + '_even';
+  if (/_even$/.test(k)) return k.slice(0, -5) + '_odd';
+  // Totaux (match, mi-temps, quarters, corners, totaux par équipe, jeux tennis).
+  if (/_over_/.test(k)) return k.replace(/_over_/, '_under_');
+  if (/_under_/.test(k)) return k.replace(/_under_/, '_over_');
+  // Handicaps : hcp_home_L est complémentaire de hcp_away_(-L).
+  const home = k.match(/^(.*?)hcp_home_(-?\d+(?:\.\d+)?)$/);
+  if (home) return `${home[1]}hcp_away_${-Number(home[2])}`;
+  const away = k.match(/^(.*?)hcp_away_(-?\d+(?:\.\d+)?)$/);
+  if (away) return `${away[1]}hcp_home_${-Number(away[2])}`;
+  return null;
+}
+
+// Retire des cotes d'UN book toute paire complémentaire mathématiquement
+// impossible (somme des probabilités implicites < 1). Renvoie la liste des
+// marchés retirés pour le journal du scan.
+export function dropInconsistentPairs(odds) {
+  const dropped = [];
+  if (!odds || typeof odds !== 'object') return dropped;
+  const done = new Set();
+  for (const key of Object.keys(odds)) {
+    if (key === '_ids' || done.has(key)) continue;
+    const other = complementKey(key);
+    if (!other || done.has(other)) continue;
+    const a = Number(odds[key]), b = Number(odds[other]);
+    if (!(a > 1) || !(b > 1)) continue;
+    done.add(key); done.add(other);
+    const sum = 1 / a + 1 / b;
+    if (sum >= PAIR_FLOOR) continue;
+    dropped.push({ key, other, a, b, sum: Math.round(sum * 1000) / 1000 });
+    delete odds[key];
+    delete odds[other];
+    if (odds._ids) { delete odds._ids[key]; delete odds._ids[other]; }
+  }
+  return dropped;
+}
