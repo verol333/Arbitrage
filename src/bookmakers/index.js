@@ -34,8 +34,13 @@ import mozzart from './mozzart/index.js';
 // (WebSocket), joignable en direct depuis les runners avec la seule cle de
 // service du site. Foot pre-match ET live ; cotes lues par lot de matchs.
 import lnbpari from './lnbpari/index.js';
+// bet9ja (sports.bet9ja.com) : flux public anonyme (Akamai exige origine +
+// referer). Foot pré-match ; un seul appel GetEvent donne TOUS les marchés du
+// match, ce qui rend la cartographie complète (1X2, DC, BTTS, DNB, totaux,
+// handicaps, corners 1MT/2MT, mi-temps, 2e mi-temps).
+import bet9ja from './bet9ja/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart, lnbpari];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart, lnbpari, bet9ja];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
