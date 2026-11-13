@@ -103,9 +103,13 @@ export function lnbpariSportOdds(markets = [], sport = 'basket') {
         // les parametres sont bien [numero d'equipe, ligne] et 37/38 = plus/moins.
         //   ex. ["2","0.5"] -> 37:110 (plus de 0.5) / 38:535 (moins de 0.5)
         //   ex. ["1","1.5"] -> 37:130 / 38:320
-        // L'ancienne cote a 11.5 venait donc d'une lecture PERIODE (1re/2e/3e
-        // tiers) et non du temps plein : les prefixes de periode sont desormais
-        // filtres (PERIOD_PREFIX.hockey = {}), donc plus de melange.
+        // Aucune valeur aberrante sur ce marche en plein temps (max releve 5.35
+        // sur les lignes 0.5 a 3.5) : le 11.5 vu le 13/11 sur USA (F)-Danemark
+        // ne peut donc PAS venir d'un total d'equipe plein temps. Les marches de
+        // periode sont filtres (PERIOD_PREFIX.hockey = {}), les segments aussi.
+        // Si une marge > 10 % reapparait, le webhook la PUBLIE et la journalise
+        // (GROSSE_MARGE) avec ses deux jambes : c'est cette trace qui donnera la
+        // vraie source, sans jamais masquer la paire.
         const side = String(par[0]) === '1' ? 'home' : 'away';
         const L = par[1];
         if (!isHalfLine(L)) continue;
