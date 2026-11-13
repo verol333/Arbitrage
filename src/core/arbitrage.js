@@ -951,7 +951,17 @@ export function compareHockeyTwoBooks(rawA, bookA, rawB, bookB) {
     pushArb(out, fam, dcLabel, ob[dcKey2], bookB, otherLabel, oa[otherK], bookA, idsOf(ob, dcKey2), idsOf(oa, otherK));
   }
 
-  return out;
+  return out
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPARATOR HANDBALL — meme structure "regulation" que le hockey : 1X2 AVEC
+// nul, total buts, handicap, totaux par equipe, pair/impair. Ni BTTS ni corners
+// (inexistants au handball). Cause racine du 0 opportunite du 13/11/2026 :
+// faute de comparateur dedie, le handball tombait sur compareTwoBooks (football)
+// alors que les books exposent ici les memes marches que le hockey.
+export function compareHandballTwoBooks(rawA, bookA, rawB, bookB) {
+  return compareHockeyTwoBooks(rawA, bookA, rawB, bookB);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
