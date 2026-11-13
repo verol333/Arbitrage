@@ -2,6 +2,7 @@
 // les cotes, compare toutes les paires. Ne connaît AUCUN nom de bookmaker en dur.
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
+import { dropInconsistentPairs } from '../core/markets.js';
 import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, compareVolleyballTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
@@ -18,6 +19,18 @@ async function listSafe(book, opts) {
   }
 }
 
+// Cotes d'un book prêtes à être comparées : filtrage par sport + retrait des
+// paires complémentaires MATHÉMATIQUEMENT IMPOSSIBLES (somme des probabilités
+// implicites < 1). Ce ne sont pas des opportunités mais des lectures fausses
+// (marché voisin, autre période, côté périmé) — voir core/markets.js.
+function cleanOdds(bookKey, matchId, odds, sport) {
+  const clean = sanitizeForSport(odds, sport);
+  for (const d of dropInconsistentPairs(clean)) {
+    log(`⛔ ${bookKey} #${matchId} paire impossible retirée : ${d.key} ${d.a} + ${d.other} ${d.b} = ${d.sum} (< 1)`);
+  }
+  return clean;
+}
+
 async function readOddsSafe(book, matches, opts) {
   const map = new Map();
   if (!matches.length) return map;
@@ -25,7 +38,7 @@ async function readOddsSafe(book, matches, opts) {
   try {
     if (book.getOddsBatch) {
       const batch = await book.getOddsBatch(matches, opts);
-      for (const [id, odds] of batch) map.set(id, sanitizeForSport(odds || {}, sport));
+      for (const [id, odds] of batch) map.set(id, cleanOdds(book.key, id, odds || {}, sport));
       return map;
     }
     // Batch size par book, calé sur la tolérance de leur API :
@@ -45,7 +58,7 @@ async function readOddsSafe(book, matches, opts) {
         log(`⚠️ ${book.key} getOdds(${m.id}): ${e.message || e}`);
         return {};
       })));
-      chunk.forEach((m, k) => map.set(m.id, sanitizeForSport(results[k] || {}, sport)));
+      chunk.forEach((m, k) => map.set(m.id, cleanOdds(book.key, m.id, results[k] || {}, sport)));
     }
     return map;
   } catch (e) {
