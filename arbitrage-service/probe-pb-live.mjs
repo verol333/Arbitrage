@@ -1,4 +1,4 @@
-// Sonde : structure brute du flux LIVE PremierBet (et horaires).
+// Sonde : champs disponibles sur un event LIVE PremierBet (startTime est null).
 const BASE = 'https://sports-api.premierbet.com/cm/v1';
 const PARAMS = { country: 'CM', group: 'g1', platform: 'desktop', locale: 'fr' };
 const HEADERS = {
@@ -8,45 +8,46 @@ const HEADERS = {
   Referer: 'https://www.premierbet.com/',
   Origin: 'https://www.premierbet.com',
 };
-async function raw(path, extra) {
+async function get(path, extra) {
   const ps = new URLSearchParams(Object.assign({}, PARAMS, extra || {}));
-  const url = BASE + path + '?' + ps.toString();
-  try {
-    const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(25000) });
-    const t = await r.text();
-    return { status: r.status, body: t };
-  } catch (e) { return { status: 0, body: 'ERR ' + e.message }; }
+  const r = await fetch(BASE + path + '?' + ps.toString(), { headers: HEADERS, signal: AbortSignal.timeout(25000) });
+  const t = await r.text();
+  try { return { status: r.status, json: JSON.parse(t) }; } catch (e) { return { status: r.status, json: null, raw: t.slice(0, 300) }; }
 }
-function flatten(data) {
+function allEvents(body) {
   const out = [];
-  if (!data || typeof data !== 'object') return out;
-  if (Array.isArray(data)) return data;
-  for (const c of data.categories || []) for (const k of c.competitions || []) out.push.apply(out, (k.events || []));
+  const root = body && body.data ? body.data : body;
+  for (const c of (root && root.categories) || []) {
+    for (const k of c.competitions || []) {
+      for (const ev of k.events || []) out.push({ cat: c.name, comp: k.name, compKeys: Object.keys(k), ev: ev });
+    }
+  }
   return out;
 }
 (async function () {
   console.log('NOW =', new Date().toISOString());
-  const variants = [
-    ['/events/live', { sportId: '1' }],
-    ['/events/live', {}],
-    ['/events/live', { sportId: '1', timeOffset: '0' }],
-    ['/events/all', { sportId: '1' }],
-    ['/events/upcoming', { sportId: '1', timeOffset: '-60', date: new Date().toISOString().slice(0, 10) }],
-  ];
-  for (const v of variants) {
-    const r = await raw(v[0], v[1]);
-    console.log('');
-    console.log('=== ' + v[0] + ' ' + JSON.stringify(v[1]) + ' status=' + r.status + ' len=' + r.body.length);
-    console.log('HEAD: ' + r.body.slice(0, 400));
-    let data = null; try { data = JSON.parse(r.body); } catch (e) {}
-    if (data) {
-      console.log('TOPKEYS: ' + JSON.stringify(Object.keys(data).slice(0, 20)));
-      const evs = flatten(data);
-      console.log('EVENTS: ' + evs.length);
-      for (const ev of evs.slice(0, 8)) {
-        const nm = Array.isArray(ev.eventNames) ? ev.eventNames.join(' - ') : String(ev.eventNames);
-        console.log('  - ' + nm + ' | ' + ev.competitionName + ' | startTime=' + ev.startTime + ' (' + (ev.startTime ? new Date(Number(ev.startTime)).toISOString() : '-') + ')');
-      }
+  const r = await get('/events/live', { sportId: '1' });
+  const all = allEvents(r.json);
+  console.log('pagination =', JSON.stringify(r.json && r.json.pagination));
+  console.log('events =', all.length);
+  if (all[0]) {
+    console.log('COMPETITION KEYS =', JSON.stringify(all[0].compKeys));
+    console.log('EVENT KEYS =', JSON.stringify(Object.keys(all[0].ev)));
+    const e0 = Object.assign({}, all[0].ev);
+    delete e0.markets;
+    console.log('EVENT (sans markets) =', JSON.stringify(e0).slice(0, 1200));
+  }
+  // le detail d'un event donne-t-il l'heure de coup d'envoi ?
+  const id = all[0] && all[0].ev && all[0].ev.id;
+  if (id) {
+    const variants = ['/events/' + id, '/events/' + id + '/details', '/event/' + id];
+    for (const v of variants) {
+      const d = await get(v, {});
+      const j = d.json || {};
+      const root = j.data ? j.data : j;
+      console.log('');
+      console.log('=== ' + v + ' status=' + d.status + ' keys=' + JSON.stringify(Object.keys(root).slice(0, 15)));
+      console.log('   startTime=' + root.startTime + ' / ' + JSON.stringify({ start: root.startTime, begin: root.beginTime, date: root.date, time: root.startDate }));
     }
   }
 })().catch(function (e) { console.log('ERR', e.message); });
