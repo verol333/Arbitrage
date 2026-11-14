@@ -20,7 +20,8 @@ export default {
         home: m.home,
         away: m.away,
         league: m.league,
-        start: new Date(m.start).toISOString(),
+        // start NUMÉRIQUE (ms) : alignCatalogs compare et trie par soustraction.
+        start: m.start,
       }));
   },
 
