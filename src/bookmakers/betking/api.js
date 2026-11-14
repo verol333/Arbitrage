@@ -1,29 +1,66 @@
-// BETKING (Nigeria) — cotes servies par l'application AL VE CAPITAL.
+// BETKING (Nigeria) — collecte exécutée ici, sur GitHub, comme les autres books.
 //
-// Le site protège son API par Cloudflare : le défi « Just a moment… » bloque
-// toute IP serveur, runners GitHub compris. La collecte est donc faite par
-// l'application depuis un vrai navigateur (qui franchit le défi), mise en
-// cache, puis exposée ici en vocabulaire standard du scanner :
-// match_1 / match_X / match_2 / dc_… / btts_… / dnb_… / match_over_x.5.
-const FEED_URL = process.env.BETKING_FEED_URL || 'https://al-ve-pro.base44.app/functions/betkingOddsFeed';
-const TTL_MS = 120_000;
+// Le site est derrière Cloudflare : toute requête serveur (nos IP, relais
+// Cloudflare, proxys publics) reçoit « Just a moment… ». Mesuré le 14/11/2026 :
+// un vrai Chromium lancé sur un runner GitHub franchit ce défi sans aucune
+// intervention, puis les flux se lisent en MÊME ORIGINE depuis l'hôte des
+// cotes (un appel croisé est refusé : cookies tiers).
+//
+// Aucun compte, aucune authentification : on ne lit que des cotes publiques.
+import { chromium } from 'playwright';
 
-let cache = { at: 0, data: null };
+export const BETKING_CDN = 'https://sportsapicdn-desktop.betking.com';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
-// `refresh` : demandé une fois par cycle par listMatches. Le serveur ne relève
-// le bookmaker que si son cache dépasse 15 minutes (une session navigateur au
-// maximum tous les quarts d'heure, jamais à chaque match).
-export async function feed(horizonHours = 72, { refresh = false } = {}) {
-  if (!refresh && cache.data && Date.now() - cache.at < TTL_MS) return cache.data;
-  const res = await fetch(FEED_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ horizonHours, refresh }),
-    signal: AbortSignal.timeout(refresh ? 120_000 : 30_000),
+let session = null;
+
+async function openSession() {
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled', '--disable-dev-shm-usage'],
   });
-  if (!res.ok) throw new Error('betking_feed_' + res.status);
-  const json = await res.json().catch(() => ({}));
-  const matches = Array.isArray(json.matches) ? json.matches : [];
-  if (matches.length) cache = { at: Date.now(), data: matches };
-  return matches;
+  const ctx = await browser.newContext({ userAgent: UA, locale: 'en-US', viewport: { width: 1366, height: 900 } });
+  await ctx.addInitScript(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); });
+  const page = await ctx.newPage();
+  // Ouvre l'hôte des cotes : c'est cette visite qui franchit le défi.
+  await page
+    .goto(`${BETKING_CDN}/api/settings/globalvariables`, { waitUntil: 'domcontentloaded', timeout: 45000 })
+    .catch(() => {});
+  return { browser, page };
+}
+
+async function getPage() {
+  if (!session) session = openSession();
+  const s = await session;
+  return s.page;
+}
+
+// Lecture d'un flux, en même origine, avec ré-essais le temps que Cloudflare
+// valide le navigateur (2 à 6 s en général).
+export async function jget(path, { tries = 6 } = {}) {
+  const page = await getPage();
+  for (let i = 0; i < tries; i++) {
+    const out = await page
+      .evaluate(async (p) => {
+        try {
+          const r = await fetch(p, { headers: { accept: 'application/json, text/plain, */*' } });
+          return { status: r.status, text: await r.text() };
+        } catch (e) {
+          return { status: 0, text: String(e?.message || e) };
+        }
+      }, path)
+      .catch(() => ({ status: 0, text: '' }));
+    if (out.status === 200) {
+      try { return JSON.parse(out.text); } catch { return null; }
+    }
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+  return null;
+}
+
+export async function closeBetking() {
+  if (!session) return;
+  const s = await session.catch(() => null);
+  session = null;
+  await s?.browser?.close().catch(() => {});
 }
