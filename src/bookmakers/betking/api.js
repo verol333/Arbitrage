@@ -11,7 +11,7 @@
 // chargent le registre des books sans navigateur installe. Un import statique
 // faisait planter tout script qui ne connait pas BetKing.
 let chromiumMod = null;
-async function chromium() {
+async function loadChromium() {
   if (!chromiumMod) chromiumMod = (await import('playwright')).chromium;
   return chromiumMod;
 }
@@ -22,7 +22,7 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 let session = null;
 
 async function openSession() {
-  const chromium = await chromium();
+  const chromium = await loadChromium();
   const browser = await chromium.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-blink-features=AutomationControlled', '--disable-dev-shm-usage'],
