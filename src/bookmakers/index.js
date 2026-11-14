@@ -39,8 +39,11 @@ import lnbpari from './lnbpari/index.js';
 // match, ce qui rend la cartographie complète (1X2, DC, BTTS, DNB, totaux,
 // handicaps, corners 1MT/2MT, mi-temps, 2e mi-temps).
 import bet9ja from './bet9ja/index.js';
+// betking (Nigeria) : Cloudflare bloque toute IP serveur ; les cotes viennent
+// du cache de l'application (collecte via navigateur) en vocabulaire standard.
+import betking from './betking/index.js';
 
-export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart, lnbpari, bet9ja];
+export const bookmakers = [xbet, onewin, congobet, yellowbet, apollo, betmomo, premierbet, betpawa, sportybet, maxibet, betika, betclic, mozzart, lnbpari, bet9ja, betking];
 export const bookmakersByKey = Object.fromEntries(bookmakers.map((b) => [b.key, b]));
 
 // Chaque bookmaker DOIT exporter cette forme :
