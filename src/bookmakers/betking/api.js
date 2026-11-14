@@ -46,9 +46,13 @@ async function getPage() {
 // Lecture d'un flux, en même origine, avec ré-essais le temps que Cloudflare
 // valide le navigateur (2 à 6 s en général).
 export async function jget(path, { tries = 6 } = {}) {
-  const page = await getPage();
+  // Une panne du navigateur ou un refus du site doit se voir dans les journaux :
+  // sans cette trace, BetKing tombait a 0 match sans aucun message.
+  const page = await getPage().catch((e) => { console.warn(`⚠️ betking navigateur: ${e?.message || e}`); session = null; return null; });
+  if (!page) return null;
+  let last = null;
   for (let i = 0; i < tries; i++) {
-    const out = await page
+    const out = last = await page
       .evaluate(async (p) => {
         try {
           const r = await fetch(p, { headers: { accept: 'application/json, text/plain, */*' } });
@@ -63,6 +67,7 @@ export async function jget(path, { tries = 6 } = {}) {
     }
     await new Promise((r) => setTimeout(r, 2500));
   }
+  console.warn(`⚠️ betking ${path}: HTTP ${last?.status} — ${String(last?.text || '').slice(0, 120).replace(/\s+/g, ' ')}`);
   return null;
 }
 
