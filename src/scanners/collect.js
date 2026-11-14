@@ -197,7 +197,14 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
   // Le délai ci-dessous n'est donc plus qu'un garde-fou contre un book bloqué.
   // Live : 6 s max. Un book plus lent reprend son dernier catalogue (< 2 min),
   // qui se met à jour en arrière-plan ; les cotes restent relues fraîches.
-  const listDeadlineMs = live ? 6_000 : 25_000;
+  // 14/11/2026 — MESURE sur le cycle pré-match FOOTBALL : à 25 s, six books
+  // (congobet, sportybet, maxibet, betclic, lnbpari, bet9ja) étaient coupés
+  // AVANT la fin de leur catalogue. Comme chaque job pré-match démarre à froid,
+  // le catalogue de secours était vide : ces six books rendaient 0 match de
+  // football à CHAQUE cycle, alors qu'ils répondent normalement sur le hockey.
+  // Le délai n'est qu'un garde-fou (les paires s'envoient dès qu'un book a fini) :
+  // 90 s laissent leurs gros catalogues arriver sans bloquer le cycle.
+  const listDeadlineMs = live ? 6_000 : 90_000;
   const withDeadline = (b) => new Promise((resolve) => {
     const timer = setTimeout(() => {
       const kept = lastCatalogs.get(b.key);
