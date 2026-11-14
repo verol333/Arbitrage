@@ -57,46 +57,39 @@ export function orientation(refHome, refAway, cHome, cAway) {
 // matchaient pas WFC/LFC (W/L colle a FC). Ajout : suffixes féminins compacts
 // (WFC, LFC, WF, LF), marqueurs entre parenthèses (F), (W), (Femmes), et
 // "ladies" comme mot entier. Feminin unifié sur clé "w".
-const GENDER_YOUTH_TOKENS = [
-  // Feminin : mots entiers
-  'women', 'femmes', 'feminin', 'dames', 'ladies',
-  // Feminin : suffixes club (WFC, LFC, WF, LF, WSC, LSC)
-  'wfc', 'lfc', 'wf', 'lf', 'wsc', 'lsc',
+// FAMILLES de modifieurs. Regle inchangee : un match AVEC modifieur ne
+// s'apparie jamais a un match sans modifieur (senior vs jeunes, hommes vs
+// femmes, equipe premiere vs reserve). Ce qui change : a l'interieur d'une
+// famille, chaque book ecrit le marqueur a sa facon. "Sparta Rotterdam II"
+// (1xBet) = "Sparta Rotterdam Reserves" (1win) = "Jong Sparta Rotterdam" ;
+// "Karvina II" = "Karvina B" ; "Cordoba U19" = "Cordoba CF (Youth)" ;
+// "Marcilio Dias (Women)" = "Marcilio Dias W". Ces affiches, pourtant
+// identiques (meme jour, meme heure), restaient separees parce que les
+// marqueurs differaient d'un book a l'autre.
+const FAMILIES = [
+  // Feminin (dont suffixes de club WFC/LFC/WGFC et marqueur isole W)
+  ['w', ['women', 'woman', 'wom', 'femmes', 'feminin', 'feminines', 'dames', 'ladies', 'wfc', 'lfc', 'wf', 'lf', 'wsc', 'lsc', 'wgfc', 'w']],
   // Jeunes
-  'u15', 'u16', 'u17', 'u18', 'u19', 'u20', 'u21', 'u22', 'u23',
-  'youth', 'junior', 'jr', 'jrs',
-  // Equipe reserve / seconde
-  'reserves', 'reserve', '2nd', 'ii', 'iii',
-  // Amateur
-  'amateur',
-  // Simule / virtuel : SRL (Simulated Reality League), esoccer, cyber-foot.
-  // Ces rencontres n'existent pas dans la realite et ne doivent jamais
-  // s'apparier a un match reel (bug 08/09 : "Lille OSC SRL" apparie a
-  // "Lille U-19", surebets fictifs a 21%).
-  'srl', 'esoccer', 'efootball', 'cyber', 'virtual', 'virtuel',
+  ['y', ['u15', 'u16', 'u17', 'u18', 'u19', 'u20', 'u21', 'u22', 'youth', 'junior', 'juniors', 'jr', 'jrs', 'juvenil', 'juveniles']],
+  // Reserve / seconde equipe (dont U23, reserve dans la plupart des
+  // championnats africains, et Amateure en Autriche/Allemagne)
+  ['r', ['ii', 'iii', 'b', '2', '2nd', 'reserves', 'reserve', 'jong', 'amateur', 'amateurs', 'amateure', 'amateures', 'u23']],
+  // Simule / virtuel : ne doit jamais rejoindre un match reel
+  ['v', ['srl', 'esoccer', 'efootball', 'cyber', 'virtual', 'virtuel']],
 ];
-// Regex : matche l'un de ces tokens comme mot entier (bornes de mots ou séparateurs).
-const MODIFIER_RE = new RegExp(`(?:^|[\\s()\\[\\]/.-])(${GENDER_YOUTH_TOKENS.join('|')})(?:$|[\\s()\\[\\]/.-])`, 'i');
-// Regex parenthèses solo : (F), (W), (Fem), (Wom) — marqueurs compacts
+const familyRes = FAMILIES.map(([key, tokens]) => [
+  key,
+  new RegExp('(?:^|[\\s()\\[\\]/.-])(' + tokens.join('|') + ')(?:$|[\\s()\\[\\]/.-])', 'i'),
+]);
+// Marqueurs feminins entre parentheses : (F), (W), (Fem), (Wom)
 const PAREN_GENDER_RE = /\(\s*(f|w|fem(?:mes)?|wom(?:en)?)\s*\)/i;
-// Suffixes feminins qui doivent être normalisés vers "w"
-const FEMININ_KEYS = new Set(['women', 'femmes', 'feminin', 'dames', 'ladies', 'wfc', 'lfc', 'wf', 'lf', 'wsc', 'lsc']);
 
 function modifierKey(s) {
-  // Normalise les marqueurs jeunes ecrits avec un separateur : "U-19", "U 19",
-  // "U/19" -> "u19". Sans ca, MODIFIER_RE (qui attend le token colle) laissait
-  // passer "Lille U-19" comme une equipe senior.
+  // Marqueurs jeunes ecrits avec un separateur : "U-19", "U 19", "U/19" -> "u19"
   const str = String(s || '').replace(/\bu[\s._\/-]?(1[5-9]|2[0-3])\b/gi, 'u$1');
-  const m = str.match(MODIFIER_RE);
-  if (m) {
-    const t = m[1].toLowerCase();
-    // Unifie tous les tokens féminins sur "w" : Dundee WFC et Aberdeen LFC
-    // sont tous "féminins" — un même club peut avoir plusieurs suffixes.
-    if (FEMININ_KEYS.has(t)) return 'w';
-    return t;
-  }
+  for (const [key, re] of familyRes) if (re.test(str)) return key;
   const p = str.match(PAREN_GENDER_RE);
-  if (p) return 'w';  // (F), (W), (Fem), (Wom) → féminin
+  if (p) return 'w';  // (F), (W), (Fem), (Wom) -> feminin
   return '';
 }
 function modifiersMatch(refHome, refAway, cHome, cAway) {
