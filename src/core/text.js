@@ -216,7 +216,7 @@ const ALIAS_RULES = [...new Map([...CITY_ALIASES, ...COUNTRY_ALIASES, ...TEAM_AL
   .map(([k, v]) => [new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, 'g'), v]);
 
 function applyAliases(s) {
-  let out = ' ' + fold(s) + ' ';
+  let out = ' ' + fold(s).replace(/['\u2019]/g, ' ') + ' ';
   for (const [re, v] of ALIAS_RULES) out = out.replace(re, `$1${v}$2`);
   return out.trim();
 }
