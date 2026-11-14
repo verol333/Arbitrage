@@ -46,15 +46,31 @@ export function swarmSession(cb, { timeoutMs = 45_000 } = {}) {
 // Re-fetch les cotes fraîches d'un match unique (utilisé au confirm live).
 // Le listMatches capture les cotes en batch mais en LIVE elles bougent en
 // secondes — sans ce refresh, le confirm renvoyait les cotes vieilles de 5min.
+// SWARM conserve le DERNIER prix d'un marché suspendu (souvent une cote
+// prématch ou d'avant le but). C'est exactement ce qui produit des surebets
+// live impossibles (ex. « -2.5 à 1.75 » sur un 0-0 à la 61e). On ne garde donc
+// que les marchés ET sélections réellement ouverts.
+const openFlag = (v) => v === undefined || v === null || v === 1 || v === true || v === '1';
+export function openGameMarkets(game) {
+  if (!game || game.is_blocked) return [];
+  const out = [];
+  for (const m of Object.values(game.market || {})) {
+    if (!openFlag(m.is_open) || !openFlag(m.is_active)) continue;
+    const events = (Array.isArray(m.event) ? m.event : Object.values(m.event || {}))
+      .filter((e) => openFlag(e.is_open) && openFlag(e.is_active) && !/suspend/i.test(String(e.status || '')));
+    if (events.length) out.push({ ...m, event: events });
+  }
+  return out;
+}
+
 export async function fetchMatchOdds(matchId) {
   return swarmSession(async (send) => {
     const oddsData = await send(
-      { game: ['id', 'is_blocked'], market: ['name', 'type', 'col_count', 'group_name', 'group_id'], event: ['name', 'price', 'base', 'type_1', 'type'] },
+      { game: ['id', 'is_blocked'], market: ['name', 'type', 'col_count', 'group_name', 'group_id', 'is_open', 'is_active'], event: ['name', 'price', 'base', 'type_1', 'type', 'is_open', 'is_active', 'status'] },
       { game: { id: { '@eq': Number(matchId) } } },
     );
     const g = Object.values(oddsData?.game || {})[0];
-    // Match suspendu : les cotes affichees ne sont plus jouables.
-    return g && !g.is_blocked ? Object.values(g.market || {}) : [];
+    return openGameMarkets(g);
   }).catch(() => []);
 }
 
