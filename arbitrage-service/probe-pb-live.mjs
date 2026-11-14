@@ -1,4 +1,7 @@
-// Sonde : champs disponibles sur un event LIVE PremierBet (startTime est null).
+// Sonde : recuperer l'heure de coup d'envoi des matchs LIVE PremierBet
+// (startTime est null dans /events/live). Deux pistes testees :
+//   1) la meme affiche vue dans le catalogue a venir (meme id) ;
+//   2) la deduction depuis le scoreboard (period + minute).
 const BASE = 'https://sports-api.premierbet.com/cm/v1';
 const PARAMS = { country: 'CM', group: 'g1', platform: 'desktop', locale: 'fr' };
 const HEADERS = {
@@ -11,43 +14,59 @@ const HEADERS = {
 async function get(path, extra) {
   const ps = new URLSearchParams(Object.assign({}, PARAMS, extra || {}));
   const r = await fetch(BASE + path + '?' + ps.toString(), { headers: HEADERS, signal: AbortSignal.timeout(25000) });
-  const t = await r.text();
-  try { return { status: r.status, json: JSON.parse(t) }; } catch (e) { return { status: r.status, json: null, raw: t.slice(0, 300) }; }
+  try { return await r.json(); } catch (e) { return null; }
 }
-function allEvents(body) {
+function events(body) {
   const out = [];
   const root = body && body.data ? body.data : body;
-  for (const c of (root && root.categories) || []) {
-    for (const k of c.competitions || []) {
-      for (const ev of k.events || []) out.push({ cat: c.name, comp: k.name, compKeys: Object.keys(k), ev: ev });
-    }
-  }
+  for (const c of (root && root.categories) || []) for (const k of c.competitions || []) for (const ev of k.events || []) out.push(ev);
   return out;
 }
+function elapsedMin(sb) {
+  if (!sb) return null;
+  const period = String(sb.period || '').toUpperCase();
+  const minute = Number(sb.minute);
+  if (!Number.isFinite(minute) && !period) return null;
+  const m = Number.isFinite(minute) ? minute : 0;
+  if (period === '1P' || period === 'H1') return m;
+  if (period === 'HT' || period === 'P') return 45 + m;
+  if (period === '2P' || period === 'H2') return 45 + m;
+  if (period === 'ET' || period === 'ET1') return 90 + m;
+  if (period === 'ET2') return 105 + m;
+  return null;
+}
 (async function () {
-  console.log('NOW =', new Date().toISOString());
-  const r = await get('/events/live', { sportId: '1' });
-  const all = allEvents(r.json);
-  console.log('pagination =', JSON.stringify(r.json && r.json.pagination));
-  console.log('events =', all.length);
-  if (all[0]) {
-    console.log('COMPETITION KEYS =', JSON.stringify(all[0].compKeys));
-    console.log('EVENT KEYS =', JSON.stringify(Object.keys(all[0].ev)));
-    const e0 = Object.assign({}, all[0].ev);
-    delete e0.markets;
-    console.log('EVENT (sans markets) =', JSON.stringify(e0).slice(0, 1200));
+  const now = Date.now();
+  console.log('NOW =', new Date(now).toISOString());
+  const live = events(await get('/events/live', { sportId: '1' }));
+  console.log('live events =', live.length);
+  const map = new Map();
+  const today = new Date(now).toISOString().slice(0, 10);
+  const yday = new Date(now - 86400000).toISOString().slice(0, 10);
+  for (const d of [yday, today]) {
+    const ups = events(await get('/events/upcoming', { sportId: '1', timeOffset: '-60', date: d }));
+    let withStart = 0;
+    for (const ev of ups) if (ev.startTime) { withStart++; map.set(String(ev.id), Number(ev.startTime)); }
+    console.log('upcoming ' + d + ' : ' + ups.length + ' events, ' + withStart + ' avec startTime');
   }
-  // le detail d'un event donne-t-il l'heure de coup d'envoi ?
-  const id = all[0] && all[0].ev && all[0].ev.id;
-  if (id) {
-    const variants = ['/events/' + id, '/events/' + id + '/details', '/event/' + id];
-    for (const v of variants) {
-      const d = await get(v, {});
-      const j = d.json || {};
-      const root = j.data ? j.data : j;
-      console.log('');
-      console.log('=== ' + v + ' status=' + d.status + ' keys=' + JSON.stringify(Object.keys(root).slice(0, 15)));
-      console.log('   startTime=' + root.startTime + ' / ' + JSON.stringify({ start: root.startTime, begin: root.beginTime, date: root.date, time: root.startDate }));
+  let inMap = 0; let byScore = 0; let neither = 0; const rows = [];
+  for (const ev of live) {
+    const id = String(ev.id);
+    const sb = ev.scoreboard || {};
+    const el = elapsedMin(sb);
+    const derived = el == null ? null : now - el * 60000;
+    const known = map.get(id) || null;
+    if (known) inMap++; else if (derived) byScore++; else neither++;
+    if (rows.length < 14) {
+      rows.push({
+        nm: (ev.eventNames || []).join(' - '),
+        period: sb.period, minute: sb.minute,
+        known: known ? new Date(known).toISOString() : null,
+        derived: derived ? new Date(derived).toISOString() : null,
+        ecartMin: known && derived ? Math.round((derived - known) / 60000) : null,
+      });
     }
   }
+  console.log('couverture : catalogue=' + inMap + ' deduction=' + byScore + ' aucune=' + neither + ' / total=' + live.length);
+  for (const r of rows) console.log(JSON.stringify(r));
 })().catch(function (e) { console.log('ERR', e.message); });
