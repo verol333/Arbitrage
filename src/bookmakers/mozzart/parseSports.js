@@ -17,7 +17,9 @@ import { isHalfLine } from '../../core/markets.js';
 
 const num = (v) => {
   const n = parseFloat(v);
-  return Number.isFinite(n) && n > 1.01 ? n : null;
+  // 1.01 is a valid decimal price. Dropping it hid the opposite winner and
+  // bypassed mainImpliedProb/staleBookMismatch (Landreth-Pampanin 1.01/10.90).
+  return Number.isFinite(n) && n > 1 ? n : null;
 };
 const fmt = (n) => String(Number(n));
 

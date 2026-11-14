@@ -476,7 +476,9 @@ export function winFlatOdds(groups, names) {
     }
     // Totaux individuels par mi-temps + corners par mi-temps.
     const mtTeamTotal = low.match(/^(corners\.\s+)?(1st half|2nd half)\.\s+(.*)\s+total$/);
-    if (mtTeamTotal) {
+    // A team name must not contain a result/total combination. These groups
+    // end in 'total' too, but their Yes/No selections are not team totals.
+    if (mtTeamTotal && !/\b(and|or|result|w1|w2|draw|both|score)\b/.test(mtTeamTotal[3])) {
       const isCor = !!mtTeamTotal[1];
       const halfBase = mtTeamTotal[2] === '1st half' ? 'ht_' : 'h2_';
       const half = isCor ? `cor_${halfBase}` : halfBase;
@@ -485,12 +487,11 @@ export function winFlatOdds(groups, names) {
       const side = sH > sA ? 'home' : sA > sH ? 'away' : null;
       if (side !== null) {
         for (const o of list) {
-          const m = (o.name || '').match(/([\d.]+)/);
-          if (!m || !isHalfLine(m[1])) continue;
-          const line = parseFloat(m[1]);
-          const oc = (o.outcome || '').toLowerCase();
-          if (oc === 'over' || /over|plus/i.test(o.name)) putWin(odds, `${half}tt_${side}_over_${line}`, o);
-          else if (oc === 'under' || /under|moins/i.test(o.name)) putWin(odds, `${half}tt_${side}_under_${line}`, o);
+          const m = String(o.name || '').trim().match(/^(over|under|plus de|moins de)\s*\(?([\d.]+)\)?$/i);
+          if (!m || !isHalfLine(m[2])) continue;
+          const line = Number(m[2]);
+          const sideTotal = /^(over|plus)/i.test(m[1]) ? 'over' : 'under';
+          putWin(odds, `${half}tt_${side}_${sideTotal}_${line}`, o);
         }
       }
     }
