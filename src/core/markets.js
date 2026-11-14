@@ -81,6 +81,13 @@ export function normalizeAliases(odds) {
 // avant toute comparaison : une paire incohérente est retirée des cotes du book
 // pour le cycle, donc elle ne peut plus alimenter un surebet.
 const PAIR_FLOOR = 0.98;
+// PLAFOND (14/11/2026) : deux issues complémentaires chez un MÊME book ne
+// peuvent pas totaliser plus de 12 % de marge. Au-delà, la paire est corrompue
+// (prix figé d'un état antérieur, ligne servie depuis un autre marché) et elle
+// fabrique un faux « profit garanti ». Cas signalé : Hatta Club-Al Ain, où
+// Mozzart publiait « Hatta marque » à 1,28 ET « Hatta ne marque pas » à 2,45
+// (119 % de marge) → surebet fantôme de 15,71 % face à Maxibet.
+const PAIR_CEIL = 1.12;
 
 // Clé complémentaire d'un marché à deux issues, ou null si la clé n'en fait pas
 // partie (1X2 et marchés à trois issues exclus : le nul est une issue réelle).
@@ -120,7 +127,7 @@ export function dropInconsistentPairs(odds) {
     if (!(a > 1) || !(b > 1)) continue;
     done.add(key); done.add(other);
     const sum = 1 / a + 1 / b;
-    if (sum >= PAIR_FLOOR) continue;
+    if (sum >= PAIR_FLOOR && sum <= PAIR_CEIL) continue;
     dropped.push({ key, other, a, b, sum: Math.round(sum * 1000) / 1000 });
     delete odds[key];
     delete odds[other];
