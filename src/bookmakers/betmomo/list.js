@@ -1,4 +1,4 @@
-import { BETMOMO_SID, swarmSession, isOutright, isVirtual } from './api.js';
+import { BETMOMO_SID, swarmSession, isOutright, isVirtual, openGameMarkets } from './api.js';
 
 export async function listMatches({ live = false, maxMatches, horizonHours = 72, sport = 'football' } = {}) {
   const sid = BETMOMO_SID[sport];
@@ -46,7 +46,7 @@ export async function listMatches({ live = false, maxMatches, horizonHours = 72,
     const out = [];
     for (const g of real) {
       const withOdds = byId[g.id];
-      const markets = withOdds ? Object.values(withOdds.market || {}) : [];
+      const markets = openGameMarkets(withOdds);
       const info = g.info || {};
       const s1 = info.score1, s2 = info.score2;
       const score = (s1 != null && s2 != null) ? `${s1}-${s2}` : null;
