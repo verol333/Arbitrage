@@ -115,7 +115,7 @@ function applyAliases(s) {
 // "Palmeiras Sao Joao U20 vs Comercial Tiete U20" (Serie B U20) etait apparie a
 // "SE Palmeiras U20 vs EC XV de Jau U20" (Serie A U20) chez BetMomo -> surebets
 // fantomes a +56% sur un match introuvable chez l'autre book.
-const CATEGORY_TOKENS = /\b(u1[5-9]|u2[0-3]|women|wom|femmes|feminin|dames|ladies|youth|junior|jrs?|reserves?|amateur|iii|ii)\b/g;
+const CATEGORY_TOKENS = /\b(u1[5-9]|u2[0-3]|youth|junior|juniors|jrs?|juvenil|juveniles|women|woman|wom|femmes|feminin|feminines|dames|ladies|wfc|lfc|wf|lf|wsc|lsc|wgfc|reserves?|jong|amateurs?|amateure|amateures|2nd|iii|ii)\b/g;
 
 export function norm(s) {
   return applyAliases(s).toLowerCase()
