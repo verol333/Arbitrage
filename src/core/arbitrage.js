@@ -9,6 +9,22 @@ import { teamSim } from './text.js';
 
 const MAX_ODD = 80;
 
+// ── INTÉGRITÉ DES COTES EN DIRECT (14/11/2026) ──────────────────────────────
+// Cause racine constatée sur le direct : une même issue complémentaire était
+// cotée de part et d'autre avec une somme de probabilités de 0,53 à 0,83
+// (ex. « Ext. gagne la 2e MT » chez un book + « Dom. ou nul 2e MT » chez un
+// autre → « 20 à 47 % de profit garanti »). Deux books réels ne peuvent pas se
+// tromper à ce point sur le MÊME espace d'issues : une des deux cotes est morte
+// (marché suspendu, prix figé d'avant le but, ou marché servi depuis le
+// catalogue pré-match). Ce plancher ne s'applique QU'EN DIRECT et ne plafonne
+// AUCUN profit pré-match : une grosse marge pré-match reste remontée telle
+// quelle (soit elle est réelle, soit elle révèle un bug de parsing à corriger).
+let LIVE_MODE = false;
+export function setLiveMode(v) { LIVE_MODE = !!v; }
+const LIVE_PAIR_FLOOR = 0.9;
+let liveDeadPairs = 0;
+export function takeLiveDeadPairs() { const n = liveDeadPairs; liveDeadPairs = 0; return n; }
+
 // Helper : IDs bruts d'une cote pour SaveCoupon backend. Les parseurs ecrivent
 // odds._ids[key] = { ...ids natifs du book } en parallele de odds[key] = value.
 // Retourne null si le parseur n'expose pas encore _ids pour ce book/marche.
@@ -19,6 +35,8 @@ export function pushArb(out, family, aLabel, aOdd, aBook, bLabel, bOdd, bBook, a
   if (aOdd > MAX_ODD || bOdd > MAX_ODD) return;
   const invSum = 1 / aOdd + 1 / bOdd;
   if (invSum >= 1) return;
+  // Direct uniquement : paire complémentaire impossible = cote morte.
+  if (LIVE_MODE && invSum < LIVE_PAIR_FLOOR) { liveDeadPairs++; return; }
   const profit = (1 - invSum) * 100;
   const stakeA = (1 / aOdd) / invSum * 100;
   const stakeB = (1 / bOdd) / invSum * 100;
