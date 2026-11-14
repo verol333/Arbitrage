@@ -41,7 +41,7 @@ const CITY_ALIASES = new Map([
   // Italie
   ['naples', 'napo'], ['napoli', 'napo'],
   ['rome', 'roma'], ['roma', 'roma'],
-  ['turin', 'tori'], ['torino', 'tori'], ['juventus', 'juve'], ['juve', 'juve'],
+  ['turin', 'tori'], ['torino', 'tori'], 
   ['florence', 'fior'], ['fiorentina', 'fior'],
   ['milan', 'mila'], ['milano', 'mila'],
   ['genes', 'geno'], ['gênes', 'geno'], ['genoa', 'geno'], ['genova', 'geno'],
@@ -62,11 +62,9 @@ const CITY_ALIASES = new Map([
   // Russie / Est
   ['moscou', 'mosc'], ['moscow', 'mosc'], ['moskva', 'mosc'],
   ['saint petersbourg', 'stpet'], ['saint petersburg', 'stpet'], ['saint-petersbourg', 'stpet'], ['st petersburg', 'stpet'],
-  ['zenit', 'zeni'],
-  // Portugal
+    // Portugal
   ['lisbonne', 'lisb'], ['lisbon', 'lisb'], ['lisboa', 'lisb'],
-  ['porto', 'port'], ['fc porto', 'port'],
-  // Grèce
+    // Grèce
   ['athenes', 'ath'], ['athens', 'ath'], ['atenas', 'ath'],
   ['salonique', 'thes'], ['thessalonique', 'thes'], ['thessaloniki', 'thes'],
   // Turquie
@@ -74,8 +72,7 @@ const CITY_ALIASES = new Map([
   // Serbie
   ['belgrade', 'beog'], ['beograd', 'beog'],
   ['etoile rouge', 'crvz'], ['red star', 'crvz'], ['crvena zvezda', 'crvz'],
-  ['partizan', 'part'],
-  // Ukraine
+    // Ukraine
   ['kiev', 'kyiv'], ['kiew', 'kyiv'], ['kyiv', 'kyiv'],
   ['dynamo kiev', 'dynkyiv'], ['dynamo kyiv', 'dynkyiv'],
   ['shakhtar', 'shak'], ['chakhtar', 'shak'],
@@ -84,12 +81,12 @@ const CITY_ALIASES = new Map([
   // Angleterre common variants
   ['man united', 'manu'], ['manchester united', 'manu'], ['man utd', 'manu'],
   ['man city', 'manc'], ['manchester city', 'manc'],
-  ['spurs', 'tott'], ['tottenham', 'tott'], ['tottenham hotspur', 'tott'],
+  ['tottenham', 'tott'], ['tottenham hotspur', 'tott'],
   // France (déjà en français partout, peu d'alias)
   ['psg', 'psg'], ['paris sg', 'psg'], ['paris saint germain', 'psg'], ['paris saint-germain', 'psg'],
-  ['om', 'olymar'], ['olympique marseille', 'olymar'], ['marseille', 'olymar'],
-  ['ol', 'olylyon'], ['olympique lyonnais', 'olylyon'], ['olympique lyon', 'olylyon'], ['lyon', 'olylyon'],
-  ['asse', 'stet'], ['saint etienne', 'stet'], ['as saint etienne', 'stet'], ['saint-etienne', 'stet'],
+  ['olympique marseille', 'olymar'], ['marseille', 'olymar'],
+  ['olympique lyonnais', 'olylyon'], ['olympique lyon', 'olylyon'], ['lyon', 'olylyon'],
+  ['saint etienne', 'stet'], ['as saint etienne', 'stet'], ['saint-etienne', 'stet'],
   ['stade rennais', 'renn'], ['rennes', 'renn'],
 ]);
 
@@ -161,6 +158,10 @@ const COUNTRY_ALIASES = new Map([
   ['chile', 'chile'], ['chili', 'chile'],
   ['venezuela', 'venez'], ['paraguay', 'parag'], ['uruguay', 'urugu'],
   ['congo kinshasa', 'rdcongo'], ['rd congo', 'rdcongo'], ['dr congo', 'rdcongo'], ['congo rdc', 'rdcongo'],
+  ['congo dr', 'rdcongo'], ['democratic republic of congo', 'rdcongo'], ['republique democratique du congo', 'rdcongo'],
+  // « Congo » seul designe Brazzaville, JAMAIS Kinshasa : les deux pays ne
+  // partagent donc aucun mot et ne peuvent plus etre apparies entre eux.
+  ['congo brazzaville', 'congob'], ['republique du congo', 'congob'], ['congo', 'congob'],
 ]);
 
 // ── TRADUCTIONS DES NOMS DE CLUBS (14/11/2026) ──────────────────────────────
@@ -197,7 +198,9 @@ const TEAM_ALIASES = new Map([
   ['borussia monchengladbach', 'gladb'], ['monchengladbach', 'gladb'], ['gladbach', 'gladb'],
   ['bayer leverkusen', 'lever'], ['leverkusen', 'lever'],
   ['werder breme', 'werder'], ['werder bremen', 'werder'],
-  ['fribourg', 'freib'], ['freiburg', 'freib'],
+  // « Fribourg » (Suisse) et « Freiburg » (Allemagne) sont deux clubs de deux pays :
+  // aucune réduction commune, seul Freiburg est ramené à sa forme canonique.
+  ['freiburg', 'freib'],
   ['hertha berlin', 'hertha'], ['union berlin', 'unionb'],
   ['athletic bilbao', 'bilbao'], ['athletic club', 'bilbao'],
   ['deportivo la corogne', 'lacoro'], ['deportivo la coruna', 'lacoro'], ['la corogne', 'lacoro'], ['la coruna', 'lacoro'],
