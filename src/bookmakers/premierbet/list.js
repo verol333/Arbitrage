@@ -28,6 +28,33 @@ function extractEvents(result) {
   return out;
 }
 
+// ── Heure de coup d'envoi en direct ─────────────────────────────────────────
+// Le flux /events/live de PremierBet renvoie « startTime: null » sur TOUS ses
+// matchs (verifie le 14/11/2026 : 54 matchs live, 0 avec startTime, y compris
+// sur /events/{id}). Sans heure, ces matchs ne se raccrochaient a aucun autre
+// site (0/199) : le scanner les voyait mais ne pouvait jamais les comparer.
+// La seule horloge disponible est le tableau de bord du match (scoreboard) :
+// « period » + « minute ». On en deduit le coup d'envoi a quelques minutes pres
+// (largeur toleree par le rapprochement : +/-30 min).
+const HT_BREAK_MIN = 15;   // pause entre les deux mi-temps
+const STOPPAGE_MIN = 2;    // temps additionnel forfaitaire de la 1re mi-temps
+
+function startFromScoreboard(sb, nowMs) {
+  if (!sb) return nowMs;               // match tout juste passe en direct
+  const period = String(sb.period || '').toUpperCase();
+  const m = Number(sb.minute);
+  const minute = Number.isFinite(m) ? m : 0;
+  let elapsed;
+  if (period === '1P' || period === 'H1') elapsed = minute;
+  else if (period === 'HT' || period === 'P') elapsed = 45 + STOPPAGE_MIN;
+  else if (period === '2P' || period === 'H2') elapsed = 45 + STOPPAGE_MIN + HT_BREAK_MIN + minute;
+  else if (period === 'ET1' || period === 'ET') elapsed = 90 + STOPPAGE_MIN + HT_BREAK_MIN + minute;
+  else if (period === 'ET2') elapsed = 90 + STOPPAGE_MIN + HT_BREAK_MIN + minute + HT_BREAK_MIN;
+  else if (period === 'PS' || period === 'PEN') elapsed = 130;
+  else elapsed = minute;               // periode inconnue : on suit la minute
+  return nowMs - elapsed * 60_000;
+}
+
 export async function listMatches({ live = false, horizonHours = 168, maxMatches = 600, sport = 'football' } = {}) {
   const SPORT_ID = SPORT_IDS[sport];
   if (!SPORT_ID) return [];
@@ -100,7 +127,8 @@ export async function listMatches({ live = false, horizonHours = 168, maxMatches
       home: teams.home,
       away: teams.away,
       league: ev.competitionName || ev.categoryName || '',
-      start: ev.startTime || null,
+      // En direct, PremierBet ne publie pas l'heure : on la deduit du scoreboard.
+      start: ev.startTime || (live ? startFromScoreboard(ev.scoreboard, nowMs) : null),
     });
     if (out.length >= maxMatches) break;
   }
