@@ -93,15 +93,131 @@ const CITY_ALIASES = new Map([
   ['stade rennais', 'renn'], ['rennes', 'renn'],
 ]);
 
+// ── TRADUCTIONS DES NOMS DE PAYS (14/11/2026) ──────────────────────────────
+// Les books ne nomment pas les sélections et les pays dans la même langue :
+// « Suède » (Sportcash), « Sweden » (1xBet, BetPawa), « Suecia » (Mozzart).
+// Sans alias commun, deux lignes du MÊME match ne partagent aucun token
+// (mesuré sur le direct du 14/11 : « Sweden » vs « Suède » = similarité 0).
+// Chaque entrée : variante sans accents (fr/en/es/it/de/pt) → clé canonique.
+const COUNTRY_ALIASES = new Map([
+  ['sweden', 'swede'], ['suede', 'swede'], ['suecia', 'swede'], ['svezia', 'swede'], ['schweden', 'swede'],
+  ['belgium', 'belgi'], ['belgique', 'belgi'], ['belgica', 'belgi'], ['belgio', 'belgi'], ['belgien', 'belgi'],
+  ['switzerland', 'swiss'], ['suisse', 'swiss'], ['suiza', 'swiss'], ['svizzera', 'swiss'], ['schweiz', 'swiss'],
+  ['germany', 'germa'], ['allemagne', 'germa'], ['alemania', 'germa'], ['germania', 'germa'], ['deutschland', 'germa'],
+  ['spain', 'spain'], ['espagne', 'spain'], ['espana', 'spain'], ['spagna', 'spain'], ['spanien', 'spain'], ['espanha', 'spain'],
+  ['italy', 'italy'], ['italie', 'italy'], ['italia', 'italy'], ['italien', 'italy'],
+  ['england', 'engla'], ['angleterre', 'engla'], ['inglaterra', 'engla'], ['inghilterra', 'engla'],
+  ['scotland', 'scotl'], ['ecosse', 'scotl'], ['escocia', 'scotl'], ['scozia', 'scotl'], ['schottland', 'scotl'],
+  ['wales', 'wales'], ['pays de galles', 'wales'], ['gales', 'wales'], ['gallese', 'wales'],
+  ['northern ireland', 'nirel'], ['irlande du nord', 'nirel'], ['irlanda del norte', 'nirel'],
+  ['ireland', 'irlan'], ['irlande', 'irlan'], ['irlanda', 'irlan'],
+  ['netherlands', 'nethe'], ['pays bas', 'nethe'], ['paises bajos', 'nethe'], ['paesi bassi', 'nethe'], ['niederlande', 'nethe'], ['holland', 'nethe'], ['holanda', 'nethe'], ['olanda', 'nethe'],
+  ['denmark', 'denma'], ['danemark', 'denma'], ['dinamarca', 'denma'], ['danimarca', 'denma'],
+  ['norway', 'norwa'], ['norvege', 'norwa'], ['noruega', 'norwa'], ['norvegia', 'norwa'], ['norwegen', 'norwa'],
+  ['finland', 'finla'], ['finlande', 'finla'], ['finlandia', 'finla'], ['finnland', 'finla'],
+  ['poland', 'polan'], ['pologne', 'polan'], ['polonia', 'polan'], ['polen', 'polan'],
+  ['czech republic', 'czech'], ['czechia', 'czech'], ['republique tcheque', 'czech'], ['tchequie', 'czech'], ['chequie', 'czech'], ['republica checa', 'czech'], ['cechia', 'czech'], ['tschechien', 'czech'],
+  ['slovakia', 'slova'], ['slovaquie', 'slova'], ['eslovaquia', 'slova'], ['slovacchia', 'slova'], ['slowakei', 'slova'],
+  ['slovenia', 'slove'], ['slovenie', 'slove'], ['eslovenia', 'slove'], ['slowenien', 'slove'],
+  ['croatia', 'croat'], ['croatie', 'croat'], ['croacia', 'croat'], ['croazia', 'croat'], ['kroatien', 'croat'],
+  ['serbia', 'serbi'], ['serbie', 'serbi'], ['serbien', 'serbi'],
+  ['bosnia', 'bosni'], ['bosnie', 'bosni'], ['bosnien', 'bosni'], ['herzegovine', 'bosni'],
+  ['hungary', 'hunga'], ['hongrie', 'hunga'], ['hungria', 'hunga'], ['ungheria', 'hunga'], ['ungarn', 'hunga'],
+  ['romania', 'roman'], ['roumanie', 'roman'], ['rumania', 'roman'], ['rumanien', 'roman'],
+  ['bulgaria', 'bulga'], ['bulgarie', 'bulga'], ['bulgarien', 'bulga'],
+  ['greece', 'greec'], ['grece', 'greec'], ['grecia', 'greec'], ['griechenland', 'greec'],
+  ['turkey', 'turke'], ['turquie', 'turke'], ['turquia', 'turke'], ['turchia', 'turke'], ['turkei', 'turke'],
+  ['russia', 'russi'], ['russie', 'russi'], ['rusia', 'russi'], ['russland', 'russi'],
+  ['ukraine', 'ukrai'], ['ucrania', 'ukrai'], ['ucraina', 'ukrai'],
+  ['portugal', 'portu'], ['portogallo', 'portu'],
+  ['france', 'franc'], ['francia', 'franc'], ['frankreich', 'franc'], ['franca', 'franc'],
+  ['brazil', 'brazi'], ['bresil', 'brazi'], ['brasil', 'brazi'], ['brasile', 'brazi'], ['brasilien', 'brazi'],
+  ['argentina', 'argen'], ['argentine', 'argen'], ['argentinien', 'argen'],
+  ['mexico', 'mexic'], ['mexique', 'mexic'], ['messico', 'mexic'], ['mexiko', 'mexic'],
+  ['united states', 'etatsuni'], ['etats unis', 'etatsuni'], ['estados unidos', 'etatsuni'], ['stati uniti', 'etatsuni'], ['vereinigte staaten', 'etatsuni'], ['usa', 'etatsuni'],
+  ['canada', 'canad'], ['kanada', 'canad'],
+  ['japan', 'japan'], ['japon', 'japan'], ['giappone', 'japan'],
+  ['south korea', 'skore'], ['coree du sud', 'skore'], ['corea del sur', 'skore'], ['corea del sud', 'skore'], ['sudkorea', 'skore'],
+  ['north korea', 'nkore'], ['coree du nord', 'nkore'], ['corea del norte', 'nkore'],
+  ['china', 'china'], ['chine', 'china'], ['cina', 'china'],
+  ['australia', 'austr'], ['australie', 'austr'], ['australien', 'austr'],
+  ['morocco', 'moroc'], ['maroc', 'moroc'], ['marruecos', 'moroc'], ['marocco', 'moroc'], ['marokko', 'moroc'],
+  ['algeria', 'alger'], ['algerie', 'alger'], ['argelia', 'alger'], ['algerien', 'alger'],
+  ['tunisia', 'tunis'], ['tunisie', 'tunis'], ['tunez', 'tunis'], ['tunesien', 'tunis'],
+  ['egypt', 'egypt'], ['egypte', 'egypt'], ['egipto', 'egypt'], ['egitto', 'egypt'], ['agypten', 'egypt'],
+  ['cameroon', 'camero'], ['cameroun', 'camero'], ['camerun', 'camero'], ['kamerun', 'camero'],
+  ['ivory coast', 'civoi'], ['cote d ivoire', 'civoi'], ['costa de marfil', 'civoi'], ['costa d avorio', 'civoi'], ['elfenbeinkuste', 'civoi'],
+  ['south africa', 'safri'], ['afrique du sud', 'safri'], ['sudafrica', 'safri'], ['sudafrika', 'safri'],
+  ['saudi arabia', 'saudi'], ['arabie saoudite', 'saudi'], ['arabia saudita', 'saudi'], ['saudi arabien', 'saudi'],
+  ['uae', 'emirat'], ['emirats arabes unis', 'emirat'], ['emiratos arabes unidos', 'emirat'], ['emirati arabi uniti', 'emirat'], ['vereinigte arabische emirate', 'emirat'],
+  ['qatar', 'qatar'], ['catar', 'qatar'], ['katar', 'qatar'],
+  ['israel', 'israe'], ['israele', 'israe'],
+  ['india', 'india'], ['inde', 'india'], ['indien', 'india'],
+  ['indonesia', 'indon'], ['indonesie', 'indon'], ['indonesien', 'indon'],
+  ['new zealand', 'nzela'], ['nouvelle zelande', 'nzela'], ['nueva zelanda', 'nzela'], ['nuova zelanda', 'nzela'], ['neuseeland', 'nzela'],
+  ['colombia', 'colom'], ['colombie', 'colom'], ['kolumbien', 'colom'],
+  ['ecuador', 'ecuad'], ['equateur', 'ecuad'],
+  ['peru', 'perou'], ['perou', 'perou'],
+  ['chile', 'chile'], ['chili', 'chile'],
+  ['venezuela', 'venez'], ['paraguay', 'parag'], ['uruguay', 'urugu'],
+  ['congo kinshasa', 'rdcongo'], ['rd congo', 'rdcongo'], ['dr congo', 'rdcongo'], ['congo rdc', 'rdcongo'],
+]);
+
+// ── TRADUCTIONS DES NOMS DE CLUBS (14/11/2026) ──────────────────────────────
+// Même club, deux langues : « Bayern Munich » (FR) / « FC Bayern München » (DE),
+// « Sporting Lisbonne » / « Sporting CP », « Legia Varsovie » / « Legia Warszawa ».
+// Les alias ramènent chaque variante vers une clé commune AVANT la tokenisation.
+const TEAM_ALIASES = new Map([
+  ['bayern munich', 'bayern'], ['bayern munchen', 'bayern'], ['bayern muenchen', 'bayern'],
+  ['inter milan', 'internaz'], ['inter milano', 'internaz'], ['internazionale', 'internaz'],
+  ['sporting lisbonne', 'sporting'], ['sporting lisbon', 'sporting'], ['sporting cp', 'sporting'], ['sporting portugal', 'sporting'],
+  ['legia varsovie', 'legia'], ['legia warsaw', 'legia'], ['legia warszawa', 'legia'],
+  ['lech poznan', 'lechpo'], ['lech posen', 'lechpo'],
+  ['sparta prague', 'spartap'], ['sparta praha', 'spartap'],
+  ['slavia prague', 'slaviap'], ['slavia praha', 'slaviap'],
+  ['viktoria plzen', 'plzen'], ['plzen', 'plzen'],
+  ['galatasaray istanbul', 'galata'], ['galatasaray', 'galata'],
+  ['fenerbahce istanbul', 'fenerb'], ['fenerbahce', 'fenerb'],
+  ['besiktas istanbul', 'besikt'], ['besiktas', 'besikt'],
+  ['olympiakos', 'olympi'], ['olympiacos', 'olympi'], ['olympiacos piree', 'olympi'], ['olympiakos piree', 'olympi'],
+  ['panathinaikos athenes', 'panath'], ['panathinaikos athens', 'panath'],
+  ['aek athenes', 'aek'], ['aek athens', 'aek'],
+  ['paok salonique', 'paok'], ['paok thessalonique', 'paok'], ['paok thessaloniki', 'paok'],
+  ['cska moscou', 'cska'], ['cska moscow', 'cska'], ['cska moskva', 'cska'],
+  ['lokomotiv moscou', 'lokom'], ['lokomotiv moscow', 'lokom'],
+  ['rapid vienne', 'rapidv'], ['rapid vienna', 'rapidv'], ['rapid wien', 'rapidv'],
+  ['austria vienne', 'austrw'], ['austria wien', 'austrw'],
+  ['young boys berne', 'yboys'], ['young boys bern', 'yboys'], ['bsc young boys', 'yboys'],
+  ['standard liege', 'stdlie'], ['standard de liege', 'stdlie'],
+  ['club bruges', 'clubb'], ['club brugge', 'clubb'],
+  ['anderlecht bruxelles', 'anderl'], ['anderlecht brussels', 'anderl'],
+  ['ajax amsterdam', 'ajax'], ['psv eindhoven', 'psv'], ['feyenoord rotterdam', 'feyen'], ['az alkmaar', 'alkma'],
+  ['eintracht francfort', 'eintr'], ['eintracht frankfurt', 'eintr'],
+  ['borussia dortmund', 'dortm'], ['dortmund', 'dortm'],
+  ['borussia monchengladbach', 'gladb'], ['monchengladbach', 'gladb'], ['gladbach', 'gladb'],
+  ['bayer leverkusen', 'lever'], ['leverkusen', 'lever'],
+  ['werder breme', 'werder'], ['werder bremen', 'werder'],
+  ['fribourg', 'freib'], ['freiburg', 'freib'],
+  ['hertha berlin', 'hertha'], ['union berlin', 'unionb'],
+  ['athletic bilbao', 'bilbao'], ['athletic club', 'bilbao'],
+  ['deportivo la corogne', 'lacoro'], ['deportivo la coruna', 'lacoro'], ['la corogne', 'lacoro'], ['la coruna', 'lacoro'],
+  ['real betis seville', 'betis'], ['betis seville', 'betis'], ['real betis', 'betis'],
+  ['villareal', 'villar'], ['villarreal', 'villar'],
+  ['espanyol barcelone', 'espany'], ['espanyol barcelona', 'espany'],
+  ['celta vigo', 'celta'], ['celta de vigo', 'celta'],
+]);
+
 // Applique les aliases en pré-normalisation. Remplace chaque terme trouvé (word boundary).
+// Table unique (villes + pays + clubs), précompilée une seule fois : les clés
+// les plus LONGUES passent en premier, sinon « congo kinshasa » serait déjà
+// cassé par l'alias plus court « congo ».
+const ALIAS_RULES = [...new Map([...CITY_ALIASES, ...COUNTRY_ALIASES, ...TEAM_ALIASES])]
+  .sort((a, b) => b[0].length - a[0].length)
+  .map(([k, v]) => [new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, 'g'), v]);
+
 function applyAliases(s) {
-  const lower = ' ' + fold(s) + ' ';
-  let out = lower;
-  for (const [k, v] of CITY_ALIASES) {
-    // Word boundary : espace avant et après ou début/fin
-    const re = new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, 'g');
-    out = out.replace(re, `$1${v}$2`);
-  }
+  let out = ' ' + fold(s) + ' ';
+  for (const [re, v] of ALIAS_RULES) out = out.replace(re, `$1${v}$2`);
   return out.trim();
 }
 
