@@ -2,6 +2,18 @@
 // Port fidele de matchCore.ts (norm/tokenOverlap/acronymMatch/levenshtein/teamSim).
 const DIACRITICS = /[̀-ͯ]/g;
 
+// Repli AVANT normalisation : certaines lettres nordiques/slaves ne se
+// decomposent pas en NFD (ø, æ, ł…) et les abreviations pointees (P.A.O.K.)
+// eclataient en lettres isolees, donc en tokens vides → teamSim = 0 alors que
+// les deux books parlent de la MEME equipe. Fold = meme forme des deux cotes.
+const SPECIAL_FOLD = { 'ø': 'o', 'œ': 'oe', 'æ': 'ae', 'ß': 'ss', 'ł': 'l', 'đ': 'd', 'ð': 'd', 'þ': 'th', 'ı': 'i', 'ħ': 'h', 'ŧ': 't' };
+export function fold(s) {
+  return String(s || '').toLowerCase()
+    .replace(/(?<=[a-z0-9])\.(?=[a-z0-9])/g, '')
+    .replace(/[øœæßłđðþıħŧ]/g, (c) => SPECIAL_FOLD[c] || c)
+    .normalize('NFD').replace(DIACRITICS, '');
+}
+
 // Aliases FR/DE/DK/ES/IT/RU → forme canonique (souvent proche du nom local ou anglais).
 // Applique AVANT tokenisation : toutes les variantes convergent vers 1 clé.
 // Objectif : matcher "FC Copenhague" (Sportcash FR) avec "FC Kobenhavn" (1xBet).
