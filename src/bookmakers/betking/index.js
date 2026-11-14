@@ -10,7 +10,9 @@ export default {
 
   async listMatches({ live = false, sport = 'football', horizonHours } = {}) {
     if (live || sport !== 'football') return [];
-    const rows = await feed(horizonHours || 72).catch(() => []);
+    // Un seul appel avec refresh par cycle : le serveur décide lui-même s'il
+    // doit relever le bookmaker (> 15 min). Les getOdds suivants lisent le cache.
+    const rows = await feed(horizonHours || 72, { refresh: true }).catch(() => []);
     return rows
       .filter((m) => m && m.id && m.home && m.away && m.start)
       .map((m) => ({
