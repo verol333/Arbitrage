@@ -6,7 +6,8 @@
   "scripts": {
     "build": "esbuild ../src/cli.js --bundle --platform=node --format=esm --target=node20 --minify --packages=external --outfile=dist/action.min.js",
     "test:betclic": "node --experimental-default-type=module --test ../src/bookmakers/betclic/mapping.test.mjs",
-    "test:mappings": "node --experimental-default-type=module --test ../src/bookmakers/*/mapping.test.mjs"
+    "test:mappings": "node --experimental-default-type=module --test ../src/bookmakers/*/mapping.test.mjs",
+    "test:core": "node --experimental-default-type=module --test ../src/core/matching.test.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
