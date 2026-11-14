@@ -34,6 +34,13 @@ async function openSession() {
   await page
     .goto(`${BETKING_CDN}/api/settings/globalvariables`, { waitUntil: 'domcontentloaded', timeout: 45000 })
     .catch(() => {});
+  // Cloudflare affiche parfois « Just a moment… » : la page se valide seule en
+  // quelques secondes. On attend jusqu'a 30 s avant de lire les flux.
+  for (let i = 0; i < 12; i++) {
+    const title = await page.title().catch(() => '');
+    if (!/just a moment/i.test(title)) break;
+    await new Promise((r) => setTimeout(r, 2500));
+  }
   return { browser, page };
 }
 
@@ -67,6 +74,9 @@ export async function jget(path, { tries = 6 } = {}) {
     }
     await new Promise((r) => setTimeout(r, 2500));
   }
+  // Refus du site : on ferme le navigateur, le cycle suivant en ouvre un neuf
+  // (nouvelle tentative de validation) au lieu de rester bloque 6 heures.
+  if (last?.status === 403) await closeBetking();
   console.warn(`⚠️ betking ${path}: HTTP ${last?.status} — ${String(last?.text || '').slice(0, 120).replace(/\s+/g, ' ')}`);
   return null;
 }
