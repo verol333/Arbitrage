@@ -47,7 +47,7 @@ function cleanOdds(bookKey, matchId, odds, sport, live = false) {
   const clean = sanitizeForSport(odds, sport);
   if (live && sport === 'football') stripHalfMarkets(bookKey, clean);
   for (const d of dropInconsistentPairs(clean)) {
-    log(`⛔ ${bookKey} #${matchId} paire impossible retirée : ${d.key} ${d.a} + ${d.other} ${d.b} = ${d.sum} (< 1)`);
+    log(`⛔ ${bookKey} #${matchId} paire incohérente retirée : ${d.key} ${d.a} + ${d.other} ${d.b} = ${d.sum}`);
   }
   return clean;
 }
