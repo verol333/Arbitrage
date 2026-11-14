@@ -297,7 +297,7 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
     if (i >= 0 && j >= 0) {
       // Passe les match objects → tennis peut detecter inversion J1/J2 entre books
       // et flipper les cotes pour eviter fake arbs 40%+.
-      const arbs = compare(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j], matches[keys[i]], matches[keys[j]]);
+      const arbs = compare(oddsPerBook[keys[i]], keys[i], oddsPerBook[keys[j]], keys[j], matches[keys[i]], matches[keys[j]], { live });
       for (const a of arbs) {
         if (a.profit_pct < minP) continue;
         const legAlive = matches[a.leg_a_book]?.live || null;
