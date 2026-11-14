@@ -3,11 +3,31 @@
 import { bookmakers } from '../bookmakers/index.js';
 import { alignCatalogs } from '../core/matching.js';
 import { dropInconsistentPairs } from '../core/markets.js';
-import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, compareVolleyballTwoBooks, compareHandballTwoBooks, dedupeOpportunities } from '../core/arbitrage.js';
+import { compareTwoBooks, compareTennisTwoBooks, compareBasketTwoBooks, compareHockeyTwoBooks, compareVolleyballTwoBooks, compareHandballTwoBooks, dedupeOpportunities, setLiveMode, takeLiveDeadPairs } from '../core/arbitrage.js';
 import { config } from '../config.js';
 import { matchUrl } from './urls.js';
 
 export const log = (m) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${m}`);
+
+// ── DIRECT : MARCHÉS DE MI-TEMPS (1MT / 2MT) ÉCARTÉS ────────────────────────
+// Mesuré le 14/11/2026 sur les flux réels : en direct, les books ne rafraîchissent
+// pas leurs marchés de mi-temps — BetMomo ne les sert que depuis son catalogue
+// pré-match (SecondHalfResult/SecondHalfDoubleChance présents avant la 2e période,
+// avec les cotes d'avant-match), et les autres books y laissent le prix figé
+// d'avant le but. Comparés entre books, ces marchés produisent des paires
+// complémentaires mathématiquement impossibles (« Nul ou Ext. 1.14 » face à
+// « Ext. 5.2 » sur un 0-2 à la 88e). On ne les compare donc plus en direct.
+// Le scan PRÉ-MATCH continue de les comparer normalement.
+const liveHalf = { n: 0, books: new Set() };
+function stripHalfMarkets(bookKey, odds) {
+  for (const k of Object.keys(odds)) {
+    if (k === '_ids' || !/^(ht_|h2_|cor_ht_)/.test(k)) continue;
+    delete odds[k];
+    if (odds._ids) delete odds._ids[k];
+    liveHalf.n++;
+    liveHalf.books.add(bookKey);
+  }
+}
 
 async function listSafe(book, opts) {
   try {
@@ -23,8 +43,9 @@ async function listSafe(book, opts) {
 // paires complémentaires MATHÉMATIQUEMENT IMPOSSIBLES (somme des probabilités
 // implicites < 1). Ce ne sont pas des opportunités mais des lectures fausses
 // (marché voisin, autre période, côté périmé) — voir core/markets.js.
-function cleanOdds(bookKey, matchId, odds, sport) {
+function cleanOdds(bookKey, matchId, odds, sport, live = false) {
   const clean = sanitizeForSport(odds, sport);
+  if (live && sport === 'football') stripHalfMarkets(bookKey, clean);
   for (const d of dropInconsistentPairs(clean)) {
     log(`⛔ ${bookKey} #${matchId} paire impossible retirée : ${d.key} ${d.a} + ${d.other} ${d.b} = ${d.sum} (< 1)`);
   }
@@ -38,7 +59,7 @@ async function readOddsSafe(book, matches, opts) {
   try {
     if (book.getOddsBatch) {
       const batch = await book.getOddsBatch(matches, opts);
-      for (const [id, odds] of batch) map.set(id, cleanOdds(book.key, id, odds || {}, sport));
+      for (const [id, odds] of batch) map.set(id, cleanOdds(book.key, id, odds || {}, sport, !!opts?.live));
       return map;
     }
     // Batch size par book, calé sur la tolérance de leur API :
@@ -58,7 +79,7 @@ async function readOddsSafe(book, matches, opts) {
         log(`⚠️ ${book.key} getOdds(${m.id}): ${e.message || e}`);
         return {};
       })));
-      chunk.forEach((m, k) => map.set(m.id, cleanOdds(book.key, m.id, results[k] || {}, sport)));
+      chunk.forEach((m, k) => map.set(m.id, cleanOdds(book.key, m.id, results[k] || {}, sport, !!opts?.live)));
     }
     return map;
   } catch (e) {
@@ -139,6 +160,8 @@ const lastCatalogs = new Map();
 export async function runScan({ live = false, horizonHours, minProfit, maxMatches, sport = 'football', onOpportunities = null } = {}) {
   const t0 = Date.now();
   const tick = (label) => log(`  ⏱️ ${sport} ${label}: +${Date.now() - t0}ms`);
+  setLiveMode(live);
+  liveHalf.n = 0; liveHalf.books.clear(); takeLiveDeadPairs();
   const usable = bookmakers.filter((b) => live ? b.supports.live : b.supports.prematch);
   const listOpts = { live, horizonHours: horizonHours ?? config.scan.horizonHours, sport };
   // ⏳ PLAFOND D'ATTENTE SUR LE LISTAGE DES MATCHS.
@@ -511,6 +534,10 @@ export async function runScan({ live = false, horizonHours, minProfit, maxMatche
       log(`   ${o.profit_pct}% "${o.match_label}" [${o.market_family}] ${o.leg_a_book}@${o.leg_a_odd} vs ${o.leg_b_book}@${o.leg_b_odd}`);
     }
   }
+
+  if (live && liveHalf.n) log(`🧹 direct : ${liveHalf.n} cotes de mi-temps (1MT/2MT) écartées — servies en pré-match par ${[...liveHalf.books].join(', ')}`);
+  const deadPairs = takeLiveDeadPairs();
+  if (live && deadPairs) log(`⛔ direct : ${deadPairs} paires complémentaires impossibles (cote morte/suspendue) écartées`);
 
   return {
     opportunities: confirmed,
