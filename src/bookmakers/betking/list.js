@@ -26,7 +26,9 @@ export async function listBetking({ force = false, maxLeagues = MAX_LEAGUES } = 
   const rows = [];
   const seen = new Set();
   for (const t of tours.slice(0, maxLeagues)) {
-    const feed = await jget(`/api/feeds/prematch/en/1/${t.id}/0/0`);
+    // Le chiffre apres la langue est la FENETRE DE DATES, pas le sport : 1 ne
+    // rend que les matchs du jour (flux vide le soir), 4 rend tout le programme.
+    const feed = await jget(`/api/feeds/prematch/en/4/${t.id}/0/0`);
     for (const area of feed?.AreaMatches || []) {
       for (const it of area.Items || []) {
         const id = Number(it.ItemID);
