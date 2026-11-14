@@ -1,4 +1,5 @@
-import { listBetking, closeBetking } from './list.js';
+import { listBetking } from './list.js';
+import { closeBetking } from './api.js';
 import { betkingOdds } from './parse.js';
 
 // BetKing (Nigeria) : foot pré-match uniquement. Cotes lues directement sur le
