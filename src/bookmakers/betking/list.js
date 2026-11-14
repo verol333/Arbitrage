@@ -1,7 +1,11 @@
 // Catalogue BetKing : menu (pays → compétitions) puis flux par compétition.
 import { jget } from './api.js';
 
-const MAX_LEAGUES = 14;
+// 14 competitions ne donnaient que ~100 matchs (mesure du 14/11/2026) : trop peu
+// pour qu'une cote BetKing soit un jour la meilleure face aux 15 autres books.
+// 45 competitions elargissent la couverture sans depasser le budget navigateur
+// (un flux par competition, ~200 ms chacun).
+const MAX_LEAGUES = 45;
 let cache = { at: 0, rows: [] };
 
 export async function listBetking({ force = false, maxLeagues = MAX_LEAGUES } = {}) {
