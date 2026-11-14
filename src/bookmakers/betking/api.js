@@ -7,7 +7,14 @@
 // cotes (un appel croisé est refusé : cookies tiers).
 //
 // Aucun compte, aucune authentification : on ne lit que des cotes publiques.
-import { chromium } from 'playwright';
+// Import DIFFERE volontaire : la sonde de couverture et les tests de mapping
+// chargent le registre des books sans navigateur installe. Un import statique
+// faisait planter tout script qui ne connait pas BetKing.
+let chromiumMod = null;
+async function chromium() {
+  if (!chromiumMod) chromiumMod = (await import('playwright')).chromium;
+  return chromiumMod;
+}
 
 export const BETKING_CDN = 'https://sportsapicdn-desktop.betking.com';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
@@ -15,6 +22,7 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 let session = null;
 
 async function openSession() {
+  const chromium = await chromium();
   const browser = await chromium.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-blink-features=AutomationControlled', '--disable-dev-shm-usage'],
