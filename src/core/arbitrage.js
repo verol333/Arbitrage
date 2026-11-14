@@ -4,7 +4,7 @@
 // de marge : une grosse marge doit remonter telle quelle (soit elle est reelle,
 // soit elle revele un bug de parsing a corriger a la source).
 import { config } from '../config.js';
-import { normalizeAliases } from './markets.js';
+import { normalizeAliases, complementKey } from './markets.js';
 import { teamSim } from './text.js';
 
 const MAX_ODD = 80;
@@ -223,9 +223,52 @@ function staleBookMismatch(oa, ob) {
   return Math.abs(a.prob - b.prob) > STALE_PROB_TOL;
 }
 
-export function compareTwoBooks(rawA, bookA, rawB, bookB) {
+// ─────────────────────────────────────────────────────────────────────────────
+// COHÉRENCE CROISÉE PAR MARCHÉ, EN DIRECT — CORRECTIF CAUSE RACINE (14/11/2026)
+//
+// Signalement abonné : surebets live à 20-40 % (Moldavie U19, Tchéquie U19,
+// Arménie U19). Diagnostic : sur un même match en cours, l'un des deux books
+// publiait encore une cote d'un état antérieur du match (totaux et mi-temps
+// figés au coup d'envoi) pendant que l'autre cotait le jeu réel. Les deux cotes
+// prises séparément sont inattaquables, mais leur appariement fabrique une
+// marge géométriquement impossible en direct.
+//
+// Le garde-fou existant (staleBookMismatch) ne regardait que le 1X2 : il ne
+// voyait donc rien sur « 1MT Total Buts 1.5 » ou « Handicap +2.5 ». Ici, pour
+// CHAQUE marché à deux issues publié par LES DEUX books, on compare la
+// probabilité implicite qu'ils donnent à la même issue. En direct, deux books
+// ne peuvent pas diverger de plus de 10 points sur la même ligne sans que l'un
+// des flux soit figé : le marché est alors écarté du cycle. Aucun plafond de
+// marge n'est introduit — c'est la donnée incohérente qui est retirée.
+// Appliqué au direct uniquement : en pré-match, un book en retard EST la vraie
+// opportunité.
+const LIVE_DIVERGENCE_MAX = 0.10;
+
+function dropLiveDivergentMarkets(oa, ob) {
+  const drop = new Set();
+  const seen = new Set();
+  for (const k of Object.keys(oa)) {
+    if (seen.has(k)) continue;
+    const c = complementKey(k);
+    if (!c) continue;
+    seen.add(k); seen.add(c);
+    const a1 = Number(oa[k]), a2 = Number(oa[c]);
+    const b1 = Number(ob[k]), b2 = Number(ob[c]);
+    if (!(a1 > 1 && a2 > 1 && b1 > 1 && b2 > 1)) continue;
+    const pa = (1 / a1) / (1 / a1 + 1 / a2);
+    const pb = (1 / b1) / (1 / b1 + 1 / b2);
+    if (Math.abs(pa - pb) > LIVE_DIVERGENCE_MAX) { drop.add(k); drop.add(c); }
+  }
+  let n = 0;
+  for (const k of drop) { if (oa[k] != null) n++; delete oa[k]; delete ob[k]; }
+  return n;
+}
+
+export function compareTwoBooks(rawA, bookA, rawB, bookB, opts = {}) {
   const oa = normalizeAliases(rawA);
   const ob = normalizeAliases(rawB);
+  // DIRECT : on écarte d'abord les marchés où les deux books se contredisent.
+  if (opts.live) dropLiveDivergentMarkets(oa, ob);
   // Skip complet si orientations 1X2 divergent — évite les fake arbs 20-25%
   // sur matchs mal appariés (BetPawa senior vs autre book jeune, etc.).
   if (orientationsMismatch(oa, ob)) return [];
