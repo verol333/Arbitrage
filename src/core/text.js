@@ -83,7 +83,7 @@ const CITY_ALIASES = new Map([
 
 // Applique les aliases en pré-normalisation. Remplace chaque terme trouvé (word boundary).
 function applyAliases(s) {
-  const lower = ' ' + (s || '').toLowerCase().normalize('NFD').replace(DIACRITICS, '') + ' ';
+  const lower = ' ' + fold(s) + ' ';
   let out = lower;
   for (const [k, v] of CITY_ALIASES) {
     // Word boundary : espace avant et après ou début/fin
@@ -150,18 +150,18 @@ export function fuzzyEq(wa, wb) {
 // Detecte si un nom court est l'ACRONYME d'un nom long (PSG↔Paris Saint Germain).
 export function acronymMatch(a, b) {
   const acr = (s) => {
-    const raw = (s || '').normalize('NFD').replace(DIACRITICS, '').trim();
+    const raw = fold(s).trim();
     const words = raw.split(/\s+/).filter(Boolean);
     if (words.length !== 1) return null;
     const w = words[0];
     if (w.length < 2 || w.length > 5) return null;
     return w.toLowerCase().replace(/[^a-z]/g, '');
   };
-  const initials = (s) => (s || '').normalize('NFD').replace(DIACRITICS, '')
+  const initials = (s) => fold(s)
     .split(/\s+/).filter((w) => w.length >= 2 && /^[a-z]/i.test(w))
     .map((w) => w[0].toLowerCase()).join('');
   const isSub = (ac, longN) => {
-    const letters = (longN || '').normalize('NFD').replace(DIACRITICS, '').toLowerCase().replace(/[^a-z]/g, '');
+    const letters = fold(longN).replace(/[^a-z]/g, '');
     let i = 0;
     for (const ch of letters) { if (ch === ac[i]) i++; if (i === ac.length) return true; }
     return false;
