@@ -1,4 +1,4 @@
-// Sonde : comment PremierBet date ses matchs EN DIRECT.
+// Sonde : structure brute du flux LIVE PremierBet (et horaires).
 const BASE = 'https://sports-api.premierbet.com/cm/v1';
 const PARAMS = { country: 'CM', group: 'g1', platform: 'desktop', locale: 'fr' };
 const HEADERS = {
@@ -8,40 +8,45 @@ const HEADERS = {
   Referer: 'https://www.premierbet.com/',
   Origin: 'https://www.premierbet.com',
 };
-async function mget(path, extra) {
+async function raw(path, extra) {
   const ps = new URLSearchParams(Object.assign({}, PARAMS, extra || {}));
   const url = BASE + path + '?' + ps.toString();
-  const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(25000) });
-  if (!r.ok) return { status: r.status, data: null };
-  return { status: r.status, data: await r.json() };
+  try {
+    const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(25000) });
+    const t = await r.text();
+    return { status: r.status, body: t };
+  } catch (e) { return { status: 0, body: 'ERR ' + e.message }; }
 }
-function eventsOf(data) {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
+function flatten(data) {
   const out = [];
+  if (!data || typeof data !== 'object') return out;
+  if (Array.isArray(data)) return data;
   for (const c of data.categories || []) for (const k of c.competitions || []) out.push.apply(out, (k.events || []));
   return out;
 }
-const iso = function (v) {
-  if (v == null) return 'null';
-  const n = Number(v);
-  return Number.isFinite(n) && n > 1e11 ? new Date(n).toISOString() : String(v);
-};
 (async function () {
-  const now = Date.now();
-  console.log('NOW =', new Date(now).toISOString(), '(', now, ')');
-  const variants = [{ sportId: '1' }, { sportId: '1', timeOffset: '-60' }];
-  for (const extra of variants) {
-    const r = await mget('/events/live', extra);
-    const evs = eventsOf(r.data);
+  console.log('NOW =', new Date().toISOString());
+  const variants = [
+    ['/events/live', { sportId: '1' }],
+    ['/events/live', {}],
+    ['/events/live', { sportId: '1', timeOffset: '0' }],
+    ['/events/all', { sportId: '1' }],
+    ['/events/upcoming', { sportId: '1', timeOffset: '-60', date: new Date().toISOString().slice(0, 10) }],
+  ];
+  for (const v of variants) {
+    const r = await raw(v[0], v[1]);
     console.log('');
-    console.log('===== /events/live ' + JSON.stringify(extra) + ' status=' + r.status + ' events=' + evs.length);
-    if (evs[0]) console.log('RAW[0] =', JSON.stringify(evs[0]).slice(0, 1500));
-    for (const ev of evs.slice(0, 12)) {
-      const fields = {};
-      for (const k of Object.keys(ev)) if (/time|date|start|live|period|minute|status/i.test(k)) fields[k] = ev[k];
-      const nm = Array.isArray(ev.eventNames) ? ev.eventNames.join(' - ') : String(ev.eventNames);
-      console.log('- ' + nm + ' | ' + ev.competitionName + ' | startTime=' + iso(ev.startTime) + ' | ' + JSON.stringify(fields));
+    console.log('=== ' + v[0] + ' ' + JSON.stringify(v[1]) + ' status=' + r.status + ' len=' + r.body.length);
+    console.log('HEAD: ' + r.body.slice(0, 400));
+    let data = null; try { data = JSON.parse(r.body); } catch (e) {}
+    if (data) {
+      console.log('TOPKEYS: ' + JSON.stringify(Object.keys(data).slice(0, 20)));
+      const evs = flatten(data);
+      console.log('EVENTS: ' + evs.length);
+      for (const ev of evs.slice(0, 8)) {
+        const nm = Array.isArray(ev.eventNames) ? ev.eventNames.join(' - ') : String(ev.eventNames);
+        console.log('  - ' + nm + ' | ' + ev.competitionName + ' | startTime=' + ev.startTime + ' (' + (ev.startTime ? new Date(Number(ev.startTime)).toISOString() : '-') + ')');
+      }
     }
   }
 })().catch(function (e) { console.log('ERR', e.message); });
